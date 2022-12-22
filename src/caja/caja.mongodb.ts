@@ -70,7 +70,7 @@ export async function guardarMonedas(
 export async function getUltimoCierre(): Promise<CajaSincro> {
   const database = (await conexion).db("tocgame");
   const sincroCajas = database.collection<CajaSincro>("sincro-cajas");
-  return await sincroCajas.findOne({ enviado: false }, { sort: { _id: 1 } });
+  return await sincroCajas.findOne({ enviado: false }, { sort: { _id: -1 } });
 }
 
 /* Eze 4.0 */
