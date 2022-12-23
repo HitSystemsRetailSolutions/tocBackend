@@ -95,7 +95,7 @@ export class Impresora {
     try {
       permisosImpresora();
       const device = await dispositivos.getDeviceVisor();
-
+      console.log("moltes gracies");
       if (device)
         mqttInstance.enviarVisor("Moltes Gracies !!                       ");
       else throw Error("Controlado: dispositivo es null");
@@ -169,7 +169,7 @@ export class Impresora {
         numFactura: devolucion._id,
         arrayCompra: devolucion.cesta.lista,
         total: devolucion.total,
-        visa: null,
+        visa: "DEVOLUCION",
         tiposIva: devolucion.cesta.detalleIva,
         cabecera: parametros.header,
         pie: parametros.footer,
