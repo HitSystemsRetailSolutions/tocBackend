@@ -81,3 +81,18 @@ export async function setTipoImpresora(
     )
   ).acknowledged;
 }
+
+export async function setVisor(
+  tipo: ParametrosInterface["visor"]
+): Promise<boolean> {
+  console.log(tipo);
+  const database = (await conexion).db("tocgame");
+  const parametros = database.collection("parametros");
+  return (
+    await parametros.updateOne(
+      { _id: "PARAMETROS" },
+      { $set: { visor: tipo } },
+      { upsert: true }
+    )
+  ).acknowledged;
+}

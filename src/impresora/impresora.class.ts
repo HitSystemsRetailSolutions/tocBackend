@@ -91,14 +91,21 @@ export class Impresora {
   }
 
   /* Eze 4.0 */
-  async despedirCliente() {
+  async despedirCliente(data:number) {
     try {
       permisosImpresora();
       const device = await dispositivos.getDeviceVisor();
-      console.log("moltes gracies");
-      if (device)
-        mqttInstance.enviarVisor("Moltes Gracies !!                       ");
-      else throw Error("Controlado: dispositivo es null");
+      console.log("moltes gracies",device==null);
+      if (device){
+        let dataString:string=data.toString();
+        let linea1Visor="Moltes gracies!!    "+"Total: "+dataString.replace(",",".")+"E";
+        let restar=linea1Visor;
+        linea1Visor+="                                        ";
+        
+        let lineasVisor:string=linea1Visor.substring(0,linea1Visor.length-restar.length);
+        console.log(lineasVisor.length,lineasVisor);
+        mqttInstance.enviarVisor(lineasVisor);
+      }else throw Error("Controlado: dispositivo es null");
     } catch (err) {
       mqttInstance.loggerMQTT(err.message);
     }

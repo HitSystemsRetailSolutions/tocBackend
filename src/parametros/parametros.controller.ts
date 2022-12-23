@@ -80,6 +80,18 @@ export class ParametrosController {
     }
   }
 
+  @Post("setTipoVisor")
+  async setTipoVisor(@Body() { tipo }) {
+    try {
+      if (tipo && tipo != "") {
+        return await parametrosInstance.setTipoVisor(tipo);
+      }
+      throw Error("Faltan datos en parametros/setTipoVisor");
+    } catch (err) {
+      logger.Error(243, err);
+      return false;
+    }
+  }
   /* Eze 4.0 */
   @Get("getVidAndPid")
   async getVidAndPid() {
