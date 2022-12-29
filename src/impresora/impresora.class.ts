@@ -1112,6 +1112,7 @@ export class Impresora {
 
   /* Eze 4.0 */
   async mostrarVisor(data) {
+    console.log(data.total);
     let eur = "E";
 
     let limitNombre = 0;
@@ -1127,10 +1128,10 @@ export class Impresora {
       else if (lengthTotal.length == 6) limitNombre = 12;
       else if (lengthTotal.length == 7) limitNombre = 11;
 
-      const dependienta = data.dependienta.substring(0, limitNombre);
+      const numArticle ="Productes: " +data.numProductos;
       const total = data.total + eur;
       const espacio = " ";
-      const size = 20 - (dependienta.length + total.length);
+      const size = 20 - (numArticle.length + total.length);
       const espacios = [
         "",
         " ",
@@ -1148,7 +1149,7 @@ export class Impresora {
         "             ",
         "              ",
       ];
-      datosExtra = dependienta + espacios[size] + total;
+      datosExtra = numArticle + espacios[size] + total;
     }
     if (datosExtra.length <= 2) {
       datosExtra = "";
@@ -1163,6 +1164,7 @@ export class Impresora {
     try {
       permisosImpresora();
       const device = await dispositivos.getDeviceVisor();
+      console.log(string.substring(0, 40));
       if (device) mqttInstance.enviarVisor(string.substring(0, 40));
       else throw Error("Controlado: dispositivo es null");
     } catch (err) {

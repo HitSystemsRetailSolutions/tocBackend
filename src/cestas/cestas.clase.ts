@@ -17,6 +17,7 @@ import { logger } from "../logger";
 import { io } from "../sockets.gateway";
 import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import { clienteInstance } from "../clientes/clientes.clase";
+import {impresoraInstance} from '../impresora/impresora.class';
 import axios from "axios";
 
 export class CestaClase {
@@ -192,6 +193,20 @@ export class CestaClase {
           gramos: gramos,
         });
       }
+      console.log(cesta.lista[0].unidades);
+      let numProductos=0;
+      let total=0;
+              for (let i = 0; i < cesta.lista.length; i++) {
+                numProductos += cesta.lista[i].unidades;
+                total+=cesta.lista[i].subtotal;
+                
+              }
+        impresoraInstance.mostrarVisor({
+          total: total.toFixed(2),
+          precio: articulo.precioConIva.toString(),
+          texto: articulo.nombre,
+          numProductos:numProductos,
+        });
     }
 
     await this.recalcularIvas(cesta);
