@@ -91,7 +91,7 @@ export class CajaClase {
     )
       throw Error("No se ha podido crear el movimiento 3G");
 
-    const finalTime = Date.now();
+    const finalTime = await this.getFechaCierre();
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
     const cajaCerradaActual = await this.getDatosCierre(
       cajaAbiertaActual,
@@ -118,6 +118,62 @@ export class CajaClase {
 
   /* Eze 4.0 */
   getUltimoCierre = async () => await schCajas.getUltimoCierre();
+
+  getCambioDeTurno(){
+    return schCajas.getCambioDeTurno().then((res) => {
+      return res;
+    }).catch((err) => {
+      logger.Error(150, err);
+      return null;
+    });
+    
+  }
+
+  getAnularTurno(){
+    return schCajas.getAnularTurno().then((res) => {
+      return res;
+    }).catch((err) => {
+      logger.Error(151, err);
+      return null;
+    });
+    
+  }
+  getComprovarTurno(){
+    return schCajas.getComprovarTurno().then((res) => {
+      return res;
+    }).catch((err) => {
+      logger.Error(152, err);
+      return null;
+    });
+    
+  }
+
+  getComprovarFechaCierreTurno(){
+    return schCajas.getComprovarTurno().then((res) => {
+      console.log("time en caja.clase: ", res.time);
+      if (res.estado==true) {
+	schCajas.getCambioDeTurno().then((res2) => {});
+        return parseInt(res.time);
+      } else {
+       return Date.now();
+      }
+      
+    })
+  }
+
+  getFechaCierre(){
+    return schCajas.getComprovarTurno().then((res) => {
+      console.log("time en caja.clase: ", res.time);
+      if (res.estado==true) {
+	
+        return res.time
+      } else {
+       return Date.now();
+      }
+      
+    })
+  }
+  
 
   /* Eze 4.0 */
   async getDatosCierre(
