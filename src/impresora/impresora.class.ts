@@ -325,32 +325,49 @@ export class Impresora {
         pagoDevolucion = "-- ES DEVOLUCION --\n";
       }
 
-      let detalleIva4 = "";
-      let detalleIva10 = "";
-      let detalleIva21 = "";
-      let detalleIva = "";
+      let str1= '            ';
+      let str2= '                 ';
+      let str3= '              ';
+      let base = '';
+      let valorIva = '';
+      let importe = '';
+      let detalleIva4 = '';
+      let detalleIva10 = '';
+      let detalleIva21 = '';
+      let detalleIva = '';
+      let detalleIva0 = '';
+      let detalleIva5 = '';
       if (tiposIva.importe1 > 0) {
-        detalleIva4 = `${tiposIva.base1.toFixed(
-          2
-        )}€      4%: ${tiposIva.valorIva1.toFixed(
-          2
-        )}€     ${tiposIva.importe1.toFixed(2)}€\n`;
+        base=tiposIva.base1.toFixed(2)+'€';
+        valorIva='4%: '+tiposIva.valorIva1.toFixed(2)+'€';
+        importe=tiposIva.importe1.toFixed(2)+'€\n';
+        detalleIva4 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
       }
       if (tiposIva.importe2 > 0) {
-        detalleIva10 = `${tiposIva.base2.toFixed(
-          2
-        )}€      10%: ${tiposIva.valorIva2.toFixed(
-          2
-        )}€     ${tiposIva.importe2.toFixed(2)}€\n`;
+        base=tiposIva.base2.toFixed(2)+'€';
+        valorIva='10%: '+tiposIva.valorIva2.toFixed(2)+'€';
+        importe=tiposIva.importe2.toFixed(2)+'€\n';
+        detalleIva10 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
       }
       if (tiposIva.importe3 > 0) {
-        detalleIva21 = `${tiposIva.base3.toFixed(
-          2
-        )}€     21%: ${tiposIva.valorIva3.toFixed(
-          2
-        )}€     ${tiposIva.importe3.toFixed(2)}€\n`;
+        base=tiposIva.base3.toFixed(2)+'€';
+        valorIva='21%: '+tiposIva.valorIva3.toFixed(2)+'€';
+        importe=tiposIva.importe3.toFixed(2)+'€\n';
+        detalleIva21 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
       }
-      detalleIva = detalleIva4 + detalleIva10 + detalleIva21;
+      if (tiposIva.importe4 > 0) {
+        base=tiposIva.base4.toFixed(2)+'€';
+        valorIva='0%: '+tiposIva.valorIva4.toFixed(2)+'€';
+        importe=tiposIva.importe4.toFixed(2)+'€\n';
+        detalleIva0 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
+      }
+      if (tiposIva.importe5 > 0) {
+        base=tiposIva.base5.toFixed(2)+'€';
+        valorIva='5%: '+tiposIva.valorIva5.toFixed(2)+'€';
+        importe=tiposIva.importe5.toFixed(2)+'€\n';
+        detalleIva5 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
+      }
+      detalleIva = detalleIva0 + detalleIva4 + detalleIva5 + detalleIva10 + detalleIva21;
       let infoConsumoPersonal = "";
       if (tipoPago == "CONSUMO_PERSONAL") {
         infoConsumoPersonal = "---------------- Dte. 100% --------------";
@@ -400,6 +417,9 @@ export class Impresora {
           .text(pagoTkrs)
           .align("LT")
           .text(infoConsumoPersonal)
+          .align('CT')
+          .text('----------------------------------------------')
+          .align('LT')
           .size(1, 1)
           .text(pagoDevolucion)
           .text("TOTAL: " + total.toFixed(2) + " €")
@@ -407,7 +427,9 @@ export class Impresora {
           .size(0, 0)
           .align("CT")
           .text("Base IVA         IVA         IMPORT")
+          .align('LT')
           .text(detalleIva)
+          .align('CT')
           .text("-- ES COPIA --")
           .control("LF")
           .text("ID: " + random() + " - " + random())
@@ -1112,7 +1134,7 @@ export class Impresora {
 
   /* Eze 4.0 */
   async mostrarVisor(data) {
-    console.log(data.total);
+    console.log("total",data.total);
     let eur = "E";
 
     let limitNombre = 0;
@@ -1158,7 +1180,7 @@ export class Impresora {
     // Limito el texto a 14, ya que la línea completa tiene 20 espacios. (1-14 -> artículo, 15 -> espacio en blanco, 16-20 -> precio)
     data.texto = data.texto.substring(0, 14);
     data.texto += " " + data.precio + eur;
-    let string = `${datosExtra} ${data.texto}                                               `;
+    let string = `${datosExtra}${data.texto}                                               `;
     string = string + "                                             ";
 
     try {

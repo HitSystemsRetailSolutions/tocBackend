@@ -12,13 +12,19 @@ export function construirObjetoIvas(
 ): DetalleIvaInterface {
   let base1 = 0,
     base2 = 0,
-    base3 = 0;
+    base3 = 0,
+    base4 = 0,
+    base5 = 0;
   let valor1 = 0,
     valor2 = 0,
-    valor3 = 0;
+    valor3 = 0,
+    valor4 = 0,
+    valor5 = 0;
   let importe1 = 0,
     importe2 = 0,
-    importe3 = 0;
+    importe3 = 0,
+    importe4 = 0,
+    importe5 = 0;
 
   switch (tipoIva) {
     case 1:
@@ -36,6 +42,16 @@ export function construirObjetoIvas(
       valor3 = (precioConIva / 1.21) * 0.21 * unidades;
       importe3 = precioConIva * unidades;
       break;
+    case 4:
+      base4 = (precioConIva / 1) * unidades;
+      valor4 = (precioConIva / 1) * 0 * unidades;
+      importe4 = precioConIva * unidades;
+      break;
+    case 5:
+      base5 = (precioConIva / 1.05) * unidades;
+      valor5 = (precioConIva / 1.05) * 0.05 * unidades;
+      importe5 = precioConIva * unidades;
+      break;
     default:
       break;
   }
@@ -44,12 +60,18 @@ export function construirObjetoIvas(
     base1: redondearPrecio(base1),
     base2: redondearPrecio(base2),
     base3: redondearPrecio(base3),
+    base4: redondearPrecio(base4),
+    base5: redondearPrecio(base5),
     valorIva1: redondearPrecio(valor1),
     valorIva2: redondearPrecio(valor2),
     valorIva3: redondearPrecio(valor3),
+    valorIva4: redondearPrecio(valor4),
+    valorIva5: redondearPrecio(valor5),
     importe1: redondearPrecio(importe1),
     importe2: redondearPrecio(importe2),
     importe3: redondearPrecio(importe3),
+    importe4: redondearPrecio(importe4),
+    importe5: redondearPrecio(importe5),
   };
 }
 
@@ -65,11 +87,17 @@ export function fusionarObjetosDetalleIva(obj1: DetalleIvaInterface, obj2: Detal
     base1: obj1.base1 + obj2.base1,
     base2: obj1.base2 + obj2.base2,
     base3: obj1.base3 + obj2.base3,
+    base4: obj1.base4 + obj2.base4,
+    base5: obj1.base5 + obj2.base5,
     valorIva1: obj1.valorIva1 + obj2.valorIva1,
     valorIva2: obj1.valorIva2 + obj2.valorIva2,
     valorIva3: obj1.valorIva3 + obj2.valorIva3,
+    valorIva4: obj1.valorIva4 + obj2.valorIva4,
+    valorIva5: obj1.valorIva5 + obj2.valorIva5,
     importe1: obj1.importe1 + obj2.importe1,
     importe2: obj1.importe2 + obj2.importe2,
     importe3: obj1.importe3 + obj2.importe3,
+    importe4: obj1.importe4 + obj2.importe4,
+    importe5: obj1.importe5 + obj2.importe5,
   }
 }
