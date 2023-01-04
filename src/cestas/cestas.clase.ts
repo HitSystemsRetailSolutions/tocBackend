@@ -211,7 +211,7 @@ export class CestaClase {
               }
         impresoraInstance.mostrarVisor({
           total: total.toFixed(2),
-          precio: articulo.precioConIva.toString(),
+          precio: articulo.precioConIva.toFixed(2).toString(),
           texto: articulo.nombre,
           numProductos:numProductos,
         });
