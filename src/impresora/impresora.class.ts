@@ -1183,6 +1183,14 @@ export class Impresora {
       data.texto = data.texto.replace("'"," ");
       
     }
+    if (data.texto.indexOf("´")!=-1) {
+      data.texto = data.texto.replace("´"," ");
+      
+    }
+    if (data.texto.indexOf("`")!=-1) {
+      data.texto = data.texto.replace("`"," ");
+      
+    }
     // Limito el texto a 14, ya que la línea completa tiene 20 espacios. (1-14 -> artículo, 15 -> espacio en blanco, 16-20 -> precio)
     data.texto = data.texto.substring(0, 14);
     data.texto += " " + data.precio + eur;
