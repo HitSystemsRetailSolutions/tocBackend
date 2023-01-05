@@ -13,6 +13,7 @@ import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { ObjectId } from "mongodb";
 import { logger } from "../logger";
 import { impresoraInstance } from "../impresora/impresora.class";
+import { io } from "../sockets.gateway";
 
 export class CajaClase {
   /* Eze 4.0 */
@@ -99,13 +100,19 @@ export class CajaClase {
       detalleCierre,
       idDependientaCierre,
       totalDatafono3G,
-      finalTime
+      finalTime.time
     );
 
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
       impresoraInstance.imprimirCajaAsync(ultimaCaja);
-      return await this.resetCajaAbierta();
+      if( await this.resetCajaAbierta()){
+        if (!finalTime.estadoTurno) {
+          io.emit("cargarVentas", []);  
+        }
+        
+        return true;
+      }
     }
     return false;
   }
@@ -166,9 +173,9 @@ export class CajaClase {
       console.log("time en caja.clase: ", res.time);
       if (res.estado==true) {
 	
-        return res.time
+        return {time: res.time, estadoTurno: true};
       } else {
-       return Date.now();
+       return {time: Date.now(), estadoTurno: false};
       }
       
     })
