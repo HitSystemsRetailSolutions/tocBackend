@@ -3,7 +3,6 @@ import { parametrosInstance } from "./parametros/parametros.clase";
 const escpos = require("escpos");
 // const exec = require("child_process").exec;
 const os = require("os");
-escpos.USB = require("escpos-usb");
 escpos.Serial = require("escpos-serialport");
 escpos.Screen = require("escpos-screen");
 import { logger } from "./logger";
@@ -12,19 +11,6 @@ export class Dispositivos {
   async getDevice() {
     const parametros = await parametrosInstance.getParametros();
     if (os.platform() === "linux") {
-      if (parametros.tipoImpresora == "USB") {
-        return new escpos.USB(
-          parametros.impresoraUsbInfo.vid.toUpperCase(),
-          parametros.impresoraUsbInfo.pid.toUpperCase()
-        );
-      } else if (parametros.tipoImpresora == "SERIE") {
-        const port: any = "/dev/ttyS0";
-        const device = new escpos.Serial(port, {
-          baudRate: 115200,
-          autoOpen: true,
-        });
-        return device;
-      } else throw Error("Tipo de impresora incorrecto");
     } else if (os.platform() === "win32") {
       try {
         if (parametros.tipoImpresora == "USB") {
