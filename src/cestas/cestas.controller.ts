@@ -3,6 +3,8 @@ import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 import { cestasInstance } from "./cestas.clase";
 import { logger } from "../logger";
 import { UtilesModule } from "src/utiles/utiles.module";
+import axios from "axios";
+import { articulosInstance } from "src/articulos/articulos.clase";
 
 @Controller("cestas")
 export class CestasController {
@@ -150,4 +152,25 @@ export class CestasController {
       logger.Error(133, err);
     }
   }
+
+  @Post('addSuplemento')
+    async addSuplemento(@Body() params) {
+      if (params.idCesta && params.suplementos && params.idArticulo) {
+        params.suplementos = params.suplementos.map(o => o.suplemento);
+        console.log("suplem elegidos:",params.suplementos);
+        return cestasInstance.addSuplementos(params.idCesta, params.suplementos, params.idArticulo).then((res) => {
+          return {
+            error: false,
+            bloqueado: false,
+            cesta: res,
+          };
+        }).catch((err) => {
+          logger.Error(134, err);
+          return {
+            error: true,
+            bloqueado: false,
+          };
+        });
+      }
+    }
 }

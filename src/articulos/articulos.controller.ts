@@ -8,10 +8,27 @@ export class ArticulosController {
   async getArticulo(@Body() { idArticulo, idCliente }) {
     try {
       if (idArticulo)
+      console.log("entro en el if del controller");
         return await articulosInstance.getPrecioConTarifa(
           await articulosInstance.getInfoArticulo(idArticulo),
           idCliente
         );
+      throw Error("Error, faltan datos en getArticulo controller");
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+
+  @Post("getSuplementos")
+  async getSuplementos(@Body() { suplementos }) {
+    try {
+      console.log("suplementos",suplementos);
+      if (suplementos)
+      console.log("entro en el if del controller");
+        const res = await articulosInstance.getSuplementos(suplementos);
+        console.log("res" ,res);
+        return res;
       throw Error("Error, faltan datos en getArticulo controller");
     } catch (err) {
       logger.Error(50, err);
@@ -32,6 +49,7 @@ export class ArticulosController {
     }
   }
 
+  
   // @Post("editarArticulo")
   // editarArticulo(@Body() params) {
   //   if (

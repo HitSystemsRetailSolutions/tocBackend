@@ -176,11 +176,14 @@ export class CestaClase {
         unidades
       ))
     ) {
+      let infoArticulo = await articulosInstance.getInfoArticulo(articulo._id);
+      console.log("INFOaRT: ",infoArticulo);
       for (let i = 0; i < cesta.lista.length; i++) {
         if (
           cesta.lista[i].idArticulo === articulo._id &&
           !cesta.lista[i].promocion &&
-          !cesta.lista[i].regalo
+          !cesta.lista[i].regalo &&
+          (!infoArticulo.suplementos || infoArticulo.suplementos.length<1)
         ) {
           cesta.lista[i].unidades += unidades;
           cesta.lista[i].subtotal += unidades * articulo.precioConIva;
@@ -500,8 +503,23 @@ export class CestaClase {
     indexCesta: number
   ) {
     const cesta = await this.getCestaById(idCesta);
-    cesta.lista[indexCesta].arraySuplementos = arraySuplementos;
-    return await this.updateCesta(cesta);
+    console.log("cesta de addS en cesta.class",cesta)
+    cesta.lista[cesta.lista.length-1].arraySuplementos = arraySuplementos;
+    const infoSuplementos = await articulosInstance.getSuplementos(arraySuplementos);
+    console.log("infoSuplementos:",infoSuplementos);
+    for (let i = 0; i < infoSuplementos.length; i++) {
+      
+        console.log("entro al if del for");
+        // cesta.lista[cesta.lista.length-1].subtotal += infoSuplementos[i].precioConIva * cesta.lista[cesta.lista.length-1].unidades;
+        cesta.lista[cesta.lista.length-1].nombre += ` + ${infoSuplementos[i].nombre}`;
+      
+    }
+    console.log("paso del for",cesta.lista.find(o => o.arraySuplementos));
+    await this.recalcularIvas(cesta);
+    // console.log("paso del recalculoIva")
+    // const cestaDef = await this.getCestaById(idCesta);
+    // console.log("cestaDef",cestaDef);
+    return await this.updateCesta( cesta);
   }
 
   /* Eze 4.0 */

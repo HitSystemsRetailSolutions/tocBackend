@@ -30,9 +30,9 @@ export class Articulos {
     return await schArticulos.insertarArticulos(arrayArticulos);
   }
 
-  // async getSuplementos(suplementos) {
-  //   return await schArticulos.getSuplementos(suplementos);
-  // }
+  async getSuplementos(suplementos) {
+    return await schArticulos.getSuplementos(suplementos);
+  }
 
   // async editarArticulo(id, nombre, precioBase, precioConIva) {
   //   const resultado = await schArticulos.editarArticulo(id, nombre, precioBase, precioConIva);
