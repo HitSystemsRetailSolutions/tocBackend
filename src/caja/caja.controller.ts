@@ -103,7 +103,6 @@ export class CajaController {
   }
   @Post('cambioTurno')
   cambioTurno() { // No probado! Se le pasa solo el array de monedas
-    console.log("holahola");
     // if (params.estado==true) {
     //   return {msg:'cambioTurno recibido',estado:false};
     // } else {
@@ -120,7 +119,6 @@ export class CajaController {
 
   @Post('anularTurno')
   anularTurno() { // No probado! Se le pasa solo el array de monedas
-    console.log("adiosadios");
     // if (params.estado==true) {
     //   return {msg:'cambioTurno recibido',estado:false};
     // } else {
@@ -137,7 +135,6 @@ export class CajaController {
   
   @Post('comprovarTurno')
   comprovarTurno() { // No probado! Se le pasa solo el array de monedas
-    console.log("adiosadios");
     // if (params.estado==true) {
     //   return {msg:'cambioTurno recibido',estado:false};
     // } else {

@@ -1134,7 +1134,6 @@ export class Impresora {
 
   /* Eze 4.0 */
   async mostrarVisor(data) {
-    console.log("total",data.total);
     let eur = "E";
 
     let limitNombre = 0;

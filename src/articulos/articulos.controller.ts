@@ -8,7 +8,6 @@ export class ArticulosController {
   async getArticulo(@Body() { idArticulo, idCliente }) {
     try {
       if (idArticulo)
-      console.log("entro en el if del controller");
         return await articulosInstance.getPrecioConTarifa(
           await articulosInstance.getInfoArticulo(idArticulo),
           idCliente
@@ -23,11 +22,9 @@ export class ArticulosController {
   @Post("getSuplementos")
   async getSuplementos(@Body() { suplementos }) {
     try {
-      console.log("suplementos",suplementos);
       if (suplementos)
       console.log("entro en el if del controller");
         const res = await articulosInstance.getSuplementos(suplementos);
-        console.log("res" ,res);
         return res;
       throw Error("Error, faltan datos en getArticulo controller");
     } catch (err) {

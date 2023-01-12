@@ -157,7 +157,6 @@ export class CestasController {
     async addSuplemento(@Body() params) {
       if (params.idCesta && params.suplementos && params.idArticulo) {
         params.suplementos = params.suplementos.map(o => o.suplemento);
-        console.log("suplem elegidos:",params.suplementos);
         return cestasInstance.addSuplementos(params.idCesta, params.suplementos, params.idArticulo).then((res) => {
           return {
             error: false,
