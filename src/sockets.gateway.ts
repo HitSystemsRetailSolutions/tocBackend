@@ -19,6 +19,7 @@ const io = new Server(httpServer, {
 
 io.on("connection", (socket) => {
   /* Eze 4.0 */
+ // console.log("conected ",socket.handshake.origin)
   socket.on("iniciarTransaccion", async ({ idTrabajador, idTicket }) => {
     try {
       if (idTrabajador && idTicket) {

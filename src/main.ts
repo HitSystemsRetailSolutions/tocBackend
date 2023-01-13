@@ -9,6 +9,7 @@ import { parametrosInstance } from "./parametros/parametros.clase";
 import { logger } from "./logger";
 require("./sincro");
 require("./sockets.gateway");
+var ip = require("ip");
 let URL_SANPEDRO = "";
 if (process.env.npm_lifecycle_event === "start:dev")
   URL_SANPEDRO = "http://localhost:3001";
@@ -28,7 +29,7 @@ parametrosInstance
     logger.Error(125, err);
   });
 
-async function bootstrap() {
+async function bootstrap(ip) {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
@@ -38,10 +39,13 @@ async function bootstrap() {
         credentials: true,
       },
     }
+    
   );
+  
   // app.enableCors();
-  await app.listen(3000);
-  // await app.listen(3000,"10.137.0.201"); //para iterum ubuntu
+  // await app.listen(3000);
+  await app.listen(3000,ip); //para iterum ubuntu
   // await app.listen(3000,"10.137.0.243"); //para iterum windows
 }
-bootstrap();
+bootstrap(ip.address());
+bootstrap("localhost");
