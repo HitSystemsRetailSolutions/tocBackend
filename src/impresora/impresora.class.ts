@@ -389,6 +389,7 @@ export class Impresora {
         "Divendres",
         "Dissabte",
       ];
+      
       this.enviarMQTT(printer
         .setCharacterCodeTable(19)
         .encode("CP858")
