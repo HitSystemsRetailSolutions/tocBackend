@@ -157,7 +157,8 @@ export class CestasController {
     async addSuplemento(@Body() params) {
       if (params.idCesta && params.suplementos && params.idArticulo) {
         params.suplementos = params.suplementos.map(o => o.suplemento);
-        return cestasInstance.addSuplementos(params.idCesta, params.suplementos, params.idArticulo).then((res) => {
+        return await cestasInstance.addSuplementos(params.idCesta, params.suplementos, params.idArticulo).then((res) => {
+          cestasInstance.actualizarCestas();
           return {
             error: false,
             bloqueado: false,

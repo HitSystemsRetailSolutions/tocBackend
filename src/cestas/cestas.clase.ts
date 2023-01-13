@@ -410,9 +410,28 @@ export class CestaClase {
             detalleDeSuplementos.importe2 +
             detalleDeSuplementos.importe3 +
             detalleDeSuplementos.importe4 +
-            detalleDeSuplementos.importe5;
+            detalleDeSuplementos.importe5;  
         }
       }
+    }
+
+    if (cesta.lista[cesta.lista.length-1].arraySuplementos &&
+      cesta.lista[cesta.lista.length-1].arraySuplementos.length > 0) {
+    
+      let numProductos=0;
+      let total=0;
+      for (let i = 0; i < cesta.lista.length; i++) {
+        numProductos += cesta.lista[i].unidades;
+        total+=cesta.lista[i].subtotal;
+        
+      }
+      
+      impresoraInstance.mostrarVisor({
+        total: total.toFixed(2),
+        precio: cesta.lista[cesta.lista.length-1].subtotal.toFixed(2).toString(),
+        texto: cesta.lista[cesta.lista.length-1].nombre,
+        numProductos:numProductos,
+      });
     }
   }
 
