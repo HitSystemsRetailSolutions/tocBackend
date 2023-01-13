@@ -308,11 +308,11 @@ export class Impresora {
                 i
               ].slice(0, 20)} +      \n`;
             }else if (i==articuloConSuplesString.length-1) {
-              detalles += `${1}     ${articuloConSuplesString[
+              detalles += `       ${articuloConSuplesString[
                 i
               ].slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
             }else{
-              detalles += `  ${1}     ${articuloConSuplesString[
+              detalles += `       ${articuloConSuplesString[
                 i
               ].slice(0, 20)} +      \n`;
             }
