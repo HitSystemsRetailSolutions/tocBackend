@@ -302,18 +302,19 @@ export class Impresora {
           }
         } else if(arrayCompra[i].arraySuplementos && arrayCompra[i].arraySuplementos.length >0){
           let articuloConSuplesString=arrayCompra[i].nombre.split("+");
-          for (let i = 0; i < articuloConSuplesString.length; i++) {
-            if (i==0) {
+          for (let j = 0; j < articuloConSuplesString.length; j++) {
+
+            if (j==0) {
               detalles += `${1}     ${articuloConSuplesString[
-                i
+                j
               ].slice(0, 20)} +      \n`;
-            }else if (i==articuloConSuplesString.length-1) {
+            }else if (j==(articuloConSuplesString.length - 1)) {
               detalles += `       ${articuloConSuplesString[
-                i
+                j
               ].slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
             }else{
               detalles += `       ${articuloConSuplesString[
-                i
+                j
               ].slice(0, 20)} +      \n`;
             }
             
