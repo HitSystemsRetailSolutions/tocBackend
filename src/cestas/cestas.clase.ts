@@ -98,9 +98,7 @@ export class CestaClase {
   ): Promise<boolean> {
     try {
       let cesta = await this.getCestaById(idCesta);
-
       cesta.lista.splice(index, 1);
-
       // Enviar por socket
       await this.recalcularIvas(cesta);
       if (await this.updateCesta(cesta)) {
@@ -365,7 +363,6 @@ export class CestaClase {
 
     for (let i = 0; i < cesta.lista.length; i++) {
       if (cesta.lista[i].regalo) continue;
-
       if (cesta.lista[i].promocion) {
         // Una promoción no puede llevar suplementos
         cesta.detalleIva = fusionarObjetosDetalleIva(
@@ -414,10 +411,9 @@ export class CestaClase {
         }
       }
     }
-
+    if(cesta.lista.length>0){
     if (cesta.lista[cesta.lista.length-1].arraySuplementos &&
       cesta.lista[cesta.lista.length-1].arraySuplementos.length > 0) {
-    
       let numProductos=0;
       let total=0;
       for (let i = 0; i < cesta.lista.length; i++) {
@@ -425,7 +421,6 @@ export class CestaClase {
         total+=cesta.lista[i].subtotal;
         
       }
-      
       impresoraInstance.mostrarVisor({
         total: total.toFixed(2),
         precio: cesta.lista[cesta.lista.length-1].subtotal.toFixed(2).toString(),
@@ -433,6 +428,7 @@ export class CestaClase {
         numProductos:numProductos,
       });
     }
+  }
   }
 
   /* Eze 4.0 */
@@ -507,13 +503,13 @@ export class CestaClase {
             objetoIva1,
             objetoIva2
           );
-        }else if (i>1 && i%2!=0) {
+        }else if (i>1 && i%2==0) {
           objetoIva=fusionarObjetosDetalleIva(
             objetoIva,
             objetoIva1
 
           )
-        }else if (i>1 && i%2==0) {
+        }else if (i>1 && i%2!=0) {
           objetoIva=fusionarObjetosDetalleIva(
             objetoIva,
             objetoIva2
@@ -522,7 +518,6 @@ export class CestaClase {
         }
       }
   }
-    
     return objetoIva;
   }
 
