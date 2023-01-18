@@ -71,7 +71,6 @@ export async function getCambioDeTurno() {
   const caja = database.collection('cambioDeTurno');
 
   const resultado = await  caja.drop();
-  console.log(resultado);
   return resultado;
 
   
@@ -87,7 +86,6 @@ export async function getAnularTurno() {
   const fecha = tiempoTranscurrido.toLocaleDateString('es-ES');
   const hora =tiempoTranscurrido.toLocaleTimeString('es-ES');
   const resultado = await  caja.insertOne({"fecha":fecha,"hora":hora,"time":Date.now()});
-  console.log(resultado);
   // la linea de codigo de abajo iria en otra funcion para
   // comprobar si el cambio de turno es de hoy o no:
 
@@ -118,11 +116,9 @@ export async function getComprovarTurno() {
 
   const fecha = tiempoTranscurrido.toLocaleDateString('es-ES');
   const buscar= await caja.findOne({fecha:fecha});
-  console.log(buscar);
  
   if (buscar!=null) {
     const res=await caja.find().sort({ _id: -1 }).limit(1).toArray();
-    console.log( res[0].time);
     return {estado:true,time:res[0].time};
   } else {
     return {estado:false,time:null};

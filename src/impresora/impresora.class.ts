@@ -306,7 +306,26 @@ export class Impresora {
               i
             ].promocion.precioRealArticuloSecundario.toFixed(2)}\n`;
           }
-        } else {
+        } else if(arrayCompra[i].arraySuplementos && arrayCompra[i].arraySuplementos.length >0){
+          let articuloConSuplesString=arrayCompra[i].nombre.split("+");
+          for (let j = 0; j < articuloConSuplesString.length; j++) {
+
+            if (j==0) {
+              detalles += `${1}     ${articuloConSuplesString[
+                j
+              ].slice(0, 20)} +      \n`;
+            }else if (j==(articuloConSuplesString.length - 1)) {
+              detalles += `       ${articuloConSuplesString[
+                j
+              ].slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+            }else{
+              detalles += `       ${articuloConSuplesString[
+                j
+              ].slice(0, 20)} +      \n`;
+            }
+            
+          }
+        }else{
           if (arrayCompra[i].nombre.length < 20) {
             while (arrayCompra[i].nombre.length < 20) {
               arrayCompra[i].nombre += " ";
@@ -1136,7 +1155,6 @@ export class Impresora {
 
   /* Eze 4.0 */
   async mostrarVisor(data) {
-    console.log("total",data.total);
     let eur = "E";
 
     let limitNombre = 0;

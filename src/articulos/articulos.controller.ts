@@ -19,6 +19,20 @@ export class ArticulosController {
     }
   }
 
+  @Post("getSuplementos")
+  async getSuplementos(@Body() { suplementos }) {
+    try {
+      if (suplementos)
+      console.log("entro en el if del controller");
+        const res = await articulosInstance.getSuplementos(suplementos);
+        return res;
+      throw Error("Error, faltan datos en getArticulo controller");
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+
   @Post("buscar")
   async buscar(@Body() { busqueda }) {
     try {
@@ -32,6 +46,7 @@ export class ArticulosController {
     }
   }
 
+  
   // @Post("editarArticulo")
   // editarArticulo(@Body() params) {
   //   if (

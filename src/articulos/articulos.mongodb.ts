@@ -43,15 +43,15 @@ export async function buscar(busqueda: string): Promise<ArticulosInterface[]> {
     .toArray();
 }
 
-// export async function getSuplementos(suplementos) {
-//   const database = (await conexion).db("tocgame");
-//   const articulos = database.collection("articulos");
-//   const suplementosData = [];
-//   for (const i in suplementos) {
-//     const resultado = await (
-//       await articulos.find({ _id: suplementos[i] })
-//     ).toArray();
-//     suplementosData.push(resultado[0]);
-//   }
-//   return suplementosData;
-// }
+export async function getSuplementos(suplementos) {
+  const database = (await conexion).db("tocgame");
+  const articulos = database.collection("articulos");
+  const suplementosData = [];
+  for (const i in suplementos) {
+    const resultado = await (
+      await articulos.find({ _id: suplementos[i] })
+    ).toArray();
+    suplementosData.push(resultado[0]);
+  }
+  return suplementosData;
+}

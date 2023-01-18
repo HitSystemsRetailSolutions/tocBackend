@@ -176,11 +176,13 @@ export class CestaClase {
         unidades
       ))
     ) {
+      let infoArticulo = await articulosInstance.getInfoArticulo(articulo._id);
       for (let i = 0; i < cesta.lista.length; i++) {
         if (
           cesta.lista[i].idArticulo === articulo._id &&
           !cesta.lista[i].promocion &&
-          !cesta.lista[i].regalo
+          !cesta.lista[i].regalo &&
+          (!infoArticulo.suplementos || infoArticulo.suplementos.length<1)
         ) {
           cesta.lista[i].unidades += unidades;
           cesta.lista[i].subtotal += unidades * articulo.precioConIva;
@@ -201,7 +203,6 @@ export class CestaClase {
           gramos: gramos,
         });
       }
-      console.log(cesta.lista[0].unidades);
       let numProductos=0;
       let total=0;
               for (let i = 0; i < cesta.lista.length; i++) {
@@ -409,9 +410,28 @@ export class CestaClase {
             detalleDeSuplementos.importe2 +
             detalleDeSuplementos.importe3 +
             detalleDeSuplementos.importe4 +
-            detalleDeSuplementos.importe5;
+            detalleDeSuplementos.importe5;  
         }
       }
+    }
+
+    if (cesta.lista[cesta.lista.length-1].arraySuplementos &&
+      cesta.lista[cesta.lista.length-1].arraySuplementos.length > 0) {
+    
+      let numProductos=0;
+      let total=0;
+      for (let i = 0; i < cesta.lista.length; i++) {
+        numProductos += cesta.lista[i].unidades;
+        total+=cesta.lista[i].subtotal;
+        
+      }
+      
+      impresoraInstance.mostrarVisor({
+        total: total.toFixed(2),
+        precio: cesta.lista[cesta.lista.length-1].subtotal.toFixed(2).toString(),
+        texto: cesta.lista[cesta.lista.length-1].nombre,
+        numProductos:numProductos,
+      });
     }
   }
 
@@ -437,21 +457,72 @@ export class CestaClase {
       importe4: 0,
       importe5: 0,
     };
-
-    for (let i = 0; i < arraySuplementos.length; i++) {
-      let articulo = await articulosInstance.getInfoArticulo(
-        arraySuplementos[i]
+    let objetoIva1=objetoIva;
+    let objetoIva2=objetoIva;
+    if (arraySuplementos.length==1) {
+      let articulo1 = await articulosInstance.getInfoArticulo(
+        arraySuplementos[0]
       );
-      articulo = await articulosInstance.getPrecioConTarifa(
-        articulo,
+      articulo1 = await articulosInstance.getPrecioConTarifa(
+        articulo1,
         idCliente
       );
       objetoIva = construirObjetoIvas(
-        articulo.precioConIva,
-        articulo.tipoIva,
+        articulo1.precioConIva,
+        articulo1.tipoIva,
         1
       );
-    }
+
+    }else{
+      for (let i = 0; i < arraySuplementos.length; i++) {
+        if(i%2==0){
+          let articulo1 = await articulosInstance.getInfoArticulo(
+            arraySuplementos[i]
+          );
+          articulo1 = await articulosInstance.getPrecioConTarifa(
+            articulo1,
+            idCliente
+          );
+          objetoIva1 = construirObjetoIvas(
+            articulo1.precioConIva,
+            articulo1.tipoIva,
+            1
+          );
+        }else{
+          let articulo2 = await articulosInstance.getInfoArticulo(
+            arraySuplementos[i]
+          );
+          articulo2 = await articulosInstance.getPrecioConTarifa(
+            articulo2,
+            idCliente
+          );
+          objetoIva2 = construirObjetoIvas(
+            articulo2.precioConIva,
+            articulo2.tipoIva,
+            1
+          );
+        }
+        if (i==1 ) {
+          objetoIva=fusionarObjetosDetalleIva(
+            objetoIva1,
+            objetoIva2
+          );
+        }else if (i>1 && i%2!=0) {
+          objetoIva=fusionarObjetosDetalleIva(
+            objetoIva,
+            objetoIva1
+
+          )
+        }else if (i>1 && i%2==0) {
+          objetoIva=fusionarObjetosDetalleIva(
+            objetoIva,
+            objetoIva2
+
+          )
+        }
+      }
+  }
+    
     return objetoIva;
   }
 
@@ -500,8 +571,18 @@ export class CestaClase {
     indexCesta: number
   ) {
     const cesta = await this.getCestaById(idCesta);
-    cesta.lista[indexCesta].arraySuplementos = arraySuplementos;
-    return await this.updateCesta(cesta);
+    cesta.lista[cesta.lista.length-1].arraySuplementos = arraySuplementos;
+    const infoSuplementos = await articulosInstance.getSuplementos(arraySuplementos);
+    
+    for (let i = 0; i < infoSuplementos.length; i++) {
+        // cesta.lista[cesta.lista.length-1].subtotal += infoSuplementos[i].precioConIva * cesta.lista[cesta.lista.length-1].unidades;
+        cesta.lista[cesta.lista.length-1].nombre += ` + ${infoSuplementos[i].nombre}`;
+      
+    }
+    // console.log("paso del for",cesta.lista.find(o => o.arraySuplementos));
+    await this.recalcularIvas(cesta);
+
+    return await this.updateCesta( cesta);
   }
 
   /* Eze 4.0 */
