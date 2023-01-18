@@ -21,9 +21,9 @@ const dispositivos = new Dispositivos();
 const escpos = require("escpos");
 const exec = require("child_process").exec;
 const os = require("os");
-escpos.USB = require("escpos-usb");
-escpos.Serial = require("escpos-serialport");
-escpos.Screen = require("escpos-screen");
+const mqtt = require ("mqtt");
+escpos.Network = require("escpos-network")
+escpos.Screen = require("escpos-screen")
 const TIPO_ENTRADA_DINERO = "ENTRADA";
 const TIPO_SALIDA_DINERO = "SALIDA";
 
@@ -228,6 +228,14 @@ export class Impresora {
     }
   }
 
+  private enviarMQTT(encodedData){
+    var client  = mqtt.connect("mqtt://192.168.1.30:1883",{username:"ImpresoraMQTT"});
+    client.on("connect",function(){	
+    console.log("connected  "+client.connected);
+    client.publish("hit.hardware/printer", encodeURI(encodedData));
+    })
+  }
+  
   private async _venta(info, recibo = null) {
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
@@ -245,9 +253,7 @@ export class Impresora {
     if (recibo != null && recibo != undefined) {
       strRecibo = recibo;
     }
-
-    permisosImpresora();
-    const device = await dispositivos.getDevice();
+    const device = new escpos.Network();
     if (device) {
       const printer = new escpos.Printer(device);
 
@@ -383,64 +389,60 @@ export class Impresora {
         "Divendres",
         "Dissabte",
       ];
-
-      device.open(function () {
-        printer
-
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .size(0, 0)
-          .text(cabecera)
-          .text(
-            `Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
-              fecha.getMonth() + 1
-            }-${fecha.getFullYear()}  ${
-              (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
-            }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`
-          )
-          .text("Factura simplificada N: " + numFactura)
-          .text("Ates per: " + nombreDependienta)
-          .text(detalleClienteVip)
-          .text(detalleNombreCliente)
-          .text(detallePuntosCliente)
-          .control("LF")
-          .control("LF")
-          .control("LF")
-          .text("Quantitat      Article        Import (EUR)")
-          .text("-----------------------------------------")
-          .align("LT")
-          .text(detalles)
-          .align("CT")
-          .text(pagoTarjeta)
-          .text(pagoTkrs)
-          .align("LT")
-          .text(infoConsumoPersonal)
-          .align('CT')
-          .text('----------------------------------------------')
-          .align('LT')
-          .size(1, 1)
-          .text(pagoDevolucion)
-          .text("TOTAL: " + total.toFixed(2) + " €")
-          .control("LF")
-          .size(0, 0)
-          .align("CT")
-          .text("Base IVA         IVA         IMPORT")
-          .align('LT')
-          .text(detalleIva)
-          .align('CT')
-          .text("-- ES COPIA --")
-          .control("LF")
-          .text("ID: " + random() + " - " + random())
-          .text(pie)
-          .control("LF")
-          .control("LF")
-          .control("LF")
-          .cut("PAPER_FULL_CUT")
-          .close();
-      });
-    } else throw Error("No se ha podido obtener el dispositivo");
+      this.enviarMQTT(printer
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .size(0, 0)
+        .text(cabecera)
+        .text(
+          `Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
+            fecha.getMonth() + 1
+          }-${fecha.getFullYear()}  ${
+            (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
+          }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`
+        )
+        .text("Factura simplificada N: " + numFactura)
+        .text("Ates per: " + nombreDependienta)
+        .text(detalleClienteVip)
+        .text(detalleNombreCliente)
+        .text(detallePuntosCliente)
+        .control("LF")
+        .control("LF")
+        .control("LF")
+        .text("Quantitat      Article        Import (EUR)")
+        .text("-----------------------------------------")
+        .align("LT")
+        .text(detalles)
+        .align("CT")
+        .text(pagoTarjeta)
+        .text(pagoTkrs)
+        .align("LT")
+        .text(infoConsumoPersonal)
+        .align('CT')
+        .text('----------------------------------------------')
+        .align('LT')
+        .size(1, 1)
+        .text(pagoDevolucion)
+        .text("TOTAL: " + total.toFixed(2) + String.fromCharCode(27) + String.fromCharCode(116) + String.fromCharCode(39) + " EUR")
+        .control("LF")
+        .size(0, 0)
+        .align("CT")
+        .text("Base IVA         IVA         IMPORT")
+        .align('LT')
+        .text(detalleIva)
+        .align('CT')
+        .text("-- ES COPIA --")
+        .control("LF")
+        .text("ID: " + random() + " - " + random())
+        .text(pie)
+        .control("LF")
+        .control("LF")
+        .control("LF")
+        .cut("PAPER_FULL_CUT")
+        .close().buffer._buffer.toString("utf8"));
+      };
   }
 
   /* Eze 4.0 */
