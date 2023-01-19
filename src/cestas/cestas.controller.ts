@@ -87,7 +87,7 @@ export class CestasController {
   async onlyCrearCesta(@Body() { indexMesa }) {
     console.log(indexMesa);
     try {
-      if (indexMesa>=0) {
+      if (typeof indexMesa === "number") {
         const idCesta = await cestasInstance.crearCesta(indexMesa);
         cestasInstance.actualizarCestas();
         return idCesta;
@@ -153,24 +153,21 @@ export class CestasController {
     }
   }
 
-  @Post('addSuplemento')
-    async addSuplemento(@Body() params) {
-      if (params.idCesta && params.suplementos && params.idArticulo) {
-        params.suplementos = params.suplementos.map(o => o.suplemento);
-        return await cestasInstance.addSuplementos(params.idCesta, params.suplementos, params.idArticulo).then((res) => {
-          cestasInstance.actualizarCestas();
-          return {
-            error: false,
-            bloqueado: false,
-            cesta: res,
-          };
-        }).catch((err) => {
-          logger.Error(134, err);
-          return {
-            error: true,
-            bloqueado: false,
-          };
-        });
-      }
-    }
+  // @Post("addSuplementos")
+  // async addSuplementos(
+  //   @Body() { idCesta, suplementos, idArticuloGeneral, unidades }
+  // ) {
+  //   try {
+  //     if (idCesta && suplementos?.length > 0 && idArticuloGeneral && unidades)
+  //       return await cestasInstance.addItemConSuplementos(
+  //         idCesta,
+  //         suplementos,
+  //         idArticuloGeneral,
+  //         unidades
+  //       );
+  //     throw Error("Es necesario un array con suplementos");
+  //   } catch (err) {
+  //     logger.Error("cestas.controller @addSuplementos", err);
+  //   }
+  // }
 }

@@ -43,15 +43,15 @@ export async function buscar(busqueda: string): Promise<ArticulosInterface[]> {
     .toArray();
 }
 
-export async function getSuplementos(suplementos) {
+/* Eze 4.0 */
+export async function getSuplementos(suplementos: ArticulosInterface[]) {
   const database = (await conexion).db("tocgame");
-  const articulos = database.collection("articulos");
-  const suplementosData = [];
+  const articulos = database.collection<ArticulosInterface>("articulos");
+  const suplementosData: ArticulosInterface[] = [];
+
   for (const i in suplementos) {
-    const resultado = await (
-      await articulos.find({ _id: suplementos[i] })
-    ).toArray();
-    suplementosData.push(resultado[0]);
+    const artSuplemento = await articulos.findOne({ _id: suplementos[i] });
+    if (artSuplemento) suplementosData.push(artSuplemento);
   }
   return suplementosData;
 }

@@ -41,6 +41,14 @@ export class NuevaPromocion {
       });
   }
 
+  async getPromosCombo() {
+    return await schPromociones.getPromosCombo();
+  }
+
+  async getPromosIndividuales() {
+    return await schPromociones.getPromosIndividuales();
+  }
+
   async descargarPromociones() {
     const resPromos = (await axios.get("promociones/getPromocionesNueva"))
       .data as PromocionesInterface[];
@@ -50,6 +58,10 @@ export class NuevaPromocion {
     throw Error("No hay promociones para descargar");
   }
 
+  public async recargarPromosCache() {
+    this.promosCombo = await this.getPromosCombo();
+    this.promosIndividuales = await this.getPromosIndividuales();
+  }
   public async gestionarPromociones(
     cesta: CestasInterface,
     idArticulo: ArticulosInterface["_id"],
@@ -58,7 +70,8 @@ export class NuevaPromocion {
     let unidadesTotales = unidades;
     let index1 = null;
 
-    if (cesta.modo === "CONSUMO_PERSONAL") return false;
+    if (cesta.modo === "CONSUMO_PERSONAL" || cesta.modo === "DEVOLUCION")
+      return false;
 
     if (cesta.idCliente) {
       const cliente = await clienteInstance.getClienteById(cesta.idCliente);

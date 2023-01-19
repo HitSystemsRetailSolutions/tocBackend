@@ -9,7 +9,7 @@ export class Articulos {
     articulo: ArticulosInterface,
     idCliente: ClientesInterface["id"]
   ): Promise<ArticulosInterface> {
-    if (idCliente) {
+    if (idCliente && idCliente != "") {
       const infoTarifa = await getItemTarifa(articulo._id, idCliente);
       if (infoTarifa && typeof infoTarifa.precioConIva == "number")
         articulo.precioConIva = infoTarifa.precioConIva;
@@ -30,6 +30,7 @@ export class Articulos {
     return await schArticulos.insertarArticulos(arrayArticulos);
   }
 
+  /* Eze 4.0 */
   async getSuplementos(suplementos) {
     return await schArticulos.getSuplementos(suplementos);
   }

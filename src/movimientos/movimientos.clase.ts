@@ -103,9 +103,9 @@ export class MovimientosClase {
   /* Eze v23 */
   getMovimientoMasAntiguo = () => schMovimientos.getMovimientoMasAntiguo();
 
-  /* Eze v23 */
-  actualizarEstadoMovimiento = (movimiento: MovimientosInterface) =>
-    schMovimientos.actualizarEstadoMovimiento(movimiento);
+  /* Eze v4 */
+  setMovimientoEnviado = (movimiento: MovimientosInterface) =>
+    schMovimientos.setMovimientoEnviado(movimiento);
 
   /* Eze 4.0 */
   construirArrayVentas = async () => {

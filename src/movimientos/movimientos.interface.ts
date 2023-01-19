@@ -16,6 +16,7 @@ export type TiposMovientos =
   | "DEUDA"
   | "ENTREGA_DIARIA"
   | "ENTRADA_DINERO"
+  | "SALIDA" // Para el resto de salidas (genéricas)
   | "DATAFONO_3G";
 
 export interface CuentaCodigoBarras {
