@@ -21,9 +21,9 @@ const dispositivos = new Dispositivos();
 const escpos = require("escpos");
 const exec = require("child_process").exec;
 const os = require("os");
-const mqtt = require ("mqtt");
-escpos.Network = require("escpos-network")
-escpos.Screen = require("escpos-screen")
+escpos.USB = require("escpos-usb");
+escpos.Serial = require("escpos-serialport");
+escpos.Screen = require("escpos-screen");
 const TIPO_ENTRADA_DINERO = "ENTRADA";
 const TIPO_SALIDA_DINERO = "SALIDA";
 
@@ -241,6 +241,8 @@ export class Impresora {
     })
   }
   
+  
+  
   private async _venta(info, recibo = null) {
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
@@ -258,10 +260,11 @@ export class Impresora {
     if (recibo != null && recibo != undefined) {
       strRecibo = recibo;
     }
-    const device = new escpos.Network();
+
+    permisosImpresora();
+    const device = await dispositivos.getDevice();
     if (device) {
       const printer = new escpos.Printer(device);
-
       let detalles = "";
       let pagoTarjeta = "";
       let pagoTkrs = "";
@@ -413,7 +416,10 @@ export class Impresora {
         "Divendres",
         "Dissabte",
       ];
-      this.enviarMQTT(printer
+
+      device.open(function () {
+        printer
+
         .setCharacterCodeTable(19)
         .encode("CP858")
         .font("a")
@@ -461,12 +467,13 @@ export class Impresora {
         .control("LF")
         .text("ID: " + random() + " - " + random())
         .text(pie)
-        .control("LF")
-        .control("LF")
-        .control("LF")
-        .cut("PAPER_FULL_CUT")
-        .close().buffer._buffer.toString("utf8"));
-      };
+          .control("LF")
+          .control("LF")
+          .control("LF")
+          .cut("PAPER_FULL_CUT")
+          .close();
+      });
+    } else throw Error("No se ha podido obtener el dispositivo");
   }
 
   /* Eze 4.0 */
