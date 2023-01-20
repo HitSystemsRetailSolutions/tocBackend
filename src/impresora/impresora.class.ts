@@ -346,9 +346,9 @@ export class Impresora {
         pagoDevolucion = "-- ES DEVOLUCION --\n";
       }
 
-      let str1= '         ';
-      let str2= '              ';
-      let str3= '           ';
+      let str1= '            ';
+      let str2= '                 ';
+      let str3= '              ';
       let base = '';
       let valorIva = '';
       let importe = '';
@@ -359,33 +359,33 @@ export class Impresora {
       let detalleIva0 = '';
       let detalleIva5 = '';
       if (tiposIva.importe1 > 0) {
-        base=tiposIva.base1.toFixed(2)+' EUR';
-        valorIva='4%: '+tiposIva.valorIva1.toFixed(2)+' EUR';
-        importe=tiposIva.importe1.toFixed(2)+' EUR\n';
+        base=tiposIva.base1.toFixed(2)+' e';
+        valorIva='4%: '+tiposIva.valorIva1.toFixed(2)+' e';
+        importe=tiposIva.importe1.toFixed(2)+' e\n';
         detalleIva4 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
       }
       if (tiposIva.importe2 > 0) {
-        base=tiposIva.base2.toFixed(2)+' EUR';
-        valorIva='10%: '+tiposIva.valorIva2.toFixed(2)+' EUR';
-        importe=tiposIva.importe2.toFixed(2)+' EUR\n';
+        base=tiposIva.base2.toFixed(2)+' e';
+        valorIva='10%: '+tiposIva.valorIva2.toFixed(2)+' e';
+        importe=tiposIva.importe2.toFixed(2)+' e\n';
         detalleIva10 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
       }
       if (tiposIva.importe3 > 0) {
-        base=tiposIva.base3.toFixed(2)+' EUR';
-        valorIva='21%: '+tiposIva.valorIva3.toFixed(2)+' EUR';
-        importe=tiposIva.importe3.toFixed(2)+' EUR\n';
+        base=tiposIva.base3.toFixed(2)+' e';
+        valorIva='21%: '+tiposIva.valorIva3.toFixed(2)+' e';
+        importe=tiposIva.importe3.toFixed(2)+' e\n';
         detalleIva21 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
       }
       if (tiposIva.importe4 > 0) {
-        base=tiposIva.base4.toFixed(2)+' EUR';
-        valorIva='0%: '+tiposIva.valorIva4.toFixed(2)+' EUR';
-        importe=tiposIva.importe4.toFixed(2)+' EUR\n';
+        base=tiposIva.base4.toFixed(2)+' e';
+        valorIva='0%: '+tiposIva.valorIva4.toFixed(2)+' e';
+        importe=tiposIva.importe4.toFixed(2)+' e\n';
         detalleIva0 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
       }
       if (tiposIva.importe5 > 0) {
-        base=tiposIva.base5.toFixed(2)+' EUR';
-        valorIva='5%: '+tiposIva.valorIva5.toFixed(2)+' EUR';
-        importe=tiposIva.importe5.toFixed(2)+' EUR\n';
+        base=tiposIva.base5.toFixed(2)+' e';
+        valorIva='5%: '+tiposIva.valorIva5.toFixed(2)+' e';
+        importe=tiposIva.importe5.toFixed(2)+' e\n';
         detalleIva5 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
       }
       detalleIva = detalleIva0 + detalleIva4 + detalleIva5 + detalleIva10 + detalleIva21;
@@ -440,16 +440,14 @@ export class Impresora {
         .align('CT')
         .text('----------------------------------------------')
         .align('LT')
-        .size(1, 1)
+        .size(0, 0)
         .text(pagoDevolucion)
         .text("TOTAL: " + total.toFixed(2) + String.fromCharCode(27) + String.fromCharCode(116) + String.fromCharCode(39) + " EUR")
         .control("LF")
         .size(0, 0)
         .align("CT")
         .text("Base IVA         IVA         IMPORT")
-        .align('LT')
         .text(detalleIva)
-        .align('CT')
         .text("-- ES COPIA --")
         .control("LF")
         .text("ID: " + random() + " - " + random())
