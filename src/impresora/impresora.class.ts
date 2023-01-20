@@ -4,7 +4,6 @@ import { trabajadoresInstance } from "../trabajadores/trabajadores.clase";
 import { TrabajadoresInterface } from "../trabajadores/trabajadores.interface";
 import { clienteInstance } from "../clientes/clientes.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
-import { Dispositivos } from "../dispositivos";
 import axios from "axios";
 import { mqttInstance } from "../mqtt";
 import { ClientesInterface } from "../clientes/clientes.interface";
@@ -17,13 +16,11 @@ import * as moment from "moment";
 import { CajaSincro } from "../caja/caja.interface";
 import { logger } from "src/logger";
 moment.locale("es");
-const dispositivos = new Dispositivos();
 const escpos = require("escpos");
 const exec = require("child_process").exec;
 const os = require("os");
 const mqtt = require ("mqtt");
 escpos.Network = require("escpos-network")
-escpos.Screen = require("escpos-screen")
 const TIPO_ENTRADA_DINERO = "ENTRADA";
 const TIPO_SALIDA_DINERO = "SALIDA";
 
@@ -79,15 +76,7 @@ function dateToString2(fecha) {
 export class Impresora {
   /* Eze 4.0 */
   async bienvenidaCliente() {
-    try {
-      permisosImpresora();
-      const device = await dispositivos.getDeviceVisor();
-
-      if (device) mqttInstance.enviarVisor("Bon Dia!!");
-      else throw Error("Controlado: dispositivo es null");
-    } catch (err) {
-      mqttInstance.loggerMQTT(err.message);
-    }
+    mqttInstance.enviarVisor("Bon Dia!!");
   }
 
   /* Eze 4.0 */
@@ -189,13 +178,8 @@ export class Impresora {
   private async imprimirRecibo(recibo: string) {
     mqttInstance.loggerMQTT("imprimir recibo");
     try {
-      permisosImpresora();
-      const device = await dispositivos.getDevice();
-      if (device == null) {
-        throw "Error controlado: El dispositivo es null";
-      }
+      const device = new escpos.Network();
       const printer = new escpos.Printer(device);
-
       this.enviarMQTT(printer
           .setCharacterCodeTable(19)
           .encode("CP858")
@@ -211,9 +195,8 @@ export class Impresora {
   }
   public async testMqtt(txt: string) {
     try {
-      const device = new escpos.Screen();
+      const device = new escpos.Network();
       const printer = new escpos.Printer(device);
-
       this.enviarMQTT(printer
         
           .setCharacterCodeTable(19)
@@ -230,7 +213,7 @@ export class Impresora {
   }
 
   private enviarMQTT(encodedData){
-    var client  = mqtt.connect("mqtt://192.168.1.30:1883",{username:"ImpresoraMQTT"});
+    var client  = mqtt.connect("mqtt://localhost:1883",{username:"ImpresoraMQTT"});
     client.on("connect",function(){	
     console.log("connected  "+client.connected);
     client.publish("hit.hardware/printer", encodeURI(encodedData));
@@ -254,9 +237,6 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    const device = new escpos.Network();
-    if (device) {
-      const printer = new escpos.Printer(device);
       let detalles = "";
       let pagoTarjeta = "";
       let pagoTkrs = "";
@@ -313,7 +293,7 @@ export class Impresora {
             if (j==(arrayCompra[i].arraySuplementos.length - 1)) {
               detalles += `       ${arrayCompra[i].arraySuplementos[
                 j
-              ].nombre.slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+              ].nombre.slice(0, 20)}         ${arrayCompra[i].subtotal.toFixed(2)}\n`;
             }else{
               detalles += `       ${arrayCompra[i].arraySuplementos[
                 j
@@ -346,7 +326,7 @@ export class Impresora {
         pagoDevolucion = "-- ES DEVOLUCION --\n";
       }
 
-      let str1= '            ';
+      let str1= '          ';
       let str2= '                 ';
       let str3= '              ';
       let base = '';
@@ -405,6 +385,8 @@ export class Impresora {
         "Dissabte",
       ];
 
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
       this.enviarMQTT(printer
 
         .setCharacterCodeTable(19)
@@ -440,7 +422,7 @@ export class Impresora {
         .align('CT')
         .text('----------------------------------------------')
         .align('LT')
-        .size(0, 0)
+        .size(1, 1)
         .text(pagoDevolucion)
         .text("TOTAL: " + total.toFixed(2) + String.fromCharCode(27) + String.fromCharCode(116) + String.fromCharCode(39) + " EUR")
         .control("LF")
@@ -457,7 +439,6 @@ export class Impresora {
         .control("LF")
         .cut("PAPER_FULL_CUT")
         .close().buffer._buffer.toString("utf8"));
-      };
   }
 
   /* Eze 4.0 */
@@ -468,11 +449,8 @@ export class Impresora {
       const trabajador = await trabajadoresInstance.getTrabajadorById(
         movimiento.idTrabajador
       );
-      permisosImpresora();
-      const device = await dispositivos.getDevice();
-      if (device) {
-        const options = { encoding: "GB18030" };
-        const printer = new escpos.Printer(device, options);
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
         this.enviarMQTT(printer
             .setCharacterCodeTable(19)
             .encode("CP858")
@@ -497,7 +475,6 @@ export class Impresora {
             .text("")
             .cut()
            .close().buffer._buffer.toString("utf8"));
-      };
     } catch (err) {
       logger.Error(146, err);
     }
@@ -532,10 +509,9 @@ export class Impresora {
       //         stopBit: 2
       //     });
       // }
-      const device = await dispositivos.getDevice();
 
-      const options = { encoding: "GB18030" };
-      const printer = new escpos.Printer(device, options);
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
       this.enviarMQTT(printer
         
           .setCharacterCodeTable(19)
@@ -586,10 +562,8 @@ export class Impresora {
       //         stopBit: 2
       //     });
       // }
-      const device = await dispositivos.getDevice();
-
-      const options = { encoding: "GB18030" };
-      const printer = new escpos.Printer(device, options);
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
       this.enviarMQTT(printer
           .setCharacterCodeTable(19)
           .encode("CP858")
@@ -666,13 +640,12 @@ export class Impresora {
 
     permisosImpresora();
 
-    const device = await dispositivos.getDevice();
-    if (device) {
-      const options = { encoding: "ISO-8859-15" }; // "GB18030" };
-      const printer = new escpos.Printer(device, options);
-      const mesInicial = fechaInicio.getMonth() + 1;
-      const mesFinal = fechaFinal.getMonth() + 1;
-      this.enviarMQTT(printer
+    const mesInicial = fechaInicio.getMonth() + 1;
+    const mesFinal = fechaFinal.getMonth() + 1;
+
+    const device = new escpos.Network();
+    const printer = new escpos.Printer(device);
+    this.enviarMQTT(printer
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -830,9 +803,6 @@ export class Impresora {
           .text("")
           .cut()
           .close().buffer._buffer.toString("utf8"));
-    } else {
-      throw Error("No se ha encontrado el dispositivo");
-    }
   }
   /* Eze 4.0 */
   async imprimirCajaAsync(caja: CajaSincro) {
@@ -899,12 +869,10 @@ export class Impresora {
 
       permisosImpresora();
 
-      const device = await dispositivos.getDevice();
-      if (device) {
-        const options = { encoding: "ISO-8859-15" }; // "GB18030" };
-        const printer = new escpos.Printer(device, options);
-        const mesInicial = fechaInicio.getMonth() + 1;
-        const mesFinal = fechaFinal.getMonth() + 1;
+      const mesInicial = fechaInicio.getMonth() + 1;
+      const mesFinal = fechaFinal.getMonth() + 1;
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
         this.enviarMQTT(printer
             .setCharacterCodeTable(19)
             .encode("CP858")
@@ -1064,75 +1032,15 @@ export class Impresora {
             .text("")
             .cut()
             .close().buffer._buffer.toString("utf8"));
-      } else {
-        throw Error("No se ha encontrado el dispositivo");
-      }
     } catch (err) {
       logger.Error(145, err);
     }
   }
 
   async abrirCajon() {
-    const parametros = parametrosInstance.getParametros();
-    try {
-      if (os.platform() === "linux") {
-        mqttInstance.loggerMQTT("abrir cajon linux");
-        permisosImpresora();
-        // if(parametros.tipoImpresora === 'USB')
-        // {
-        //     const arrayDevices = escpos.USB.findPrinter();
-        //     if (arrayDevices.length > 0) {
-        //         /* Solo puede haber un dispositivo USB */
-        //         const dispositivoUnico = arrayDevices[0];
-        //         var device = new escpos.USB(dispositivoUnico); //USB
-        //     } else if (arrayDevices.length == 0) {
-        //         throw 'Error, no hay ningún dispositivo USB conectado';
-        //     } else {
-        //         throw 'Error, hay más de un dispositivo USB conectado';
-        //     }
-        // } else {
-        //     if(parametros.tipoImpresora === 'SERIE') {
-        //         var device = new escpos.Serial('/dev/ttyS0', {
-        //             baudRate: 115000,
-        //             stopBit: 2
-        //           });
-        //     }
-        // }
-        const device = await dispositivos.getDevice();
-        const printer = new escpos.Printer(device);
-
-        this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer.toString("utf8"));
-        
-      } else if (os.platform() === "win32") {
-        permisosImpresora();
-        // if(parametros.tipoImpresora === 'USB')
-        // {
-        //     const arrayDevices = escpos.USB.findPrinter();
-        //     if (arrayDevices.length > 0) {
-        //         /* Solo puede haber un dispositivo USB */
-        //         const dispositivoUnico = arrayDevices[0];
-        //         var device = new escpos.USB(dispositivoUnico); //USB
-        //     } else if (arrayDevices.length == 0) {
-        //         throw 'Error, no hay ningún dispositivo USB conectado';
-        //     } else {
-        //         throw 'Error, hay más de un dispositivo USB conectado';
-        //     }
-        // } else {
-        //     if(parametros.tipoImpresora === 'SERIE') {
-        //         var device = new escpos.Serial('/dev/ttyS0', {
-        //             baudRate: 115000,
-        //             stopBit: 2
-        //           });
-        //     }
-        // }
-        const device = await dispositivos.getDevice();
-        const printer = new escpos.Printer(device);
-
-        this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer.toString("utf8"));
-      }
-    } catch (err) {
-      mqttInstance.loggerMQTT(err);
-    }
+    const device = new escpos.Network();
+    const printer = new escpos.Printer(device);
+    this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer.toString("utf8"));
   }
 
   /* Eze 4.0 */
@@ -1198,16 +1106,7 @@ export class Impresora {
     data.texto += " " + data.precio + eur;
     let string = `${datosExtra}${data.texto}                                               `;
     string = string + "                                             ";
-
-    try {
-      permisosImpresora();
-      const device = await dispositivos.getDeviceVisor();
-      console.log(string.substring(0, 40));
-      if (device) mqttInstance.enviarVisor(string.substring(0, 40));
-      else throw Error("Controlado: dispositivo es null");
-    } catch (err) {
-      mqttInstance.loggerMQTT("Error2: " + err);
-    }
+    mqttInstance.enviarVisor(string.substring(0, 40));
   }
 
   async imprimirEntregas() {
@@ -1219,12 +1118,9 @@ export class Impresora {
       })
       .then(async (res: any) => {
         try {
-          permisosImpresora();
-          const device = await dispositivos.getDevice();
-          if (device != null) {
-            const options = { encoding: "ISO-8859-15" }; // "GB18030" };
-            const printer = new escpos.Printer(device, options);
-            this.enviarMQTT(printer
+          const device = new escpos.Network();
+          const printer = new escpos.Printer(device);
+                this.enviarMQTT(printer
                 .setCharacterCodeTable(19)
                 .encode("CP858")
                 .font("a")
@@ -1235,8 +1131,6 @@ export class Impresora {
                 .cut()
                 .close().buffer._buffer.toString("utf8"));
             return { error: false, info: "OK" };
-          }
-          return { error: true, info: "Error, no se encuentra la impresora" };
         } catch (err) {
           mqttInstance.loggerMQTT(err);
           return { error: true, info: "Error en CATCH imprimirEntregas() 2" };
