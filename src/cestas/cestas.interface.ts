@@ -4,13 +4,13 @@ import { ObjectId } from "mongodb";
 
 export interface CestasInterface {
   _id: ObjectId;
-  timestamp: number,
-  detalleIva: DetalleIvaInterface,
-  lista: ItemLista[],
-  modo: ModoCesta,
-  idCliente: ClientesInterface["id"],
-  nombreCliente?: string,
-  indexMesa?: boolean
+  timestamp: number;
+  detalleIva: DetalleIvaInterface;
+  lista: ItemLista[];
+  modo: ModoCesta;
+  idCliente: ClientesInterface["id"];
+  nombreCliente?: string;
+  indexMesa?: boolean;
 }
 
 export type ItemLista = {
@@ -18,7 +18,7 @@ export type ItemLista = {
   nombre: string;
   unidades: number;
   subtotal: number;
-  arraySuplementos: ArticulosInterface["_id"][];
+  arraySuplementos: ArticulosInterface[];
   promocion: {
     idPromocion: string;
     idArticuloPrincipal: number;
@@ -30,7 +30,7 @@ export type ItemLista = {
     unidadesOferta: number;
     tipoPromo: TiposPromociones;
   };
-  gramos: number,
+  gramos: number;
   regalo: boolean;
 };
 

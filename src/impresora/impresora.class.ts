@@ -153,6 +153,7 @@ export class Impresora {
   }
   /* Eze 4.0 */
   async imprimirDevolucion(idDevolucion: ObjectId) {
+    try {
     const devolucion = await devolucionesInstance.getDevolucionById(
       idDevolucion
     );
@@ -178,7 +179,11 @@ export class Impresora {
       };
 
       await this._venta(sendObject);
+      
     }
+  } catch (err) {
+    logger.Error("imprimirDevolucion()", err);
+  }
   }
 
   private async imprimirRecibo(recibo: string) {

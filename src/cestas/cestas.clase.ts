@@ -433,7 +433,7 @@ export class CestaClase {
 
   /* Eze 4.0 */
   async getDetalleIvaSuplementos(
-    arraySuplementos: ItemLista["arraySuplementos"],
+    arraySuplementos: ArticulosInterface[],
     idCliente: ClientesInterface["id"]
   ): Promise<DetalleIvaInterface> {
     let objetoIva: DetalleIvaInterface = {
@@ -453,71 +453,19 @@ export class CestaClase {
       importe4: 0,
       importe5: 0,
     };
-    let objetoIva1=objetoIva;
-    let objetoIva2=objetoIva;
-    if (arraySuplementos.length==1) {
-      let articulo1 = await articulosInstance.getInfoArticulo(
-        arraySuplementos[0]
+    for (let i = 0; i < arraySuplementos.length; i++) {
+      let articulo = await articulosInstance.getInfoArticulo(
+        arraySuplementos[i]._id
       );
-      articulo1 = await articulosInstance.getPrecioConTarifa(
-        articulo1,
+      articulo = await articulosInstance.getPrecioConTarifa(
+        articulo,
         idCliente
       );
-      objetoIva = construirObjetoIvas(
-        articulo1.precioConIva,
-        articulo1.tipoIva,
-        1
+      objetoIva = fusionarObjetosDetalleIva(
+        construirObjetoIvas(articulo.precioConIva, articulo.tipoIva, 1),
+        objetoIva
       );
-
-    }else{
-      for (let i = 0; i < arraySuplementos.length; i++) {
-        if(i%2==0){
-          let articulo1 = await articulosInstance.getInfoArticulo(
-            arraySuplementos[i]
-          );
-          articulo1 = await articulosInstance.getPrecioConTarifa(
-            articulo1,
-            idCliente
-          );
-          objetoIva1 = construirObjetoIvas(
-            articulo1.precioConIva,
-            articulo1.tipoIva,
-            1
-          );
-        }else{
-          let articulo2 = await articulosInstance.getInfoArticulo(
-            arraySuplementos[i]
-          );
-          articulo2 = await articulosInstance.getPrecioConTarifa(
-            articulo2,
-            idCliente
-          );
-          objetoIva2 = construirObjetoIvas(
-            articulo2.precioConIva,
-            articulo2.tipoIva,
-            1
-          );
-        }
-        if (i==1 ) {
-          objetoIva=fusionarObjetosDetalleIva(
-            objetoIva1,
-            objetoIva2
-          );
-        }else if (i>1 && i%2==0) {
-          objetoIva=fusionarObjetosDetalleIva(
-            objetoIva,
-            objetoIva1
-
-          )
-        }else if (i>1 && i%2!=0) {
-          objetoIva=fusionarObjetosDetalleIva(
-            objetoIva,
-            objetoIva2
-
-          )
-        }
-      }
-  }
+    }
     return objetoIva;
   }
 
@@ -559,26 +507,49 @@ export class CestaClase {
     throw Error("Error en updateCesta borrarArticulosCesta()");
   }
 
-  /* Eze 4.0 */
-  async addSuplementos(
-    idCesta: CestasInterface["_id"],
-    arraySuplementos: ItemLista["arraySuplementos"],
-    indexCesta: number
-  ) {
-    const cesta = await this.getCestaById(idCesta);
-    cesta.lista[cesta.lista.length-1].arraySuplementos = arraySuplementos;
-    const infoSuplementos = await articulosInstance.getSuplementos(arraySuplementos);
-    
-    for (let i = 0; i < infoSuplementos.length; i++) {
-        // cesta.lista[cesta.lista.length-1].subtotal += infoSuplementos[i].precioConIva * cesta.lista[cesta.lista.length-1].unidades;
-        cesta.lista[cesta.lista.length-1].nombre += ` + ${infoSuplementos[i].nombre}`;
-      
-    }
-    // console.log("paso del for",cesta.lista.find(o => o.arraySuplementos));
-    await this.recalcularIvas(cesta);
+  // /* Eze 4.0 */
+  // async addItemConSuplementos(
+  //   idCesta: CestasInterface["_id"],
+  //   arraySuplementos: ArticulosInterface[],
+  //   idArticuloGeneral: ArticulosInterface["_id"],
+  //   unidades: number
+  // ) {
+  //   const cesta = await this.getCestaById(idCesta);
 
-    return await this.updateCesta( cesta);
-  }
+  //   const objPushSuplementos: ItemLista["arraySuplementos"] = [];
+  //   for (let i = 0; i < arraySuplementos.length; i++) {
+  //     objPushSuplementos.push({
+  //       id: arraySuplementos[i]._id,
+  //       nombre: arraySuplementos[i].nombre,
+  //       precioConIva: arraySuplementos[i].precioConIva,
+  //     });
+  //   }
+
+  //   const articuloGeneral: ArticulosInterface =
+  //     await articulosInstance.getInfoArticulo(idArticuloGeneral);
+  //   if (cesta.idCliente) {
+  //     const articuloConTarifa = await articulosInstance.getPrecioConTarifa(
+  //       articuloGeneral,
+  //       cesta.idCliente
+  //     );
+  //     articuloGeneral.precioBase = articuloConTarifa.precioBase;
+  //     articuloGeneral.precioConIva = articuloConTarifa.precioConIva;
+  //   }
+
+  //   if (
+  //     await this.clickTeclaArticulo(
+  //       idArticuloGeneral,
+  //       0,
+  //       idCesta,
+  //       unidades,
+  //       objPushSuplementos
+  //     )
+  //   ) {
+  //     this.actualizarCestas();
+  //     return true;
+  //   }
+  //   throw Error("No se ha podido insertar el artículo con suplemento");
+  // }
 
   /* Eze 4.0 */
   updateCesta = async (cesta: CestasInterface) =>
