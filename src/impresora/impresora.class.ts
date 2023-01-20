@@ -21,9 +21,9 @@ const dispositivos = new Dispositivos();
 const escpos = require("escpos");
 const exec = require("child_process").exec;
 const os = require("os");
-escpos.USB = require("escpos-usb");
-escpos.Serial = require("escpos-serialport");
-escpos.Screen = require("escpos-screen");
+const mqtt = require ("mqtt");
+escpos.Network = require("escpos-network")
+escpos.Screen = require("escpos-screen")
 const TIPO_ENTRADA_DINERO = "ENTRADA";
 const TIPO_SALIDA_DINERO = "SALIDA";
 
@@ -211,7 +211,34 @@ export class Impresora {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
   }
+  public async testMqtt(txt: string) {
+    try {
+      const device = new escpos.Screen();
+      const printer = new escpos.Printer(device);
 
+      device.open(function () {
+        printer
+          .setCharacterCodeTable(19)
+          .encode("CP858")
+          .font("a")
+          .style("b")
+          .size(0, 0)
+          .text(txt)
+          .cut("PAPER_FULL_CUT")
+          .close();
+      });
+    } catch (err) {
+      mqttInstance.loggerMQTT("Error impresora: " + err);
+    }
+  }
+
+  private enviarMQTT(encodedData){
+    var client  = mqtt.connect("mqtt://192.168.1.30:1883",{username:"ImpresoraMQTT"});
+    client.on("connect",function(){	
+    console.log("connected  "+client.connected);
+    client.publish("hit.hardware/printer", encodeURI(encodedData));
+    })
+  }
   private async _venta(info, recibo = null) {
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
@@ -230,8 +257,7 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    permisosImpresora();
-    const device = await dispositivos.getDevice();
+    const device = new escpos.Network();
     if (device) {
       const printer = new escpos.Printer(device);
       let detalles = "";
@@ -386,8 +412,7 @@ export class Impresora {
         "Dissabte",
       ];
 
-      device.open(function () {
-        printer
+      this.enviarMQTT(printer
 
         .setCharacterCodeTable(19)
         .encode("CP858")
@@ -436,13 +461,12 @@ export class Impresora {
         .control("LF")
         .text("ID: " + random() + " - " + random())
         .text(pie)
-          .control("LF")
-          .control("LF")
-          .control("LF")
-          .cut("PAPER_FULL_CUT")
-          .close();
-      });
-    } else throw Error("No se ha podido obtener el dispositivo");
+        .control("LF")
+        .control("LF")
+        .control("LF")
+        .cut("PAPER_FULL_CUT")
+        .close().buffer._buffer.toString("utf8"));
+      };
   }
 
   /* Eze 4.0 */
