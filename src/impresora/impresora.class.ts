@@ -196,8 +196,7 @@ export class Impresora {
       }
       const printer = new escpos.Printer(device);
 
-      device.open(function () {
-        printer
+      this.enviarMQTT(printer
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -205,8 +204,7 @@ export class Impresora {
           .size(0, 0)
           .text(recibo)
           .cut("PAPER_FULL_CUT")
-          .close();
-      });
+          .close().buffer._buffer.toString("utf8"));
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
@@ -216,8 +214,8 @@ export class Impresora {
       const device = new escpos.Screen();
       const printer = new escpos.Printer(device);
 
-      device.open(function () {
-        printer
+      this.enviarMQTT(printer
+        
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -225,8 +223,7 @@ export class Impresora {
           .size(0, 0)
           .text(txt)
           .cut("PAPER_FULL_CUT")
-          .close();
-      });
+          .close().buffer._buffer.toString("utf8"));
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
@@ -310,21 +307,20 @@ export class Impresora {
             ].promocion.precioRealArticuloSecundario.toFixed(2)}\n`;
           }
         } else if(arrayCompra[i].arraySuplementos && arrayCompra[i].arraySuplementos.length >0){
-          let articuloConSuplesString=arrayCompra[i].nombre.split("+");
-          for (let j = 0; j < articuloConSuplesString.length; j++) {
+          for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
 
             if (j==0) {
-              detalles += `${1}     ${articuloConSuplesString[
+              detalles += `${1}     ${arrayCompra[i].arraySuplementos[
                 j
-              ].slice(0, 20)} +      \n`;
-            }else if (j==(articuloConSuplesString.length - 1)) {
-              detalles += `       ${articuloConSuplesString[
+              ].nombre.slice(0, 20)} +      \n`;
+            }else if (j==(arrayCompra[i].arraySuplementos.length - 1)) {
+              detalles += `       ${arrayCompra[i].arraySuplementos[
                 j
-              ].slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+              ].nombre.slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
             }else{
-              detalles += `       ${articuloConSuplesString[
+              detalles += `       ${arrayCompra[i].arraySuplementos[
                 j
-              ].slice(0, 20)} +      \n`;
+              ].nombre.slice(0, 20)} +      \n`;
             }
             
           }
@@ -482,8 +478,7 @@ export class Impresora {
       if (device) {
         const options = { encoding: "GB18030" };
         const printer = new escpos.Printer(device, options);
-        device.open(function () {
-          printer
+        this.enviarMQTT(printer
             .setCharacterCodeTable(19)
             .encode("CP858")
             .font("a")
@@ -506,11 +501,8 @@ export class Impresora {
             .text("")
             .text("")
             .cut()
-            .close();
-        });
-      } else {
-        throw Error("No se ha podido encontrar el dispositivo");
-      }
+           .close().buffer._buffer.toString("utf8"));
+      };
     } catch (err) {
       logger.Error(146, err);
     }
@@ -549,8 +541,8 @@ export class Impresora {
 
       const options = { encoding: "GB18030" };
       const printer = new escpos.Printer(device, options);
-      device.open(function () {
-        printer
+      this.enviarMQTT(printer
+        
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -570,8 +562,7 @@ export class Impresora {
           .text("")
           .text("")
           .cut()
-          .close();
-      });
+          .close().buffer._buffer.toString("utf8"));
     } catch (err) {
       mqttInstance.loggerMQTT(err);
     }
@@ -604,8 +595,7 @@ export class Impresora {
 
       const options = { encoding: "GB18030" };
       const printer = new escpos.Printer(device, options);
-      device.open(function () {
-        printer
+      this.enviarMQTT(printer
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -614,8 +604,7 @@ export class Impresora {
           .size(1, 1)
           .text("HOLA HOLA")
           .cut()
-          .close();
-      });
+          .close().buffer._buffer.toString("utf8"));
     } catch (err) {
       mqttInstance.loggerMQTT(err);
     }
@@ -688,8 +677,7 @@ export class Impresora {
       const printer = new escpos.Printer(device, options);
       const mesInicial = fechaInicio.getMonth() + 1;
       const mesFinal = fechaFinal.getMonth() + 1;
-      device.open(function () {
-        printer
+      this.enviarMQTT(printer
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -846,8 +834,7 @@ export class Impresora {
           .text("")
           .text("")
           .cut()
-          .close();
-      });
+          .close().buffer._buffer.toString("utf8"));
     } else {
       throw Error("No se ha encontrado el dispositivo");
     }
@@ -923,8 +910,7 @@ export class Impresora {
         const printer = new escpos.Printer(device, options);
         const mesInicial = fechaInicio.getMonth() + 1;
         const mesFinal = fechaFinal.getMonth() + 1;
-        device.open(function () {
-          printer
+        this.enviarMQTT(printer
             .setCharacterCodeTable(19)
             .encode("CP858")
             .font("a")
@@ -1082,8 +1068,7 @@ export class Impresora {
             .text("")
             .text("")
             .cut()
-            .close();
-        });
+            .close().buffer._buffer.toString("utf8"));
       } else {
         throw Error("No se ha encontrado el dispositivo");
       }
@@ -1121,9 +1106,8 @@ export class Impresora {
         const device = await dispositivos.getDevice();
         const printer = new escpos.Printer(device);
 
-        device.open(function () {
-          printer.cashdraw(2).close();
-        });
+        this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer.toString("utf8"));
+        
       } else if (os.platform() === "win32") {
         permisosImpresora();
         // if(parametros.tipoImpresora === 'USB')
@@ -1149,9 +1133,7 @@ export class Impresora {
         const device = await dispositivos.getDevice();
         const printer = new escpos.Printer(device);
 
-        device.open(function () {
-          printer.cashdraw(2).close();
-        });
+        this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer.toString("utf8"));
       }
     } catch (err) {
       mqttInstance.loggerMQTT(err);
@@ -1247,8 +1229,7 @@ export class Impresora {
           if (device != null) {
             const options = { encoding: "ISO-8859-15" }; // "GB18030" };
             const printer = new escpos.Printer(device, options);
-            device.open(function () {
-              printer
+            this.enviarMQTT(printer
                 .setCharacterCodeTable(19)
                 .encode("CP858")
                 .font("a")
@@ -1257,8 +1238,7 @@ export class Impresora {
                 .size(0, 0)
                 .text(res.data.info)
                 .cut()
-                .close();
-            });
+                .close().buffer._buffer.toString("utf8"));
             return { error: false, info: "OK" };
           }
           return { error: true, info: "Error, no se encuentra la impresora" };
