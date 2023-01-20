@@ -212,37 +212,6 @@ export class Impresora {
     }
   }
 
-  public async testMqtt(txt: string) {
-    try {
-      const device = new escpos.Screen();
-      const printer = new escpos.Printer(device);
-
-      device.open(function () {
-        printer
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .size(0, 0)
-          .text(txt)
-          .cut("PAPER_FULL_CUT")
-          .close();
-      });
-    } catch (err) {
-      mqttInstance.loggerMQTT("Error impresora: " + err);
-    }
-  }
-
-  private enviarMQTT(encodedData){
-    var client  = mqtt.connect("mqtt://192.168.1.30:1883",{username:"ImpresoraMQTT"});
-    client.on("connect",function(){	
-    console.log("connected  "+client.connected);
-    client.publish("hit.hardware/printer", encodeURI(encodedData));
-    })
-  }
-  
-  
-  
   private async _venta(info, recibo = null) {
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
