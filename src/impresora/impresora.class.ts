@@ -307,13 +307,10 @@ export class Impresora {
             ].promocion.precioRealArticuloSecundario.toFixed(2)}\n`;
           }
         } else if(arrayCompra[i].arraySuplementos && arrayCompra[i].arraySuplementos.length >0){
+          detalles += `${1}     ${arrayCompra[i].nombre.slice(0, 20)} +      \n`;
           for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
 
-            if (j==0) {
-              detalles += `${1}     ${arrayCompra[i].arraySuplementos[
-                j
-              ].nombre.slice(0, 20)} +      \n`;
-            }else if (j==(arrayCompra[i].arraySuplementos.length - 1)) {
+            if (j==(arrayCompra[i].arraySuplementos.length - 1)) {
               detalles += `       ${arrayCompra[i].arraySuplementos[
                 j
               ].nombre.slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
