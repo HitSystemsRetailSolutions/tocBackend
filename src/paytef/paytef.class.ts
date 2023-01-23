@@ -30,6 +30,7 @@ class PaytefClass {
       transactionReference: idTicket,
       showResultSeconds: 5,
     };
+    console.log(parametros.ipTefpay)
 
     if (parametros.ipTefpay) {
       axios({
@@ -39,7 +40,7 @@ class PaytefClass {
         timeout: 30000,
       })
         .then(async (respuestaPayef: any) => {
-          if (respuestaPayef.info.started)
+          if (await respuestaPayef.data.info['started'])
             await this.bucleComprobacion(idTicket, total, idTrabajador, type);
           else {
             io.emit("consultaPaytefRefund", false);
