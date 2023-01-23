@@ -130,7 +130,8 @@ export async function getComprovarTurno() {
 export async function getUltimoCierre(): Promise<CajaSincro> {
   const database = (await conexion).db("tocgame");
   const sincroCajas = database.collection<CajaSincro>("sincro-cajas");
-  return await sincroCajas.findOne({ enviado: false }, { sort: { _id: -1 } });
+  const res=await sincroCajas.find().sort({ _id: -1 }).limit(1).toArray();
+  return res[0];
 }
 
 /* Eze 4.0 */
