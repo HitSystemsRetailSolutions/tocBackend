@@ -288,7 +288,7 @@ export class CajaClase {
       finalTime: finalTime,
       idDependientaCierre: idDependientaCierre,
       nClientes: nClientes,
-      recaudado: recaudado,
+      recaudado: parseInt(recaudado.toFixed(2)),
       totalCierre: totalCierre,
       totalDatafono3G: totalDatafono3G,
       totalDeuda: totalDeuda,

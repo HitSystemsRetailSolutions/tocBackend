@@ -15,6 +15,7 @@ import { MovimientosInterface } from "../movimientos/movimientos.interface";
 import * as moment from "moment";
 import { CajaSincro } from "../caja/caja.interface";
 import { logger } from "src/logger";
+import { buffer } from "stream/consumers";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -216,7 +217,8 @@ export class Impresora {
     var client  = mqtt.connect("mqtt://localhost:1883",{username:"ImpresoraMQTT"});
     client.on("connect",function(){	
     console.log("connected  "+client.connected);
-    client.publish("hit.hardware/printer", encodeURI(encodedData));
+    let buff = Buffer.from(encodedData,'hex');
+    client.publish("hit.hardware/printer", buff);
     })
   }
   private async _venta(info, recibo = null) {
