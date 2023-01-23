@@ -426,7 +426,7 @@ export class Impresora {
         .align('LT')
         .size(1, 1)
         .text(pagoDevolucion)
-        .text("TOTAL: " + total.toFixed(2) + String.fromCharCode(27) + String.fromCharCode(116) + String.fromCharCode(39) + " €")
+        .text("TOTAL: " + total.toFixed(2) + " €")
         .control("LF")
         .size(0, 0)
         .align("CT")
