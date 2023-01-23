@@ -189,7 +189,7 @@ export class Impresora {
           .size(0, 0)
           .text(recibo)
           .cut("PAPER_FULL_CUT")
-          .close().buffer._buffer.toString("utf8"));
+          .close().buffer._buffer);
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
@@ -207,7 +207,7 @@ export class Impresora {
           .size(0, 0)
           .text(txt)
           .cut("PAPER_FULL_CUT")
-          .close().buffer._buffer.toString("utf8"));
+          .close().buffer._buffer);
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
@@ -440,7 +440,7 @@ export class Impresora {
         .control("LF")
         .control("LF")
         .cut("PAPER_FULL_CUT")
-        .close().buffer._buffer.toString("utf8"));
+        .close().buffer._buffer);
   }
 
   /* Eze 4.0 */
@@ -476,7 +476,7 @@ export class Impresora {
             .text("")
             .text("")
             .cut()
-           .close().buffer._buffer.toString("utf8"));
+           .close().buffer._buffer);
     } catch (err) {
       logger.Error(146, err);
     }
@@ -535,7 +535,7 @@ export class Impresora {
           .text("")
           .text("")
           .cut()
-          .close().buffer._buffer.toString("utf8"));
+          .close().buffer._buffer);
     } catch (err) {
       mqttInstance.loggerMQTT(err);
     }
@@ -575,7 +575,7 @@ export class Impresora {
           .size(1, 1)
           .text("HOLA HOLA")
           .cut()
-          .close().buffer._buffer.toString("utf8"));
+          .close().buffer._buffer);
     } catch (err) {
       mqttInstance.loggerMQTT(err);
     }
@@ -804,7 +804,7 @@ export class Impresora {
           .text("")
           .text("")
           .cut()
-          .close().buffer._buffer.toString("utf8"));
+          .close().buffer._buffer);
   }
   /* Eze 4.0 */
   async imprimirCajaAsync(caja: CajaSincro) {
@@ -1033,7 +1033,7 @@ export class Impresora {
             .text("")
             .text("")
             .cut()
-            .close().buffer._buffer.toString("utf8"));
+            .close().buffer._buffer);
     } catch (err) {
       logger.Error(145, err);
     }
@@ -1042,7 +1042,7 @@ export class Impresora {
   async abrirCajon() {
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
-    this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer.toString("utf8"));
+    this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer);
   }
 
   /* Eze 4.0 */
@@ -1131,7 +1131,7 @@ export class Impresora {
                 .size(0, 0)
                 .text(res.data.info)
                 .cut()
-                .close().buffer._buffer.toString("utf8"));
+                .close().buffer._buffer);
             return { error: false, info: "OK" };
         } catch (err) {
           mqttInstance.loggerMQTT(err);
