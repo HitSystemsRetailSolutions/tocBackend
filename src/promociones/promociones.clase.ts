@@ -485,9 +485,9 @@ export class NuevaPromocion {
             ) {
               if (this.promosCombo[i]?.principal?.length > 0) {
                 // Buscar comenzando por el secundario en el else
-                for (let j = 0; j < this.promosCombo[i].principal.length; j++) {
+                for (let k = 0; k < this.promosCombo[i].principal.length; k++) {
                   if (
-                    this.promosCombo[i].principal[j] === cesta.lista[c].idArticulo
+                    this.promosCombo[i].principal[k] === cesta.lista[c].idArticulo
                   ) {
                     const cantidadPromos = Math.trunc(
                       unidadesTotales / this.promosCombo[i].cantidadSecundario
@@ -517,9 +517,9 @@ export class NuevaPromocion {
             ) {
               if (this.promosCombo[i]?.secundario?.length > 0) {
                 // Buscar comenzando por el secundario en el else
-                for (let j = 0; j < this.promosCombo[i].secundario.length; j++) {
+                for (let k = 0; k < this.promosCombo[i].secundario.length; k++) {
                   if (
-                    this.promosCombo[i].secundario[j] === cesta.lista[c].idArticulo
+                    this.promosCombo[i].secundario[k] === cesta.lista[c].idArticulo
                   ) {
                     const cantidadPromos = Math.trunc(
                       unidadesTotales / this.promosCombo[i].cantidadPrincipal

@@ -95,7 +95,6 @@ export class InstaladorController {
         const tarifas = await tarifasInstance.guardarTarifasEspeciales(
           res.data.tarifasEspeciales
         );
-        const menus = await menusInstance.insertarMenus(res.data.menus);
 
         if ( // Solo los datos obligatorios
           trabajadores &&
@@ -105,7 +104,7 @@ export class InstaladorController {
           return true;
         }
         throw Error(
-          `Backend: res1: ${trabajadores}, res2: ${articulos}, res3: ${clientes}, res4: ${familias}, res5: ${promociones}, res7: ${teclas}, res8: ${tarifas}, res9: ${menus}`
+          `Backend: res1: ${trabajadores}, res2: ${articulos}, res3: ${clientes}, res4: ${familias}, res5: ${promociones}, res7: ${teclas}, res8: ${tarifas}`
         );
       }
       throw Error("Error de autenticación en SanPedro");
