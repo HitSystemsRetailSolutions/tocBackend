@@ -199,14 +199,19 @@ describe("Caja", () => {
       totalTkrsSinExceso: 0,
       ultimoTicket: 2,
     };
-    const nuevoId = new ObjectId();
+
     if (
       await cajaInstance.nuevoItemSincroCajas(objCajaAbierta, objCajaCerrada)
     ) {
       const database = (await conexion).db("tocgame");
       const sincroCajas = database.collection<CajaSincro>("sincro-cajas");
-      const resultado = await sincroCajas.findOne({ _id: nuevoId });
-      expect(resultado.finalTime).toBe(200000);
+      const resultado = await sincroCajas
+        .find()
+        .sort({ _id: -1 })
+        .limit(1)
+        .toArray();
+
+      expect(resultado[0].finalTime).toBe(200000);
       //await sincroCajas.deleteOne({_id: nuevoId});
     } else {
       throw Error("Error en test nuevoItemSincroCajas() parte 1");
