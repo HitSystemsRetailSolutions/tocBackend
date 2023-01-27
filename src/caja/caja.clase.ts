@@ -229,7 +229,8 @@ export class CajaClase {
         //   totalEfectivo += arrayMovimientos[i].valor;
         //   break;
         case "TARJETA":
-            //totalTarjeta = totalTarjeta + arrayMovimientos[i].valor;
+          totalSalidas += arrayMovimientos[i].valor;
+          totalTarjeta += arrayMovimientos[i].valor;
           break;
         case "TKRS_CON_EXCESO":
           totalTkrsConExceso += arrayMovimientos[i].valor;
@@ -281,7 +282,7 @@ export class CajaClase {
           cajaAbiertaActual.totalApertura) -
           (totalSalidas -
           totalEntradaDinero -
-          totalTickets)+totalTarjeta) *
+          totalTickets)) *
           100
       ) / 100;
 
