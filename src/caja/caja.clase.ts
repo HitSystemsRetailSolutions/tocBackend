@@ -278,11 +278,11 @@ export class CajaClase {
 
     const descuadre =
       Math.round(
-        ((totalCierre -
-          cajaAbiertaActual.totalApertura) -
-          (totalSalidas -
+        (totalCierre -
+          cajaAbiertaActual.totalApertura +
+          totalSalidas -
           totalEntradaDinero -
-          totalTickets)) *
+          totalTickets) *
           100
       ) / 100;
 
@@ -297,7 +297,7 @@ export class CajaClase {
       finalTime: finalTime,
       idDependientaCierre: idDependientaCierre,
       nClientes: nClientes,
-      recaudado: parseInt(recaudado.toFixed(2)),
+      recaudado: recaudado,
       totalCierre: totalCierre,
       totalDatafono3G: totalDatafono3G,
       totalDeuda: totalDeuda,
