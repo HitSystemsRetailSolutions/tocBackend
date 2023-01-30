@@ -1,7 +1,7 @@
 import { Controller, Get } from "@nestjs/common";
-import { logger } from "src/logger";
-import { ticketsInstance } from "src/tickets/tickets.clase";
-import { TicketsInterface } from "src/tickets/tickets.interface";
+import { logger } from "../logger";
+import { ticketsInstance } from "../tickets/tickets.clase";
+import { TicketsInterface } from "../tickets/tickets.interface";
 import { nuevaInstancePromociones } from "./promociones.clase";
 
 @Controller("promociones")

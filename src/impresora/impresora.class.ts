@@ -14,7 +14,7 @@ import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { MovimientosInterface } from "../movimientos/movimientos.interface";
 import * as moment from "moment";
 import { CajaSincro } from "../caja/caja.interface";
-import { logger } from "src/logger";
+import { logger } from "../logger";
 import { buffer } from "stream/consumers";
 moment.locale("es");
 const escpos = require("escpos");
