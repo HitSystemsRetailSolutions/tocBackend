@@ -13,7 +13,7 @@ export class TicketsClase {
   getTicketById = (idTicket: number) => schTickets.getTicketByID(idTicket);
 
   /* Eze 4.0 */
-  anularTicket = (idTicket: number) => schTickets.anularTicket(idTicket);
+  anularTicket = (idTicket: TicketsInterface["_id"]) => schTickets.anularTicket(idTicket);
 
   /* Eze 4.0 */
   getTicketsIntervalo = (fechaInicio: number, fechaFinal: number) =>

@@ -191,6 +191,7 @@ export class CajaClase {
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
     finalTime: CajaCerradaInterface["finalTime"]
   ): Promise<CajaCerradaInterface> {
+    console.log("hola")
     const arrayTicketsCaja: TicketsInterface[] =
       await schTickets.getTicketsIntervalo(
         cajaAbiertaActual.inicioTime,
@@ -222,6 +223,8 @@ export class CajaClase {
 
     /* RECUERDA QUE SE DEBE HACER UN MOVIMIENTO DE SALIDA PARA LA CANTIDAD 3G ANTES DE CERRAR LA CAJA, EN ESTE MOMENTO NO SE HACE */
     for (let i = 0; i < arrayMovimientos.length; i++) {
+      console.log("tipo",arrayMovimientos[i])
+      console.log("cajaApertura",cajaAbiertaActual[i])
       switch (arrayMovimientos[i].tipo) {
         // case "EFECTIVO":
         //   totalEntradas += arrayMovimientos[i].valor;
@@ -254,6 +257,9 @@ export class CajaClase {
           totalSalidas += arrayMovimientos[i].valor;
           totalTarjeta += arrayMovimientos[i].valor;
           break;
+        case "SALIDA":
+        totalSalidas += arrayMovimientos[i].valor;
+        break;
         default:
           logger.Error(51, "Error, tipo de movimiento desconocido");
       }
@@ -267,17 +273,27 @@ export class CajaClase {
       totalTickets += arrayTicketsCaja[i].total;
     }
 
-    const descuadre =
-      Math.round(
-        (totalCierre -
-          cajaAbiertaActual.totalApertura +
-          totalSalidas -
-          totalEntradaDinero -
-          totalTickets) *
-          100
-      ) / 100;
+    // const descuadre =
+    //   Math.round(
+    //     ( totalCierre -
+    //       cajaAbiertaActual.totalApertura +
+    //       totalSalidas -
+    //       totalEntradaDinero -
+    //       totalTickets + totalTarjeta) *
+    //       100
+    //   ) / 100;
+     const descuadre =
+       Math.round(
+         (cajaAbiertaActual.totalApertura 
+          - totalCierre
+          - totalSalidas 
+          + totalEntradaDinero 
+          + totalTickets 
+          ) *
+           100
+       ) / 100;
 
-    recaudado = totalTickets + descuadre - totalSalidas;
+    recaudado = totalTickets + descuadre ;
 
     return {
       calaixFetZ: totalTickets,
@@ -288,7 +304,7 @@ export class CajaClase {
       finalTime: finalTime,
       idDependientaCierre: idDependientaCierre,
       nClientes: nClientes,
-      recaudado: parseInt(recaudado.toFixed(2)),
+      recaudado: recaudado,
       totalCierre: totalCierre,
       totalDatafono3G: totalDatafono3G,
       totalDeuda: totalDeuda,

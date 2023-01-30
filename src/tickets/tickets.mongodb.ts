@@ -182,7 +182,7 @@ export async function borrarTicket(idTicket: number): Promise<boolean> {
 }
 
 /* Eze v23 - Solo se invoca manualmente desde la lista de tickets (frontend dependienta) */
-export async function anularTicket(idTicket: number): Promise<boolean> {
+export async function anularTicket(idTicket: TicketsInterface["_id"]): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const ticketsAnulados = database.collection("ticketsAnulados");
   const resultado = await ticketsAnulados.findOne({
