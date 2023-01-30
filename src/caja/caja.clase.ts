@@ -221,6 +221,7 @@ export class CajaClase {
     let totalConsumoPersonal = 0;
 
     /* RECUERDA QUE SE DEBE HACER UN MOVIMIENTO DE SALIDA PARA LA CANTIDAD 3G ANTES DE CERRAR LA CAJA, EN ESTE MOMENTO NO SE HACE */
+    console.log(arrayMovimientos)
     for (let i = 0; i < arrayMovimientos.length; i++) {
       switch (arrayMovimientos[i].tipo) {
         // case "EFECTIVO":
@@ -247,6 +248,7 @@ export class CajaClase {
           totalEntregaDiaria += arrayMovimientos[i].valor;
           break;
         case "ENTRADA_DINERO":
+          console.log(">>>")
           totalEntradas += arrayMovimientos[i].valor;
           totalEntradaDinero += arrayMovimientos[i].valor;
           break;
@@ -254,10 +256,17 @@ export class CajaClase {
           totalSalidas += arrayMovimientos[i].valor;
           totalTarjeta += arrayMovimientos[i].valor;
           break;
+        case "SALIDA":
+          console.log(">>>xx")
+          totalSalidas += arrayMovimientos[i].valor;
+          console.log("HE PASADO >"+totalSalidas)
+          break;
         default:
           logger.Error(51, "Error, tipo de movimiento desconocido");
       }
+      console.log(totalTarjeta)
     }
+    
 
     // totalEfectivo -= totalDatafono3G;
 
@@ -269,11 +278,11 @@ export class CajaClase {
 
     const descuadre =
       Math.round(
-        (totalCierre -
-          cajaAbiertaActual.totalApertura +
-          totalSalidas -
+        ((totalCierre -
+          cajaAbiertaActual.totalApertura) -
+          (totalSalidas -
           totalEntradaDinero -
-          totalTickets) *
+          totalTickets)) *
           100
       ) / 100;
 
