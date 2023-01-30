@@ -104,7 +104,7 @@ export class NuevaPromocion {
 
     /* COMBO */
     // const mediaPromo = this.buscarPromo(idArticulo, unidadesTotales);
-    const promosPosibles = this.buscarPromo(idArticulo, unidadesTotales);
+    const promosPosibles = this.buscarPromo(idArticulo, unidadesTotales, cesta);
     if (promosPosibles?.promosPrincipales?.length > 0) {
       for (let i = 0; i < promosPosibles.promosPrincipales.length; i++) {
         let mediaPromo = promosPosibles.promosPrincipales[i];
@@ -459,7 +459,8 @@ export class NuevaPromocion {
 
   private buscarPromo(
     idArticulo: ArticulosInterface["_id"],
-    unidadesTotales: number
+    unidadesTotales: number,
+    cesta: CestasInterface,
   ): {
     promosSecundarios: MediaPromoEncontrada[];
     promosPrincipales: MediaPromoEncontrada[];
@@ -467,58 +468,85 @@ export class NuevaPromocion {
     const promosSecundarios = [];
     const promosPrincipales = [];
 
-    for (let i = 0; i < this.promosCombo.length; i++) {
-      if (
-        this.promosCombo[i].secundario &&
-        this.promosCombo[i].secundario.length > 0
-      ) {
-        // Buscar comenzando por el secundario en el else
-        for (let j = 0; j < this.promosCombo[i].secundario.length; j++) {
-          if (
-            this.promosCombo[i].secundario[j] === idArticulo &&
-            unidadesTotales >= this.promosCombo[i].cantidadSecundario
-          ) {
-            const cantidadPromos = Math.trunc(
-              unidadesTotales / this.promosCombo[i].cantidadSecundario
-            );
-            const sobran =
-              unidadesTotales % this.promosCombo[i].cantidadSecundario;
-            promosSecundarios.push({
-              indexPromo: i,
-              cantidadPromos,
-              sobran,
-              tipo: "SECUNDARIO",
-              indexCesta: null,
-            });
+    for (let c = 0; c < cesta.lista.length; c++) {
+      cesta.lista[c].idArticulo;
+      
+    
+      for (let i = 0; i < this.promosCombo.length; i++) {
+        if (
+          this.promosCombo[i].secundario &&
+          this.promosCombo[i].secundario.length > 0
+        ) {
+          // Buscar comenzando por el secundario en el else
+          for (let j = 0; j < this.promosCombo[i].secundario.length; j++) {
+            if (
+              this.promosCombo[i].secundario[j] === idArticulo &&
+              unidadesTotales >= this.promosCombo[i].cantidadSecundario
+            ) {
+              if (this.promosCombo[i]?.principal?.length > 0) {
+                // Buscar comenzando por el secundario en el else
+                for (let k = 0; k < this.promosCombo[i].principal.length; k++) {
+                  if (
+                    this.promosCombo[i].principal[k] === cesta.lista[c].idArticulo
+                  ) {
+                    const cantidadPromos = Math.trunc(
+                      unidadesTotales / this.promosCombo[i].cantidadSecundario
+                    );
+                    const sobran =
+                      unidadesTotales % this.promosCombo[i].cantidadSecundario;
+                    promosSecundarios.push({
+                      indexPromo: i,
+                      cantidadPromos,
+                      sobran,
+                      tipo: "SECUNDARIO",
+                      indexCesta: null,
+                    });
+                  }
+                }
+              }
+              
+            }
           }
         }
-      }
-    }
 
-    for (let i = 0; i < this.promosCombo.length; i++) {
-      if (this.promosCombo[i]?.principal?.length > 0) {
-        // Buscar comenzando por el secundario en el else
-        for (let j = 0; j < this.promosCombo[i].principal.length; j++) {
-          if (
-            this.promosCombo[i].principal[j] === idArticulo &&
-            unidadesTotales >= this.promosCombo[i].cantidadPrincipal
-          ) {
-            const cantidadPromos = Math.trunc(
-              unidadesTotales / this.promosCombo[i].cantidadPrincipal
-            );
-            const sobran =
-              unidadesTotales % this.promosCombo[i].cantidadPrincipal;
-            promosPrincipales.push({
-              indexPromo: i,
-              cantidadPromos,
-              sobran,
-              tipo: "PRINCIPAL",
-              indexCesta: null,
-            });
+        if (this.promosCombo[i]?.principal?.length > 0) {
+          for (let j = 0; j < this.promosCombo[i].principal.length; j++) {
+            if (
+              this.promosCombo[i].principal[j] === idArticulo &&
+              unidadesTotales >= this.promosCombo[i].cantidadPrincipal
+            ) {
+              if (this.promosCombo[i]?.secundario?.length > 0) {
+                // Buscar comenzando por el secundario en el else
+                for (let k = 0; k < this.promosCombo[i].secundario.length; k++) {
+                  if (
+                    this.promosCombo[i].secundario[k] === cesta.lista[c].idArticulo
+                  ) {
+                    const cantidadPromos = Math.trunc(
+                      unidadesTotales / this.promosCombo[i].cantidadPrincipal
+                    );
+                    const sobran =
+                      unidadesTotales % this.promosCombo[i].cantidadPrincipal;
+                    promosPrincipales.push({
+                      indexPromo: i,
+                      cantidadPromos,
+                      sobran,
+                      tipo: "PRINCIPAL",
+                      indexCesta: null,
+                    });
+                  }
+                }
+              }
+              
+            }
           }
         }
+
       }
+
     }
+    
+    console.log("promosSecundarios:", promosSecundarios);
+    console.log("promosPrincipales: ",promosPrincipales);
     return {
       promosSecundarios,
       promosPrincipales,
