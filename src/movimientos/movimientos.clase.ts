@@ -8,9 +8,9 @@ import {
   SuperTicketInterface,
   TicketsInterface,
 } from "../tickets/tickets.interface";
-import { ticketsInstance } from "src/tickets/tickets.clase";
-import { cajaInstance } from "src/caja/caja.clase";
-import { impresoraInstance } from "src/impresora/impresora.class";
+import { ticketsInstance } from "../tickets/tickets.clase";
+import { cajaInstance } from "../caja/caja.clase";
+import { impresoraInstance } from "../impresora/impresora.class";
 
 const moment = require("moment");
 const Ean13Utils = require("ean13-lib").Ean13Utils;

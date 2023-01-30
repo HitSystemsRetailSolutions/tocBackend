@@ -6,7 +6,7 @@ import { io } from "../sockets.gateway";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import axios from "axios";
 import { convertirDineroEnPuntos } from "../funciones/funciones";
-import { articulosInstance } from "src/articulos/articulos.clase";
+import { articulosInstance } from "../articulos/articulos.clase";
 
 export class TicketsClase {
   /* Eze 4.0 */

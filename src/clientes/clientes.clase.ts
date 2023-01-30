@@ -1,8 +1,8 @@
 import * as schClientes from "./clientes.mongodb";
 import { ClientesInterface } from "./clientes.interface";
 import axios from "axios";
-import { parametrosInstance } from "src/parametros/parametros.clase";
-import { tarifasInstance } from "src/tarifas/tarifas.class";
+import { parametrosInstance } from "../parametros/parametros.clase";
+import { tarifasInstance } from "../tarifas/tarifas.class";
 
 export class Clientes {
   /* Eze 4.0. Busca tanto nombres como tarjeta cliente */

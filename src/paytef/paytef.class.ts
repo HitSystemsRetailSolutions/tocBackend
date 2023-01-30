@@ -1,12 +1,12 @@
 import axios from "axios";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
-import { parametrosInstance } from "src/parametros/parametros.clase";
-import { ticketsInstance } from "src/tickets/tickets.clase";
-import { TicketsInterface } from "src/tickets/tickets.interface";
+import { parametrosInstance } from "../parametros/parametros.clase";
+import { ticketsInstance } from "../tickets/tickets.clase";
+import { TicketsInterface } from "../tickets/tickets.interface";
 // import { Socket } from "dgram";
 import { CancelInterface } from "./paytef.interface";
 import { io } from "../sockets.gateway";
-import { logger } from "src/logger";
+import { logger } from "../logger";
 
 class PaytefClass {
   /* Eze 4.0 */

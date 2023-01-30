@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { CajaClase } from "../caja/caja.clase";
+import { CajaClase } from "./caja.clase";
 import {
   CajaAbiertaInterface,
   CajaCerradaInterface,

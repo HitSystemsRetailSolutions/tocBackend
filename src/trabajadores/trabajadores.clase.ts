@@ -7,8 +7,8 @@ import * as schTrabajadores from "./trabajadores.mongodb";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import axios from "axios";
 import { CestasInterface } from "../cestas/cestas.interface";
-import { io } from "src/sockets.gateway";
-import { logger } from "src/logger";
+import { io } from "../sockets.gateway";
+import { logger } from "../logger";
 
 export class TrabajadoresClase {
   /* Eze 4.0 */
