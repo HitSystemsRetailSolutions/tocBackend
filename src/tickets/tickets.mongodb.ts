@@ -206,6 +206,7 @@ export async function anularTicket(idTicket: TicketsInterface["_id"]): Promise<b
       const resSetUltimoTicket = await parametrosInstance.setUltimoTicket(
         ticket._id
       );
+      ticketsInstance.actualizarTickets();
       return resultado && resSetUltimoTicket;
     }
   }

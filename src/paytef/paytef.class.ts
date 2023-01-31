@@ -7,6 +7,7 @@ import { TicketsInterface } from "src/tickets/tickets.interface";
 import { CancelInterface } from "./paytef.interface";
 import { io } from "../sockets.gateway";
 import { logger } from "src/logger";
+import * as schTickets from "../tickets/tickets.mongodb";
 
 class PaytefClass {
   /* Eze 4.0 */
@@ -93,7 +94,9 @@ class PaytefClass {
             idTicket,
             idTrabajador
           );
+          
           io.emit("consultaPaytefRefund", true);
+          schTickets.anularTicket(idTicket);
         } else {
           logger.Error("Error grave de devoluciones/movimientos !!!");
         }

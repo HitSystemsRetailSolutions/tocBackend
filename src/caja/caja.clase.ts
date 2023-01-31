@@ -273,27 +273,28 @@ export class CajaClase {
       totalTickets += arrayTicketsCaja[i].total;
     }
 
-    // const descuadre =
-    //   Math.round(
-    //     ( totalCierre -
-    //       cajaAbiertaActual.totalApertura +
-    //       totalSalidas -
-    //       totalEntradaDinero -
-    //       totalTickets + totalTarjeta) *
-    //       100
-    //   ) / 100;
-     const descuadre =
-       Math.round(
-         (cajaAbiertaActual.totalApertura 
-          - totalCierre
-          - totalSalidas 
-          + totalEntradaDinero 
-          + totalTickets 
-          ) *
-           100
-       ) / 100;
+    const descuadre =
+      Math.round(
+        ( totalCierre -
+          cajaAbiertaActual.totalApertura +
+          totalSalidas -
+          totalEntradaDinero -
+          totalTickets + totalTarjeta) *
+          100
+      ) / 100;
 
-    recaudado = totalTickets + descuadre ;
+    //  const descuadre =
+    //    Math.round(
+    //      (cajaAbiertaActual.totalApertura 
+    //       - totalCierre
+    //       - totalSalidas 
+    //       + totalEntradaDinero 
+    //       + totalTickets 
+    //       ) *
+    //        100
+    //    ) / 100;
+
+    recaudado = totalTickets + descuadre - totalSalidas;
 
     return {
       calaixFetZ: totalTickets,
