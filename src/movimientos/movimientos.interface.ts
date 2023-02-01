@@ -31,4 +31,5 @@ export type FormaPago =
   | "CONSUMO_PERSONAL"
   | "DEUDA"
   | "TKRS + EFECTIVO"
-  | "DEVUELTO";
+  | "DEVUELTO"
+  | "ANULADO";

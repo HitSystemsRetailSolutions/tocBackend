@@ -87,16 +87,16 @@ class PaytefClass {
           );
           io.emit("consultaPaytef", true);
         } else if (type === "refund") {
+          schTickets.anularTicket(idTicket);
           movimientosInstance.nuevoMovimiento(
             total * -1,
             "Targeta",
             "TARJETA",
-            idTicket,
+            idTicket+1,
             idTrabajador
           );
           
           io.emit("consultaPaytefRefund", true);
-          schTickets.anularTicket(idTicket);
         } else {
           logger.Error("Error grave de devoluciones/movimientos !!!");
         }
