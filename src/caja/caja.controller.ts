@@ -2,7 +2,7 @@ import { Controller, Post, Get, Body } from "@nestjs/common";
 import { UtilesModule } from "../utiles/utiles.module";
 import { cajaInstance } from "./caja.clase";
 import { logger } from "../logger";
-import { impresoraInstance } from "src/impresora/impresora.class";
+import { impresoraInstance } from "../impresora/impresora.class";
 
 @Controller("caja")
 export class CajaController {

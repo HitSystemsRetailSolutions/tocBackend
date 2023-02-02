@@ -1,10 +1,10 @@
 import { Controller, Post, Body, Get } from "@nestjs/common";
-import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
+import { trabajadoresInstance } from "../trabajadores/trabajadores.clase";
 import { cestasInstance } from "./cestas.clase";
 import { logger } from "../logger";
-import { UtilesModule } from "src/utiles/utiles.module";
+import { UtilesModule } from "../utiles/utiles.module";
 import axios from "axios";
-import { articulosInstance } from "src/articulos/articulos.clase";
+import { articulosInstance } from "../articulos/articulos.clase";
 
 @Controller("cestas")
 export class CestasController {

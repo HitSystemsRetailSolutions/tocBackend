@@ -6,7 +6,7 @@ import { io } from "../sockets.gateway";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import axios from "axios";
 import { convertirDineroEnPuntos } from "../funciones/funciones";
-import { articulosInstance } from "src/articulos/articulos.clase";
+import { articulosInstance } from "../articulos/articulos.clase";
 import * as schMovimientos from "../movimientos/movimientos.mongodb";
 import { paytefInstance } from "../paytef/paytef.class";
 import { cajaInstance } from "../caja/caja.clase";

@@ -1,5 +1,5 @@
 import { Controller, Get } from "@nestjs/common";
-import { parametrosInstance } from "src/parametros/parametros.clase";
+import { parametrosInstance } from "../parametros/parametros.clase";
 @Controller("getInfo")
 export class VersionController {
   /* Eze v23 */
