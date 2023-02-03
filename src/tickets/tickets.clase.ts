@@ -11,6 +11,7 @@ import * as schMovimientos from "../movimientos/movimientos.mongodb";
 import { paytefInstance } from "../paytef/paytef.class";
 import { cajaInstance } from "../caja/caja.clase";
 
+
 export class TicketsClase {
   /* Eze 4.0 */
   getTicketById = (idTicket: number) => schTickets.getTicketByID(idTicket);

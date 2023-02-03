@@ -9,6 +9,7 @@ import { io } from "../sockets.gateway";
 import { logger } from "../logger";
 import * as schTickets from "../tickets/tickets.mongodb";
 
+
 class PaytefClass {
   /* Eze 4.0 */
   async iniciarTransaccion(

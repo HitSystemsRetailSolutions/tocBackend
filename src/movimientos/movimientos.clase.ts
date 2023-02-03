@@ -199,7 +199,7 @@ export class MovimientosClase {
         const debeSerCero =
           superTicket.movimientos[0].valor + superTicket.movimientos[1].valor;
         if (debeSerCero === 0) return "DEVUELTO";
-        throw Error("2 movimientos de tarjeta y la suma de ambos no es cero");
+        return "ERROR_DETECTADO";
       } else {
         let tkrsSinExceso = false;
         let tkrsConExceso = false;

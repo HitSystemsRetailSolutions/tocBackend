@@ -33,3 +33,5 @@ export type FormaPago =
   | "TKRS + EFECTIVO"
   | "DEVUELTO"
   | "ANULADO";
+  | "ERROR_DETECTADO";
+
