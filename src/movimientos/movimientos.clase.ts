@@ -171,18 +171,25 @@ export class MovimientosClase {
 
     if (superTicket.movimientos.length === 1) {
       if (superTicket.movimientos[0].tipo === "TARJETA") {
-        return "TARJETA";
+        if (superTicket.movimientos[0].valor<0) {
+          return "DEVUELTO";
+        } else {
+          return "TARJETA";
+        }
+        
       } else if (superTicket.movimientos[0].tipo === "TKRS_SIN_EXCESO") {
         if (superTicket.total > superTicket.movimientos[0].valor)
           return "TKRS + EFECTIVO";
         else return "TKRS";
       } else if (superTicket.movimientos[0].tipo === "DEUDA") {
         return "DEUDA";
-      } else {
+      }else {
         throw Error("Forma de pago desconocida");
       }
-    } else if (superTicket.movimientos.length === 0) {
+    } else if (superTicket.movimientos.length === 0 && superTicket.total>0) {
       return "EFECTIVO";
+    }else if (superTicket.movimientos.length === 0 && superTicket.total<0) {
+      return "ANULADO";
     } else if (superTicket.movimientos.length === 2) {
       // CASO TARJETA ANULADA
       if (

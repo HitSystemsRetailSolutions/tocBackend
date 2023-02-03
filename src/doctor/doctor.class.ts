@@ -1,5 +1,5 @@
-import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
-import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
+import { trabajadoresInstance } from "../trabajadores/trabajadores.clase";
+import { TrabajadoresInterface } from "../trabajadores/trabajadores.interface";
 import { logger } from "../logger";
 
 export class DoctorClass {

@@ -138,16 +138,15 @@ export class TicketsController {
   }
 
   /* Eze 4.0 */
-  @Post("rectificativa")
-  async rectificativa(@Body() { ticketId }) {
+  @Post("anularTicket")
+  async anularTicket(@Body() { ticketId }) {
     console.log(ticketId)
     try {
       if (ticketId) {
         const res =await ticketsInstance.anularTicket(ticketId);
-        ticketsInstance.actualizarTickets();
         return res;
       }
-      throw Error("Error, faltan datos en rectificativa() controller");
+      throw Error("Error, faltan datos en anularTicket() controller");
     } catch (err) {
       logger.Error(108, err);
       return false;

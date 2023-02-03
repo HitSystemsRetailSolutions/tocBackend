@@ -1,4 +1,4 @@
-import { MonedasInterface } from "src/caja/caja.interface";
+import { MonedasInterface } from "../caja/caja.interface";
 import { conexion } from "../conexion/mongodb";
 import { logger } from "../logger";
 
