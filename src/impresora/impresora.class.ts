@@ -838,7 +838,7 @@ export class Impresora {
             break;
           case "DEUDA":
             break;
-          case "ENTREGA_DIARIA":
+          case "SALIDA":
             textoMovimientos += `${
               i + 1
             }: Salida:\n           Cantidad: -${arrayMovimientos[
