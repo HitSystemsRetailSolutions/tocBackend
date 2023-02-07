@@ -839,7 +839,7 @@ export class Impresora {
           case "DEUDA":
             break;
           case "SALIDA":
-            textoMovimientos += ` Salida:\n           Cantidad: -${arrayMovimientos[
+            textoMovimientos += `Salida:\n           Cantidad: -${arrayMovimientos[
               i
             ].valor.toFixed(
               2
@@ -848,7 +848,7 @@ export class Impresora {
             }\n`;
             break;
           case "ENTRADA_DINERO":
-            textoMovimientos += ` Entrada:\n            Cantidad: +${arrayMovimientos[
+            textoMovimientos += `Entrada:\n            Cantidad: +${arrayMovimientos[
               i
             ].valor.toFixed(
               2

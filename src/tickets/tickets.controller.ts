@@ -6,6 +6,7 @@ import { paytefInstance } from "../paytef/paytef.class";
 import { TicketsInterface } from "./tickets.interface";
 import { FormaPago } from "../movimientos/movimientos.interface";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
+import { cajaInstance } from "src/caja/caja.clase";
 
 @Controller("tickets")
 export class TicketsController {
@@ -151,5 +152,12 @@ export class TicketsController {
       logger.Error(108, err);
       return false;
     }
+  }
+
+  @Post("getUltimoTicket")
+  async getUltimoTicket(){
+    const caja= await cajaInstance.getInfoCajaAbierta();
+    return await ticketsInstance.getUltimoTicketIntervalo(caja.inicioTime, Date.now());
+
   }
 }

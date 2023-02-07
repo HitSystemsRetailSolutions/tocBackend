@@ -54,6 +54,9 @@ export class TicketsClase {
     }
   }
 
+  getUltimoTicketIntervalo = (fechaInicio: number, fechaFinal: number) =>
+    schTickets.getUltimoTicketIntervalo(fechaInicio, fechaFinal);
+
   getUltimoTicket = async (): Promise<TicketsInterface> =>
     await schTickets.getUltimoTicket();
 
