@@ -838,10 +838,8 @@ export class Impresora {
             break;
           case "DEUDA":
             break;
-          case "ENTREGA_DIARIA":
-            textoMovimientos += `${
-              i + 1
-            }: Salida:\n           Cantidad: -${arrayMovimientos[
+          case "SALIDA":
+            textoMovimientos += `Salida:\n           Cantidad: -${arrayMovimientos[
               i
             ].valor.toFixed(
               2
@@ -850,9 +848,7 @@ export class Impresora {
             }\n`;
             break;
           case "ENTRADA_DINERO":
-            textoMovimientos += `${
-              i + 1
-            }: Entrada:\n            Cantidad: +${arrayMovimientos[
+            textoMovimientos += `Entrada:\n            Cantidad: +${arrayMovimientos[
               i
             ].valor.toFixed(
               2
@@ -866,8 +862,8 @@ export class Impresora {
         }
       }
 
-      textoMovimientos =
-        `\nTotal targeta:      ${sumaTarjetas.toFixed(2)}\n` + textoMovimientos;
+      textoMovimientos = `\n`+textoMovimientos +
+        `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
 
       permisosImpresora();
 

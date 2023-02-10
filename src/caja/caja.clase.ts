@@ -283,7 +283,7 @@ export class CajaClase {
           cajaAbiertaActual.totalApertura +
           totalSalidas -
           totalEntradaDinero -
-          totalTickets + totalTarjeta) *
+          totalTickets) *
           100
       ) / 100;
 
