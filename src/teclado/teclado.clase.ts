@@ -61,13 +61,16 @@ export class TecladoClase {
 
   /* Eze 4.0 */
   async actualizarTeclado(): Promise<boolean> {
-    const resTeclas: any = await axios.get("teclas/descargarTeclados");
-    if (resTeclas.data) {
-      if (resTeclas.data.length > 0) {
-        return await this.insertarTeclas(resTeclas.data);
+    const articulos= await articulosInstance.descargarArticulos();
+    if(articulos){
+      const resTeclas: any = await axios.get("teclas/descargarTeclados");
+      if (resTeclas.data) {
+        if (resTeclas.data.length > 0) {
+          return await this.insertarTeclas(resTeclas.data);
+        }
       }
+      throw Error("No se ha podido actualizar el teclado backend");
     }
-    throw Error("No se ha podido actualizar el teclado backend");
   }
 
   async cambiarPosTecla(idArticle, nuevaPos, nombreMenu) {
