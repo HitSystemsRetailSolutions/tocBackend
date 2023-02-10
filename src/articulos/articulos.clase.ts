@@ -2,7 +2,7 @@ import { ClientesInterface } from "../clientes/clientes.interface";
 import { ArticulosInterface } from "./articulos.interface";
 import * as schArticulos from "./articulos.mongodb";
 import { getItemTarifa } from "../tarifas/tarifas.mongodb";
-
+import axios from "axios";
 export class Articulos {
   /* Eze 4.0 */
   async getPrecioConTarifa(
@@ -40,6 +40,16 @@ export class Articulos {
   //   // logger.Error(resultado)
   //   return resultado;
   // }
+  async descargarArticulos(): Promise<boolean> {
+    const arrayArticulos: any = await axios.get("articulos/descargarArticulos");
+    if (arrayArticulos.data) {
+      return await this.insertarArticulos(arrayArticulos.data);
+      
+    }else{
+      return false;
+    }
+
+  }
 }
 const articulosInstance = new Articulos();
 export { articulosInstance };

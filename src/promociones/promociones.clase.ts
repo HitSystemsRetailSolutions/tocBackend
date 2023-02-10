@@ -544,9 +544,6 @@ export class NuevaPromocion {
       }
 
     }
-    
-    console.log("promosSecundarios:", promosSecundarios);
-    console.log("promosPrincipales: ",promosPrincipales);
     return {
       promosSecundarios,
       promosPrincipales,
