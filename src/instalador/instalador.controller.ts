@@ -19,7 +19,9 @@ export class InstaladorController {
     @Body()
     { password, numLlicencia, tipoImpresora, tipoDatafono, impresoraCafeteria }
   ) {
+    console.log(password);
     try {
+      console.log('Hooa')
       if (
         password &&
         numLlicencia &&
@@ -31,7 +33,7 @@ export class InstaladorController {
           password,
           numLlicencia,
         });
-
+        console.log(resAuth);
         if (resAuth.data) {
           const objParams = parametrosInstance.generarObjetoParametros();
           axios.defaults.headers.common["Authorization"] = resAuth.data.token;
@@ -59,6 +61,7 @@ export class InstaladorController {
       }
       throw Error("Faltan datos en instalador/pedirDatos controller");
     } catch (err) {
+      console.log(err);
       logger.Error(93, err);
     }
   }
