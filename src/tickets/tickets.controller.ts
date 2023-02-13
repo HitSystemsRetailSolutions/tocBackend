@@ -123,7 +123,10 @@ export class TicketsController {
               "Falta información del tkrs o bien ninguna forma de pago es correcta"
             );
           }
-          await impresoraInstance.abrirCajon();
+          if (tipo !== "TARJETA") {
+            await impresoraInstance.abrirCajon();
+          }
+          
           ticketsInstance.actualizarTickets();
           return true;
         }
