@@ -7,7 +7,7 @@ import { TicketsInterface } from "./tickets.interface";
 import { FormaPago } from "../movimientos/movimientos.interface";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { cajaInstance } from "src/caja/caja.clase";
-
+import { impresoraInstance } from "../impresora/impresora.class";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -123,6 +123,7 @@ export class TicketsController {
               "Falta información del tkrs o bien ninguna forma de pago es correcta"
             );
           }
+          await impresoraInstance.abrirCajon();
           ticketsInstance.actualizarTickets();
           return true;
         }
