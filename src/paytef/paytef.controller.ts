@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post } from "@nestjs/common";
 import { paytefInstance } from "./paytef.class";
 import { logger } from "../logger";
-import { ticketsInstance } from "src/tickets/tickets.clase";
+import { ticketsInstance } from "../tickets/tickets.clase";
 
 const exec = require("child_process").exec;
 

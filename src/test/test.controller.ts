@@ -1,6 +1,6 @@
 import { Body, Controller, Post } from "@nestjs/common";
 import axios from "axios";
-import { movimientosInstance } from "src/movimientos/movimientos.clase";
+import { movimientosInstance } from "../movimientos/movimientos.clase";
 
 @Controller("test")
 export class TestController {

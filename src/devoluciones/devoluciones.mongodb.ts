@@ -29,16 +29,16 @@ export async function actualizarEstadoDevolucion(
   const database = (await conexion).db("tocgame");
   const sincroFichajes =
     database.collection<DevolucionesInterface>("devoluciones");
-  return (
-    await sincroFichajes.updateOne(
-      { _id: devolucion._id },
-      {
-        $set: {
-          enviado: devolucion.enviado,
-        },
-      }
-    )
-  ).acknowledged;
+
+  const res = await sincroFichajes.updateOne(
+    { _id: new ObjectId(devolucion._id) },
+    {
+      $set: {
+        enviado: devolucion.enviado,
+      },
+    }
+  );
+  return res.acknowledged;
 }
 
 /* Eze 4.0 */

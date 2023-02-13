@@ -4,18 +4,18 @@ import {
   // sincronizarCajas,
   // sincronizarMovimientos,
   sincronizarFichajes,
-  // sincronizarDevoluciones,
+  sincronizarDevoluciones,
 } from "./sincro";
 // import { cajaInstance } from "./caja/caja.clase";
 // import { movimientosInstance } from "./movimientos/movimientos.clase";
 import { trabajadoresInstance } from "./trabajadores/trabajadores.clase";
-// import { devolucionesInstance } from "./devoluciones/devoluciones.clase";
+import { devolucionesInstance } from "./devoluciones/devoluciones.clase";
 import { logger } from "./logger";
 
 let URL_SANPEDRO = "";
 if (process.env.npm_lifecycle_event === "start:dev")
   URL_SANPEDRO = "http://localhost:3001";
-else URL_SANPEDRO = "https://sanpedro.cloud";
+else URL_SANPEDRO = "https://santaana2-elb.nubehit.com:3001";
 const io = require("socket.io-client");
 const socket = io(URL_SANPEDRO);
 
@@ -118,23 +118,23 @@ socket.on("resFichajes", (data) => {
   }
 });
 
-// socket.on("resSincroDevoluciones", (data) => {
-//   if (!data.error) {
-//     devolucionesInstance
-//       .actualizarEstadoDevolucion(data.devolucion)
-//       .then((res) => {
-//         if (res) {
-//           sincronizarDevoluciones();
-//         } else {
-//           logger.Error(31, "Error al actualizar el estadio de la devolución.");
-//         }
-//       })
-//       .catch((err) => {
-//         logger.Error(32, err);
-//       });
-//   } else {
-//     logger.Error(33, data.mensaje);
-//   }
-// });
+socket.on("resSincroDevoluciones", (data) => {
+  if (!data.error) {
+    devolucionesInstance
+      .actualizarEstadoDevolucion(data.devolucion)
+      .then((res) => {
+        if (res) {
+          sincronizarDevoluciones();
+        } else {
+          logger.Error(31, "Error al actualizar el estadio de la devolución.");
+        }
+      })
+      .catch((err) => {
+        logger.Error(32, err);
+      });
+  } else {
+    logger.Error(33, data.mensaje);
+  }
+});
 
 export { socket, emitSocket };

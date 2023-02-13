@@ -13,6 +13,7 @@ import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { ObjectId } from "mongodb";
 import { logger } from "../logger";
 import { impresoraInstance } from "../impresora/impresora.class";
+import { io } from "../sockets.gateway";
 
 export class CajaClase {
   /* Eze 4.0 */
@@ -91,7 +92,7 @@ export class CajaClase {
     )
       throw Error("No se ha podido crear el movimiento 3G");
 
-    const finalTime = Date.now();
+    const finalTime = await this.getFechaCierre();
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
     const cajaCerradaActual = await this.getDatosCierre(
       cajaAbiertaActual,
@@ -99,13 +100,19 @@ export class CajaClase {
       detalleCierre,
       idDependientaCierre,
       totalDatafono3G,
-      finalTime
+      finalTime.time
     );
 
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
       impresoraInstance.imprimirCajaAsync(ultimaCaja);
-      return await this.resetCajaAbierta();
+      if( await this.resetCajaAbierta()){
+        if (!finalTime.estadoTurno) {
+          io.emit("cargarVentas", []);  
+        }
+        
+        return true;
+      }
     }
     return false;
   }
@@ -119,6 +126,62 @@ export class CajaClase {
   /* Eze 4.0 */
   getUltimoCierre = async () => await schCajas.getUltimoCierre();
 
+  getCambioDeTurno(){
+    return schCajas.getCambioDeTurno().then((res) => {
+      return res;
+    }).catch((err) => {
+      logger.Error(150, err);
+      return null;
+    });
+    
+  }
+
+  getAnularTurno(){
+    return schCajas.getAnularTurno().then((res) => {
+      return res;
+    }).catch((err) => {
+      logger.Error(151, err);
+      return null;
+    });
+    
+  }
+  getComprovarTurno(){
+    return schCajas.getComprovarTurno().then((res) => {
+      return res;
+    }).catch((err) => {
+      logger.Error(152, err);
+      return null;
+    });
+    
+  }
+
+  getComprovarFechaCierreTurno(){
+    return schCajas.getComprovarTurno().then((res) => {
+      console.log("time en caja.clase: ", res.time);
+      if (res.estado==true) {
+	schCajas.getCambioDeTurno().then((res2) => {});
+        return parseInt(res.time);
+      } else {
+       return Date.now();
+      }
+      
+    })
+  }
+
+  getFechaCierre(){
+    return schCajas.getComprovarTurno().then((res) => {
+      console.log("time en caja.clase: ", res.time);
+      if (res.estado==true) {
+	
+        return {time: res.time, estadoTurno: true};
+      } else {
+       return {time: Date.now(), estadoTurno: false};
+      }
+      
+    })
+  }
+  
+
   /* Eze 4.0 */
   async getDatosCierre(
     cajaAbiertaActual: CajaAbiertaInterface,
@@ -128,6 +191,7 @@ export class CajaClase {
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
     finalTime: CajaCerradaInterface["finalTime"]
   ): Promise<CajaCerradaInterface> {
+    console.log("hola")
     const arrayTicketsCaja: TicketsInterface[] =
       await schTickets.getTicketsIntervalo(
         cajaAbiertaActual.inicioTime,
@@ -158,7 +222,10 @@ export class CajaClase {
     let totalConsumoPersonal = 0;
 
     /* RECUERDA QUE SE DEBE HACER UN MOVIMIENTO DE SALIDA PARA LA CANTIDAD 3G ANTES DE CERRAR LA CAJA, EN ESTE MOMENTO NO SE HACE */
+    console.log(arrayMovimientos)
     for (let i = 0; i < arrayMovimientos.length; i++) {
+      console.log("tipo",arrayMovimientos[i])
+      console.log("cajaApertura",cajaAbiertaActual[i])
       switch (arrayMovimientos[i].tipo) {
         // case "EFECTIVO":
         //   totalEntradas += arrayMovimientos[i].valor;
@@ -184,6 +251,7 @@ export class CajaClase {
           totalEntregaDiaria += arrayMovimientos[i].valor;
           break;
         case "ENTRADA_DINERO":
+          console.log(">>>")
           totalEntradas += arrayMovimientos[i].valor;
           totalEntradaDinero += arrayMovimientos[i].valor;
           break;
@@ -191,10 +259,15 @@ export class CajaClase {
           totalSalidas += arrayMovimientos[i].valor;
           totalTarjeta += arrayMovimientos[i].valor;
           break;
+        case "SALIDA":
+          totalSalidas += arrayMovimientos[i].valor;
+          break;
         default:
           logger.Error(51, "Error, tipo de movimiento desconocido");
       }
+      console.log(totalTarjeta)
     }
+    
 
     // totalEfectivo -= totalDatafono3G;
 
@@ -206,13 +279,24 @@ export class CajaClase {
 
     const descuadre =
       Math.round(
-        (totalCierre -
+        ( totalCierre -
           cajaAbiertaActual.totalApertura +
           totalSalidas -
           totalEntradaDinero -
           totalTickets) *
           100
       ) / 100;
+
+    //  const descuadre =
+    //    Math.round(
+    //      (cajaAbiertaActual.totalApertura 
+    //       - totalCierre
+    //       - totalSalidas 
+    //       + totalEntradaDinero 
+    //       + totalTickets 
+    //       ) *
+    //        100
+    //    ) / 100;
 
     recaudado = totalTickets + descuadre - totalSalidas;
 

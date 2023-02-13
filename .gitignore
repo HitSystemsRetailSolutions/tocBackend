@@ -3,3 +3,5 @@ node_modules/
 dist/
 dist/tsconfig.build.tsbuildinfo
 *.log
+src/impresora/impresora.class.ts
+src/paytef/paytef.class.ts

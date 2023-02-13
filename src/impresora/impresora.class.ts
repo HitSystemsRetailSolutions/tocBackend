@@ -4,7 +4,6 @@ import { trabajadoresInstance } from "../trabajadores/trabajadores.clase";
 import { TrabajadoresInterface } from "../trabajadores/trabajadores.interface";
 import { clienteInstance } from "../clientes/clientes.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
-import { Dispositivos } from "../dispositivos";
 import axios from "axios";
 import { mqttInstance } from "../mqtt";
 import { ClientesInterface } from "../clientes/clientes.interface";
@@ -15,15 +14,14 @@ import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { MovimientosInterface } from "../movimientos/movimientos.interface";
 import * as moment from "moment";
 import { CajaSincro } from "../caja/caja.interface";
-import { logger } from "src/logger";
+import { logger } from "../logger";
+import { buffer } from "stream/consumers";
 moment.locale("es");
-const dispositivos = new Dispositivos();
 const escpos = require("escpos");
 const exec = require("child_process").exec;
 const os = require("os");
-escpos.USB = require("escpos-usb");
-escpos.Serial = require("escpos-serialport");
-escpos.Screen = require("escpos-screen");
+const mqtt = require ("mqtt");
+escpos.Network = require("escpos-network")
 const TIPO_ENTRADA_DINERO = "ENTRADA";
 const TIPO_SALIDA_DINERO = "SALIDA";
 
@@ -79,15 +77,7 @@ function dateToString2(fecha) {
 export class Impresora {
   /* Eze 4.0 */
   async bienvenidaCliente() {
-    try {
-      permisosImpresora();
-      const device = await dispositivos.getDeviceVisor();
-
-      if (device) mqttInstance.enviarVisor("Bon Dia!!");
-      else throw Error("Controlado: dispositivo es null");
-    } catch (err) {
-      mqttInstance.loggerMQTT(err.message);
-    }
+    mqttInstance.enviarVisor("Bon Dia!!");
   }
 
   /* Eze 4.0 */
@@ -153,6 +143,7 @@ export class Impresora {
   }
   /* Eze 4.0 */
   async imprimirDevolucion(idDevolucion: ObjectId) {
+    try {
     const devolucion = await devolucionesInstance.getDevolucionById(
       idDevolucion
     );
@@ -178,21 +169,19 @@ export class Impresora {
       };
 
       await this._venta(sendObject);
+      
     }
+  } catch (err) {
+    logger.Error("imprimirDevolucion()", err);
+  }
   }
 
   private async imprimirRecibo(recibo: string) {
     mqttInstance.loggerMQTT("imprimir recibo");
     try {
-      permisosImpresora();
-      const device = await dispositivos.getDevice();
-      if (device == null) {
-        throw "Error controlado: El dispositivo es null";
-      }
+      const device = new escpos.Network();
       const printer = new escpos.Printer(device);
-
-      device.open(function () {
-        printer
+      this.enviarMQTT(printer
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -200,20 +189,17 @@ export class Impresora {
           .size(0, 0)
           .text(recibo)
           .cut("PAPER_FULL_CUT")
-          .close();
-      });
+          .close().buffer._buffer);
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
   }
-
   public async testMqtt(txt: string) {
     try {
-      const device = new escpos.Screen();
+      const device = new escpos.Network();
       const printer = new escpos.Printer(device);
-
-      device.open(function () {
-        printer
+      this.enviarMQTT(printer
+        
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -221,13 +207,20 @@ export class Impresora {
           .size(0, 0)
           .text(txt)
           .cut("PAPER_FULL_CUT")
-          .close();
-      });
+          .close().buffer._buffer);
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
   }
 
+  private enviarMQTT(encodedData){
+    var client  = mqtt.connect("mqtt://localhost:1883",{username:"ImpresoraMQTT"});
+    client.on("connect",function(){	
+    console.log("connected  "+client.connected);
+    let buff = Buffer.from(encodedData,'hex');
+    client.publish("hit.hardware/printer", buff);
+    })
+  }
   private async _venta(info, recibo = null) {
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
@@ -245,11 +238,6 @@ export class Impresora {
     if (recibo != null && recibo != undefined) {
       strRecibo = recibo;
     }
-
-    permisosImpresora();
-    const device = await dispositivos.getDevice();
-    if (device) {
-      const printer = new escpos.Printer(device);
 
       let detalles = "";
       let pagoTarjeta = "";
@@ -300,7 +288,22 @@ export class Impresora {
               i
             ].promocion.precioRealArticuloSecundario.toFixed(2)}\n`;
           }
-        } else {
+        } else if(arrayCompra[i].arraySuplementos && arrayCompra[i].arraySuplementos.length >0){
+          detalles += `${1}     ${arrayCompra[i].nombre.slice(0, 20)} +      \n`;
+          for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
+
+            if (j==(arrayCompra[i].arraySuplementos.length - 1)) {
+              detalles += `       ${arrayCompra[i].arraySuplementos[
+                j
+              ].nombre.slice(0, 20)}         ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+            }else{
+              detalles += `       ${arrayCompra[i].arraySuplementos[
+                j
+              ].nombre.slice(0, 20)} +      \n`;
+            }
+            
+          }
+        }else{
           if (arrayCompra[i].nombre.length < 20) {
             while (arrayCompra[i].nombre.length < 20) {
               arrayCompra[i].nombre += " ";
@@ -325,32 +328,49 @@ export class Impresora {
         pagoDevolucion = "-- ES DEVOLUCION --\n";
       }
 
-      let detalleIva4 = "";
-      let detalleIva10 = "";
-      let detalleIva21 = "";
-      let detalleIva = "";
+      let str1= '          ';
+      let str2= '                 ';
+      let str3= '              ';
+      let base = '';
+      let valorIva = '';
+      let importe = '';
+      let detalleIva4 = '';
+      let detalleIva10 = '';
+      let detalleIva21 = '';
+      let detalleIva = '';
+      let detalleIva0 = '';
+      let detalleIva5 = '';
       if (tiposIva.importe1 > 0) {
-        detalleIva4 = `${tiposIva.base1.toFixed(
-          2
-        )}€      4%: ${tiposIva.valorIva1.toFixed(
-          2
-        )}€     ${tiposIva.importe1.toFixed(2)}€\n`;
+        base=tiposIva.base1.toFixed(2)+' €';
+        valorIva='4%: '+tiposIva.valorIva1.toFixed(2)+' €';
+        importe=tiposIva.importe1.toFixed(2)+' €\n';
+        detalleIva4 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
       }
       if (tiposIva.importe2 > 0) {
-        detalleIva10 = `${tiposIva.base2.toFixed(
-          2
-        )}€      10%: ${tiposIva.valorIva2.toFixed(
-          2
-        )}€     ${tiposIva.importe2.toFixed(2)}€\n`;
+        base=tiposIva.base2.toFixed(2)+' €';
+        valorIva='10%: '+tiposIva.valorIva2.toFixed(2)+' €';
+        importe=tiposIva.importe2.toFixed(2)+' €\n';
+        detalleIva10 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
       }
       if (tiposIva.importe3 > 0) {
-        detalleIva21 = `${tiposIva.base3.toFixed(
-          2
-        )}€     21%: ${tiposIva.valorIva3.toFixed(
-          2
-        )}€     ${tiposIva.importe3.toFixed(2)}€\n`;
+        base=tiposIva.base3.toFixed(2)+' €';
+        valorIva='21%: '+tiposIva.valorIva3.toFixed(2)+' €';
+        importe=tiposIva.importe3.toFixed(2)+' €\n';
+        detalleIva21 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
       }
-      detalleIva = detalleIva4 + detalleIva10 + detalleIva21;
+      if (tiposIva.importe4 > 0) {
+        base=tiposIva.base4.toFixed(2)+' €';
+        valorIva='0%: '+tiposIva.valorIva4.toFixed(2)+' €';
+        importe=tiposIva.importe4.toFixed(2)+' €\n';
+        detalleIva0 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
+      }
+      if (tiposIva.importe5 > 0) {
+        base=tiposIva.base5.toFixed(2)+' €';
+        valorIva='5%: '+tiposIva.valorIva5.toFixed(2)+' €';
+        importe=tiposIva.importe5.toFixed(2)+' €\n';
+        detalleIva5 = str1.substring(0,str1.length-base.length)+base+str2.substring(0,str2.length-valorIva.length)+valorIva+str3.substring(0,str3.length-importe.length)+importe;
+      }
+      detalleIva = detalleIva0 + detalleIva4 + detalleIva5 + detalleIva10 + detalleIva21;
       let infoConsumoPersonal = "";
       if (tipoPago == "CONSUMO_PERSONAL") {
         infoConsumoPersonal = "---------------- Dte. 100% --------------";
@@ -367,58 +387,60 @@ export class Impresora {
         "Dissabte",
       ];
 
-      device.open(function () {
-        printer
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
+      this.enviarMQTT(printer
 
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .size(0, 0)
-          .text(cabecera)
-          .text(
-            `Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
-              fecha.getMonth() + 1
-            }-${fecha.getFullYear()}  ${
-              (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
-            }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`
-          )
-          .text("Factura simplificada N: " + numFactura)
-          .text("Ates per: " + nombreDependienta)
-          .text(detalleClienteVip)
-          .text(detalleNombreCliente)
-          .text(detallePuntosCliente)
-          .control("LF")
-          .control("LF")
-          .control("LF")
-          .text("Quantitat      Article        Import (EUR)")
-          .text("-----------------------------------------")
-          .align("LT")
-          .text(detalles)
-          .align("CT")
-          .text(pagoTarjeta)
-          .text(pagoTkrs)
-          .align("LT")
-          .text(infoConsumoPersonal)
-          .size(1, 1)
-          .text(pagoDevolucion)
-          .text("TOTAL: " + total.toFixed(2) + " €")
-          .control("LF")
-          .size(0, 0)
-          .align("CT")
-          .text("Base IVA         IVA         IMPORT")
-          .text(detalleIva)
-          .text("-- ES COPIA --")
-          .control("LF")
-          .text("ID: " + random() + " - " + random())
-          .text(pie)
-          .control("LF")
-          .control("LF")
-          .control("LF")
-          .cut("PAPER_FULL_CUT")
-          .close();
-      });
-    } else throw Error("No se ha podido obtener el dispositivo");
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .size(0, 0)
+        .text(cabecera)
+        .text(
+          `Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
+            fecha.getMonth() + 1
+          }-${fecha.getFullYear()}  ${
+            (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
+          }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`
+        )
+        .text("Factura simplificada N: " + numFactura)
+        .text("Ates per: " + nombreDependienta)
+        .text(detalleClienteVip)
+        .text(detalleNombreCliente)
+        .text(detallePuntosCliente)
+        .control("LF")
+        .control("LF")
+        .control("LF")
+        .text("Quantitat      Article        Import (€)")
+        .text("-----------------------------------------")
+        .align("LT")
+        .text(detalles)
+        .align("CT")
+        .text(pagoTarjeta)
+        .text(pagoTkrs)
+        .align("LT")
+        .text(infoConsumoPersonal)
+        .align('CT')
+        .text('----------------------------------------------')
+        .align('LT')
+        .size(1, 1)
+        .text(pagoDevolucion)
+        .text("TOTAL: " + total.toFixed(2) + " €")
+        .control("LF")
+        .size(0, 0)
+        .align("CT")
+        .text("Base IVA         IVA         IMPORT")
+        .text(detalleIva)
+        .text("-- ES COPIA --")
+        .control("LF")
+        .text("ID: " + random() + " - " + random())
+        .text(pie)
+        .control("LF")
+        .control("LF")
+        .control("LF")
+        .cut("PAPER_FULL_CUT")
+        .close().buffer._buffer);
   }
 
   /* Eze 4.0 */
@@ -429,13 +451,9 @@ export class Impresora {
       const trabajador = await trabajadoresInstance.getTrabajadorById(
         movimiento.idTrabajador
       );
-      permisosImpresora();
-      const device = await dispositivos.getDevice();
-      if (device) {
-        const options = { encoding: "GB18030" };
-        const printer = new escpos.Printer(device, options);
-        device.open(function () {
-          printer
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
+        this.enviarMQTT(printer
             .setCharacterCodeTable(19)
             .encode("CP858")
             .font("a")
@@ -458,11 +476,7 @@ export class Impresora {
             .text("")
             .text("")
             .cut()
-            .close();
-        });
-      } else {
-        throw Error("No se ha podido encontrar el dispositivo");
-      }
+           .close().buffer._buffer);
     } catch (err) {
       logger.Error(146, err);
     }
@@ -497,12 +511,11 @@ export class Impresora {
       //         stopBit: 2
       //     });
       // }
-      const device = await dispositivos.getDevice();
 
-      const options = { encoding: "GB18030" };
-      const printer = new escpos.Printer(device, options);
-      device.open(function () {
-        printer
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
+      this.enviarMQTT(printer
+        
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -522,8 +535,7 @@ export class Impresora {
           .text("")
           .text("")
           .cut()
-          .close();
-      });
+          .close().buffer._buffer);
     } catch (err) {
       mqttInstance.loggerMQTT(err);
     }
@@ -552,12 +564,9 @@ export class Impresora {
       //         stopBit: 2
       //     });
       // }
-      const device = await dispositivos.getDevice();
-
-      const options = { encoding: "GB18030" };
-      const printer = new escpos.Printer(device, options);
-      device.open(function () {
-        printer
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
+      this.enviarMQTT(printer
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -566,8 +575,7 @@ export class Impresora {
           .size(1, 1)
           .text("HOLA HOLA")
           .cut()
-          .close();
-      });
+          .close().buffer._buffer);
     } catch (err) {
       mqttInstance.loggerMQTT(err);
     }
@@ -634,14 +642,12 @@ export class Impresora {
 
     permisosImpresora();
 
-    const device = await dispositivos.getDevice();
-    if (device) {
-      const options = { encoding: "ISO-8859-15" }; // "GB18030" };
-      const printer = new escpos.Printer(device, options);
-      const mesInicial = fechaInicio.getMonth() + 1;
-      const mesFinal = fechaFinal.getMonth() + 1;
-      device.open(function () {
-        printer
+    const mesInicial = fechaInicio.getMonth() + 1;
+    const mesFinal = fechaFinal.getMonth() + 1;
+
+    const device = new escpos.Network();
+    const printer = new escpos.Printer(device);
+    this.enviarMQTT(printer
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -798,11 +804,7 @@ export class Impresora {
           .text("")
           .text("")
           .cut()
-          .close();
-      });
-    } else {
-      throw Error("No se ha encontrado el dispositivo");
-    }
+          .close().buffer._buffer);
   }
   /* Eze 4.0 */
   async imprimirCajaAsync(caja: CajaSincro) {
@@ -836,10 +838,8 @@ export class Impresora {
             break;
           case "DEUDA":
             break;
-          case "ENTREGA_DIARIA":
-            textoMovimientos += `${
-              i + 1
-            }: Salida:\n           Cantidad: -${arrayMovimientos[
+          case "SALIDA":
+            textoMovimientos += `Salida:\n           Cantidad: -${arrayMovimientos[
               i
             ].valor.toFixed(
               2
@@ -848,9 +848,7 @@ export class Impresora {
             }\n`;
             break;
           case "ENTRADA_DINERO":
-            textoMovimientos += `${
-              i + 1
-            }: Entrada:\n            Cantidad: +${arrayMovimientos[
+            textoMovimientos += `Entrada:\n            Cantidad: +${arrayMovimientos[
               i
             ].valor.toFixed(
               2
@@ -864,19 +862,16 @@ export class Impresora {
         }
       }
 
-      textoMovimientos =
-        `\nTotal targeta:      ${sumaTarjetas.toFixed(2)}\n` + textoMovimientos;
+      textoMovimientos = `\n`+textoMovimientos +
+        `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
 
       permisosImpresora();
 
-      const device = await dispositivos.getDevice();
-      if (device) {
-        const options = { encoding: "ISO-8859-15" }; // "GB18030" };
-        const printer = new escpos.Printer(device, options);
-        const mesInicial = fechaInicio.getMonth() + 1;
-        const mesFinal = fechaFinal.getMonth() + 1;
-        device.open(function () {
-          printer
+      const mesInicial = fechaInicio.getMonth() + 1;
+      const mesFinal = fechaFinal.getMonth() + 1;
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
+        this.enviarMQTT(printer
             .setCharacterCodeTable(19)
             .encode("CP858")
             .font("a")
@@ -1034,80 +1029,16 @@ export class Impresora {
             .text("")
             .text("")
             .cut()
-            .close();
-        });
-      } else {
-        throw Error("No se ha encontrado el dispositivo");
-      }
+            .close().buffer._buffer);
     } catch (err) {
       logger.Error(145, err);
     }
   }
 
   async abrirCajon() {
-    const parametros = parametrosInstance.getParametros();
-    try {
-      if (os.platform() === "linux") {
-        mqttInstance.loggerMQTT("abrir cajon linux");
-        permisosImpresora();
-        // if(parametros.tipoImpresora === 'USB')
-        // {
-        //     const arrayDevices = escpos.USB.findPrinter();
-        //     if (arrayDevices.length > 0) {
-        //         /* Solo puede haber un dispositivo USB */
-        //         const dispositivoUnico = arrayDevices[0];
-        //         var device = new escpos.USB(dispositivoUnico); //USB
-        //     } else if (arrayDevices.length == 0) {
-        //         throw 'Error, no hay ningún dispositivo USB conectado';
-        //     } else {
-        //         throw 'Error, hay más de un dispositivo USB conectado';
-        //     }
-        // } else {
-        //     if(parametros.tipoImpresora === 'SERIE') {
-        //         var device = new escpos.Serial('/dev/ttyS0', {
-        //             baudRate: 115000,
-        //             stopBit: 2
-        //           });
-        //     }
-        // }
-        const device = await dispositivos.getDevice();
-        const printer = new escpos.Printer(device);
-
-        device.open(function () {
-          printer.cashdraw(2).close();
-        });
-      } else if (os.platform() === "win32") {
-        permisosImpresora();
-        // if(parametros.tipoImpresora === 'USB')
-        // {
-        //     const arrayDevices = escpos.USB.findPrinter();
-        //     if (arrayDevices.length > 0) {
-        //         /* Solo puede haber un dispositivo USB */
-        //         const dispositivoUnico = arrayDevices[0];
-        //         var device = new escpos.USB(dispositivoUnico); //USB
-        //     } else if (arrayDevices.length == 0) {
-        //         throw 'Error, no hay ningún dispositivo USB conectado';
-        //     } else {
-        //         throw 'Error, hay más de un dispositivo USB conectado';
-        //     }
-        // } else {
-        //     if(parametros.tipoImpresora === 'SERIE') {
-        //         var device = new escpos.Serial('/dev/ttyS0', {
-        //             baudRate: 115000,
-        //             stopBit: 2
-        //           });
-        //     }
-        // }
-        const device = await dispositivos.getDevice();
-        const printer = new escpos.Printer(device);
-
-        device.open(function () {
-          printer.cashdraw(2).close();
-        });
-      }
-    } catch (err) {
-      mqttInstance.loggerMQTT(err);
-    }
+    const device = new escpos.Network();
+    const printer = new escpos.Printer(device);
+    this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer);
   }
 
   /* Eze 4.0 */
@@ -1127,10 +1058,10 @@ export class Impresora {
       else if (lengthTotal.length == 6) limitNombre = 12;
       else if (lengthTotal.length == 7) limitNombre = 11;
 
-      const dependienta = data.dependienta.substring(0, limitNombre);
+      const numArticle ="Productes: " +data.numProductos;
       const total = data.total + eur;
       const espacio = " ";
-      const size = 20 - (dependienta.length + total.length);
+      const size = 20 - (numArticle.length + total.length);
       const espacios = [
         "",
         " ",
@@ -1148,26 +1079,32 @@ export class Impresora {
         "             ",
         "              ",
       ];
-      datosExtra = dependienta + espacios[size] + total;
+      datosExtra = numArticle + espacios[size] + total;
     }
     if (datosExtra.length <= 2) {
       datosExtra = "";
       eur = "";
     }
+    // quito caracteres conflictivos para el visor
+    data.texto = data.texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (data.texto.indexOf("'")!=-1) {
+      data.texto = data.texto.replace("'"," ");
+      
+    }
+    if (data.texto.indexOf("´")!=-1) {
+      data.texto = data.texto.replace("´"," ");
+      
+    }
+    if (data.texto.indexOf("`")!=-1) {
+      data.texto = data.texto.replace("`"," ");
+      
+    }
     // Limito el texto a 14, ya que la línea completa tiene 20 espacios. (1-14 -> artículo, 15 -> espacio en blanco, 16-20 -> precio)
     data.texto = data.texto.substring(0, 14);
     data.texto += " " + data.precio + eur;
-    let string = `${datosExtra} ${data.texto}                                               `;
+    let string = `${datosExtra}${data.texto}                                               `;
     string = string + "                                             ";
-
-    try {
-      permisosImpresora();
-      const device = await dispositivos.getDeviceVisor();
-      if (device) mqttInstance.enviarVisor(string.substring(0, 40));
-      else throw Error("Controlado: dispositivo es null");
-    } catch (err) {
-      mqttInstance.loggerMQTT("Error2: " + err);
-    }
+    mqttInstance.enviarVisor(string.substring(0, 40));
   }
 
   async imprimirEntregas() {
@@ -1179,13 +1116,9 @@ export class Impresora {
       })
       .then(async (res: any) => {
         try {
-          permisosImpresora();
-          const device = await dispositivos.getDevice();
-          if (device != null) {
-            const options = { encoding: "ISO-8859-15" }; // "GB18030" };
-            const printer = new escpos.Printer(device, options);
-            device.open(function () {
-              printer
+          const device = new escpos.Network();
+          const printer = new escpos.Printer(device);
+                this.enviarMQTT(printer
                 .setCharacterCodeTable(19)
                 .encode("CP858")
                 .font("a")
@@ -1194,11 +1127,8 @@ export class Impresora {
                 .size(0, 0)
                 .text(res.data.info)
                 .cut()
-                .close();
-            });
+                .close().buffer._buffer);
             return { error: false, info: "OK" };
-          }
-          return { error: true, info: "Error, no se encuentra la impresora" };
         } catch (err) {
           mqttInstance.loggerMQTT(err);
           return { error: true, info: "Error en CATCH imprimirEntregas() 2" };

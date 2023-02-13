@@ -8,9 +8,9 @@ import {
   SuperTicketInterface,
   TicketsInterface,
 } from "../tickets/tickets.interface";
-import { ticketsInstance } from "src/tickets/tickets.clase";
-import { cajaInstance } from "src/caja/caja.clase";
-import { impresoraInstance } from "src/impresora/impresora.class";
+import { ticketsInstance } from "../tickets/tickets.clase";
+import { cajaInstance } from "../caja/caja.clase";
+import { impresoraInstance } from "../impresora/impresora.class";
 
 const moment = require("moment");
 const Ean13Utils = require("ean13-lib").Ean13Utils;
@@ -103,9 +103,9 @@ export class MovimientosClase {
   /* Eze v23 */
   getMovimientoMasAntiguo = () => schMovimientos.getMovimientoMasAntiguo();
 
-  /* Eze v23 */
-  actualizarEstadoMovimiento = (movimiento: MovimientosInterface) =>
-    schMovimientos.actualizarEstadoMovimiento(movimiento);
+  /* Eze v4 */
+  setMovimientoEnviado = (movimiento: MovimientosInterface) =>
+    schMovimientos.setMovimientoEnviado(movimiento);
 
   /* Eze 4.0 */
   construirArrayVentas = async () => {
@@ -171,18 +171,25 @@ export class MovimientosClase {
 
     if (superTicket.movimientos.length === 1) {
       if (superTicket.movimientos[0].tipo === "TARJETA") {
-        return "TARJETA";
+        if (superTicket.movimientos[0].valor<0) {
+          return "DEVUELTO";
+        } else {
+          return "TARJETA";
+        }
+        
       } else if (superTicket.movimientos[0].tipo === "TKRS_SIN_EXCESO") {
         if (superTicket.total > superTicket.movimientos[0].valor)
           return "TKRS + EFECTIVO";
         else return "TKRS";
       } else if (superTicket.movimientos[0].tipo === "DEUDA") {
         return "DEUDA";
-      } else {
+      }else {
         throw Error("Forma de pago desconocida");
       }
-    } else if (superTicket.movimientos.length === 0) {
+    } else if (superTicket.movimientos.length === 0 && superTicket.total>0) {
       return "EFECTIVO";
+    }else if (superTicket.movimientos.length === 0 && superTicket.total<0) {
+      return "ANULADO";
     } else if (superTicket.movimientos.length === 2) {
       // CASO TARJETA ANULADA
       if (
@@ -192,7 +199,7 @@ export class MovimientosClase {
         const debeSerCero =
           superTicket.movimientos[0].valor + superTicket.movimientos[1].valor;
         if (debeSerCero === 0) return "DEVUELTO";
-        throw Error("2 movimientos de tarjeta y la suma de ambos no es cero");
+        return "ERROR_DETECTADO";
       } else {
         let tkrsSinExceso = false;
         let tkrsConExceso = false;

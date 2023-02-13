@@ -2,14 +2,14 @@ import { ClientesInterface } from "../clientes/clientes.interface";
 import { ArticulosInterface } from "./articulos.interface";
 import * as schArticulos from "./articulos.mongodb";
 import { getItemTarifa } from "../tarifas/tarifas.mongodb";
-
+import axios from "axios";
 export class Articulos {
   /* Eze 4.0 */
   async getPrecioConTarifa(
     articulo: ArticulosInterface,
     idCliente: ClientesInterface["id"]
   ): Promise<ArticulosInterface> {
-    if (idCliente) {
+    if (idCliente && idCliente != "") {
       const infoTarifa = await getItemTarifa(articulo._id, idCliente);
       if (infoTarifa && typeof infoTarifa.precioConIva == "number")
         articulo.precioConIva = infoTarifa.precioConIva;
@@ -30,15 +30,26 @@ export class Articulos {
     return await schArticulos.insertarArticulos(arrayArticulos);
   }
 
-  // async getSuplementos(suplementos) {
-  //   return await schArticulos.getSuplementos(suplementos);
-  // }
+  /* Eze 4.0 */
+  async getSuplementos(suplementos) {
+    return await schArticulos.getSuplementos(suplementos);
+  }
 
   // async editarArticulo(id, nombre, precioBase, precioConIva) {
   //   const resultado = await schArticulos.editarArticulo(id, nombre, precioBase, precioConIva);
   //   // logger.Error(resultado)
   //   return resultado;
   // }
+  async descargarArticulos(): Promise<boolean> {
+    const arrayArticulos: any = await axios.get("articulos/descargarArticulos");
+    if (arrayArticulos.data) {
+      return await this.insertarArticulos(arrayArticulos.data);
+      
+    }else{
+      return false;
+    }
+
+  }
 }
 const articulosInstance = new Articulos();
 export { articulosInstance };

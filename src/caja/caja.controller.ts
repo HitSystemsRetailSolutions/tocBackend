@@ -2,7 +2,7 @@ import { Controller, Post, Get, Body } from "@nestjs/common";
 import { UtilesModule } from "../utiles/utiles.module";
 import { cajaInstance } from "./caja.clase";
 import { logger } from "../logger";
-import { impresoraInstance } from "src/impresora/impresora.class";
+import { impresoraInstance } from "../impresora/impresora.class";
 
 @Controller("caja")
 export class CajaController {
@@ -45,7 +45,7 @@ export class CajaController {
         return await cajaInstance.abrirCaja({
           detalleApertura: detalle,
           idDependientaApertura: idDependienta,
-          inicioTime: Date.now(),
+          inicioTime: await cajaInstance.getComprovarFechaCierreTurno(),
           totalApertura: total,
         });
       throw Error("Error abrirCaja > Faltan datos o son incorrectos");
@@ -101,4 +101,53 @@ export class CajaController {
       return false;
     }
   }
+  @Post('cambioTurno')
+  cambioTurno() { // No probado! Se le pasa solo el array de monedas
+    // if (params.estado==true) {
+    //   return {msg:'cambioTurno recibido',estado:false};
+    // } else {
+    //   return {msg:'cambioTurno recibido',estado:true};
+    // }
+    return cajaInstance.getCambioDeTurno().then((res) => {
+      return { info: res};
+    }).catch((err) => {
+      logger.Error(147, err);
+      return {error: true, mensaje: 'Backend: Error en caja/getCambioTurno > CATCH'};
+    });
+    
+  }
+
+  @Post('anularTurno')
+  anularTurno() { // No probado! Se le pasa solo el array de monedas
+    // if (params.estado==true) {
+    //   return {msg:'cambioTurno recibido',estado:false};
+    // } else {
+    //   return {msg:'cambioTurno recibido',estado:true};
+    // }
+    return cajaInstance.getAnularTurno().then((res) => {
+      return { info: res};
+    }).catch((err) => {
+      logger.Error(148, err);
+      return {error: true, mensaje: 'Backend: Error en caja/getAnularTurno > CATCH'};
+    });
+    
+  }
+  
+  @Post('comprovarTurno')
+  comprovarTurno() { // No probado! Se le pasa solo el array de monedas
+    // if (params.estado==true) {
+    //   return {msg:'cambioTurno recibido',estado:false};
+    // } else {
+    //   return {msg:'cambioTurno recibido',estado:true};
+    // }
+    return cajaInstance.getComprovarTurno().then((res) => {
+      return { info: res};
+    }).catch((err) => {
+      logger.Error(149, err);
+      return {error: true, mensaje: 'Backend: Error en caja/getAnularTurno > CATCH'};
+    });
+    
+  }
+
+
 }

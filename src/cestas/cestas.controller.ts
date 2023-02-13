@@ -1,8 +1,10 @@
 import { Controller, Post, Body, Get } from "@nestjs/common";
-import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
+import { trabajadoresInstance } from "../trabajadores/trabajadores.clase";
 import { cestasInstance } from "./cestas.clase";
 import { logger } from "../logger";
-import { UtilesModule } from "src/utiles/utiles.module";
+import { UtilesModule } from "../utiles/utiles.module";
+import axios from "axios";
+import { articulosInstance } from "../articulos/articulos.clase";
 
 @Controller("cestas")
 export class CestasController {
@@ -85,7 +87,7 @@ export class CestasController {
   async onlyCrearCesta(@Body() { indexMesa }) {
     console.log(indexMesa);
     try {
-      if (indexMesa>=0) {
+      if (typeof indexMesa === "number") {
         const idCesta = await cestasInstance.crearCesta(indexMesa);
         cestasInstance.actualizarCestas();
         return idCesta;
@@ -150,4 +152,22 @@ export class CestasController {
       logger.Error(133, err);
     }
   }
+
+  // @Post("addSuplementos")
+  // async addSuplementos(
+  //   @Body() { idCesta, suplementos, idArticuloGeneral, unidades }
+  // ) {
+  //   try {
+  //     if (idCesta && suplementos?.length > 0 && idArticuloGeneral && unidades)
+  //       return await cestasInstance.addItemConSuplementos(
+  //         idCesta,
+  //         suplementos,
+  //         idArticuloGeneral,
+  //         unidades
+  //       );
+  //     throw Error("Es necesario un array con suplementos");
+  //   } catch (err) {
+  //     logger.Error("cestas.controller @addSuplementos", err);
+  //   }
+  // }
 }

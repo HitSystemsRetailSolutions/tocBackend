@@ -4,5 +4,6 @@ export interface TeclasInterface {
     nombreArticulo: string,
     pos: number,
     color: number,
-    esSumable: boolean
+    esSumable: boolean,
+    suplementos?: number[]
 }

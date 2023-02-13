@@ -14,6 +14,14 @@ export async function setParametros(
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const parametros = database.collection("parametros");
+  await parametros.updateOne({_id: "PARAMETROS"},{$unset: {BotonsPreu:"",
+    EntrarCanviEnMonedes:"",
+    JustificarAnul:"",
+    NoEntradaDiners:"",
+    ProhibirAnulacioTicket:"",
+    ProhibirCercaArticles:"",
+    SuperFidelitza:"",
+    TriaTaula:""}});
   return (
     await parametros.updateOne(
       { _id: "PARAMETROS" },
@@ -64,6 +72,15 @@ export async function setIpPaytef(ip: string): Promise<boolean> {
       { $set: { ipTefpay: ip } },
       { upsert: true }
     )
+  ).acknowledged;
+}
+
+/* Eze 4.0 */
+export async function actualizarPropiedad(params: any): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const parametros = database.collection("parametros");
+  return (
+    await parametros.updateOne({ _id: "PARAMETROS" }, { $set: { params } })
   ).acknowledged;
 }
 

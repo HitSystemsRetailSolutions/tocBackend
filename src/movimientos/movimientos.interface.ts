@@ -16,6 +16,7 @@ export type TiposMovientos =
   | "DEUDA"
   | "ENTREGA_DIARIA"
   | "ENTRADA_DINERO"
+  | "SALIDA" // Para el resto de salidas (genéricas)
   | "DATAFONO_3G";
 
 export interface CuentaCodigoBarras {
@@ -30,4 +31,7 @@ export type FormaPago =
   | "CONSUMO_PERSONAL"
   | "DEUDA"
   | "TKRS + EFECTIVO"
-  | "DEVUELTO";
+  | "DEVUELTO"
+  | "ANULADO"
+  | "ERROR_DETECTADO";
+

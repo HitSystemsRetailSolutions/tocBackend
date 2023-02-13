@@ -6,6 +6,7 @@ import { logger } from "./logger";
 import { movimientosInstance } from "./movimientos/movimientos.clase";
 import { parametrosInstance } from "./parametros/parametros.clase";
 import { paytefInstance } from "./paytef/paytef.class";
+import { nuevaInstancePromociones } from "./promociones/promociones.clase";
 import { tecladoInstance } from "./teclado/teclado.clase";
 import { ticketsInstance } from "./tickets/tickets.clase";
 import { trabajadoresInstance } from "./trabajadores/trabajadores.clase";
@@ -32,6 +33,18 @@ io.on("connection", (socket) => {
       throw Error("Faltan datos {idTrabajador} controller");
     } catch (err) {
       logger.Error(131, err);
+    }
+  });
+
+  /* Eze 4.0 */
+  socket.on("cargarConfiguracion", async (data) => {
+    try {
+      socket.emit(
+        "cargarConfiguracion",
+        await parametrosInstance.getParametros()
+      );
+    } catch (err) {
+      logger.Error(36, err);
     }
   });
 
@@ -91,8 +104,25 @@ io.on("connection", (socket) => {
       logger.Error(118, err);
     }
   });
+
+  /* Eze 4.0 */
+  socket.on("recargarPromociones", async () => {
+    try {
+      await nuevaInstancePromociones.recargarPromosCache();
+    } catch (err) {
+      logger.Error("sockets.gateway.ts recargarPromociones", err);
+    }
+  });
 });
 
-httpServer.listen(5051);
+if (process.env.NODE_ENV !== "test") {
+
+  httpServer.listen(5051);
+
+} else {
+
+  httpServer.listen();
+
+}
 
 export { io };

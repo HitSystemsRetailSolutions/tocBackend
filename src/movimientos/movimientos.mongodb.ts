@@ -84,7 +84,7 @@ export async function limpiezaMovimientos(): Promise<boolean> {
 }
 
 /* Eze 4.0 */
-export async function actualizarEstadoMovimiento(
+export async function setMovimientoEnviado(
   movimiento: MovimientosInterface
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");

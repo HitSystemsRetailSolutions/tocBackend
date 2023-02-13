@@ -1,6 +1,6 @@
 {
   "name": "toc-backend-nest",
-  "version": "4.0.0",
+  "version": "4.23.6",
   "description": "",
   "author": "",
   "private": true,
@@ -40,8 +40,6 @@
     "escpos": "^3.0.0-alpha.6",
     "escpos-network": "^3.0.0-alpha.5",
     "escpos-screen": "^3.0.0-alpha.6",
-    "escpos-serialport": "^3.0.0-alpha.4",
-    "escpos-usb": "^3.0.0-alpha.4",
     "fastify-static": "^4.5.0",
     "local-devices": "^3.0.0",
     "moment": "^2.29.1",

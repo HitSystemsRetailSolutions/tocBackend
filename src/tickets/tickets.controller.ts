@@ -6,6 +6,7 @@ import { paytefInstance } from "../paytef/paytef.class";
 import { TicketsInterface } from "./tickets.interface";
 import { FormaPago } from "../movimientos/movimientos.interface";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
+import { cajaInstance } from "src/caja/caja.clase";
 
 @Controller("tickets")
 export class TicketsController {
@@ -138,14 +139,25 @@ export class TicketsController {
   }
 
   /* Eze 4.0 */
-  @Post("rectificativa")
-  async rectificativa(@Body() { ticketId }) {
+  @Post("anularTicket")
+  async anularTicket(@Body() { ticketId }) {
+    console.log(ticketId)
     try {
-      if (ticketId) return await ticketsInstance.anularTicket(ticketId);
-      throw Error("Error, faltan datos en rectificativa() controller");
+      if (ticketId) {
+        const res =await ticketsInstance.anularTicket(ticketId);
+        return res;
+      }
+      throw Error("Error, faltan datos en anularTicket() controller");
     } catch (err) {
       logger.Error(108, err);
       return false;
     }
+  }
+
+  @Post("getUltimoTicket")
+  async getUltimoTicket(){
+    const caja= await cajaInstance.getInfoCajaAbierta();
+    return await ticketsInstance.getUltimoTicketIntervalo(caja.inicioTime, Date.now());
+
   }
 }

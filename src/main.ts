@@ -12,8 +12,8 @@ require("./sockets.gateway");
 let URL_SANPEDRO = "";
 if (process.env.npm_lifecycle_event === "start:dedv")
   URL_SANPEDRO = "http://localhost:3001";
-else URL_SANPEDRO = "https://sanpedro.cloud";
-axios.defaults.baseURL = "http://localhost:3001";
+else URL_SANPEDRO = "https://santaana2-elb.nubehit.com:3001";
+axios.defaults.baseURL = URL_SANPEDRO;
 
 parametrosInstance
   .getParametros()
