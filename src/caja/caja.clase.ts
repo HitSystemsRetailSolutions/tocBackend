@@ -160,7 +160,7 @@ export class CajaClase {
       console.log("time en caja.clase: ", res.time);
       if (res.estado==true) {
 	schCajas.getCambioDeTurno().then((res2) => {});
-        return parseInt(res.time);
+        return parseInt(res.time)+1000;
       } else {
        return Date.now();
       }
