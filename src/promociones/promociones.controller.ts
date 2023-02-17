@@ -23,7 +23,6 @@ export class PromocionesController {
       nuevaInstancePromociones.deshacerPromociones(ticket);
       return ticket;
     } catch (err) {
-      console.log(err);
       return false;
     }
   }

@@ -57,7 +57,6 @@ export class ParametrosController {
         delete res.data.token;
         delete res.data.licencia;
         delete res.data.impresoraUsbInfo;
-        console.log(res.data);
         return await parametrosInstance.setParametros(res.data);
       }
 

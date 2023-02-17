@@ -32,7 +32,6 @@ class PaytefClass {
       transactionReference: idTicket,
       showResultSeconds: 5,
     };
-    console.log(parametros.ipTefpay)
 
     if (parametros.ipTefpay) {
       axios({

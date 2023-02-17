@@ -85,7 +85,6 @@ export class CestasController {
   /* Eze 4.0 */
   @Post("onlyCrearCestaParaMesa")
   async onlyCrearCesta(@Body() { indexMesa }) {
-    console.log(indexMesa);
     try {
       if (typeof indexMesa === "number") {
         const idCesta = await cestasInstance.crearCesta(indexMesa);
@@ -94,7 +93,6 @@ export class CestasController {
       }
       throw Error("Error, faltan datos en crearCesta controller");
     } catch (err) {
-      console.log("error en crear cesta")
       logger.Error(61, err);
       return false;
     }
