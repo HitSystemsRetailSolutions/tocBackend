@@ -145,7 +145,6 @@ export class TicketsController {
   /* Eze 4.0 */
   @Post("anularTicket")
   async anularTicket(@Body() { ticketId }) {
-    console.log(ticketId)
     try {
       if (ticketId) {
         const res =await ticketsInstance.anularTicket(ticketId);

@@ -63,7 +63,6 @@ describe("Tickets", () => {
         } else throw Error("Fallo al anular el ticket de prueba");
       } else throw Error("No se ha podido crear el ticket de prueba");
     } catch (err) {
-      console.log(err.message);
       // expect("Cero errores").toBe("Hay errores");
     }
   });

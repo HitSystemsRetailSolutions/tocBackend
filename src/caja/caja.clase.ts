@@ -157,7 +157,6 @@ export class CajaClase {
 
   getComprovarFechaCierreTurno(){
     return schCajas.getComprovarTurno().then((res) => {
-      console.log("time en caja.clase: ", res.time);
       if (res.estado==true) {
 	schCajas.getCambioDeTurno().then((res2) => {});
         return parseInt(res.time)+1000;
@@ -170,7 +169,6 @@ export class CajaClase {
 
   getFechaCierre(){
     return schCajas.getComprovarTurno().then((res) => {
-      console.log("time en caja.clase: ", res.time);
       if (res.estado==true) {
 	
         return {time: res.time, estadoTurno: true};
@@ -191,7 +189,6 @@ export class CajaClase {
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
     finalTime: CajaCerradaInterface["finalTime"]
   ): Promise<CajaCerradaInterface> {
-    console.log("hola")
     const arrayTicketsCaja: TicketsInterface[] =
       await schTickets.getTicketsIntervalo(
         cajaAbiertaActual.inicioTime,
@@ -222,10 +219,7 @@ export class CajaClase {
     let totalConsumoPersonal = 0;
 
     /* RECUERDA QUE SE DEBE HACER UN MOVIMIENTO DE SALIDA PARA LA CANTIDAD 3G ANTES DE CERRAR LA CAJA, EN ESTE MOMENTO NO SE HACE */
-    console.log(arrayMovimientos)
     for (let i = 0; i < arrayMovimientos.length; i++) {
-      console.log("tipo",arrayMovimientos[i])
-      console.log("cajaApertura",cajaAbiertaActual[i])
       switch (arrayMovimientos[i].tipo) {
         // case "EFECTIVO":
         //   totalEntradas += arrayMovimientos[i].valor;
@@ -251,7 +245,6 @@ export class CajaClase {
           totalEntregaDiaria += arrayMovimientos[i].valor;
           break;
         case "ENTRADA_DINERO":
-          console.log(">>>")
           totalEntradas += arrayMovimientos[i].valor;
           totalEntradaDinero += arrayMovimientos[i].valor;
           break;
@@ -265,7 +258,6 @@ export class CajaClase {
         default:
           logger.Error(51, "Error, tipo de movimiento desconocido");
       }
-      console.log(totalTarjeta)
     }
     
 

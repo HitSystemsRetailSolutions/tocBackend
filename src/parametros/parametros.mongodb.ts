@@ -102,7 +102,6 @@ export async function setTipoImpresora(
 export async function setVisor(
   tipo: ParametrosInterface["visor"]
 ): Promise<boolean> {
-  console.log(tipo);
   const database = (await conexion).db("tocgame");
   const parametros = database.collection("parametros");
   return (
