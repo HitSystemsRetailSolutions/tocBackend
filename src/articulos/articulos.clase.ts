@@ -1,7 +1,8 @@
 import { ClientesInterface } from "../clientes/clientes.interface";
-import { ArticulosInterface } from "./articulos.interface";
+import {ArticulosInterface} from './articulos.interface';
 import * as schArticulos from "./articulos.mongodb";
 import { getItemTarifa } from "../tarifas/tarifas.mongodb";
+const sinc = require("../sincro");
 
 export class Articulos {
   /* Eze 4.0 */
@@ -30,16 +31,27 @@ export class Articulos {
     return await schArticulos.insertarArticulos(arrayArticulos);
   }
 
+  async insertarArticulosNuevos(arrayArticulos: ArticulosInterface[]) {
+    return await schArticulos.insertarArticulosNuevos(arrayArticulos);
+  }
+
   /* Eze 4.0 */
   async getSuplementos(suplementos) {
     return await schArticulos.getSuplementos(suplementos);
   }
 
-  // async editarArticulo(id, nombre, precioBase, precioConIva) {
-  //   const resultado = await schArticulos.editarArticulo(id, nombre, precioBase, precioConIva);
-  //   // logger.Error(resultado)
-  //   return resultado;
-  // }
+   async editarArticulo(id, nombre, precioBase, precioConIva, tipoIva,essumable) {
+    console.log(essumable)
+     const resultado = await schArticulos.editarArticulo(id, nombre, precioBase, precioConIva,tipoIva,essumable);
+      sinc.actualizarTeclados();
+     return resultado;
+   }
+   
+   async MoverArticulo(id,pos) {
+     const resultado = await schArticulos.MoverArticulo(id,pos);
+      sinc.actualizarTeclados();
+     return resultado;
+   }
 }
 const articulosInstance = new Articulos();
 export { articulosInstance };

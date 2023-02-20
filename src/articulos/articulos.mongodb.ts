@@ -19,6 +19,24 @@ export async function insertarArticulos(arrayArticulos: ArticulosInterface[]) {
 }
 
 /* Eze 4.0 */
+export async function insertarArticulosNuevos(arrayArticulos: ArticulosInterface[]) {
+  const database = (await conexion).db("tocgame");
+  const articulos = database.collection<ArticulosInterface>("articulos");
+  const id = await articulos.findOne({}, { sort: { _id: -1 } });
+  console.log("id >> "+id['_id'])
+  arrayArticulos['_id'] = id['_id'] + 1;
+  return (await articulos.insertMany(arrayArticulos)).acknowledged;
+}
+
+/* Eze 4.0 */
+export async function insertarTeclasNuevos(arrayArticulos: ArticulosInterface[]) {
+  const database = (await conexion).db("tocgame");
+  const articulos = database.collection<ArticulosInterface>("articulos");
+  return (await articulos.insertMany(arrayArticulos)).acknowledged;
+}
+
+
+/* Eze 4.0 */
 export async function borrarArticulos(): Promise<void> {
   const database = (await conexion).db("tocgame");
   const collectionList = await database.listCollections().toArray();
@@ -54,4 +72,20 @@ export async function getSuplementos(suplementos: ArticulosInterface[]) {
     if (artSuplemento) suplementosData.push(artSuplemento);
   }
   return suplementosData;
+}
+
+/* uri */
+export async function editarArticulo(id, nombre, precioBase, precioConIva,tipoIva,essumable) {
+  const database = (await conexion).db('tocgame');
+  const articulos = database.collection('articulos');
+  const teclas = database.collection('teclas');
+  await teclas.updateMany({idArticle: id}, {$set: {'nombreArticulo': nombre}}, {upsert: true});
+  return await articulos.updateOne({_id: id}, {$set: {'nombre': nombre, 'precioBase': precioBase, 'precioConIva': precioConIva, 'tipoIva': tipoIva, 'esSumable':essumable}}, {upsert: true});
+}
+
+/* uri */
+export async function MoverArticulo(id,posicion) {
+  const database = (await conexion).db('tocgame');
+  const teclas = database.collection('teclas');
+  return await teclas.updateOne({idArticle: id}, {$set: {'pos': posicion, }}, {upsert: true});
 }
