@@ -1,5 +1,5 @@
 import { ClientesInterface } from "../clientes/clientes.interface";
-import {ArticulosInterface} from './articulos.interface';
+import { ArticulosInterface } from "./articulos.interface";
 import * as schArticulos from "./articulos.mongodb";
 import { getItemTarifa } from "../tarifas/tarifas.mongodb";
 const sinc = require("../sincro");
@@ -31,8 +31,24 @@ export class Articulos {
     return await schArticulos.insertarArticulos(arrayArticulos);
   }
 
-  async insertarArticulosNuevos(nombreArticulo,precioConIva,tipoIva,esSumable,menus,precioBase,posicion) {
-    return await schArticulos.insertarArticulosNuevos(nombreArticulo,precioConIva,tipoIva,esSumable,menus,precioBase,posicion);
+  async insertarArticulosNuevos(
+    nombreArticulo,
+    precioConIva,
+    tipoIva,
+    esSumable,
+    menus,
+    precioBase,
+    posicion
+  ) {
+    return await schArticulos.insertarArticulosNuevos(
+      nombreArticulo,
+      precioConIva,
+      tipoIva,
+      esSumable,
+      menus,
+      precioBase,
+      posicion
+    );
   }
 
   /* Eze 4.0 */
@@ -40,20 +56,34 @@ export class Articulos {
     return await schArticulos.getSuplementos(suplementos);
   }
 
-   async editarArticulo(id, nombre, precioBase, precioConIva, tipoIva,essumable) {
-     const resultado = await schArticulos.editarArticulo(id, nombre, precioBase, precioConIva,tipoIva,essumable);
-      sinc.actualizarTeclados();
-     return resultado;
-   }
-   
-   async MoverArticulo(id,pos,menu) {
-     const resultado = await schArticulos.MoverArticulo(id,pos,menu);
-      sinc.actualizarTeclados();
-     return resultado;
-   }
-   async EliminarArticulo(id,) {
+  async editarArticulo(
+    id,
+    nombre,
+    precioBase,
+    precioConIva,
+    tipoIva,
+    essumable
+  ) {
+    const resultado = await schArticulos.editarArticulo(
+      id,
+      nombre,
+      precioBase,
+      precioConIva,
+      tipoIva,
+      essumable
+    );
+    sinc.actualizarTeclados();
+    return resultado;
+  }
+
+  async MoverArticulo(id, pos, menu) {
+    const resultado = await schArticulos.MoverArticulo(id, pos, menu);
+    sinc.actualizarTeclados();
+    return resultado;
+  }
+  async EliminarArticulo(id) {
     const resultado = await schArticulos.eliminarArticulo(id);
-     sinc.actualizarTeclados();
+    sinc.actualizarTeclados();
     return resultado;
   }
 }

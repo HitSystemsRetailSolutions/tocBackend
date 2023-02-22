@@ -79,9 +79,9 @@ export class ArticulosController {
 
   @Post("moverArticulo")
   moverArticulo(@Body() params) {
-    if ((params.id, params.posicion,params.menu)) {
+    if ((params.id, params.posicion, params.menu)) {
       return articulosInstance
-        .MoverArticulo(params.id, params.posicion,params.menu)
+        .MoverArticulo(params.id, params.posicion, params.menu)
         .then((res) => {
           if (res) {
             return { error: false, info: res };
@@ -99,14 +99,12 @@ export class ArticulosController {
   @Post("eliminarArticulo")
   eliminarArticulo(@Body() params) {
     if (params.id) {
-      return articulosInstance
-        .EliminarArticulo(params.id)
-        .then((res) => {
-          if (res) {
-            return { error: false, info: res };
-          }
-          return { error: true, mensaje: "Backend: Error, faltan datos" };
-        });
+      return articulosInstance.EliminarArticulo(params.id).then((res) => {
+        if (res) {
+          return { error: false, info: res };
+        }
+        return { error: true, mensaje: "Backend: Error, faltan datos" };
+      });
     } else {
       return {
         error: true,
@@ -125,12 +123,22 @@ export class ArticulosController {
       params.menus != undefined &&
       params.posicion != undefined
     ) {
-      return articulosInstance.insertarArticulosNuevos(params.nombreArticulo,params.precioConIva,params.tipoIva,params.esSumable,params.menus,params.precioBase,params.posicion).then((res) => {
-        if (res) {
-          return { error: false, info: res };
-        }
-        return { error: true, mensaje: "Backend: Error, faltan datos" };
-      });
+      return articulosInstance
+        .insertarArticulosNuevos(
+          params.nombreArticulo,
+          params.precioConIva,
+          params.tipoIva,
+          params.esSumable,
+          params.menus,
+          params.precioBase,
+          params.posicion
+        )
+        .then((res) => {
+          if (res) {
+            return { error: false, info: res };
+          }
+          return { error: true, mensaje: "Backend: Error, faltan datos" };
+        });
     } else {
       return {
         error: true,
