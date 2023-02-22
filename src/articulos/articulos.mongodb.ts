@@ -1,3 +1,4 @@
+import { TeclasInterface } from "src/teclado/teclado.interface";
 import { conexion } from "../conexion/mongodb";
 import { ArticulosInterface } from "./articulos.interface";
 
@@ -19,20 +20,41 @@ export async function insertarArticulos(arrayArticulos: ArticulosInterface[]) {
 }
 
 /* Eze 4.0 */
-export async function insertarArticulosNuevos(arrayArticulos: ArticulosInterface[]) {
+export async function insertarArticulosNuevos(nombreArticulo,precioConIva,tipoIva,esSumable,menus,precioBase,posicion) {
   const database = (await conexion).db("tocgame");
   const articulos = database.collection<ArticulosInterface>("articulos");
   const id = await articulos.findOne({}, { sort: { _id: -1 } });
-  console.log("id >> "+id['_id'])
-  arrayArticulos['_id'] = id['_id'] + 1;
-  return (await articulos.insertMany(arrayArticulos)).acknowledged;
+  let valors: ArticulosInterface[] = [
+    {
+      nombre: nombreArticulo,
+      precioConIva: precioConIva,
+      tipoIva: tipoIva,
+      esSumable: esSumable,
+      familia: menus,
+      precioBase: precioBase,
+      _id: id['_id'] + 1,
+      suplementos: null,
+    },
+  ];
+  await (insertarTeclasNuevos(menus,esSumable,nombreArticulo,id['_id'] + 1,posicion))
+  return (await articulos.insertMany(valors)).acknowledged;
 }
 
 /* Eze 4.0 */
-export async function insertarTeclasNuevos(arrayArticulos: ArticulosInterface[]) {
+export async function insertarTeclasNuevos(menu,esSumable,Nombre,idArt,pos) {
   const database = (await conexion).db("tocgame");
-  const articulos = database.collection<ArticulosInterface>("articulos");
-  return (await articulos.insertMany(arrayArticulos)).acknowledged;
+  const articulos = database.collection<TeclasInterface>("teclas");
+  const id = await articulos.findOne({}, { sort: { _id: -1 } });
+  let valors:TeclasInterface[]= 
+    [{
+      nomMenu: menu,
+      idArticle: idArt,
+      nombreArticulo: Nombre,
+      pos: pos,
+      color: 16769279,
+      esSumable: esSumable,
+    }]
+  return (await articulos.insertMany(valors));
 }
 
 
@@ -84,8 +106,17 @@ export async function editarArticulo(id, nombre, precioBase, precioConIva,tipoIv
 }
 
 /* uri */
-export async function MoverArticulo(id,posicion) {
+export async function MoverArticulo(id,posicion,menu) {
   const database = (await conexion).db('tocgame');
   const teclas = database.collection('teclas');
-  return await teclas.updateOne({idArticle: id}, {$set: {'pos': posicion, }}, {upsert: true});
+  return await teclas.updateOne({idArticle: id}, {$set: {'pos': posicion,'nomMenu':menu, }}, {upsert: true});
+}
+
+/* uri */
+export async function eliminarArticulo(id) {
+  const database = (await conexion).db('tocgame');
+  const teclas = database.collection('teclas');
+  await teclas.deleteOne({idArticle: id});
+  const articulos = database.collection('articulos');
+  return await articulos.deleteOne({_id: id});
 }

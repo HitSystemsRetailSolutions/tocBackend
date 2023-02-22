@@ -15,7 +15,6 @@ export class ArticulosController {
         );
       throw Error("Error, faltan datos en getArticulo controller");
     } catch (err) {
-      console.log(err);
       logger.Error(50, err);
       return null;
     }
@@ -52,8 +51,8 @@ export class ArticulosController {
     if (
       params.idArticulo &&
       params.nombre &&
-      params.precioBase &&
-      params.precioConIva
+      params.precioBase != undefined &&
+      params.precioConIva != undefined
     ) {
       return articulosInstance
         .editarArticulo(
@@ -80,9 +79,28 @@ export class ArticulosController {
 
   @Post("moverArticulo")
   moverArticulo(@Body() params) {
-    if ((params.id, params.posicion)) {
+    if ((params.id, params.posicion,params.menu)) {
       return articulosInstance
-        .MoverArticulo(params.id, params.posicion)
+        .MoverArticulo(params.id, params.posicion,params.menu)
+        .then((res) => {
+          if (res) {
+            return { error: false, info: res };
+          }
+          return { error: true, mensaje: "Backend: Error, faltan datos" };
+        });
+    } else {
+      return {
+        error: true,
+        mensaje: "Backend: Faltan datos en articulos/editarArticulo",
+      };
+    }
+  }
+
+  @Post("eliminarArticulo")
+  eliminarArticulo(@Body() params) {
+    if (params.id) {
+      return articulosInstance
+        .EliminarArticulo(params.id)
         .then((res) => {
           if (res) {
             return { error: false, info: res };
@@ -107,19 +125,7 @@ export class ArticulosController {
       params.menus != undefined &&
       params.posicion != undefined
     ) {
-      let valors: ArticulosInterface[] = [
-        {
-          nombre: params.nombreArticulo,
-          precioConIva: params.precioConIva,
-          tipoIva: params.tipoIva,
-          esSumable: params.esSumable,
-          familia: params.menus,
-          precioBase: params.precioBase,
-          _id: undefined,
-          suplementos: undefined,
-        },
-      ];
-      return articulosInstance.insertarArticulosNuevos(valors).then((res) => {
+      return articulosInstance.insertarArticulosNuevos(params.nombreArticulo,params.precioConIva,params.tipoIva,params.esSumable,params.menus,params.precioBase,params.posicion).then((res) => {
         if (res) {
           return { error: false, info: res };
         }

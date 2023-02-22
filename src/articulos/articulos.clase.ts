@@ -31,8 +31,8 @@ export class Articulos {
     return await schArticulos.insertarArticulos(arrayArticulos);
   }
 
-  async insertarArticulosNuevos(arrayArticulos: ArticulosInterface[]) {
-    return await schArticulos.insertarArticulosNuevos(arrayArticulos);
+  async insertarArticulosNuevos(nombreArticulo,precioConIva,tipoIva,esSumable,menus,precioBase,posicion) {
+    return await schArticulos.insertarArticulosNuevos(nombreArticulo,precioConIva,tipoIva,esSumable,menus,precioBase,posicion);
   }
 
   /* Eze 4.0 */
@@ -41,17 +41,21 @@ export class Articulos {
   }
 
    async editarArticulo(id, nombre, precioBase, precioConIva, tipoIva,essumable) {
-    console.log(essumable)
      const resultado = await schArticulos.editarArticulo(id, nombre, precioBase, precioConIva,tipoIva,essumable);
       sinc.actualizarTeclados();
      return resultado;
    }
    
-   async MoverArticulo(id,pos) {
-     const resultado = await schArticulos.MoverArticulo(id,pos);
+   async MoverArticulo(id,pos,menu) {
+     const resultado = await schArticulos.MoverArticulo(id,pos,menu);
       sinc.actualizarTeclados();
      return resultado;
    }
+   async EliminarArticulo(id,) {
+    const resultado = await schArticulos.eliminarArticulo(id);
+     sinc.actualizarTeclados();
+    return resultado;
+  }
 }
 const articulosInstance = new Articulos();
 export { articulosInstance };
