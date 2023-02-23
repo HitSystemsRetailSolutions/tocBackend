@@ -176,6 +176,12 @@ function limpiezaProfunda(): void {
   limpiezaMovimientos();
 }
 
+function actualizarTrabajadores() {
+  trabajadoresInstance.actualizarTrabajadores().catch((err) => {
+  logger.Error(19, err);
+  });
+  }
+
 setInterval(sincronizarTickets, 8000);
 setInterval(sincronizarCajas, 40000);
 setInterval(sincronizarMovimientos, 50000);
@@ -184,6 +190,7 @@ setInterval(sincronizarDevoluciones, 10000);
 setInterval(actualizarTeclados, 3600000);
 setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);
+setInterval(actualizarTrabajadores, 3600000);
 // setInterval(actualizarMesas, 3600000);
 
 export {

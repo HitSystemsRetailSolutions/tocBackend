@@ -37,9 +37,8 @@ export class TrabajadoresClase {
 
   /* Eze OK. NO 4.0 */
   async actualizarTrabajadores(): Promise<boolean> {
-    const params = await parametrosInstance.getParametros();
-    const res: any = await axios.post("dependientas/descargar", {
-      database: params.database,
+    
+    const res: any = await axios.get("trabajadores/getTrabajadores", {
     });
     if (!res.data.error && res.data.info.length > 0) {
       const resKeep = await this.mantenerTrabajadoresFichados(res.data.info);

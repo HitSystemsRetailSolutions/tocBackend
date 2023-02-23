@@ -50,7 +50,7 @@ export class NuevaPromocion {
   }
 
   async descargarPromociones() {
-    const resPromos = (await axios.get("promociones/getPromocionesNueva"))
+    const resPromos = (await axios.get("promociones/getPromociones"))
       .data as PromocionesInterface[];
     if (resPromos && resPromos.length > 0) {
       return await schPromociones.insertarPromociones(resPromos);
