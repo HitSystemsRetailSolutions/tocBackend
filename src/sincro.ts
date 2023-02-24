@@ -192,4 +192,5 @@ export {
   // sincronizarMovimientos,
   // sincronizarFichajes,
   sincronizarDevoluciones,
+  actualizarTeclados,
 };
