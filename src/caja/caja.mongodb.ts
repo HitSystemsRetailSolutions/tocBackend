@@ -86,18 +86,6 @@ export async function getAnularTurno() {
   const fecha = tiempoTranscurrido.toLocaleDateString('es-ES');
   const hora =tiempoTranscurrido.toLocaleTimeString('es-ES');
   const resultado = await  caja.insertOne({"fecha":fecha,"hora":hora,"time":Date.now()});
-  // la linea de codigo de abajo iria en otra funcion para
-  // comprobar si el cambio de turno es de hoy o no:
-
-  // const fecha = tiempoTranscurrido.toLocaleDateString('es-ES');
-  // const buscar= await caja.findOne({fecha:fecha});
-  // console.log(buscar);
- 
-  // if (buscar!=null) {
-  //   return true;
-  // } else {
-  //   return false;
-  // }
  
   return resultado;
 

@@ -14,6 +14,14 @@ export async function setParametros(
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const parametros = database.collection("parametros");
+  await parametros.updateOne({_id: "PARAMETROS"},{$unset: {BotonsPreu:"",
+    EntrarCanviEnMonedes:"",
+    JustificarAnul:"",
+    NoEntradaDiners:"",
+    ProhibirAnulacioTicket:"",
+    ProhibirCercaArticles:"",
+    SuperFidelitza:"",
+    TriaTaula:""}});
   return (
     await parametros.updateOne(
       { _id: "PARAMETROS" },
@@ -94,7 +102,6 @@ export async function setTipoImpresora(
 export async function setVisor(
   tipo: ParametrosInterface["visor"]
 ): Promise<boolean> {
-  console.log(tipo);
   const database = (await conexion).db("tocgame");
   const parametros = database.collection("parametros");
   return (

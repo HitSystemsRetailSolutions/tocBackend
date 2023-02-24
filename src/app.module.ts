@@ -24,6 +24,8 @@ import { SatelitesController } from "./satelites/satelites.controller";
 import { TarifasController } from "./tarifas/tarifas.controller";
 import { MesasController } from "./mesas/mesas.controller";
 import { PromocionesController } from "./promociones/promociones.controller";
+import { TraduccionesController } from "./traducciones/traducciones.controller";
+
 @Module({
   imports: [
     ServeStaticModule.forRoot({
@@ -54,6 +56,7 @@ import { PromocionesController } from "./promociones/promociones.controller";
     TarifasController,
     MesasController,
     PromocionesController,
+    TraduccionesController,
   ],
   // providers: [SocketGateway],
 })
