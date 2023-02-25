@@ -3,7 +3,6 @@ import { ArticulosInterface } from "./articulos.interface";
 import * as schArticulos from "./articulos.mongodb";
 import { getItemTarifa } from "../tarifas/tarifas.mongodb";
 import axios from "axios";
-const sinc = require("../sincro");
 
 export class Articulos {
   /* Eze 4.0 */
@@ -74,18 +73,15 @@ export class Articulos {
       tipoIva,
       essumable
     );
-    sinc.actualizarTeclados();
     return resultado;
   }
 
   async MoverArticulo(id, pos, menu) {
     const resultado = await schArticulos.MoverArticulo(id, pos, menu);
-    sinc.actualizarTeclados();
     return resultado;
   }
   async EliminarArticulo(id) {
     const resultado = await schArticulos.eliminarArticulo(id);
-    sinc.actualizarTeclados();
     return resultado;
   }
   async descargarArticulos(): Promise<boolean> {
