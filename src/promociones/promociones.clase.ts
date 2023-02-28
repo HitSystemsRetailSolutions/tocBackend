@@ -632,26 +632,40 @@ export class NuevaPromocion {
     cesta: CestasInterface,
     data: InfoPromocionIndividual
   ) {
-    cesta.lista.push({
-      arraySuplementos: null,
-      gramos: 0,
-      idArticulo: -1,
-      unidades: data.cantidadPromos,
-      nombre: "Promo. " + data.nombreArticulo,
-      regalo: false,
-      subtotal: data.precioConIva,
-      promocion: {
-        idPromocion: data.idPromocion,
-        tipoPromo: "INDIVIDUAL",
-        unidadesOferta: data.cantidadPromos,
-        idArticuloPrincipal: data.idArticulo,
-        cantidadArticuloPrincipal: data.cantidadNecesaria,
-        cantidadArticuloSecundario: null,
-        idArticuloSecundario: null,
-        precioRealArticuloPrincipal: data.precioUnidad,
-        precioRealArticuloSecundario: null,
-      },
-    });
+    let nom="Promo. " + data.nombreArticulo;
+    let PromocioNou=true;
+    for (let i = 0; i < cesta.lista.length; i++) {
+      
+      if (nom==cesta.lista[i].nombre && PromocioNou) {
+        cesta.lista[i].unidades++;
+        cesta.lista[i].subtotal+=data.precioConIva;
+        PromocioNou=false;
+      }
+    }
+    if (PromocioNou) {
+        
+      
+      cesta.lista.push({
+        arraySuplementos: null,
+        gramos: 0,
+        idArticulo: -1,
+        unidades: data.cantidadPromos,
+        nombre: "Promo. " + data.nombreArticulo,
+        regalo: false,
+        subtotal: data.precioConIva,
+        promocion: {
+          idPromocion: data.idPromocion,
+          tipoPromo: "INDIVIDUAL",
+          unidadesOferta: data.cantidadPromos,
+          idArticuloPrincipal: data.idArticulo,
+          cantidadArticuloPrincipal: data.cantidadNecesaria,
+          cantidadArticuloSecundario: null,
+          idArticuloSecundario: null,
+          precioRealArticuloPrincipal: data.precioUnidad,
+          precioRealArticuloSecundario: null,
+        },
+      });
+    }
   }
 
   private aplicarPromoCombo(
@@ -661,26 +675,39 @@ export class NuevaPromocion {
     articuloSecundario: ArticulosInterface,
     preciosReales: PreciosReales
   ) {
-    cesta.lista.push({
-      arraySuplementos: null,
-      gramos: 0,
-      idArticulo: -1,
-      unidades: data.seAplican,
-      nombre: `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`,
-      regalo: false,
-      subtotal: data.precioPromoUnitario * data.seAplican, // No será necesario, se hace desde el recalcularIvas Cesta
-      promocion: {
-        idPromocion: data.idPromocion,
-        tipoPromo: "COMBO",
-        unidadesOferta: data.seAplican,
-        idArticuloPrincipal: data.idArticuloPrincipal,
-        cantidadArticuloPrincipal: data.cantidadNecesariaPrincipal,
-        cantidadArticuloSecundario: data.cantidadNecesariaSecundario,
-        idArticuloSecundario: data.idArticuloSecundario,
-        precioRealArticuloPrincipal: preciosReales.precioRealPrincipal,
-        precioRealArticuloSecundario: preciosReales.precioRealSecundario,
-      },
-    });
+    let nom=`Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`;
+    let PromocioNou=true;
+    for (let i = 0; i < cesta.lista.length; i++) {
+      
+      if (nom==cesta.lista[i].nombre && PromocioNou) {
+        cesta.lista[i].unidades++;
+        cesta.lista[i].subtotal+=data.precioPromoUnitario * data.seAplican;
+        PromocioNou=false;
+      }
+    }
+    if (PromocioNou) {
+    
+      cesta.lista.push({
+        arraySuplementos: null,
+        gramos: 0,
+        idArticulo: -1,
+        unidades: data.seAplican,
+        nombre: `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`,
+        regalo: false,
+        subtotal: data.precioPromoUnitario * data.seAplican, // No será necesario, se hace desde el recalcularIvas Cesta
+        promocion: {
+          idPromocion: data.idPromocion,
+          tipoPromo: "COMBO",
+          unidadesOferta: data.seAplican,
+          idArticuloPrincipal: data.idArticuloPrincipal,
+          cantidadArticuloPrincipal: data.cantidadNecesariaPrincipal,
+          cantidadArticuloSecundario: data.cantidadNecesariaSecundario,
+          idArticuloSecundario: data.idArticuloSecundario,
+          precioRealArticuloPrincipal: preciosReales.precioRealPrincipal,
+          precioRealArticuloSecundario: preciosReales.precioRealSecundario,
+        },
+      });
+    }
   }
 
   calcularPrecioRealCombo(
