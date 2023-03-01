@@ -34,6 +34,11 @@ export class Traducciones {
         
     };
 
+    getIdioma = async () =>{
+        const idioma = await axios.get('traducciones/getIdioma').then((data) => data);
+    
+        return idioma.data;
+    }
     setTraduccionesKeys = async (traduccionesArr) => {
         // Cogemos todas las traducciones que hay en el backend
         // ya que es mas eficiente hacer la criba de las que ya existen
