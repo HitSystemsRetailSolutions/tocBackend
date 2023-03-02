@@ -104,13 +104,19 @@ export class CajaClase {
     );
 
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
+      
       const ultimaCaja = await this.getUltimoCierre();
       impresoraInstance.imprimirCajaAsync(ultimaCaja);
       if( await this.resetCajaAbierta()){
         if (!finalTime.estadoTurno) {
           io.emit("cargarVentas", []);  
         }
-        
+        cajaInstance.guardarMonedas(guardarInfoMonedas, 'CLAUSURA').then((res2) => {
+          if (res2) {
+            return true;
+          }
+          return false;
+        })
         return true;
       }
     }
