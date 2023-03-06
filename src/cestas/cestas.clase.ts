@@ -294,7 +294,7 @@ export class CestaClase {
       );
 
       const importeRealUnitario =
-        itemPromocion.promocion.precioRealArticuloPrincipal;
+        itemPromocion.promocion.precioRealArticuloPrincipal*itemPromocion.unidades
       const unidadesTotales = itemPromocion.promocion.cantidadArticuloPrincipal
         ? itemPromocion.promocion.cantidadArticuloPrincipal
         : itemPromocion.promocion.cantidadArticuloSecundario *
