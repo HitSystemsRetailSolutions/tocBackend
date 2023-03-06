@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { ListadoVentasController } from "./ListadoVentas/ListadoVentas.controller";
+import { ListadoVentasController } from "./listadoVentas/listadoVentas.controller";
 import { ArticulosController } from "./articulos/articulos.controller";
 import { TecladoController } from "./teclado/teclado.controller";
 import { CestasController } from "./cestas/cestas.controller";
