@@ -44,7 +44,7 @@ export class ListadoVentasController {
       let nomTienda = (await ListadoVentasInstance.getParms()).nombreTienda;
       let DNI = "";
       try {
-        DNI = (await ListadoVentasInstance.getParms()).header
+        DNI = "- "+ (await ListadoVentasInstance.getParms()).header
           .split("NIF")[1]
           .replace(" ", "");
       } catch {}
