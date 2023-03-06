@@ -1,5 +1,4 @@
 import { Controller, Post, Body } from "@nestjs/common";
-import { logger } from "../logger";
 import { ListadoVentasInstance } from "./ListadoVentas.clase";
 @Controller("ListadoVentas")
 export class ListadoVentasController {
@@ -7,7 +6,6 @@ export class ListadoVentasController {
   @Post("getVentas")
   async getVentas(@Body() { ano, mes }) {
     try {
-      console.log(ano, mes);
       let UltimoDia = new Date(ano, mes + 1, 0);
       let Tickets = await ListadoVentasInstance.GetTickets();
       let Values = [];
@@ -34,10 +32,8 @@ export class ListadoVentasController {
         }
       }
       return Values;
-      throw Error("Error, faltan datos en getArticulo controller");
     } catch (err) {
-      logger.Error(50, err);
-      return null;
+      throw Error("Error, faltan datos en getArticulo controller");
     }
   }
 
@@ -50,14 +46,16 @@ export class ListadoVentasController {
       let NomTienda = (await ListadoVentasInstance.GetParms()).at(
         0
       ).nombreTienda;
-      let DNI = (await ListadoVentasInstance.GetParms())
-        .at(0)
-        .header.split("NIF")[1].replace(' ','');
-      console.log(NomTienda, DNI);
+      let DNI = "";
+      try {
+        DNI = (await ListadoVentasInstance.GetParms())
+          .at(0)
+          .header.split("NIF")[1]
+          .replace(" ", "");
+      } catch {}
       return [`${NomEmpresa} (${NomTienda})`, DNI];
     } catch (err) {
-      logger.Error(50, err);
-      return null;
+      throw Error("Error, faltan datos en getArticulo controller");
     }
   }
 }
