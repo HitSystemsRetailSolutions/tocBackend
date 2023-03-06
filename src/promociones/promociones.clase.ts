@@ -633,16 +633,16 @@ export class NuevaPromocion {
     data: InfoPromocionIndividual
   ) {
     let nom="Promo. " + data.nombreArticulo;
-    let PromocioNou=true;
+    let promocioNou=true;
     for (let i = 0; i < cesta.lista.length; i++) {
       
-      if (nom==cesta.lista[i].nombre && PromocioNou) {
+      if (nom==cesta.lista[i].nombre && promocioNou) {
         cesta.lista[i].unidades++;
         cesta.lista[i].subtotal+=data.precioConIva;
-        PromocioNou=false;
+        promocioNou=false;
       }
     }
-    if (PromocioNou) {
+    if (promocioNou) {
         
       
       cesta.lista.push({
@@ -676,16 +676,16 @@ export class NuevaPromocion {
     preciosReales: PreciosReales
   ) {
     let nom=`Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`;
-    let PromocioNou=true;
+    let promocioNou=true;
     for (let i = 0; i < cesta.lista.length; i++) {
       
-      if (nom==cesta.lista[i].nombre && PromocioNou) {
+      if (nom==cesta.lista[i].nombre && promocioNou) {
         cesta.lista[i].unidades++;
         cesta.lista[i].subtotal+=data.precioPromoUnitario * data.seAplican;
-        PromocioNou=false;
+        promocioNou=false;
       }
     }
-    if (PromocioNou) {
+    if (promocioNou) {
     
       cesta.lista.push({
         arraySuplementos: null,
