@@ -1,24 +1,24 @@
 import { Controller, Post, Body } from "@nestjs/common";
-import { ListadoVentasInstance } from "./ListadoVentas.clase";
+import { ListadoVentasInstance } from "./listadoVentas.clase";
 @Controller("ListadoVentas")
 export class ListadoVentasController {
   /* Eze 4.0 */
   @Post("getVentas")
   async getVentas(@Body() { ano, mes }) {
     try {
-      let UltimoDia = new Date(ano, mes + 1, 0);
-      let Tickets = await ListadoVentasInstance.GetTickets();
-      let Values = [];
-      for (let i = 0; i < UltimoDia.getDate(); i++) {
-        Values.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+      let ultimoDia = new Date(ano, mes + 1, 0);
+      let tickets = await ListadoVentasInstance.getTickets();
+      let values = [];
+      for (let i = 0; i < ultimoDia.getDate(); i++) {
+        values.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
       }
-      for (let i = 0; i < Tickets.length; i++) {
-        let unixtodate = new Date(Tickets.at(i)["timestamp"]);
+      for (let i = 0; i < tickets.length; i++) {
+        let unixtodate = new Date(tickets.at(i)["timestamp"]);
         if (unixtodate.getFullYear() == ano && unixtodate.getMonth() == mes) {
-          let iva = Tickets.at(i)["cesta"]["detalleIva"];
-          let val = Values[unixtodate.getUTCDate() - 1];
+          let iva = tickets.at(i)["cesta"]["detalleIva"];
+          let val = values[unixtodate.getUTCDate() - 1];
           let isdev = 1;
-          if (Tickets.at(i).total < 0) isdev = -1;
+          if (tickets.at(i).total < 0) isdev = -1;
           val[0] = val[0] + isdev * iva.base4;
           val[1] = val[1] + isdev * iva.valorIva4;
           val[2] = val[2] + isdev * iva.base1;
@@ -31,7 +31,7 @@ export class ListadoVentasController {
           val[9] = val[9] + isdev * iva.valorIva3;
         }
       }
-      return Values;
+      return values;
     } catch (err) {
       throw Error("Error, faltan datos en getArticulo controller");
     }
@@ -40,20 +40,15 @@ export class ListadoVentasController {
   @Post("getEmpresa")
   async GetEmpresa() {
     try {
-      let NomEmpresa = (await ListadoVentasInstance.GetParms()).at(
-        0
-      ).nombreEmpresa;
-      let NomTienda = (await ListadoVentasInstance.GetParms()).at(
-        0
-      ).nombreTienda;
+      let nomEmpresa = (await ListadoVentasInstance.getParms()).nombreEmpresa;
+      let nomTienda = (await ListadoVentasInstance.getParms()).nombreTienda;
       let DNI = "";
       try {
-        DNI = (await ListadoVentasInstance.GetParms())
-          .at(0)
-          .header.split("NIF")[1]
+        DNI = (await ListadoVentasInstance.getParms()).header
+          .split("NIF")[1]
           .replace(" ", "");
       } catch {}
-      return [`${NomEmpresa} (${NomTienda})`, DNI];
+      return [`${nomEmpresa} (${nomTienda})`, DNI];
     } catch (err) {
       throw Error("Error, faltan datos en getArticulo controller");
     }

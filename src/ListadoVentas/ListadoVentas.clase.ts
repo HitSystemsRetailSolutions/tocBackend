@@ -1,15 +1,16 @@
-import * as schVentas from "./ListadoVentas.mongodb";
+import * as schVentas from "./listadoVentas.mongodb";
+import * as schParams from "../parametros/parametros.mongodb";
 //const sinc = require("../sincro");
 
 export class ListadoVentas {
   /* Uri */
-  GetTickets = async () => {
-    return await schVentas.GetTickets();
+  getTickets = async () => {
+    return await schVentas.getTickets();
   };
 
   /* Uri */
-  GetParms = async () => {
-    return await schVentas.GetParams();
+  getParms = async () => {
+    return await schParams.getParametros();
   };
 }
 const ListadoVentasInstance = new ListadoVentas();
