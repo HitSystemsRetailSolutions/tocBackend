@@ -64,7 +64,6 @@ export class Traducciones {
             
             return axios.post('traducciones/setTraduccionesKeys', traducciones)
                 .then(({ data }) => {
-                    console.log(data)
                     this.getTraducciones();
                     return data;
                 })
