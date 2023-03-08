@@ -130,7 +130,7 @@ export async function editarArticulo(
   const teclas = database.collection("teclas");
   await teclas.updateMany(
     { idArticle: id },
-    { $set: { nombreArticulo: nombre } },
+    { $set: { nombreArticulo: nombre, esSumable: essumable} },
     { upsert: true }
   );
   return await articulos.updateOne(
