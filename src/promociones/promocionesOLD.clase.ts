@@ -1,4 +1,3 @@
-console.log("BORRAR ESTE ARCHIVO promocionesOLD.clase.ts");
 // import { clienteInstance } from "../clientes/clientes.clase";
 // import { articulosInstance } from "../articulos/articulos.clase";
 // import { CestasInterface } from "../cestas/cestas.interface";

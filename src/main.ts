@@ -9,11 +9,8 @@ import { parametrosInstance } from "./parametros/parametros.clase";
 import { logger } from "./logger";
 require("./sincro");
 require("./sockets.gateway");
-let URL_SANPEDRO = "";
-if (process.env.npm_lifecycle_event === "start:dev")
-  URL_SANPEDRO = "http://localhost:3001";
-else URL_SANPEDRO = "https://santaana2-elb.nubehit.com:3001";
-axios.defaults.baseURL = URL_SANPEDRO;
+
+axios.defaults.baseURL = process.env.npm_lifecycle_event === "start:dev" ? "http://localhost:3001" : "https://santaana2-elb.nubehit.com:3001";
 
 parametrosInstance
   .getParametros()

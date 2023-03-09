@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { ListadoVentasController } from "./ListadoVentas/ListadoVentas.controller";
+import { ListadoVentasController } from "./listadoVentas/listadoVentas.controller";
 import { ArticulosController } from "./articulos/articulos.controller";
 import { TecladoController } from "./teclado/teclado.controller";
 import { CestasController } from "./cestas/cestas.controller";
@@ -25,6 +25,8 @@ import { SatelitesController } from "./satelites/satelites.controller";
 import { TarifasController } from "./tarifas/tarifas.controller";
 import { MesasController } from "./mesas/mesas.controller";
 import { PromocionesController } from "./promociones/promociones.controller";
+import { TraduccionesController } from "./traducciones/traducciones.controller";
+
 @Module({
   imports: [
     ServeStaticModule.forRoot({
@@ -56,6 +58,7 @@ import { PromocionesController } from "./promociones/promociones.controller";
     TarifasController,
     MesasController,
     PromocionesController,
+    TraduccionesController,
   ],
   // providers: [SocketGateway],
 })

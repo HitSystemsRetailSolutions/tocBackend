@@ -6,7 +6,8 @@ import { paytefInstance } from "../paytef/paytef.class";
 import { TicketsInterface } from "./tickets.interface";
 import { FormaPago } from "../movimientos/movimientos.interface";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
-
+import { cajaInstance } from "src/caja/caja.clase";
+import { impresoraInstance } from "../impresora/impresora.class";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -122,6 +123,10 @@ export class TicketsController {
               "Falta información del tkrs o bien ninguna forma de pago es correcta"
             );
           }
+          if (tipo !== "TARJETA") {
+            await impresoraInstance.abrirCajon();
+          }
+          
           ticketsInstance.actualizarTickets();
           return true;
         }
@@ -140,7 +145,6 @@ export class TicketsController {
   /* Eze 4.0 */
   @Post("anularTicket")
   async anularTicket(@Body() { ticketId }) {
-    console.log(ticketId)
     try {
       if (ticketId) {
         const res =await ticketsInstance.anularTicket(ticketId);
@@ -151,5 +155,12 @@ export class TicketsController {
       logger.Error(108, err);
       return false;
     }
+  }
+
+  @Post("getUltimoTicket")
+  async getUltimoTicket(){
+    const caja= await cajaInstance.getInfoCajaAbierta();
+    return await ticketsInstance.getUltimoTicketIntervalo(caja.inicioTime, Date.now());
+
   }
 }

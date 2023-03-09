@@ -50,7 +50,7 @@ export class NuevaPromocion {
   }
 
   async descargarPromociones() {
-    const resPromos = (await axios.get("promociones/getPromocionesNueva"))
+    const resPromos = (await axios.get("promociones/getPromociones"))
       .data as PromocionesInterface[];
     if (resPromos && resPromos.length > 0) {
       return await schPromociones.insertarPromociones(resPromos);
@@ -544,9 +544,6 @@ export class NuevaPromocion {
       }
 
     }
-    
-    console.log("promosSecundarios:", promosSecundarios);
-    console.log("promosPrincipales: ",promosPrincipales);
     return {
       promosSecundarios,
       promosPrincipales,
@@ -635,26 +632,40 @@ export class NuevaPromocion {
     cesta: CestasInterface,
     data: InfoPromocionIndividual
   ) {
-    cesta.lista.push({
-      arraySuplementos: null,
-      gramos: 0,
-      idArticulo: -1,
-      unidades: data.cantidadPromos,
-      nombre: "Promo. " + data.nombreArticulo,
-      regalo: false,
-      subtotal: data.precioConIva,
-      promocion: {
-        idPromocion: data.idPromocion,
-        tipoPromo: "INDIVIDUAL",
-        unidadesOferta: data.cantidadPromos,
-        idArticuloPrincipal: data.idArticulo,
-        cantidadArticuloPrincipal: data.cantidadNecesaria,
-        cantidadArticuloSecundario: null,
-        idArticuloSecundario: null,
-        precioRealArticuloPrincipal: data.precioUnidad,
-        precioRealArticuloSecundario: null,
-      },
-    });
+    let nom="Promo. " + data.nombreArticulo;
+    let promocioNou=true;
+    for (let i = 0; i < cesta.lista.length; i++) {
+      
+      if (nom==cesta.lista[i].nombre && promocioNou) {
+        cesta.lista[i].unidades++;
+        cesta.lista[i].subtotal+=data.precioConIva;
+        promocioNou=false;
+      }
+    }
+    if (promocioNou) {
+        
+      
+      cesta.lista.push({
+        arraySuplementos: null,
+        gramos: 0,
+        idArticulo: -1,
+        unidades: data.cantidadPromos,
+        nombre: "Promo. " + data.nombreArticulo,
+        regalo: false,
+        subtotal: data.precioConIva,
+        promocion: {
+          idPromocion: data.idPromocion,
+          tipoPromo: "INDIVIDUAL",
+          unidadesOferta: data.cantidadPromos,
+          idArticuloPrincipal: data.idArticulo,
+          cantidadArticuloPrincipal: data.cantidadNecesaria,
+          cantidadArticuloSecundario: null,
+          idArticuloSecundario: null,
+          precioRealArticuloPrincipal: data.precioUnidad,
+          precioRealArticuloSecundario: null,
+        },
+      });
+    }
   }
 
   private aplicarPromoCombo(
@@ -664,26 +675,39 @@ export class NuevaPromocion {
     articuloSecundario: ArticulosInterface,
     preciosReales: PreciosReales
   ) {
-    cesta.lista.push({
-      arraySuplementos: null,
-      gramos: 0,
-      idArticulo: -1,
-      unidades: data.seAplican,
-      nombre: `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`,
-      regalo: false,
-      subtotal: data.precioPromoUnitario * data.seAplican, // No será necesario, se hace desde el recalcularIvas Cesta
-      promocion: {
-        idPromocion: data.idPromocion,
-        tipoPromo: "COMBO",
-        unidadesOferta: data.seAplican,
-        idArticuloPrincipal: data.idArticuloPrincipal,
-        cantidadArticuloPrincipal: data.cantidadNecesariaPrincipal,
-        cantidadArticuloSecundario: data.cantidadNecesariaSecundario,
-        idArticuloSecundario: data.idArticuloSecundario,
-        precioRealArticuloPrincipal: preciosReales.precioRealPrincipal,
-        precioRealArticuloSecundario: preciosReales.precioRealSecundario,
-      },
-    });
+    let nom=`Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`;
+    let promocioNou=true;
+    for (let i = 0; i < cesta.lista.length; i++) {
+      
+      if (nom==cesta.lista[i].nombre && promocioNou) {
+        cesta.lista[i].unidades++;
+        cesta.lista[i].subtotal+=data.precioPromoUnitario * data.seAplican;
+        promocioNou=false;
+      }
+    }
+    if (promocioNou) {
+    
+      cesta.lista.push({
+        arraySuplementos: null,
+        gramos: 0,
+        idArticulo: -1,
+        unidades: data.seAplican,
+        nombre: `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`,
+        regalo: false,
+        subtotal: data.precioPromoUnitario * data.seAplican, // No será necesario, se hace desde el recalcularIvas Cesta
+        promocion: {
+          idPromocion: data.idPromocion,
+          tipoPromo: "COMBO",
+          unidadesOferta: data.seAplican,
+          idArticuloPrincipal: data.idArticuloPrincipal,
+          cantidadArticuloPrincipal: data.cantidadNecesariaPrincipal,
+          cantidadArticuloSecundario: data.cantidadNecesariaSecundario,
+          idArticuloSecundario: data.idArticuloSecundario,
+          precioRealArticuloPrincipal: preciosReales.precioRealPrincipal,
+          precioRealArticuloSecundario: preciosReales.precioRealSecundario,
+        },
+      });
+    }
   }
 
   calcularPrecioRealCombo(

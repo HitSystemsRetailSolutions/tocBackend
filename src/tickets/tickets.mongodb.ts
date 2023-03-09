@@ -38,6 +38,18 @@ export async function getTicketsIntervalo(
     .toArray();
 }
 
+export async function getUltimoTicketIntervalo(
+  inicioTime: number,
+  finalTime: number
+): Promise<TicketsInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+
+  return await tickets
+    .find({ timestamp: { $lte: finalTime, $gte: inicioTime } }).sort({ _id: -1 }).limit(1)
+    .toArray();
+}
+
 /* Eze v23 */
 export async function getDedudaGlovo(
   inicioTime: number,
@@ -200,6 +212,9 @@ export async function anularTicket(idTicket: TicketsInterface["_id"]): Promise<b
       ticket.cesta.lista.forEach((element) => {
         element.subtotal = element.subtotal * -1;
       });
+      for(const property in ticket.cesta.detalleIva){
+        ticket.cesta.detalleIva[property]=ticket.cesta.detalleIva[property]*-1;
+      }
       const tickets = database.collection<TicketsInterface>("tickets");
       const resultado = (await tickets.insertOne(ticket)).acknowledged;
       await ticketsAnulados.insertOne({ idTicketAnulado: idTicket });

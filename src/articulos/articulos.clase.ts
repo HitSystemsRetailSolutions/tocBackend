@@ -2,7 +2,7 @@ import { ClientesInterface } from "../clientes/clientes.interface";
 import { ArticulosInterface } from "./articulos.interface";
 import * as schArticulos from "./articulos.mongodb";
 import { getItemTarifa } from "../tarifas/tarifas.mongodb";
-const sinc = require("../sincro");
+import axios from "axios";
 
 export class Articulos {
   /* Eze 4.0 */
@@ -56,6 +56,7 @@ export class Articulos {
     return await schArticulos.getSuplementos(suplementos);
   }
 
+
   async editarArticulo(
     id,
     nombre,
@@ -72,19 +73,26 @@ export class Articulos {
       tipoIva,
       essumable
     );
-    sinc.actualizarTeclados();
     return resultado;
   }
 
   async MoverArticulo(id, pos, menu) {
     const resultado = await schArticulos.MoverArticulo(id, pos, menu);
-    sinc.actualizarTeclados();
     return resultado;
   }
   async EliminarArticulo(id) {
     const resultado = await schArticulos.eliminarArticulo(id);
-    sinc.actualizarTeclados();
     return resultado;
+  }
+  async descargarArticulos(): Promise<boolean> {
+    const arrayArticulos: any = await axios.get("articulos/descargarArticulos");
+    if (arrayArticulos.data) {
+      return await this.insertarArticulos(arrayArticulos.data);
+      
+    }else{
+      return false;
+    }
+
   }
 }
 const articulosInstance = new Articulos();
