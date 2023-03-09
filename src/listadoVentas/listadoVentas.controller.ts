@@ -17,18 +17,16 @@ export class ListadoVentasController {
         if (unixtodate.getFullYear() == ano && unixtodate.getMonth() == mes) {
           let iva = tickets.at(i)["cesta"]["detalleIva"];
           let val = values[unixtodate.getUTCDate() - 1];
-          let isdev = 1;
-          if (tickets.at(i).total < 0) isdev = -1;
-          val[0] = val[0] + isdev * iva.base4;
-          val[1] = val[1] + isdev * iva.valorIva4;
-          val[2] = val[2] + isdev * iva.base1;
-          val[3] = val[3] + isdev * iva.valorIva1;
-          val[4] = val[4] + isdev * iva.base5;
-          val[5] = val[5] + isdev * iva.valorIva5;
-          val[6] = val[6] + isdev * iva.base2;
-          val[7] = val[7] + isdev * iva.valorIva2;
-          val[8] = val[8] + isdev * iva.base3;
-          val[9] = val[9] + isdev * iva.valorIva3;
+          val[0] = val[0] + iva.base4;
+          val[1] = val[1] + iva.valorIva4;
+          val[2] = val[2] + iva.base1;
+          val[3] = val[3] + iva.valorIva1;
+          val[4] = val[4] + iva.base5;
+          val[5] = val[5] + iva.valorIva5;
+          val[6] = val[6] + iva.base2;
+          val[7] = val[7] + iva.valorIva2;
+          val[8] = val[8] + iva.base3;
+          val[9] = val[9] + iva.valorIva3;
         }
       }
       return values;
