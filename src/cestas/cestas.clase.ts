@@ -183,7 +183,7 @@ export class CestaClase {
           (!infoArticulo.suplementos || infoArticulo.suplementos.length<1)
         ) {
           cesta.lista[i].unidades += unidades;
-          cesta.lista[i].subtotal += unidades * articulo.precioConIva;
+          cesta.lista[i].subtotal = Number((cesta.lista[i].subtotal+(unidades * articulo.precioConIva)).toFixed(2));
           articuloNuevo = false;
           break;
         }
