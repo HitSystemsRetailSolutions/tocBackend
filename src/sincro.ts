@@ -3,6 +3,7 @@ import { emitSocket } from "./sanPedro";
 import { parametrosInstance } from "./parametros/parametros.clase";
 import { cajaInstance } from "./caja/caja.clase";
 import { movimientosInstance } from "./movimientos/movimientos.clase";
+import * as schMovimientos from "./movimientos/movimientos.mongodb";
 import { trabajadoresInstance } from "./trabajadores/trabajadores.clase";
 import { devolucionesInstance } from "./devoluciones/devoluciones.clase";
 import { tecladoInstance } from "./teclado/teclado.clase";
@@ -14,7 +15,7 @@ import { tarifasInstance } from "./tarifas/tarifas.class";
 import { logger } from "./logger";
 import axios from "axios";
 import { nuevaInstancePromociones } from "./promociones/promociones.clase";
-
+import { SuperTicketInterface } from "./tickets/tickets.interface";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 
@@ -27,7 +28,16 @@ async function sincronizarTickets(continuar: boolean = false) {
         const ticket = await ticketsInstance.getTicketMasAntiguo();
         if (ticket) {
           nuevaInstancePromociones.deshacerPromociones(ticket);
-          const res = await axios.post("tickets/enviarTicket", { ticket });
+          const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
+            ticket._id
+          );
+          let superTicket: SuperTicketInterface={
+            ...ticket,
+            movimientos: arrayMovimientos,
+            tipoPago: null,
+          };
+          superTicket.tipoPago= await movimientosInstance.calcularFormaPago(superTicket);
+          const res = await axios.post("tickets/enviarTicket", { superTicket });
           if (res.data) {
             if (await ticketsInstance.setTicketEnviado(ticket._id))
               sincronizarTickets(true);
