@@ -163,7 +163,22 @@ export async function actualizarEstadoTicket(
     )
   ).acknowledged;
 }
-
+export async function actualizarEnviadoTicket(
+  idTicket: TicketsInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  return (
+    await tickets.updateOne(
+      { _id: idTicket },
+      {
+        $set: {
+          enviado: false,
+        },
+      }
+    )
+  ).acknowledged;
+}
 /* Eze v4 */
 export async function setTicketEnviado(
   idTicket: TicketsInterface["_id"]

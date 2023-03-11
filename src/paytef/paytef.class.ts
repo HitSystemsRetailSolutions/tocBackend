@@ -9,7 +9,6 @@ import { io } from "../sockets.gateway";
 import { logger } from "../logger";
 import * as schTickets from "../tickets/tickets.mongodb";
 
-
 class PaytefClass {
   /* Eze 4.0 */
   async iniciarTransaccion(
@@ -41,8 +40,9 @@ class PaytefClass {
         timeout: 30000,
       })
         .then(async (respuestaPayef: any) => {
-          if (await respuestaPayef.data.info['started'])
+          if (await respuestaPayef.data.info['started']){
             await this.bucleComprobacion(idTicket, total, idTrabajador, type);
+          }
           else {
             io.emit("consultaPaytefRefund", {ok:false, id:idTicket});
             logger.Error(137, "Error, la transacción no ha podido empezar paytef.class");
@@ -85,6 +85,7 @@ class PaytefClass {
             idTicket,
             idTrabajador
           );
+          schTickets.actualizarEnviadoTicket(idTicket);
           io.emit("consultaPaytef", true);
         } else if (type === "refund") {
           schTickets.anularTicket(idTicket);
