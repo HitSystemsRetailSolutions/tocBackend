@@ -638,7 +638,7 @@ export class NuevaPromocion {
       
       if (nom==cesta.lista[i].nombre && promocioNou) {
         cesta.lista[i].unidades++;
-        cesta.lista[i].subtotal+=data.precioConIva;
+        cesta.lista[i].subtotal= Number((cesta.lista[i].subtotal+data.precioConIva).toFixed(2));
         promocioNou=false;
       }
     }
@@ -652,7 +652,7 @@ export class NuevaPromocion {
         unidades: data.cantidadPromos,
         nombre: "Promo. " + data.nombreArticulo,
         regalo: false,
-        subtotal: data.precioConIva,
+        subtotal: Number(data.precioConIva.toFixed(2)),
         promocion: {
           idPromocion: data.idPromocion,
           tipoPromo: "INDIVIDUAL",
