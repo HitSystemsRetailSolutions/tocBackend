@@ -9,6 +9,7 @@ import axios from "axios";
 import { CestasInterface } from "../cestas/cestas.interface";
 import { io } from "../sockets.gateway";
 import { logger } from "../logger";
+import { cestasInstance } from "src/cestas/cestas.clase";
 
 export class TrabajadoresClase {
   /* Eze 4.0 */
@@ -60,7 +61,10 @@ export class TrabajadoresClase {
   /* Eze 4.0 */
   async ficharTrabajador(idTrabajador: number): Promise<boolean> {
     if (await schTrabajadores.ficharTrabajador(idTrabajador)) {
-      return await this.nuevoFichajesSincro("ENTRADA", idTrabajador);
+      const fichados = await this.nuevoFichajesSincro("ENTRADA", idTrabajador);
+      await trabajadoresInstance.actualizarTrabajadoresFrontend();
+      cestasInstance.actualizarCestas();
+      return fichados;
     }
     throw Error(
       "Error, no se ha podido fichar al trabajador ficharTrabajador() class"
@@ -69,6 +73,10 @@ export class TrabajadoresClase {
 
   /* Eze 4.0 */
   async desficharTrabajador(idTrabajador: number): Promise<boolean> {
+    const trabajador= await schTrabajadores.getTrabajador(idTrabajador);
+    if (!trabajador.idCesta || trabajador.idCesta !=null) {
+      await cestasInstance.deleteCesta(trabajador.idCesta);
+    }
     if (await schTrabajadores.desficharTrabajador(idTrabajador)) {
       return await this.nuevoFichajesSincro("SALIDA", idTrabajador);
     }
