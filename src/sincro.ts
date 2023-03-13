@@ -37,7 +37,7 @@ async function sincronizarTickets(continuar: boolean = false) {
             tipoPago: null,
           };
           superTicket.tipoPago= await movimientosInstance.calcularFormaPago(superTicket);
-          const res = await axios.post("tickets/enviarTicket", { superTicket });
+          const res = await axios.post("tickets/enviarTicket", { ticket:undefined, newTicket:superTicket });
           if (res.data) {
             if (await ticketsInstance.setTicketEnviado(ticket._id))
               sincronizarTickets(true);
