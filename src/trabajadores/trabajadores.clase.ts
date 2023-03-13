@@ -74,7 +74,7 @@ export class TrabajadoresClase {
   /* Eze 4.0 */
   async desficharTrabajador(idTrabajador: number): Promise<boolean> {
     const trabajador= await schTrabajadores.getTrabajador(idTrabajador);
-    if (!trabajador.idCesta || trabajador.idCesta !=null) {
+    if (trabajador.idCesta) {
       await cestasInstance.deleteCesta(trabajador.idCesta);
     }
     if (await schTrabajadores.desficharTrabajador(idTrabajador)) {
