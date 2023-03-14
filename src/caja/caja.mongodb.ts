@@ -67,58 +67,54 @@ export async function guardarMonedas(
 }
 
 export async function getCambioDeTurno() {
-  const database = (await conexion).db('tocgame');
-  const caja = database.collection('cambioDeTurno');
+  const database = (await conexion).db("tocgame");
+  const caja = database.collection("cambioDeTurno");
 
-  const resultado = await  caja.drop();
+  const resultado = await caja.drop();
   return resultado;
-
-  
 }
 
 export async function getAnularTurno() {
-
-  const database = (await conexion).db('tocgame');
-  const caja = database.collection('cambioDeTurno');
- 
+  const database = (await conexion).db("tocgame");
+  const caja = database.collection("cambioDeTurno");
 
   const tiempoTranscurrido = new Date();
-  const fecha = tiempoTranscurrido.toLocaleDateString('es-ES');
-  const hora =tiempoTranscurrido.toLocaleTimeString('es-ES');
-  const resultado = await  caja.insertOne({"fecha":fecha,"hora":hora,"time":Date.now()});
- 
-  return resultado;
+  const fecha = tiempoTranscurrido.toLocaleDateString("es-ES");
+  const hora = tiempoTranscurrido.toLocaleTimeString("es-ES");
+  const resultado = await caja.insertOne({
+    fecha: fecha,
+    hora: hora,
+    time: Date.now(),
+  });
 
+  return resultado;
 }
 
 export async function getComprovarTurno() {
-
-  const database = (await conexion).db('tocgame');
-  const caja = database.collection('cambioDeTurno');
- 
+  const database = (await conexion).db("tocgame");
+  const caja = database.collection("cambioDeTurno");
 
   const tiempoTranscurrido = new Date();
- 
+
   // la linea de codigo de abajo iria en otra funcion para
   // comprobar si el cambio de turno es de hoy o no:
 
-  const fecha = tiempoTranscurrido.toLocaleDateString('es-ES');
-  const buscar= await caja.findOne({fecha:fecha});
- 
-  if (buscar!=null) {
-    const res=await caja.find().sort({ _id: -1 }).limit(1).toArray();
-    return {estado:true,time:res[0].time};
-  } else {
-    return {estado:false,time:null};
-  }
+  const fecha = tiempoTranscurrido.toLocaleDateString("es-ES");
+  const buscar = await caja.findOne({ fecha: fecha });
 
+  if (buscar != null) {
+    const res = await caja.find().sort({ _id: -1 }).limit(1).toArray();
+    return { estado: true, time: res[0].time };
+  } else {
+    return { estado: false, time: null };
+  }
 }
 
 /* Eze 4.0 */
 export async function getUltimoCierre(): Promise<CajaSincro> {
   const database = (await conexion).db("tocgame");
   const sincroCajas = database.collection<CajaSincro>("sincro-cajas");
-  const res=await sincroCajas.find().sort({ _id: -1 }).limit(1).toArray();
+  const res = await sincroCajas.find().sort({ _id: -1 }).limit(1).toArray();
   return res[0];
 }
 

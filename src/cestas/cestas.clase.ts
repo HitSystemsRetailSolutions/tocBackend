@@ -17,7 +17,7 @@ import { logger } from "../logger";
 import { io } from "../sockets.gateway";
 import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import { clienteInstance } from "../clientes/clientes.clase";
-import {impresoraInstance} from '../impresora/impresora.class';
+import { impresoraInstance } from "../impresora/impresora.class";
 import axios from "axios";
 
 export class CestaClase {
@@ -180,10 +180,15 @@ export class CestaClase {
           cesta.lista[i].idArticulo === articulo._id &&
           !cesta.lista[i].promocion &&
           !cesta.lista[i].regalo &&
-          (!infoArticulo.suplementos || infoArticulo.suplementos.length<1)
+          (!infoArticulo.suplementos || infoArticulo.suplementos.length < 1)
         ) {
           cesta.lista[i].unidades += unidades;
-          cesta.lista[i].subtotal = Number((cesta.lista[i].subtotal+(unidades * articulo.precioConIva)).toFixed(2));
+          cesta.lista[i].subtotal = Number(
+            (
+              cesta.lista[i].subtotal +
+              unidades * articulo.precioConIva
+            ).toFixed(2)
+          );
           articuloNuevo = false;
           break;
         }
@@ -201,19 +206,18 @@ export class CestaClase {
           gramos: gramos,
         });
       }
-      let numProductos=0;
-      let total=0;
-              for (let i = 0; i < cesta.lista.length; i++) {
-                numProductos += cesta.lista[i].unidades;
-                total+=cesta.lista[i].subtotal;
-                
-              }
-        impresoraInstance.mostrarVisor({
-          total: total.toFixed(2),
-          precio: articulo.precioConIva.toFixed(2).toString(),
-          texto: articulo.nombre,
-          numProductos:numProductos,
-        });
+      let numProductos = 0;
+      let total = 0;
+      for (let i = 0; i < cesta.lista.length; i++) {
+        numProductos += cesta.lista[i].unidades;
+        total += cesta.lista[i].subtotal;
+      }
+      impresoraInstance.mostrarVisor({
+        total: total.toFixed(2),
+        precio: articulo.precioConIva.toFixed(2).toString(),
+        texto: articulo.nombre,
+        numProductos: numProductos,
+      });
     }
 
     await this.recalcularIvas(cesta);
@@ -294,7 +298,8 @@ export class CestaClase {
       );
 
       const importeRealUnitario =
-        itemPromocion.promocion.precioRealArticuloPrincipal*itemPromocion.unidades
+        itemPromocion.promocion.precioRealArticuloPrincipal *
+        itemPromocion.unidades;
       const unidadesTotales = itemPromocion.promocion.cantidadArticuloPrincipal
         ? itemPromocion.promocion.cantidadArticuloPrincipal
         : itemPromocion.promocion.cantidadArticuloSecundario *
@@ -407,28 +412,31 @@ export class CestaClase {
             detalleDeSuplementos.importe2 +
             detalleDeSuplementos.importe3 +
             detalleDeSuplementos.importe4 +
-            detalleDeSuplementos.importe5;  
+            detalleDeSuplementos.importe5;
         }
       }
     }
-    if(cesta.lista.length>0){
-    if (cesta.lista[cesta.lista.length-1].arraySuplementos &&
-      cesta.lista[cesta.lista.length-1].arraySuplementos.length > 0) {
-      let numProductos=0;
-      let total=0;
-      for (let i = 0; i < cesta.lista.length; i++) {
-        numProductos += cesta.lista[i].unidades;
-        total+=cesta.lista[i].subtotal;
-        
+    if (cesta.lista.length > 0) {
+      if (
+        cesta.lista[cesta.lista.length - 1].arraySuplementos &&
+        cesta.lista[cesta.lista.length - 1].arraySuplementos.length > 0
+      ) {
+        let numProductos = 0;
+        let total = 0;
+        for (let i = 0; i < cesta.lista.length; i++) {
+          numProductos += cesta.lista[i].unidades;
+          total += cesta.lista[i].subtotal;
+        }
+        impresoraInstance.mostrarVisor({
+          total: total.toFixed(2),
+          precio: cesta.lista[cesta.lista.length - 1].subtotal
+            .toFixed(2)
+            .toString(),
+          texto: cesta.lista[cesta.lista.length - 1].nombre,
+          numProductos: numProductos,
+        });
       }
-      impresoraInstance.mostrarVisor({
-        total: total.toFixed(2),
-        precio: cesta.lista[cesta.lista.length-1].subtotal.toFixed(2).toString(),
-        texto: cesta.lista[cesta.lista.length-1].nombre,
-        numProductos:numProductos,
-      });
     }
-  }
   }
 
   /* Eze 4.0 */

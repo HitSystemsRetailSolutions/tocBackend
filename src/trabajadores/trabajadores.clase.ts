@@ -38,9 +38,7 @@ export class TrabajadoresClase {
 
   /* Eze OK. NO 4.0 */
   async actualizarTrabajadores(): Promise<boolean> {
-    
-    const res: any = await axios.get("trabajadores/getTrabajadores", {
-    });
+    const res: any = await axios.get("trabajadores/getTrabajadores", {});
     if (!res.data.error && res.data.info.length > 0) {
       const resKeep = await this.mantenerTrabajadoresFichados(res.data.info);
       if (resKeep.length > 0) {
@@ -73,7 +71,7 @@ export class TrabajadoresClase {
 
   /* Eze 4.0 */
   async desficharTrabajador(idTrabajador: number): Promise<boolean> {
-    const trabajador= await schTrabajadores.getTrabajador(idTrabajador);
+    const trabajador = await schTrabajadores.getTrabajador(idTrabajador);
     if (trabajador.idCesta) {
       await cestasInstance.deleteCesta(trabajador.idCesta);
     }

@@ -34,7 +34,7 @@ export class ParametrosController {
     try {
       if (parametros) {
         return await parametrosInstance.setPropiedad(parametros);
-      } 
+      }
 
       throw Error("Faltan datos en parametros/setPropiedad");
     } catch (err) {

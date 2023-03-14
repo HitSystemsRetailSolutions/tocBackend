@@ -11,25 +11,28 @@ import * as schMovimientos from "../movimientos/movimientos.mongodb";
 import { paytefInstance } from "../paytef/paytef.class";
 import { cajaInstance } from "../caja/caja.clase";
 
-
 export class TicketsClase {
   /* Eze 4.0 */
   getTicketById = (idTicket: number) => schTickets.getTicketByID(idTicket);
 
   /* Eze 4.0 */
-  async anularTicket (idTicket: TicketsInterface["_id"]){ 
-    const ticket= await schMovimientos.getMovimientosDelTicket(idTicket);
-    if (ticket[0]?.tipo=="TARJETA") {
-       await paytefInstance.iniciarTransaccion(ticket[0].idTrabajador, ticket[0].idTicket, ticket[0].valor, "refund");
-       const devolucionCreada = schTickets.getTicketByID(idTicket+1);
-       if (devolucionCreada) {
-        return  {res: true,tipo: "TARJETA"};
-       }else{
-        return {res: false,tipo: "TARJETA"};
-       }
+  async anularTicket(idTicket: TicketsInterface["_id"]) {
+    const ticket = await schMovimientos.getMovimientosDelTicket(idTicket);
+    if (ticket[0]?.tipo == "TARJETA") {
+      await paytefInstance.iniciarTransaccion(
+        ticket[0].idTrabajador,
+        ticket[0].idTicket,
+        ticket[0].valor,
+        "refund"
+      );
+      const devolucionCreada = schTickets.getTicketByID(idTicket + 1);
+      if (devolucionCreada) {
+        return { res: true, tipo: "TARJETA" };
+      } else {
+        return { res: false, tipo: "TARJETA" };
+      }
     }
-    return {res:await schTickets.anularTicket(idTicket),tipo: "EFECTIVO"};
-    
+    return { res: await schTickets.anularTicket(idTicket), tipo: "EFECTIVO" };
   }
   /* Eze 4.0 */
   getTicketsIntervalo = (fechaInicio: number, fechaFinal: number) =>

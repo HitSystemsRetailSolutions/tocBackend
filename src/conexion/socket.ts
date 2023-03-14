@@ -10,7 +10,9 @@ class TocSockets {
   /* Eze 4.0 */
   async iniciarSockets() {
     const parametros = await parametrosInstance.getParametros();
-    this.socket = io.connect(SERVER_URL, { query: `token=${parametros.token}` });
+    this.socket = io.connect(SERVER_URL, {
+      query: `token=${parametros.token}`,
+    });
   }
 
   emit(canal: string, data: any = null) {

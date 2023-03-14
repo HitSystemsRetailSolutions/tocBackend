@@ -14,14 +14,21 @@ export async function setParametros(
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const parametros = database.collection("parametros");
-  await parametros.updateOne({_id: "PARAMETROS"},{$unset: {BotonsPreu:"",
-    EntrarCanviEnMonedes:"",
-    JustificarAnul:"",
-    NoEntradaDiners:"",
-    ProhibirAnulacioTicket:"",
-    ProhibirCercaArticles:"",
-    SuperFidelitza:"",
-    TriaTaula:""}});
+  await parametros.updateOne(
+    { _id: "PARAMETROS" },
+    {
+      $unset: {
+        BotonsPreu: "",
+        EntrarCanviEnMonedes: "",
+        JustificarAnul: "",
+        NoEntradaDiners: "",
+        ProhibirAnulacioTicket: "",
+        ProhibirCercaArticles: "",
+        SuperFidelitza: "",
+        TriaTaula: "",
+      },
+    }
+  );
   return (
     await parametros.updateOne(
       { _id: "PARAMETROS" },

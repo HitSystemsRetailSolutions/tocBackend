@@ -217,4 +217,4 @@ describe("Caja", () => {
       throw Error("Error en test nuevoItemSincroCajas() parte 1");
     }
   });
-})
+});

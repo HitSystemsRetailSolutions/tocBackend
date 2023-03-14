@@ -91,9 +91,12 @@ export async function createCesta(cesta: CestasInterface): Promise<boolean> {
   return (await cestasColeccion.insertOne(cesta)).acknowledged;
 }
 
-export async function modificarNombreCesta( cestaId, miCesta) {
-  const database = (await conexion).db('tocgame');
-  const cestas = database.collection('cestas');
-  const resultado = await cestas.updateOne({_id: cestaId}, {$set: {'lista': miCesta}});
+export async function modificarNombreCesta(cestaId, miCesta) {
+  const database = (await conexion).db("tocgame");
+  const cestas = database.collection("cestas");
+  const resultado = await cestas.updateOne(
+    { _id: cestaId },
+    { $set: { lista: miCesta } }
+  );
   return resultado;
 }

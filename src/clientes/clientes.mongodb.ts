@@ -41,10 +41,11 @@ export async function borrarClientes(): Promise<void> {
 }
 
 /* Eze 4.0 */
-export async function insertarClientes(arrayClientes: ClientesInterface[]): Promise<boolean> {
+export async function insertarClientes(
+  arrayClientes: ClientesInterface[]
+): Promise<boolean> {
   await borrarClientes();
   const database = (await conexion).db("tocgame");
   const clientes = database.collection("clientes");
   return (await clientes.insertMany(arrayClientes)).acknowledged;
 }
-

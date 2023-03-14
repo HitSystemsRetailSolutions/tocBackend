@@ -460,7 +460,7 @@ export class NuevaPromocion {
   private buscarPromo(
     idArticulo: ArticulosInterface["_id"],
     unidadesTotales: number,
-    cesta: CestasInterface,
+    cesta: CestasInterface
   ): {
     promosSecundarios: MediaPromoEncontrada[];
     promosPrincipales: MediaPromoEncontrada[];
@@ -470,8 +470,7 @@ export class NuevaPromocion {
 
     for (let c = 0; c < cesta.lista.length; c++) {
       cesta.lista[c].idArticulo;
-      
-    
+
       for (let i = 0; i < this.promosCombo.length; i++) {
         if (
           this.promosCombo[i].secundario &&
@@ -487,7 +486,8 @@ export class NuevaPromocion {
                 // Buscar comenzando por el secundario en el else
                 for (let k = 0; k < this.promosCombo[i].principal.length; k++) {
                   if (
-                    this.promosCombo[i].principal[k] === cesta.lista[c].idArticulo
+                    this.promosCombo[i].principal[k] ===
+                    cesta.lista[c].idArticulo
                   ) {
                     const cantidadPromos = Math.trunc(
                       unidadesTotales / this.promosCombo[i].cantidadSecundario
@@ -504,7 +504,6 @@ export class NuevaPromocion {
                   }
                 }
               }
-              
             }
           }
         }
@@ -517,9 +516,14 @@ export class NuevaPromocion {
             ) {
               if (this.promosCombo[i]?.secundario?.length > 0) {
                 // Buscar comenzando por el secundario en el else
-                for (let k = 0; k < this.promosCombo[i].secundario.length; k++) {
+                for (
+                  let k = 0;
+                  k < this.promosCombo[i].secundario.length;
+                  k++
+                ) {
                   if (
-                    this.promosCombo[i].secundario[k] === cesta.lista[c].idArticulo
+                    this.promosCombo[i].secundario[k] ===
+                    cesta.lista[c].idArticulo
                   ) {
                     const cantidadPromos = Math.trunc(
                       unidadesTotales / this.promosCombo[i].cantidadPrincipal
@@ -536,13 +540,10 @@ export class NuevaPromocion {
                   }
                 }
               }
-              
             }
           }
         }
-
       }
-
     }
     return {
       promosSecundarios,
@@ -632,19 +633,18 @@ export class NuevaPromocion {
     cesta: CestasInterface,
     data: InfoPromocionIndividual
   ) {
-    let nom="Promo. " + data.nombreArticulo;
-    let promocioNou=true;
+    let nom = "Promo. " + data.nombreArticulo;
+    let promocioNou = true;
     for (let i = 0; i < cesta.lista.length; i++) {
-      
-      if (nom==cesta.lista[i].nombre && promocioNou) {
+      if (nom == cesta.lista[i].nombre && promocioNou) {
         cesta.lista[i].unidades++;
-        cesta.lista[i].subtotal= Number((cesta.lista[i].subtotal+data.precioConIva).toFixed(2));
-        promocioNou=false;
+        cesta.lista[i].subtotal = Number(
+          (cesta.lista[i].subtotal + data.precioConIva).toFixed(2)
+        );
+        promocioNou = false;
       }
     }
     if (promocioNou) {
-        
-      
       cesta.lista.push({
         arraySuplementos: null,
         gramos: 0,
@@ -675,18 +675,16 @@ export class NuevaPromocion {
     articuloSecundario: ArticulosInterface,
     preciosReales: PreciosReales
   ) {
-    let nom=`Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`;
-    let promocioNou=true;
+    let nom = `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`;
+    let promocioNou = true;
     for (let i = 0; i < cesta.lista.length; i++) {
-      
-      if (nom==cesta.lista[i].nombre && promocioNou) {
+      if (nom == cesta.lista[i].nombre && promocioNou) {
         cesta.lista[i].unidades++;
-        cesta.lista[i].subtotal+=data.precioPromoUnitario * data.seAplican;
-        promocioNou=false;
+        cesta.lista[i].subtotal += data.precioPromoUnitario * data.seAplican;
+        promocioNou = false;
       }
     }
     if (promocioNou) {
-    
       cesta.lista.push({
         arraySuplementos: null,
         gramos: 0,

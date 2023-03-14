@@ -4,14 +4,19 @@ import { conexion } from "../conexion/mongodb";
 import { TarifaInterface } from "./tarifas.interface";
 
 /* Eze 4.0 */
-export async function insertarTarifas(arrayTarifas: TarifaInterface[]): Promise<boolean> {
+export async function insertarTarifas(
+  arrayTarifas: TarifaInterface[]
+): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const tarifas = database.collection<TarifaInterface>("tarifas");
   return (await tarifas.insertMany(arrayTarifas)).acknowledged;
 }
 
 /* Eze 4.0 */
-export async function getItemTarifa(idArticulo: ArticulosInterface["_id"], idCliente: ClientesInterface["id"]): Promise<TarifaInterface> {
+export async function getItemTarifa(
+  idArticulo: ArticulosInterface["_id"],
+  idCliente: ClientesInterface["id"]
+): Promise<TarifaInterface> {
   const database = (await conexion).db("tocgame");
   const tarifas = database.collection<TarifaInterface>("tarifas");
   return await tarifas.findOne({ idArticulo, idClienteFinal: idCliente });
@@ -30,8 +35,10 @@ export async function borrarTarifas(): Promise<void> {
 }
 
 /* Eze 4.0 */
-export async function tieneTarifaEspecial(idCliente: ClientesInterface["id"]): Promise<boolean> {
+export async function tieneTarifaEspecial(
+  idCliente: ClientesInterface["id"]
+): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const tarifas = database.collection<TarifaInterface>("tarifas");
-  return (await tarifas.findOne({ idClienteFinal: idCliente })) ? (true) : (false);
+  return (await tarifas.findOne({ idClienteFinal: idCliente })) ? true : false;
 }

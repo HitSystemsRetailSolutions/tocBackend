@@ -1,5 +1,5 @@
-import * as schMenus from './menus.mongodb';
-import { MenusInterface } from './menus.interface';
+import * as schMenus from "./menus.mongodb";
+import { MenusInterface } from "./menus.interface";
 
 export class MenusClase {
   private bloqueado: boolean;
@@ -24,7 +24,8 @@ export class MenusClase {
   }
 
   /* Eze 4.0 */
-  insertarMenus = async (arrayMenus: MenusInterface[]) => await schMenus.insertarMenus(arrayMenus);
+  insertarMenus = async (arrayMenus: MenusInterface[]) =>
+    await schMenus.insertarMenus(arrayMenus);
 
   getSubmenus(tag) {
     return schMenus.getSubmenus(tag);

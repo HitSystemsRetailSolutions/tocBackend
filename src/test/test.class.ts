@@ -1,6 +1,3 @@
 export class TestClass {
-
-    test() {
-
-    }
+  test() {}
 }

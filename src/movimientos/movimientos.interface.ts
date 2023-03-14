@@ -34,4 +34,3 @@ export type FormaPago =
   | "DEVUELTO"
   | "ANULADO"
   | "ERROR_DETECTADO";
-

@@ -126,7 +126,7 @@ export class TicketsController {
           if (tipo !== "TARJETA") {
             await impresoraInstance.abrirCajon();
           }
-          
+
           ticketsInstance.actualizarTickets();
           return true;
         }
@@ -147,7 +147,7 @@ export class TicketsController {
   async anularTicket(@Body() { ticketId }) {
     try {
       if (ticketId) {
-        const res =await ticketsInstance.anularTicket(ticketId);
+        const res = await ticketsInstance.anularTicket(ticketId);
         return res;
       }
       throw Error("Error, faltan datos en anularTicket() controller");
@@ -158,9 +158,11 @@ export class TicketsController {
   }
 
   @Post("getUltimoTicket")
-  async getUltimoTicket(){
-    const caja= await cajaInstance.getInfoCajaAbierta();
-    return await ticketsInstance.getUltimoTicketIntervalo(caja.inicioTime, Date.now());
-
+  async getUltimoTicket() {
+    const caja = await cajaInstance.getInfoCajaAbierta();
+    return await ticketsInstance.getUltimoTicketIntervalo(
+      caja.inicioTime,
+      Date.now()
+    );
   }
 }

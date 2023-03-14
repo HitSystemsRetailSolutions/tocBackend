@@ -40,7 +40,11 @@ export class PaytefController {
     try {
       if (idTrabajador) {
         const ticket = await ticketsInstance.getUltimoTicket();
-        paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, ticket.total);
+        paytefInstance.iniciarTransaccion(
+          idTrabajador,
+          ticket._id,
+          ticket.total
+        );
         return true;
       }
       throw Error("Faltan datos {idTrabajador} controller");
@@ -71,7 +75,12 @@ export class PaytefController {
       if (idTrabajador && idTicket) {
         const ticket = await ticketsInstance.getTicketById(idTicket);
         if (ticket) {
-          paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, ticket.total, "refund");
+          paytefInstance.iniciarTransaccion(
+            idTrabajador,
+            ticket._id,
+            ticket.total,
+            "refund"
+          );
           return true;
         }
         throw Error("El ticket no existe");

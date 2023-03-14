@@ -90,13 +90,14 @@ export class InstaladorController {
         const promociones = await nuevaInstancePromociones.insertarPromociones(
           res.data.promociones
         );
-        
+
         const teclas = await tecladoInstance.insertarTeclas(res.data.teclas);
         const tarifas = await tarifasInstance.guardarTarifasEspeciales(
           res.data.tarifasEspeciales
         );
 
-        if ( // Solo los datos obligatorios
+        if (
+          // Solo los datos obligatorios
           trabajadores &&
           articulos &&
           teclas

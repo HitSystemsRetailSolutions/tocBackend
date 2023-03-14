@@ -1,6 +1,9 @@
 import { ClientesInterface } from "../clientes/clientes.interface";
 import { CestasInterface } from "../cestas/cestas.interface";
-import { FormaPago, MovimientosInterface } from "../movimientos/movimientos.interface";
+import {
+  FormaPago,
+  MovimientosInterface,
+} from "../movimientos/movimientos.interface";
 
 export interface TicketsInterface {
   _id: number;
@@ -14,6 +17,6 @@ export interface TicketsInterface {
 }
 
 export interface SuperTicketInterface extends TicketsInterface {
-  tipoPago: FormaPago,
-  movimientos: MovimientosInterface[]
+  tipoPago: FormaPago;
+  movimientos: MovimientosInterface[];
 }

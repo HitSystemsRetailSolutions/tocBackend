@@ -46,7 +46,9 @@ export async function getUltimoTicketIntervalo(
   const tickets = database.collection<TicketsInterface>("tickets");
 
   return await tickets
-    .find({ timestamp: { $lte: finalTime, $gte: inicioTime } }).sort({ _id: -1 }).limit(1)
+    .find({ timestamp: { $lte: finalTime, $gte: inicioTime } })
+    .sort({ _id: -1 })
+    .limit(1)
     .toArray();
 }
 
@@ -209,7 +211,9 @@ export async function borrarTicket(idTicket: number): Promise<boolean> {
 }
 
 /* Eze v23 - Solo se invoca manualmente desde la lista de tickets (frontend dependienta) */
-export async function anularTicket(idTicket: TicketsInterface["_id"]): Promise<boolean> {
+export async function anularTicket(
+  idTicket: TicketsInterface["_id"]
+): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const ticketsAnulados = database.collection("ticketsAnulados");
   const resultado = await ticketsAnulados.findOne({
@@ -227,8 +231,9 @@ export async function anularTicket(idTicket: TicketsInterface["_id"]): Promise<b
       ticket.cesta.lista.forEach((element) => {
         element.subtotal = element.subtotal * -1;
       });
-      for(const property in ticket.cesta.detalleIva){
-        ticket.cesta.detalleIva[property]=ticket.cesta.detalleIva[property]*-1;
+      for (const property in ticket.cesta.detalleIva) {
+        ticket.cesta.detalleIva[property] =
+          ticket.cesta.detalleIva[property] * -1;
       }
       const tickets = database.collection<TicketsInterface>("tickets");
       const resultado = (await tickets.insertOne(ticket)).acknowledged;

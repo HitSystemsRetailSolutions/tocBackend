@@ -67,8 +67,8 @@ export class ParametrosClase {
   setPropiedad = async (claveValor: any) =>
     await schParametros.actualizarPropiedad(claveValor);
 
-  setTipoVisor = async (tipo: ParametrosInterface["visor"]): Promise<boolean> => 
-  await schParametros.setVisor(tipo);
+  setTipoVisor = async (tipo: ParametrosInterface["visor"]): Promise<boolean> =>
+    await schParametros.setVisor(tipo);
 
   /* Eze 4.0 */
   setIpPaytef = async (ip: string): Promise<boolean> =>

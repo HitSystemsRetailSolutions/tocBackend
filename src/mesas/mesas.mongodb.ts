@@ -4,7 +4,7 @@ import { MesaInterface, ItemMesaCollection } from "./mesas.interface";
 export async function getMesas() {
   const db = (await conexion).db("tocgame");
   const mesasCollection = db.collection<ItemMesaCollection>("mesas");
-  const resItemMesaCollection = await mesasCollection.findOne({_id: "MESAS"});
+  const resItemMesaCollection = await mesasCollection.findOne({ _id: "MESAS" });
   if (resItemMesaCollection && resItemMesaCollection.estructura)
     return resItemMesaCollection.estructura;
   return null;

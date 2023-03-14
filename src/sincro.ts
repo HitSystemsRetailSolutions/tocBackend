@@ -31,12 +31,14 @@ async function sincronizarTickets(continuar: boolean = false) {
           const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
             ticket._id
           );
-          let superTicket: SuperTicketInterface={
+          let superTicket: SuperTicketInterface = {
             ...ticket,
             movimientos: arrayMovimientos,
             tipoPago: null,
           };
-          superTicket.tipoPago= await movimientosInstance.calcularFormaPago(superTicket);
+          superTicket.tipoPago = await movimientosInstance.calcularFormaPago(
+            superTicket
+          );
 
           superTicket["newSuperticket"] = true;
           const res = await axios.post("tickets/enviarTicket", { superTicket });
@@ -85,9 +87,12 @@ async function sincronizarMovimientos(continuar: boolean = false) {
       if (parametros != null) {
         const res = await movimientosInstance.getMovimientoMasAntiguo();
         if (res) {
-          const resMovimiento = await axios.post("movimientos/enviarMovimiento", {
-            movimiento: res
-          });
+          const resMovimiento = await axios.post(
+            "movimientos/enviarMovimiento",
+            {
+              movimiento: res,
+            }
+          );
           if (resMovimiento.data) {
             if (await movimientosInstance.setMovimientoEnviado(res))
               sincronizarMovimientos(true);
@@ -191,9 +196,9 @@ function limpiezaProfunda(): void {
 
 function actualizarTrabajadores() {
   trabajadoresInstance.actualizarTrabajadores().catch((err) => {
-  logger.Error(19, err);
+    logger.Error(19, err);
   });
-  }
+}
 
 setInterval(sincronizarTickets, 8000);
 setInterval(sincronizarCajas, 40000);

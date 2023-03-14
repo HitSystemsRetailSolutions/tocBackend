@@ -7,6 +7,6 @@ export interface MesaInterface {
 }
 
 export interface ItemMesaCollection {
-  _id: "MESAS",
-  estructura: MesaInterface[]
+  _id: "MESAS";
+  estructura: MesaInterface[];
 }

@@ -1,5 +1,5 @@
 export interface TarifaInterface {
-    idArticulo: number,
-    precioConIva: number,
-    idClienteFinal: string
+  idArticulo: number;
+  precioConIva: number;
+  idClienteFinal: string;
 }

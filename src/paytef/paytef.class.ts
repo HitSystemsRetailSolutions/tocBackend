@@ -40,20 +40,22 @@ class PaytefClass {
         timeout: 30000,
       })
         .then(async (respuestaPayef: any) => {
-          if (await respuestaPayef.data.info['started']){
+          if (await respuestaPayef.data.info["started"]) {
             await this.bucleComprobacion(idTicket, total, idTrabajador, type);
-          }
-          else {
-            io.emit("consultaPaytefRefund", {ok:false, id:idTicket});
-            logger.Error(137, "Error, la transacción no ha podido empezar paytef.class");
+          } else {
+            io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
+            logger.Error(
+              137,
+              "Error, la transacción no ha podido empezar paytef.class"
+            );
           }
         })
         .catch((err) => {
           logger.Error(135, err);
-          io.emit("consultaPaytefRefund", {ok:false, id:idTicket});
+          io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
         });
     } else {
-      io.emit("consultaPaytefRefund", {ok:false, id:idTicket});
+      io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
       logger.Error(
         136,
         "Error, ipTefpay incorrecta en iniciarTransaccion() paytef.class"
@@ -93,11 +95,11 @@ class PaytefClass {
             total * -1,
             "Targeta",
             "TARJETA",
-            idTicket+1,
+            idTicket + 1,
             idTrabajador
           );
-          
-          io.emit("consultaPaytefRefund", {ok:true, id:idTicket});
+
+          io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
         } else {
           logger.Error("Error grave de devoluciones/movimientos !!!");
         }
@@ -107,7 +109,7 @@ class PaytefClass {
       } else if (type === "sale") {
         io.emit("consultaPaytef", false);
       } else if (type === "refund") {
-        io.emit("consultaPaytefRefund", {ok:false, id:idTicket});
+        io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
       }
     } else {
       await new Promise((r) => setTimeout(r, 1000));

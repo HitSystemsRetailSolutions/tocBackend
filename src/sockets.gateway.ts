@@ -116,13 +116,9 @@ io.on("connection", (socket) => {
 });
 
 if (process.env.NODE_ENV !== "test") {
-
   httpServer.listen(5051);
-
 } else {
-
   httpServer.listen();
-
 }
 
 export { io };

@@ -61,8 +61,8 @@ export class TecladoClase {
 
   /* Eze 4.0 */
   async actualizarTeclado(): Promise<boolean> {
-    const articulos= await articulosInstance.descargarArticulos();
-    if(articulos){
+    const articulos = await articulosInstance.descargarArticulos();
+    if (articulos) {
       const resTeclas: any = await axios.get("teclas/descargarTeclados");
       if (resTeclas.data) {
         if (resTeclas.data.length > 0) {

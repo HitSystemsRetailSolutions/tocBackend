@@ -101,53 +101,69 @@ export class CajaController {
       return false;
     }
   }
-  @Post('cambioTurno')
-  cambioTurno() { // No probado! Se le pasa solo el array de monedas
+  @Post("cambioTurno")
+  cambioTurno() {
+    // No probado! Se le pasa solo el array de monedas
     // if (params.estado==true) {
     //   return {msg:'cambioTurno recibido',estado:false};
     // } else {
     //   return {msg:'cambioTurno recibido',estado:true};
     // }
-    return cajaInstance.getCambioDeTurno().then((res) => {
-      return { info: res};
-    }).catch((err) => {
-      logger.Error(147, err);
-      return {error: true, mensaje: 'Backend: Error en caja/getCambioTurno > CATCH'};
-    });
-    
+    return cajaInstance
+      .getCambioDeTurno()
+      .then((res) => {
+        return { info: res };
+      })
+      .catch((err) => {
+        logger.Error(147, err);
+        return {
+          error: true,
+          mensaje: "Backend: Error en caja/getCambioTurno > CATCH",
+        };
+      });
   }
 
-  @Post('anularTurno')
-  anularTurno() { // No probado! Se le pasa solo el array de monedas
+  @Post("anularTurno")
+  anularTurno() {
+    // No probado! Se le pasa solo el array de monedas
     // if (params.estado==true) {
     //   return {msg:'cambioTurno recibido',estado:false};
     // } else {
     //   return {msg:'cambioTurno recibido',estado:true};
     // }
-    return cajaInstance.getAnularTurno().then((res) => {
-      return { info: res};
-    }).catch((err) => {
-      logger.Error(148, err);
-      return {error: true, mensaje: 'Backend: Error en caja/getAnularTurno > CATCH'};
-    });
-    
+    return cajaInstance
+      .getAnularTurno()
+      .then((res) => {
+        return { info: res };
+      })
+      .catch((err) => {
+        logger.Error(148, err);
+        return {
+          error: true,
+          mensaje: "Backend: Error en caja/getAnularTurno > CATCH",
+        };
+      });
   }
-  
-  @Post('comprovarTurno')
-  comprovarTurno() { // No probado! Se le pasa solo el array de monedas
+
+  @Post("comprovarTurno")
+  comprovarTurno() {
+    // No probado! Se le pasa solo el array de monedas
     // if (params.estado==true) {
     //   return {msg:'cambioTurno recibido',estado:false};
     // } else {
     //   return {msg:'cambioTurno recibido',estado:true};
     // }
-    return cajaInstance.getComprovarTurno().then((res) => {
-      return { info: res};
-    }).catch((err) => {
-      logger.Error(149, err);
-      return {error: true, mensaje: 'Backend: Error en caja/getAnularTurno > CATCH'};
-    });
-    
+    return cajaInstance
+      .getComprovarTurno()
+      .then((res) => {
+        return { info: res };
+      })
+      .catch((err) => {
+        logger.Error(149, err);
+        return {
+          error: true,
+          mensaje: "Backend: Error en caja/getAnularTurno > CATCH",
+        };
+      });
   }
-
-
 }

@@ -2,11 +2,13 @@ import { conexion } from "../conexion/mongodb";
 import { TeclasInterface } from "./teclado.interface";
 
 /* Eze 4.0 */
-export async function insertarTeclas(arrayTeclas: TeclasInterface[]): Promise<boolean> {
+export async function insertarTeclas(
+  arrayTeclas: TeclasInterface[]
+): Promise<boolean> {
   await borrarArticulos();
   const database = (await conexion).db("tocgame");
   const teclas = database.collection<TeclasInterface>("teclas");
-  const result = (await teclas.insertMany(arrayTeclas));
+  const result = await teclas.insertMany(arrayTeclas);
   return result.acknowledged;
 }
 

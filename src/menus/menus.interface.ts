@@ -1,4 +1,4 @@
 export interface MenusInterface {
-    nomMenu: string,
-    tag?: string,
+  nomMenu: string;
+  tag?: string;
 }

@@ -13,7 +13,10 @@ export async function setMonedas(
       { data },
       { upsert: true }
     );
-    return resultado.acknowledged && (resultado.modifiedCount > 0 || resultado.upsertedCount > 0);
+    return (
+      resultado.acknowledged &&
+      (resultado.modifiedCount > 0 || resultado.upsertedCount > 0)
+    );
   } catch (err) {
     logger.Error(97, err);
     return false;

@@ -56,7 +56,6 @@ export class Articulos {
     return await schArticulos.getSuplementos(suplementos);
   }
 
-
   async editarArticulo(
     id,
     nombre,
@@ -88,11 +87,9 @@ export class Articulos {
     const arrayArticulos: any = await axios.get("articulos/descargarArticulos");
     if (arrayArticulos.data) {
       return await this.insertarArticulos(arrayArticulos.data);
-      
-    }else{
+    } else {
       return false;
     }
-
   }
 }
 const articulosInstance = new Articulos();

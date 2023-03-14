@@ -104,19 +104,20 @@ export class CajaClase {
     );
 
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
-      
       const ultimaCaja = await this.getUltimoCierre();
       impresoraInstance.imprimirCajaAsync(ultimaCaja);
-      if( await this.resetCajaAbierta()){
+      if (await this.resetCajaAbierta()) {
         if (!finalTime.estadoTurno) {
-          io.emit("cargarVentas", []);  
+          io.emit("cargarVentas", []);
         }
-        cajaInstance.guardarMonedas(guardarInfoMonedas, 'CLAUSURA').then((res2) => {
-          if (res2) {
-            return true;
-          }
-          return false;
-        })
+        cajaInstance
+          .guardarMonedas(guardarInfoMonedas, "CLAUSURA")
+          .then((res2) => {
+            if (res2) {
+              return true;
+            }
+            return false;
+          });
         return true;
       }
     }
@@ -132,59 +133,61 @@ export class CajaClase {
   /* Eze 4.0 */
   getUltimoCierre = async () => await schCajas.getUltimoCierre();
 
-  getCambioDeTurno(){
-    return schCajas.getCambioDeTurno().then((res) => {
-      return res;
-    }).catch((err) => {
-      logger.Error(150, err);
-      return null;
-    });
-    
+  getCambioDeTurno() {
+    return schCajas
+      .getCambioDeTurno()
+      .then((res) => {
+        return res;
+      })
+      .catch((err) => {
+        logger.Error(150, err);
+        return null;
+      });
   }
 
-  getAnularTurno(){
-    return schCajas.getAnularTurno().then((res) => {
-      return res;
-    }).catch((err) => {
-      logger.Error(151, err);
-      return null;
-    });
-    
+  getAnularTurno() {
+    return schCajas
+      .getAnularTurno()
+      .then((res) => {
+        return res;
+      })
+      .catch((err) => {
+        logger.Error(151, err);
+        return null;
+      });
   }
-  getComprovarTurno(){
-    return schCajas.getComprovarTurno().then((res) => {
-      return res;
-    }).catch((err) => {
-      logger.Error(152, err);
-      return null;
-    });
-    
+  getComprovarTurno() {
+    return schCajas
+      .getComprovarTurno()
+      .then((res) => {
+        return res;
+      })
+      .catch((err) => {
+        logger.Error(152, err);
+        return null;
+      });
   }
 
-  getComprovarFechaCierreTurno(){
+  getComprovarFechaCierreTurno() {
     return schCajas.getComprovarTurno().then((res) => {
-      if (res.estado==true) {
-	schCajas.getCambioDeTurno().then((res2) => {});
-        return parseInt(res.time)+1000;
+      if (res.estado == true) {
+        schCajas.getCambioDeTurno().then((res2) => {});
+        return parseInt(res.time) + 1000;
       } else {
-       return Date.now();
+        return Date.now();
       }
-      
-    })
+    });
   }
 
-  getFechaCierre(){
+  getFechaCierre() {
     return schCajas.getComprovarTurno().then((res) => {
-      if (res.estado==true) {
-	
-        return {time: res.time, estadoTurno: true};
+      if (res.estado == true) {
+        return { time: res.time, estadoTurno: true };
       } else {
-       return {time: Date.now(), estadoTurno: false};
+        return { time: Date.now(), estadoTurno: false };
       }
-      
-    })
+    });
   }
-  
 
   /* Eze 4.0 */
   async getDatosCierre(
@@ -265,7 +268,6 @@ export class CajaClase {
           logger.Error(51, "Error, tipo de movimiento desconocido");
       }
     }
-    
 
     // totalEfectivo -= totalDatafono3G;
 
@@ -277,7 +279,7 @@ export class CajaClase {
 
     const descuadre =
       Math.round(
-        ( totalCierre -
+        (totalCierre -
           cajaAbiertaActual.totalApertura +
           totalSalidas -
           totalEntradaDinero -
@@ -287,11 +289,11 @@ export class CajaClase {
 
     //  const descuadre =
     //    Math.round(
-    //      (cajaAbiertaActual.totalApertura 
+    //      (cajaAbiertaActual.totalApertura
     //       - totalCierre
-    //       - totalSalidas 
-    //       + totalEntradaDinero 
-    //       + totalTickets 
+    //       - totalSalidas
+    //       + totalEntradaDinero
+    //       + totalTickets
     //       ) *
     //        100
     //    ) / 100;
