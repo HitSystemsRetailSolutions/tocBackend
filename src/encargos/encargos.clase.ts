@@ -4,7 +4,6 @@ import * as schEncargos from "./encargos.mongodb";
 
 export class Encargos {
   setEncargo = async (encargo) => {
-    console.log(encargo)
     // Mandamos el encargo al SantaAna
     // const { data }: any = await axios.post("encargos/setEncargo", encargo);
     const data = [1];
@@ -20,7 +19,6 @@ export class Encargos {
     // False -> Ha habido algún error al insertar el encargo.
     return schEncargos.setEncargo(encargo)
         .then((ok: boolean) => {
-            console.log(ok)
             if(!ok) return { error: true, msg: 'Error al crear el encargo' };
             return{ error: false, msg: 'Encargo creado' }
         })

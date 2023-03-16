@@ -7,7 +7,6 @@ export class EncargosController {
   @Post("setEncargo")
   async setEncargo(@Body() data) {
     try {
-        console.log(data)
         if(!data || !data.productos.length || !data.total)
             return {
                 error: true,
