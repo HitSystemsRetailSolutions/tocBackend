@@ -18,6 +18,17 @@ export class ClientesController {
       return null;
     }
   }
+  /* Uri */
+  @Post("getClienteByNumber")
+  async getClienteByNumber(@Body() { idTarjeta }) {
+    try {
+      if (idTarjeta) return await clienteInstance.getClienteByNumber(idTarjeta);
+      throw Error("Error, faltan datos en getClienteByNumber");
+    } catch (err) {
+      logger.Error(66, err);
+      return null;
+    }
+  }
 
   /* Eze 4.0 */
   @Post("getClienteById")
