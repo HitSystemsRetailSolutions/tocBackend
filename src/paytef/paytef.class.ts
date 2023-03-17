@@ -87,7 +87,6 @@ class PaytefClass {
             idTicket,
             idTrabajador
           );
-          schTickets.actualizarEnviadoTicket(idTicket);
           io.emit("consultaPaytef", true);
         } else if (type === "refund") {
           schTickets.anularTicket(idTicket);

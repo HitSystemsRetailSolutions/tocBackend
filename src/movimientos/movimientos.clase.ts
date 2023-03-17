@@ -166,7 +166,7 @@ export class MovimientosClase {
   }
 
   /* Eze 4.0 */
-  public calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
+  private calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
     if (superTicket.consumoPersonal) return "CONSUMO_PERSONAL";
 
     if (superTicket.movimientos.length === 1) {
