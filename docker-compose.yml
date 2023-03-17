@@ -1,0 +1,29 @@
+version: '3'
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    volumes:
+      - ./config/:/mosquitto/config/:rw
+      - ./log/:/mosquitto/log/
+      - data:/mosquitto/data/
+    ports:
+      - 1883:1883
+      - 9001:9001
+  mongo:
+    image: mongo:4.4
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb:/data/db
+  node:
+    depends_on:
+      - mongo
+    restart: always
+    build: .
+    ports:
+      - 3000:3000
+      - 3001:3001
+      - 5051:5051
+volumes:
+ mongodb: ~ 
+ data: ~ 
