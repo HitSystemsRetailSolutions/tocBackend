@@ -10,6 +10,8 @@ import { menusInstance } from "../menus/menus.clase";
 import { tecladoInstance } from "../teclado/teclado.clase";
 import { tarifasInstance } from "../tarifas/tarifas.class";
 import { logger } from "../logger";
+import { networkInterfaces } from "os";
+
 
 @Controller("instalador")
 export class InstaladorController {
@@ -63,6 +65,32 @@ export class InstaladorController {
     }
   }
 
+/* Uri */
+@Post("getIP")
+async getIP() {
+  try {
+    const nets = networkInterfaces();
+    const results = Object.create(null); 
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        const familyV4Value = typeof net.family === "string" ? "IPv4" : 4;
+        if (net.family === familyV4Value && !net.internal) {
+          if (!results[name]) {
+            results[name] = [];
+          }
+          if(net.address.toString().includes('10.8')){
+            return net.address.toString()
+          }
+          results[name].push(net.address);
+        }
+      }
+    }
+    return ""
+  } catch (err) {
+    console.log(err);
+    logger.Error(93, err);
+  }
+}
   /* Uri */
   @Post("pedirDatosIP")
   async pedirDatosIP(
