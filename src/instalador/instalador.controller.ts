@@ -63,6 +63,51 @@ export class InstaladorController {
     }
   }
 
+  /* Uri */
+  @Post("pedirDatosIP")
+  async pedirDatosIP(
+    @Body()
+    { ip }
+  ) {
+    try {
+      if (
+        ip
+      ) {
+        const resAuth: any = await axios.post("parametros/instaladorLicenciaIP", {
+          ip
+        });
+        if (resAuth.data) {
+          const objParams = parametrosInstance.generarObjetoParametros();
+          axios.defaults.headers.common["Authorization"] = resAuth.data.token;
+          objParams.licencia = resAuth.data.licencia;
+          objParams.tipoImpresora = "USB";
+          objParams.tipoDatafono = "3G";
+          objParams.impresoraCafeteria = "NO";
+          objParams.ultimoTicket = resAuth.data.ultimoTicket;
+          objParams.codigoTienda = resAuth.data.codigoTienda;
+          objParams.nombreEmpresa = resAuth.data.nombreEmpresa;
+          objParams.nombreTienda = resAuth.data.nombreTienda;
+          objParams.token = resAuth.data.token;
+          objParams.database = resAuth.data.database;
+          objParams.visor = "";
+          objParams.header = resAuth.data.header;
+          objParams.footer = resAuth.data.footer;
+          objParams.impresoraUsbInfo = {
+            pid: "",
+            vid: "",
+          };
+
+          return await parametrosInstance.setParametros(objParams);
+        }
+        throw Error("Error: Santa Ana no puede autentificar esta petición");
+      }
+      throw Error("No hemos podido detectar la IP, porfavor rellene los campos.");
+    } catch (err) {
+      console.log(err);
+      logger.Error(93, err);
+    }
+  }
+
   /* Eze 4.0 */
   @Post("descargarTodo")
   async descargarTodo() {
