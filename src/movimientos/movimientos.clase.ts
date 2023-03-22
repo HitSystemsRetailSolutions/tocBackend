@@ -68,6 +68,32 @@ export class MovimientosClase {
     }
     return false;
   }
+  /* uri */
+  public async insertMovimientos(
+    valor: MovimientosInterface["valor"],
+    concepto: MovimientosInterface["concepto"],
+    tipo: MovimientosInterface["tipo"],
+    idTicket: MovimientosInterface["idTicket"],
+    idTrabajador: MovimientosInterface["idTrabajador"]
+  ) {
+    let codigoBarras = "";
+
+    const nuevoMovimiento: MovimientosInterface = {
+      _id: Date.now(),
+      codigoBarras,
+      concepto,
+      enviado: false,
+      idTicket,
+      idTrabajador,
+      tipo,
+      valor,
+    };
+
+    if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
+      return true;
+    }
+    return false;
+  }
 
   /* Eze 4.0 */
   private async generarCodigoBarrasSalida(): Promise<string> {
