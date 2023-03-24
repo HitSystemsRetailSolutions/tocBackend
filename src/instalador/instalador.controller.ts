@@ -1,6 +1,7 @@
 import { Controller, Post, Body } from "@nestjs/common";
 import axios from "axios";
 import { parametrosInstance } from "../parametros/parametros.clase";
+import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { trabajadoresInstance } from "../trabajadores/trabajadores.clase";
 import { articulosInstance } from "../articulos/articulos.clase";
 import { clienteInstance } from "../clientes/clientes.clase";
@@ -10,6 +11,9 @@ import { menusInstance } from "../menus/menus.clase";
 import { tecladoInstance } from "../teclado/teclado.clase";
 import { tarifasInstance } from "../tarifas/tarifas.class";
 import { logger } from "../logger";
+import { networkInterfaces } from "os";
+import { MovimientosInterface } from "src/movimientos/movimientos.interface";
+import { cestasInstance } from "src/cestas/cestas.clase";
 
 @Controller("instalador")
 export class InstaladorController {
@@ -63,6 +67,80 @@ export class InstaladorController {
     }
   }
 
+  /* Uri */
+  @Post("getIP")
+  async getIP() {
+    try {
+      const nets = networkInterfaces();
+      const results = Object.create(null);
+      for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+          const familyV4Value = typeof net.family === "string" ? "IPv4" : 4;
+          if (net.family === familyV4Value && !net.internal) {
+            if (!results[name]) {
+              results[name] = [];
+            }
+            if (net.address.toString().includes("10.8")) {
+              return net.address.toString();
+            }
+            results[name].push(net.address);
+          }
+        }
+      }
+      return "";
+    } catch (err) {
+      console.log(err);
+      logger.Error(93, err);
+    }
+  }
+  /* Uri */
+  @Post("pedirDatosIP")
+  async pedirDatosIP(
+    @Body()
+    { ip }
+  ) {
+    try {
+      if (ip) {
+        const resAuth: any = await axios.post(
+          "parametros/instaladorLicenciaIP",
+          {
+            ip,
+          }
+        );
+        if (resAuth.data) {
+          const objParams = parametrosInstance.generarObjetoParametros();
+          axios.defaults.headers.common["Authorization"] = resAuth.data.token;
+          objParams.licencia = resAuth.data.licencia;
+          objParams.tipoImpresora = "USB";
+          objParams.tipoDatafono = "3G";
+          objParams.impresoraCafeteria = "NO";
+          objParams.ultimoTicket = resAuth.data.ultimoTicket;
+          objParams.codigoTienda = resAuth.data.codigoTienda;
+          objParams.nombreEmpresa = resAuth.data.nombreEmpresa;
+          objParams.nombreTienda = resAuth.data.nombreTienda;
+          objParams.token = resAuth.data.token;
+          objParams.database = resAuth.data.database;
+          objParams.visor = "";
+          objParams.header = resAuth.data.header;
+          objParams.footer = resAuth.data.footer;
+          objParams.impresoraUsbInfo = {
+            pid: "",
+            vid: "",
+          };
+
+          return await parametrosInstance.setParametros(objParams);
+        }
+        throw Error("Error: Santa Ana no puede autentificar esta petición");
+      }
+      throw Error(
+        "No hemos podido detectar la IP, porfavor rellene los campos."
+      );
+    } catch (err) {
+      console.log(err);
+      logger.Error(93, err);
+    }
+  }
+
   /* Eze 4.0 */
   @Post("descargarTodo")
   async descargarTodo() {
@@ -75,6 +153,7 @@ export class InstaladorController {
       });
 
       if (res.data) {
+        console.log("recivo")
         const trabajadores = await trabajadoresInstance.insertarTrabajadores(
           res.data.dependientas
         );
@@ -90,12 +169,25 @@ export class InstaladorController {
         const promociones = await nuevaInstancePromociones.insertarPromociones(
           res.data.promociones
         );
+        if(res.data.movimientos.length > 0){
+          let movData = res.data.movimientos[0]
+          const movimientos = await movimientosInstance.insertMovimientos(
+            movData.Import,movData.Motiu,"SALIDA",null,movData.Dependenta
+          );
+        }
+        const fichajes = await trabajadoresInstance.nuevoFichajesSincro(
+          "ENTRADA",Number.parseInt(res.data.fichajes[0].usuari)
+        );
+        const idCesta = await cestasInstance.crearCesta();
+        if (await trabajadoresInstance.setIdCesta(Number.parseInt(res.data.fichajes[0].usuari), idCesta))
+          trabajadoresInstance.ficharTrabajador(Number.parseInt(res.data.fichajes[0].usuari));
 
         const teclas = await tecladoInstance.insertarTeclas(res.data.teclas);
+        console.log(teclas)
         const tarifas = await tarifasInstance.guardarTarifasEspeciales(
           res.data.tarifasEspeciales
         );
-
+          console.log("Todo instalado")
         if (
           // Solo los datos obligatorios
           trabajadores &&
@@ -105,7 +197,7 @@ export class InstaladorController {
           return true;
         }
         throw Error(
-          `Backend: res1: ${trabajadores}, res2: ${articulos}, res3: ${clientes}, res4: ${familias}, res5: ${promociones}, res7: ${teclas}, res8: ${tarifas}`
+          `Backend: res1: ${trabajadores}, res2: ${articulos}, res3: ${clientes}, res4: ${familias}, res5: ${promociones}, res7: ${teclas}, res8: ${tarifas}, res10: ${fichajes}`
         );
       }
       throw Error("Error de autenticación en SanPedro");

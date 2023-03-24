@@ -880,6 +880,7 @@ export class NuevaPromocion {
     return null;
   };
 
+
   /* Eze 4.0 */
   public deshacerPromociones(ticket: TicketsInterface) {
     for (let i = 0; i < ticket.cesta.lista.length; i++) {
