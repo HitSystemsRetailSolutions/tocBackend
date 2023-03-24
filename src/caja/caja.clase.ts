@@ -14,6 +14,7 @@ import { ObjectId } from "mongodb";
 import { logger } from "../logger";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { io } from "../sockets.gateway";
+import { cestasInstance } from "../cestas/cestas.clase";
 
 export class CajaClase {
   /* Eze 4.0 */
@@ -91,7 +92,12 @@ export class CajaClase {
       ))
     )
       throw Error("No se ha podido crear el movimiento 3G");
-
+    const cestas = await cestasInstance.getAllCestas();
+    for (let i = 0; i < cestas.length; i++) {
+      cestasInstance.deleteCesta(cestas[i]._id);
+      
+    }
+    cestasInstance.actualizarCestas();
     const finalTime = await this.getFechaCierre();
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
     const cajaCerradaActual = await this.getDatosCierre(
