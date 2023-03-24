@@ -14,6 +14,7 @@ import { logger } from "../logger";
 import { networkInterfaces } from "os";
 import { MovimientosInterface } from "src/movimientos/movimientos.interface";
 import { cestasInstance } from "src/cestas/cestas.clase";
+import { cajaInstance } from "src/caja/caja.clase";
 
 @Controller("instalador")
 export class InstaladorController {
@@ -153,7 +154,7 @@ export class InstaladorController {
       });
 
       if (res.data) {
-        console.log("recivo")
+        console.log("recivo");
         const trabajadores = await trabajadoresInstance.insertarTrabajadores(
           res.data.dependientas
         );
@@ -169,39 +170,83 @@ export class InstaladorController {
         const promociones = await nuevaInstancePromociones.insertarPromociones(
           res.data.promociones
         );
-        if(res.data.movimientos.length > 0){
-          let movData = res.data.movimientos[0]
-          const movimientos = await movimientosInstance.insertMovimientos(
-            movData.Import,movData.Motiu,"SALIDA",null,movData.Dependenta
-          );
-        }
-        const fichajes = await trabajadoresInstance.nuevoFichajesSincro(
-          "ENTRADA",Number.parseInt(res.data.fichajes[0].usuari)
-        );
-        const idCesta = await cestasInstance.crearCesta();
-        if (await trabajadoresInstance.setIdCesta(Number.parseInt(res.data.fichajes[0].usuari), idCesta))
-          trabajadoresInstance.ficharTrabajador(Number.parseInt(res.data.fichajes[0].usuari));
-
         const teclas = await tecladoInstance.insertarTeclas(res.data.teclas);
-        console.log(teclas)
         const tarifas = await tarifasInstance.guardarTarifasEspeciales(
           res.data.tarifasEspeciales
         );
-          console.log("Todo instalado")
+        console.log("Todo lo necesario instalado");
         if (
           // Solo los datos obligatorios
           trabajadores &&
           articulos &&
           teclas
         ) {
-          return true;
+          return await this.descargarUltimo();
         }
-        throw Error(
-          `Backend: res1: ${trabajadores}, res2: ${articulos}, res3: ${clientes}, res4: ${familias}, res5: ${promociones}, res7: ${teclas}, res8: ${tarifas}, res10: ${fichajes}`
+        console.log(
+          `Backend: res1: ${trabajadores}, res2: ${articulos}, res3: ${clientes}, res4: ${familias}, res5: ${promociones}, res7: ${teclas}, res8: ${tarifas}`
         );
       }
       throw Error("Error de autenticación en SanPedro");
     } catch (err) {
+      console.log(err);
+      logger.Error(95, err);
+      return false;
+    }
+  }
+
+  async descargarUltimo() {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      const res: any = await axios.post("datos/cargarUltimo", {
+        database: parametros.database,
+        codigoTienda: parametros.codigoTienda,
+        licencia: parametros.licencia,
+      });
+
+      if (res.data) {
+        if (res.data.fichajes.length > 0) {
+          const idCesta = await cestasInstance.crearCesta();
+          if (
+            await trabajadoresInstance.setIdCesta(
+              Number.parseInt(res.data.fichajes[0].usuari),
+              idCesta
+            )
+          )
+            trabajadoresInstance.ficharTrabajador(
+              Number.parseInt(res.data.fichajes[0].usuari)
+            );
+        }
+        if (res.data.movimientos.length > 0) {
+          let movData = res.data.movimientos[0];
+          const movimientos = await movimientosInstance.insertMovimientos(
+            movData.Import,
+            movData.Motiu,
+            "SALIDA",
+            null,
+            movData.Dependenta
+          );
+        }
+        if (res.data.UltimoCierre.length > 0) {
+          let monedas = [];
+          res.data.UltimoCierre.forEach((element) => {
+            monedas.push(
+              element.Import /
+                Number(element.Motiu.toString().replace("En : ", ""))
+            );
+          });
+          console.log(monedas);
+          const UltimoCierre = await cajaInstance.guardarMonedas(
+            monedas,
+            "CLAUSURA"
+          );
+        }
+        console.log("necesarios instalados");
+        return true;
+      }
+      throw Error("Error de autenticación en SanPedro");
+    } catch (err) {
+      console.log(err);
       logger.Error(95, err);
       return false;
     }
