@@ -65,12 +65,15 @@ export class TicketsController {
           cesta,
           tipo === "CONSUMO_PERSONAL"
         );
-
-        if (!ticket)
+        console.log("pasu")
+        if (!ticket){
+        console.log("petu aki")
           throw Error(
             "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
-          );
+          );}
+          console.log("pasu")
         if (await ticketsInstance.insertarTicket(ticket)) {
+          console.log("pasu")
           await cestasInstance.borrarArticulosCesta(idCesta, true);
           if (tipo === "TARJETA")
             paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);

@@ -15,6 +15,7 @@ import { networkInterfaces } from "os";
 import { MovimientosInterface } from "src/movimientos/movimientos.interface";
 import { cestasInstance } from "src/cestas/cestas.clase";
 import { cajaInstance } from "src/caja/caja.clase";
+import { ticketsInstance } from "src/tickets/tickets.clase";
 
 @Controller("instalador")
 export class InstaladorController {
@@ -152,7 +153,6 @@ export class InstaladorController {
         codigoTienda: parametros.codigoTienda,
         licencia: parametros.licencia,
       });
-
       if (res.data) {
         console.log("recivo");
         const trabajadores = await trabajadoresInstance.insertarTrabajadores(
@@ -235,13 +235,20 @@ export class InstaladorController {
                 Number(element.Motiu.toString().replace("En : ", ""))
             );
           });
-          console.log(monedas);
           const UltimoCierre = await cajaInstance.guardarMonedas(
             monedas,
             "CLAUSURA"
           );
         }
-        console.log("necesarios instalados");
+
+        if (res.data.tickets.length > 0) {
+          console.log(res.data.tickets[0].Num_tick)
+          res.data.tickets.forEach(async e => {
+           const Tickets = await ticketsInstance.InsertatTicketBackUp(e.Num_tick,e.Data,e.Import,e.Dependenta,false)
+          });
+          
+        }
+        console.log("opcionales instalados");
         return true;
       }
       throw Error("Error de autenticación en SanPedro");

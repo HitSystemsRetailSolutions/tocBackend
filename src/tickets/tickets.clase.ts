@@ -1,4 +1,4 @@
-import { TicketsInterface } from "./tickets.interface";
+import { TicketsInterface, TicketsInterfaceBackUp } from "./tickets.interface";
 import * as schTickets from "./tickets.mongodb";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { CestasInterface } from "../cestas/cestas.interface";
@@ -96,6 +96,26 @@ export class TicketsClase {
       throw Error("No se han podido descontar los puntos");
     }
     return await schTickets.nuevoTicket(ticket);
+  }
+
+  /* Uri 4.0 */
+  async InsertatTicketBackUp(
+    _id,
+    timestamp,
+    total,
+    idTrabajador,
+    consumoPersonal
+  ): Promise<boolean> {
+    let date = new Date()
+    date.setMinutes(date.getMinutes() +10)
+    let ticket: TicketsInterfaceBackUp = {
+      _id: _id,
+      timestamp: parseInt((date.getTime() / 10000).toFixed(0)),
+      total: total,
+      idTrabajador: idTrabajador,
+      consumoPersonal: consumoPersonal,
+    };
+    return await schTickets.nuevoTicketBackUP(ticket);
   }
 
   /* Eze 4.0 */

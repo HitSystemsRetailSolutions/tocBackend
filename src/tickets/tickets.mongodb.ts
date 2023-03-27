@@ -1,5 +1,5 @@
 import { conexion } from "../conexion/mongodb";
-import { TicketsInterface } from "./tickets.interface";
+import { TicketsInterface, TicketsInterfaceBackUp } from "./tickets.interface";
 import { UtilesModule } from "../utiles/utiles.module";
 import { ticketsInstance } from "./tickets.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
@@ -132,6 +132,14 @@ export async function getUltimoTicket(): Promise<TicketsInterface> {
 export async function nuevoTicket(ticket: TicketsInterface): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
+  return (await tickets.insertOne(ticket)).acknowledged;
+}
+
+/* Uri */
+export async function nuevoTicketBackUP(
+  ticket: TicketsInterfaceBackUp): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterfaceBackUp>("tickets");
   return (await tickets.insertOne(ticket)).acknowledged;
 }
 
