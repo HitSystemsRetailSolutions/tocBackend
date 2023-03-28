@@ -11,9 +11,19 @@ type Productos = {
 }
 
 export enum OpcionRecogida {
-    HOY,
-    OTRO_DIA,
-    REPETICION
+    HOY = 1,
+    OTRO_DIA = 2,
+    REPETICION = 3
+}
+
+export enum Estat {
+    NO_BUSCADO = 0,
+    BUSCADO = 1
+}
+
+export enum Periodo {
+    NO_PERIODO = 0,
+    PERIODO = 1
 }
 
 export interface EncargosInterface {
