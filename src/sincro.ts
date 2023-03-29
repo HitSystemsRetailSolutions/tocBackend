@@ -29,15 +29,16 @@ async function sincronizarTickets(continuar: boolean = false) {
           const res = await axios.post("tickets/enviarTicket", { ticket });
 
           if (res.data) {
-            if (await ticketsInstance.setTicketEnviado(ticket._id))
+            if (await ticketsInstance.setTicketEnviado(ticket._id)){
+              enProcesoTickets = false;
               sincronizarTickets(true);
+            }
           }
         }
       } else {
         logger.Error(4, "No hay parámetros definidos en la BBDD");
       }
     }
-    enProcesoTickets = false;
   } catch (err) {
     enProcesoTickets = false;
     logger.Error(5, err);
