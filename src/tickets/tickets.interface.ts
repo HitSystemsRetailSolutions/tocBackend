@@ -22,6 +22,7 @@ export interface TicketsInterfaceBackUp {
   total: number;
   idTrabajador: number;
   consumoPersonal?: boolean;
+  enviado:boolean;
 }
 
 export interface SuperTicketInterface extends TicketsInterface {

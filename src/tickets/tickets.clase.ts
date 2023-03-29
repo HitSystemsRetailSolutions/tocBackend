@@ -106,16 +106,25 @@ export class TicketsClase {
     idTrabajador,
     consumoPersonal
   ): Promise<boolean> {
-    let date = new Date()
-    date.setMinutes(date.getMinutes() +10)
     let ticket: TicketsInterfaceBackUp = {
       _id: _id,
-      timestamp: parseInt((date.getTime() / 10000).toFixed(0)),
+      timestamp: Date.parse(timestamp),
       total: total,
       idTrabajador: idTrabajador,
       consumoPersonal: consumoPersonal,
+      enviado: true,
     };
     return await schTickets.nuevoTicketBackUP(ticket);
+  }
+
+  /* Uri 4.0 */
+  async editarTotalTicket(_id, total): Promise<boolean> {
+    let ticketExist = await schTickets.getTicketByID(_id);
+    return await schTickets.actualizarTotalArticulo(
+      ticketExist._id,
+      ticketExist.total,
+      total
+    );
   }
 
   /* Eze 4.0 */

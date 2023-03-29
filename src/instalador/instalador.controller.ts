@@ -11,7 +11,7 @@ import { menusInstance } from "../menus/menus.clase";
 import { tecladoInstance } from "../teclado/teclado.clase";
 import { tarifasInstance } from "../tarifas/tarifas.class";
 import { logger } from "../logger";
-import { networkInterfaces } from "os";
+import { networkInterfaces, totalmem } from "os";
 import { MovimientosInterface } from "src/movimientos/movimientos.interface";
 import { cestasInstance } from "src/cestas/cestas.clase";
 import { cajaInstance } from "src/caja/caja.clase";
@@ -147,6 +147,7 @@ export class InstaladorController {
   @Post("descargarTodo")
   async descargarTodo() {
     try {
+      console.log("Solicito datos");
       const parametros = await parametrosInstance.getParametros();
       const res: any = await axios.post("datos/cargarTodo", {
         database: parametros.database,
@@ -154,7 +155,7 @@ export class InstaladorController {
         licencia: parametros.licencia,
       });
       if (res.data) {
-        console.log("recivo");
+        console.log("recivo datos");
         const trabajadores = await trabajadoresInstance.insertarTrabajadores(
           res.data.dependientas
         );
@@ -205,6 +206,7 @@ export class InstaladorController {
       });
 
       if (res.data) {
+        console.log(res.data.fichajes)
         if (res.data.fichajes.length > 0) {
           const idCesta = await cestasInstance.crearCesta();
           if (
@@ -227,26 +229,68 @@ export class InstaladorController {
             movData.Dependenta
           );
         }
+        let monedas = [];
+        let monedasCaja = [];
+        let totalMonedas = 0;
         if (res.data.UltimoCierre.length > 0) {
-          let monedas = [];
           res.data.UltimoCierre.forEach((element) => {
             monedas.push(
               element.Import /
                 Number(element.Motiu.toString().replace("En : ", ""))
             );
+            monedasCaja.push({
+              _id: element.Motiu.toString().replace("En : ", ""),
+              valor: element.Import,
+              unidades: element.Import/Number(element.Motiu.toString().replace("En : ", "")),
+            });
           });
           const UltimoCierre = await cajaInstance.guardarMonedas(
             monedas,
             "CLAUSURA"
           );
+          totalMonedas += monedas[0] * 0.01;
+          totalMonedas += monedas[1] * 0.02;
+          totalMonedas += monedas[2] * 0.05;
+          totalMonedas += monedas[3] * 0.1;
+          totalMonedas += monedas[4] * 0.2;
+          totalMonedas += monedas[5] * 0.5;
+          totalMonedas += monedas[6] * 1;
+          totalMonedas += monedas[7] * 2;
+          totalMonedas += monedas[8] * 5;
+          totalMonedas += monedas[9] * 10;
+          totalMonedas += monedas[10] * 20;
+          totalMonedas += monedas[11] * 50;
+          totalMonedas += monedas[12] * 100;
+          totalMonedas += monedas[13] * 200;
+          totalMonedas += monedas[14] * 500;
         }
 
         if (res.data.tickets.length > 0) {
-          console.log(res.data.tickets[0].Num_tick)
-          res.data.tickets.forEach(async e => {
-           const Tickets = await ticketsInstance.InsertatTicketBackUp(e.Num_tick,e.Data,e.Import,e.Dependenta,false)
+          let ticketProcessed = [];
+          for (let i = 0; i < res.data.tickets.length; i++) {
+            let e = res.data.tickets[i];
+            if (ticketProcessed.includes(e.Num_tick)) {
+              const Tickets = await ticketsInstance.editarTotalTicket(
+                e.Num_tick,
+                e.Import
+              );
+            } else {
+              ticketProcessed.push(e.Num_tick);
+              const Tickets = await ticketsInstance.InsertatTicketBackUp(
+                e.Num_tick,
+                e.Data,
+                e.Import,
+                e.Dependenta,
+                false
+              );
+            }
+          }
+          return await cajaInstance.abrirCaja({
+            detalleApertura: monedasCaja,
+            idDependientaApertura: Number.parseInt(res.data.fichajes[0].usuari),
+            inicioTime: Date.parse(res.data.tickets[res.data.tickets.length -1].Data),
+            totalApertura: totalMonedas,
           });
-          
         }
         console.log("opcionales instalados");
         return true;
