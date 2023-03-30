@@ -27,11 +27,10 @@ async function sincronizarTickets() {
         if (ticket) {
           nuevaInstancePromociones.deshacerPromociones(ticket);
           const res = await axios.post("tickets/enviarTicket", { ticket });
-
           if (res.data) {
             if (await ticketsInstance.setTicketEnviado(ticket._id)){
               enProcesoTickets = false;
-              setTimeout(sincronizarTickets, 200);
+              setTimeout(sincronizarTickets, 100);
             }else{
               enProcesoTickets=false;
             }
