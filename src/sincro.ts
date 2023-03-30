@@ -17,9 +17,9 @@ import { nuevaInstancePromociones } from "./promociones/promociones.clase";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 
-async function sincronizarTickets(continuar: boolean = false) {
+async function sincronizarTickets() {
   try {
-    if (!enProcesoTickets || continuar) {
+    if (!enProcesoTickets) {
       enProcesoTickets = true;
       const parametros = await parametrosInstance.getParametros();
       if (parametros != null) {
@@ -31,7 +31,7 @@ async function sincronizarTickets(continuar: boolean = false) {
           if (res.data) {
             if (await ticketsInstance.setTicketEnviado(ticket._id)){
               enProcesoTickets = false;
-              setTimeout(function(){sincronizarTickets(true)}, 200);
+              setTimeout(sincronizarTickets, 200);
             }else{
               enProcesoTickets=false;
             }
