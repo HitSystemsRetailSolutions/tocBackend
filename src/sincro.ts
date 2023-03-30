@@ -31,9 +31,15 @@ async function sincronizarTickets(continuar: boolean = false) {
           if (res.data) {
             if (await ticketsInstance.setTicketEnviado(ticket._id)){
               enProcesoTickets = false;
-              sincronizarTickets(true);
+              setTimeout(function(){sincronizarTickets(true)}, 200);
+            }else{
+              enProcesoTickets=false;
             }
+          }else{
+            enProcesoTickets=false;
           }
+        }else{
+          enProcesoTickets=false;
         }
       } else {
         logger.Error(4, "No hay parámetros definidos en la BBDD");
