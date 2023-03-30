@@ -81,17 +81,6 @@ export class CajaClase {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
 
-    if (
-      totalDatafono3G > 0 &&
-      !(await movimientosInstance.nuevoMovimiento(
-        totalDatafono3G,
-        "",
-        "DATAFONO_3G",
-        null,
-        idDependientaCierre
-      ))
-    )
-      throw Error("No se ha podido crear el movimiento 3G");
     const cestas = await cestasInstance.getAllCestas();
     for (let i = 0; i < cestas.length; i++) {
       cestasInstance.deleteCesta(cestas[i]._id);
