@@ -26,7 +26,7 @@ parametrosInstance
     logger.Error(125, err);
   });
 
-async function bootstrap(ip) {
+async function bootstrap(ip,port) {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
@@ -37,9 +37,9 @@ async function bootstrap(ip) {
       },
     }
   );
-  await app.listen(3000,ip);
+  await app.listen(port,ip);
   // await app.listen(3000,"10.137.0.201"); //para iterum ubuntu
   // await app.listen(3000,"10.137.0.243"); //para iterum windows
 }
-bootstrap(ip.address());
-bootstrap("localhost");
+bootstrap(ip.address(),3000);
+bootstrap("localhost",3000);
