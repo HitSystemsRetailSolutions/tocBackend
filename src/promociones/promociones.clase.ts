@@ -893,13 +893,15 @@ export class NuevaPromocion {
             regalo: false,
             promocion: null,
             unidades:
-              ticket.cesta.lista[i].promocion.unidadesOferta *
+              ticket.cesta.lista[i].unidades *
               ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
-            subtotal:
+            subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
-              ticket.cesta.lista[i].promocion.unidadesOferta *
-              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
-            nombre: "ArtículoDentroDePromo",
+                ticket.cesta.lista[i].unidades *
+                ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
+              2
+            ),
+            nombre: "ArtículoDentroDePromoP",
           });
           ticket.cesta.lista.push({
             arraySuplementos: null,
@@ -908,13 +910,15 @@ export class NuevaPromocion {
             regalo: false,
             promocion: null,
             unidades:
-              ticket.cesta.lista[i].promocion.unidadesOferta *
+              ticket.cesta.lista[i].unidades *
               ticket.cesta.lista[i].promocion.cantidadArticuloSecundario,
-            subtotal:
+            subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloSecundario *
-              ticket.cesta.lista[i].promocion.unidadesOferta *
-              ticket.cesta.lista[i].promocion.cantidadArticuloSecundario,
-            nombre: "ArtículoDentroDePromo",
+                ticket.cesta.lista[i].unidades *
+                ticket.cesta.lista[i].promocion.cantidadArticuloSecundario,
+              2
+            ),
+            nombre: "ArtículoDentroDePromoS",
           });
           ticket.cesta.lista.splice(i, 1);
         } else if (ticket.cesta.lista[i].promocion.tipoPromo === "INDIVIDUAL") {
@@ -925,13 +929,15 @@ export class NuevaPromocion {
             regalo: false,
             promocion: null,
             unidades:
-              ticket.cesta.lista[i].promocion.unidadesOferta *
+              ticket.cesta.lista[i].unidades *
               ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
-            subtotal:
+            subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
-              ticket.cesta.lista[i].promocion.unidadesOferta *
-              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
-            nombre: "ArtículoDentroDePromo",
+                ticket.cesta.lista[i].unidades *
+                ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
+              2
+            ),
+            nombre: "ArtículoDentroDePromoI",
           });
           ticket.cesta.lista.splice(i, 1);
         } else

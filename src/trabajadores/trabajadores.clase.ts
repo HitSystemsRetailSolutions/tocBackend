@@ -74,6 +74,7 @@ export class TrabajadoresClase {
     const trabajador = await schTrabajadores.getTrabajador(idTrabajador);
     if (trabajador.idCesta) {
       await cestasInstance.deleteCesta(trabajador.idCesta);
+      cestasInstance.actualizarCestas();
     }
     if (await schTrabajadores.desficharTrabajador(idTrabajador)) {
       return await this.nuevoFichajesSincro("SALIDA", idTrabajador);

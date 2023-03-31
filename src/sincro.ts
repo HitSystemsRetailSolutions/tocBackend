@@ -17,9 +17,9 @@ import { nuevaInstancePromociones } from "./promociones/promociones.clase";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 
-async function sincronizarTickets(continuar: boolean = false) {
+async function sincronizarTickets() {
   try {
-    if (!enProcesoTickets || continuar) {
+    if (!enProcesoTickets) {
       enProcesoTickets = true;
       const parametros = await parametrosInstance.getParametros();
       if (parametros != null) {
@@ -27,17 +27,23 @@ async function sincronizarTickets(continuar: boolean = false) {
         if (ticket) {
           nuevaInstancePromociones.deshacerPromociones(ticket);
           const res = await axios.post("tickets/enviarTicket", { ticket });
-
           if (res.data) {
-            if (await ticketsInstance.setTicketEnviado(ticket._id))
-              sincronizarTickets(true);
+            if (await ticketsInstance.setTicketEnviado(ticket._id)){
+              enProcesoTickets = false;
+              setTimeout(sincronizarTickets, 100);
+            }else{
+              enProcesoTickets=false;
+            }
+          }else{
+            enProcesoTickets=false;
           }
+        }else{
+          enProcesoTickets=false;
         }
       } else {
         logger.Error(4, "No hay parámetros definidos en la BBDD");
       }
     }
-    enProcesoTickets = false;
   } catch (err) {
     enProcesoTickets = false;
     logger.Error(5, err);
