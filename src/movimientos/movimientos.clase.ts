@@ -138,7 +138,7 @@ export class MovimientosClase {
     const infoCaja = await cajaInstance.getInfoCajaAbierta();
     if (infoCaja) {
       const inicioCaja = infoCaja.inicioTime;
-      const final = Date.now();
+      const final = Date.now()
       const arrayTickets = await ticketsInstance.getTicketsIntervalo(
         inicioCaja,
         final
@@ -147,7 +147,6 @@ export class MovimientosClase {
         inicioCaja,
         final
       );
-
       const arrayFinalTickets: SuperTicketInterface[] = [];
 
       for (let i = 0; i < arrayTickets.length; i++) {

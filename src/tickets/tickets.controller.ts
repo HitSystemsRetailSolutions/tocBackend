@@ -65,11 +65,10 @@ export class TicketsController {
           cesta,
           tipo === "CONSUMO_PERSONAL"
         );
-
-        if (!ticket)
+        if (!ticket){
           throw Error(
             "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
-          );
+          );}
         if (await ticketsInstance.insertarTicket(ticket)) {
           await cestasInstance.borrarArticulosCesta(idCesta, true);
           if (tipo === "TARJETA")
