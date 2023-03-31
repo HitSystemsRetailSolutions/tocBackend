@@ -155,7 +155,7 @@ export class InstaladorController {
         licencia: parametros.licencia,
       });
       if (res.data) {
-        console.log("recivo datos");
+        console.log("recibo datos");
         const trabajadores = await trabajadoresInstance.insertarTrabajadores(
           res.data.dependientas
         );
@@ -229,10 +229,11 @@ export class InstaladorController {
             movData.Dependenta
           );
         }
-        let monedas = [];
+        let monedas = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
         let monedasCaja = [];
         let totalMonedas = 0;
         if (res.data.UltimoCierre.length > 0) {
+          monedas = [];
           res.data.UltimoCierre.forEach((element) => {
             monedas.push(
               element.Import /
@@ -285,17 +286,20 @@ export class InstaladorController {
               );
             }
           }
-          return await cajaInstance.abrirCaja({
+          let Dependenta = res.data.tickets[0].Dependenta
+          if(res.data.fichajes.length > 0)res.data.fichajes[0].usuari
+          await cajaInstance.abrirCaja({
             detalleApertura: monedasCaja,
-            idDependientaApertura: Number.parseInt(res.data.fichajes[0].usuari),
+            idDependientaApertura: Number.parseInt(Dependenta),
             inicioTime: Date.parse(res.data.tickets[res.data.tickets.length -1].Data),
             totalApertura: totalMonedas,
           });
         }
         console.log("opcionales instalados");
-        return true;
+        return [1,monedas];
       }
-      throw Error("Error de autenticación en SanPedro");
+      console.error("Error de autenticación en SanPedro");
+      return [0,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
     } catch (err) {
       console.log(err);
       logger.Error(95, err);
