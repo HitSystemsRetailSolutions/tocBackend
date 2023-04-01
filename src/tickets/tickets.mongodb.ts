@@ -1,5 +1,5 @@
 import { conexion } from "../conexion/mongodb";
-import { TicketsInterface } from "./tickets.interface";
+import { TicketsInterface, TicketsInterfaceBackUp } from "./tickets.interface";
 import { UtilesModule } from "../utiles/utiles.module";
 import { ticketsInstance } from "./tickets.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
@@ -34,7 +34,7 @@ export async function getTicketsIntervalo(
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
   return await tickets
-    .find({ timestamp: { $lte: finalTime, $gte: inicioTime } })
+    .find({ timestamp: {  $gte: inicioTime } })
     .toArray();
 }
 
@@ -42,6 +42,7 @@ export async function getUltimoTicketIntervalo(
   inicioTime: number,
   finalTime: number
 ): Promise<TicketsInterface[]> {
+  console.log("pasu")
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
 
@@ -133,6 +134,40 @@ export async function nuevoTicket(ticket: TicketsInterface): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
   return (await tickets.insertOne(ticket)).acknowledged;
+}
+
+/* Uri */
+export async function nuevoTicketBackUP(
+  ticket: TicketsInterfaceBackUp
+): Promise<boolean> {
+  let ticketExist = await this.getTicketByID(ticket._id);
+  if (ticketExist != null) {
+    await actualizarTotalArticulo(
+      ticketExist._id,
+      ticketExist.total,
+      ticket.total
+    );
+    return;
+  }
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterfaceBackUp>("tickets");
+  return (await tickets.insertOne(ticket)).acknowledged;
+}
+
+/* Uri */
+export async function actualizarTotalArticulo(existTicketId, total, sum) {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  return (
+    await tickets.updateOne(
+      { _id: existTicketId },
+      {
+        $set: {
+          total: total + sum,
+        },
+      }
+    )
+  ).acknowledged;
 }
 
 /* Eze v23 */

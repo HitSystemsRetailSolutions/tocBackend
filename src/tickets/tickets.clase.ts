@@ -1,4 +1,4 @@
-import { TicketsInterface } from "./tickets.interface";
+import { TicketsInterface, TicketsInterfaceBackUp } from "./tickets.interface";
 import * as schTickets from "./tickets.mongodb";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { CestasInterface } from "../cestas/cestas.interface";
@@ -96,6 +96,35 @@ export class TicketsClase {
       throw Error("No se han podido descontar los puntos");
     }
     return await schTickets.nuevoTicket(ticket);
+  }
+
+  /* Uri 4.0 */
+  async InsertatTicketBackUp(
+    _id,
+    timestamp,
+    total,
+    idTrabajador,
+    consumoPersonal
+  ): Promise<boolean> {
+    let ticket: TicketsInterfaceBackUp = {
+      _id: _id,
+      timestamp: Date.parse(timestamp),
+      total: total,
+      idTrabajador: idTrabajador,
+      consumoPersonal: consumoPersonal,
+      enviado: true,
+    };
+    return await schTickets.nuevoTicketBackUP(ticket);
+  }
+
+  /* Uri 4.0 */
+  async editarTotalTicket(_id, total): Promise<boolean> {
+    let ticketExist = await schTickets.getTicketByID(_id);
+    return await schTickets.actualizarTotalArticulo(
+      ticketExist._id,
+      ticketExist.total,
+      total
+    );
   }
 
   /* Eze 4.0 */

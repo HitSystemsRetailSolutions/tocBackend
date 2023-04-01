@@ -16,6 +16,15 @@ export interface TicketsInterface {
   enviado: boolean;
 }
 
+export interface TicketsInterfaceBackUp {
+  _id: number;
+  timestamp: number;
+  total: number;
+  idTrabajador: number;
+  consumoPersonal?: boolean;
+  enviado:boolean;
+}
+
 export interface SuperTicketInterface extends TicketsInterface {
   tipoPago: FormaPago;
   movimientos: MovimientosInterface[];

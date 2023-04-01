@@ -11,9 +11,11 @@ import { menusInstance } from "../menus/menus.clase";
 import { tecladoInstance } from "../teclado/teclado.clase";
 import { tarifasInstance } from "../tarifas/tarifas.class";
 import { logger } from "../logger";
-import { networkInterfaces } from "os";
+import { networkInterfaces, totalmem } from "os";
 import { MovimientosInterface } from "src/movimientos/movimientos.interface";
 import { cestasInstance } from "src/cestas/cestas.clase";
+import { cajaInstance } from "src/caja/caja.clase";
+import { ticketsInstance } from "src/tickets/tickets.clase";
 
 @Controller("instalador")
 export class InstaladorController {
@@ -145,15 +147,15 @@ export class InstaladorController {
   @Post("descargarTodo")
   async descargarTodo() {
     try {
+      console.log("Solicito datos");
       const parametros = await parametrosInstance.getParametros();
       const res: any = await axios.post("datos/cargarTodo", {
         database: parametros.database,
         codigoTienda: parametros.codigoTienda,
         licencia: parametros.licencia,
       });
-
       if (res.data) {
-        console.log("recivo")
+        console.log("recibo datos");
         const trabajadores = await trabajadoresInstance.insertarTrabajadores(
           res.data.dependientas
         );
@@ -169,39 +171,137 @@ export class InstaladorController {
         const promociones = await nuevaInstancePromociones.insertarPromociones(
           res.data.promociones
         );
-        if(res.data.movimientos.length > 0){
-          let movData = res.data.movimientos[0]
-          const movimientos = await movimientosInstance.insertMovimientos(
-            movData.Import,movData.Motiu,"SALIDA",null,movData.Dependenta
-          );
-        }
-        const fichajes = await trabajadoresInstance.nuevoFichajesSincro(
-          "ENTRADA",Number.parseInt(res.data.fichajes[0].usuari)
-        );
-        const idCesta = await cestasInstance.crearCesta();
-        if (await trabajadoresInstance.setIdCesta(Number.parseInt(res.data.fichajes[0].usuari), idCesta))
-          trabajadoresInstance.ficharTrabajador(Number.parseInt(res.data.fichajes[0].usuari));
-
         const teclas = await tecladoInstance.insertarTeclas(res.data.teclas);
-        console.log(teclas)
         const tarifas = await tarifasInstance.guardarTarifasEspeciales(
           res.data.tarifasEspeciales
         );
-          console.log("Todo instalado")
+        console.log("Todo lo necesario instalado");
         if (
           // Solo los datos obligatorios
           trabajadores &&
           articulos &&
           teclas
         ) {
-          return true;
+          return await this.descargarUltimo();
         }
-        throw Error(
-          `Backend: res1: ${trabajadores}, res2: ${articulos}, res3: ${clientes}, res4: ${familias}, res5: ${promociones}, res7: ${teclas}, res8: ${tarifas}, res10: ${fichajes}`
+        console.log(
+          `Backend: res1: ${trabajadores}, res2: ${articulos}, res3: ${clientes}, res4: ${familias}, res5: ${promociones}, res7: ${teclas}, res8: ${tarifas}`
         );
       }
       throw Error("Error de autenticación en SanPedro");
     } catch (err) {
+      console.log(err);
+      logger.Error(95, err);
+      return false;
+    }
+  }
+
+  async descargarUltimo() {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      const res: any = await axios.post("datos/cargarUltimo", {
+        database: parametros.database,
+        codigoTienda: parametros.codigoTienda,
+        licencia: parametros.licencia,
+      });
+
+      if (res.data) {
+        console.log(res.data.fichajes)
+        if (res.data.fichajes.length > 0) {
+          const idCesta = await cestasInstance.crearCesta();
+          if (
+            await trabajadoresInstance.setIdCesta(
+              Number.parseInt(res.data.fichajes[0].usuari),
+              idCesta
+            )
+          )
+            trabajadoresInstance.ficharTrabajador(
+              Number.parseInt(res.data.fichajes[0].usuari)
+            );
+        }
+        if (res.data.movimientos.length > 0) {
+          let movData = res.data.movimientos[0];
+          const movimientos = await movimientosInstance.insertMovimientos(
+            movData.Import,
+            movData.Motiu,
+            "SALIDA",
+            null,
+            movData.Dependenta
+          );
+        }
+        let monedas = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+        let monedasCaja = [];
+        let totalMonedas = 0;
+        if (res.data.UltimoCierre.length > 0) {
+          monedas = [];
+          res.data.UltimoCierre.forEach((element) => {
+            monedas.push(
+              element.Import /
+                Number(element.Motiu.toString().replace("En : ", ""))
+            );
+            monedasCaja.push({
+              _id: element.Motiu.toString().replace("En : ", ""),
+              valor: element.Import,
+              unidades: element.Import/Number(element.Motiu.toString().replace("En : ", "")),
+            });
+          });
+          const UltimoCierre = await cajaInstance.guardarMonedas(
+            monedas,
+            "CLAUSURA"
+          );
+          totalMonedas += monedas[0] * 0.01;
+          totalMonedas += monedas[1] * 0.02;
+          totalMonedas += monedas[2] * 0.05;
+          totalMonedas += monedas[3] * 0.1;
+          totalMonedas += monedas[4] * 0.2;
+          totalMonedas += monedas[5] * 0.5;
+          totalMonedas += monedas[6] * 1;
+          totalMonedas += monedas[7] * 2;
+          totalMonedas += monedas[8] * 5;
+          totalMonedas += monedas[9] * 10;
+          totalMonedas += monedas[10] * 20;
+          totalMonedas += monedas[11] * 50;
+          totalMonedas += monedas[12] * 100;
+          totalMonedas += monedas[13] * 200;
+          totalMonedas += monedas[14] * 500;
+        }
+
+        if (res.data.tickets.length > 0) {
+          let ticketProcessed = [];
+          for (let i = 0; i < res.data.tickets.length; i++) {
+            let e = res.data.tickets[i];
+            if (ticketProcessed.includes(e.Num_tick)) {
+              const Tickets = await ticketsInstance.editarTotalTicket(
+                e.Num_tick,
+                e.Import
+              );
+            } else {
+              ticketProcessed.push(e.Num_tick);
+              const Tickets = await ticketsInstance.InsertatTicketBackUp(
+                e.Num_tick,
+                e.Data,
+                e.Import,
+                e.Dependenta,
+                false
+              );
+            }
+          }
+          let Dependenta = res.data.tickets[0].Dependenta
+          if(res.data.fichajes.length > 0)res.data.fichajes[0].usuari
+          await cajaInstance.abrirCaja({
+            detalleApertura: monedasCaja,
+            idDependientaApertura: Number.parseInt(Dependenta),
+            inicioTime: Date.parse(res.data.tickets[res.data.tickets.length -1].Data),
+            totalApertura: totalMonedas,
+          });
+        }
+        console.log("opcionales instalados");
+        return [1,monedas];
+      }
+      console.error("Error de autenticación en SanPedro");
+      return [0,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
+    } catch (err) {
+      console.log(err);
       logger.Error(95, err);
       return false;
     }
