@@ -62,6 +62,17 @@ export async function getTrabajadoresFichados(): Promise<
   return await trabajadores.find({ fichado: true }).toArray();
 }
 
+/* Uri*/
+export async function getTrabajadorFichados(trabajador): Promise<
+  TrabajadoresInterface[]
+> {
+  const database = (await conexion).db("tocgame");
+  const trabajadores =
+    database.collection<TrabajadoresInterface>("trabajadores");
+  console.log(await trabajadores.find({ fichado: true, idTrabajador:trabajador }).toArray())
+  return await trabajadores.find({ fichado: true, idTrabajador:trabajador }).toArray();
+}
+
 /* Eze 4.0 */
 export async function getTrabajadoresDescansando(): Promise<
   TrabajadoresInterface[]

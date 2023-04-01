@@ -7,6 +7,8 @@ import {
 import axios from "axios";
 import { parametrosInstance } from "./parametros/parametros.clase";
 import { logger } from "./logger";
+import { url } from "inspector";
+var ip = require("ip");
 require("./sincro");
 require("./sockets.gateway");
 
@@ -25,7 +27,7 @@ parametrosInstance
     logger.Error(125, err);
   });
 
-async function bootstrap() {
+async function bootstrap(ip,port) {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
@@ -36,9 +38,9 @@ async function bootstrap() {
       },
     }
   );
-  // app.enableCors();
-  await app.listen(3000);
+  await app.listen(port,ip);
   // await app.listen(3000,"10.137.0.201"); //para iterum ubuntu
   // await app.listen(3000,"10.137.0.243"); //para iterum windows
 }
-bootstrap();
+bootstrap(ip.address(),3000);
+bootstrap("localhost",3000);
