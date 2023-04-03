@@ -515,7 +515,7 @@ export class Impresora {
           .size(1, 1)
           .text(movimiento.concepto)
           .text("")
-          .barcode(movimiento.codigoBarras.slice(0, 12), "EAN13", 4)
+          .barcode(movimiento.codigoBarras ? movimiento.codigoBarras.slice(0, 12) : '', "EAN13", 4)
           .text("")
           .text("")
           .text("")
