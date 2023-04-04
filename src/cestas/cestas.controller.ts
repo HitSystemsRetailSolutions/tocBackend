@@ -25,7 +25,7 @@ export class CestasController {
   async fulminarCesta(@Body() { idCesta }) {
     try {
       if (idCesta) {
-        if (await cestasInstance.deleteCesta(idCesta)) {
+        if (await cestasInstance.deleteCestaMesa(idCesta)) {
           cestasInstance.actualizarCestas();
           return true;
         }
