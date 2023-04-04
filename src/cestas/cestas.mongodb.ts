@@ -17,7 +17,7 @@ export async function deleteCesta(
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const cesta = database.collection<CestasInterface>("cestas");
-  const resultado = await cesta.deleteOne({ _id: new ObjectId(idCesta) });
+  const resultado = await cesta.deleteOne({ _id: new ObjectId(idCesta), indexMesa: null});
   return resultado.acknowledged && resultado.deletedCount === 1;
 }
 
