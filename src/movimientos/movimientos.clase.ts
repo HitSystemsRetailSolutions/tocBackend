@@ -63,7 +63,9 @@ export class MovimientosClase {
     };
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
-      impresoraInstance.imprimirSalida(nuevoMovimiento);
+      if (concepto === "Entrega Diària") {
+        impresoraInstance.imprimirSalida(nuevoMovimiento); 
+      }
       return true;
     }
     return false;

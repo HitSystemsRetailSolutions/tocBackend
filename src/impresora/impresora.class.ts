@@ -496,32 +496,35 @@ export class Impresora {
       );
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
-      this.enviarMQTT(
-        printer
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .align("CT")
-          .size(0, 0)
-          .text(parametros.nombreTienda)
-          .text(fechaStr)
-          .text("Dependienta: " + trabajador.nombre)
-          .text("Retirada efectivo: " + movimiento.valor)
-          .size(1, 1)
-          .text(movimiento.valor)
-          .size(0, 0)
-          .text("Concepto")
-          .size(1, 1)
-          .text(movimiento.concepto)
-          .text("")
-          .barcode(movimiento.codigoBarras.slice(0, 12), "EAN13", 4)
-          .text("")
-          .text("")
-          .text("")
-          .cut()
-          .close().buffer._buffer
-      );
+      let buffer = printer
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .align("CT")
+        .size(0, 0)
+        .text(parametros.nombreTienda)
+        .text(fechaStr)
+        .text("Dependienta: " + trabajador.nombre)
+        .text("Retirada efectivo: " + movimiento.valor)
+        .size(1, 1)
+        .text(movimiento.valor)
+        .size(0, 0)
+        .text("Concepto")
+        .size(1, 1)
+        .text(movimiento.concepto);
+
+      if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
+        buffer = buffer.barcode(
+          movimiento.codigoBarras.slice(0, 12),
+          "EAN13",
+          4
+        );
+      }
+
+      buffer = buffer.text("").text("").text("").cut().close().buffer._buffer;
+
+      this.enviarMQTT(buffer);
     } catch (err) {
       logger.Error(146, err);
     }
