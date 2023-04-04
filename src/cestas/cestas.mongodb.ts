@@ -21,6 +21,16 @@ export async function deleteCesta(
   return resultado.acknowledged && resultado.deletedCount === 1;
 }
 
+/* Uri */
+export async function deleteCestaMesa(
+  idCesta: CestasInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const cesta = database.collection<CestasInterface>("cestas");
+  const resultado = await cesta.deleteOne({ _id: new ObjectId(idCesta)});
+  return resultado.acknowledged && resultado.deletedCount === 1;
+}
+
 /* Eze 4.0 */
 export async function getAllCestas(): Promise<CestasInterface[]> {
   const database = (await conexion).db("tocgame");
