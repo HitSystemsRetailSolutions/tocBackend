@@ -75,6 +75,10 @@ export class CestaClase {
   deleteCesta = async (idCesta: CestasInterface["_id"]) =>
     await schCestas.deleteCesta(idCesta);
 
+  /* Uri*/
+  deleteCestaMesa = async (idCesta: CestasInterface["_id"],) =>
+    await schCestas.deleteCestaMesa(idCesta);
+  
   /* Eze 4.0 */
   async crearCesta(indexMesa = null): Promise<CestasInterface["_id"]> {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId());
