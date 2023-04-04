@@ -42,7 +42,6 @@ export async function getUltimoTicketIntervalo(
   inicioTime: number,
   finalTime: number
 ): Promise<TicketsInterface[]> {
-  console.log("pasu")
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
 
