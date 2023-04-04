@@ -277,7 +277,13 @@ export class Impresora {
           arrayCompra[i].promocion.cantidadArticuloPrincipal
         }     ${nombrePrincipal.slice(0, 20)}       ${arrayCompra[
           i
-        ].promocion.precioRealArticuloPrincipal.toFixed(2)}\n`;
+        ].subtotal.toFixed(2)}\n`;
+        detalles += `     >     ${
+          nombrePrincipal.slice(0, 20) +
+          "(x" +
+          arrayCompra[i].promocion.cantidadArticuloPrincipal +
+          ")"
+        } ${arrayCompra[i].promocion.precioRealArticuloPrincipal.toFixed(2)}\n`;
         if (arrayCompra[i].promocion.cantidadArticuloSecundario > 0) {
           let nombreSecundario = (
             await articulosInstance.getInfoArticulo(
@@ -288,12 +294,20 @@ export class Impresora {
           while (nombreSecundario.length < 20) {
             nombreSecundario += " ";
           }
-          detalles += `${
+          /*detalles += `${
             arrayCompra[i].unidades *
             arrayCompra[i].promocion.cantidadArticuloSecundario
           }     ${nombreSecundario.slice(0, 20)}       ${arrayCompra[
             i
-          ].promocion.precioRealArticuloSecundario.toFixed(2)}\n`;
+          ].promocion.precioRealArticuloSecundario.toFixed(2)}\n`;*/
+          detalles += `     >     ${
+            nombreSecundario.slice(0, 20) +
+            "(x" +
+            arrayCompra[i].promocion.cantidadArticuloSecundario +
+            ")"
+          } ${arrayCompra[i].promocion.precioRealArticuloSecundario.toFixed(
+            2
+          )}\n`;
         }
       } else if (
         arrayCompra[i].arraySuplementos &&
