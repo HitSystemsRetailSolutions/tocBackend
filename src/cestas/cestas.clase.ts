@@ -3,12 +3,13 @@ import {
   CestasInterface,
   DetalleIvaInterface,
   ItemLista,
+  ModoCesta,
 } from "./cestas.interface";
 import {
   construirObjetoIvas,
   fusionarObjetosDetalleIva,
 } from "../funciones/funciones";
-import { articulosInstance } from "../articulos/articulos.clase";
+import { Articulos, articulosInstance } from "../articulos/articulos.clase";
 import { cajaInstance } from "../caja/caja.clase";
 import { ArticulosInterface } from "../articulos/articulos.interface";
 import { ClientesInterface } from "../clientes/clientes.interface";
@@ -40,7 +41,7 @@ export class CestaClase {
     await schCestas.getCestaById(idCesta);
 
   /* Eze 4.0 */
-  private generarObjetoCesta(nuevoId: CestasInterface["_id"]): CestasInterface {
+  private generarObjetoCesta(nuevoId: CestasInterface["_id"],modoV:ModoCesta = "VENTA"): CestasInterface {
     return {
       _id: nuevoId,
       timestamp: Date.now(),
@@ -62,7 +63,7 @@ export class CestaClase {
         importe5: 0,
       },
       lista: [],
-      modo: "VENTA",
+      modo: modoV,
       idCliente: null,
       indexMesa: null,
     };
@@ -76,15 +77,50 @@ export class CestaClase {
     await schCestas.deleteCesta(idCesta);
 
   /* Uri*/
-  deleteCestaMesa = async (idCesta: CestasInterface["_id"],) =>
+  deleteCestaMesa = async (idCesta: CestasInterface["_id"]) =>
     await schCestas.deleteCestaMesa(idCesta);
-  
+
   /* Eze 4.0 */
   async crearCesta(indexMesa = null): Promise<CestasInterface["_id"]> {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId());
     nuevaCesta.indexMesa = indexMesa;
     if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
     throw Error("Error, no se ha podido crear la cesta");
+  }
+
+  async CestaPagoSeparado(articulos) {
+    const nuevaCesta = this.generarObjetoCesta(new ObjectId(),"PAGO SEPARADO");
+    nuevaCesta.indexMesa = null;
+    let id = undefined;
+    if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
+    if (id != undefined) {
+      for (let i = 0; i < articulos.length; i++){
+        let e = articulos[i]
+        await this.clickTeclaArticulo(
+          e.idArticulo,
+          e.gramos,
+          id,
+          e.unidades,
+          e.arraySuplementos
+        );
+      }
+      return id;
+    }
+  }
+
+  
+  async DevolverCestaPagoSeparado(cesta,articulos) {
+      for (let i = 0; i < articulos.length; i++){
+        let e = articulos[i]
+        await this.clickTeclaArticulo(
+          e.idArticulo,
+          e.gramos,
+          cesta,
+          e.unidades,
+          e.arraySuplementos
+        );
+      }
+      return true;
   }
 
   /* Eze 4.0 */
@@ -107,6 +143,38 @@ export class CestaClase {
       await this.recalcularIvas(cesta);
       if (await this.updateCesta(cesta)) {
         this.actualizarCestas();
+        return true;
+      }
+      throw Error(
+        "Error, no se ha podido actualizar la cesta borrarItemCesta()"
+      );
+    } catch (err) {
+      logger.Error(57, err);
+      return false;
+    }
+  }
+
+  /* Eze 4.0 */
+  async borrarUnicoItemCesta(
+    idCesta: CestasInterface["_id"],
+    articulos: any
+  ): Promise<boolean> {
+    try {
+      let cesta = await this.getCestaById(idCesta);
+      for (let x = 0; x < articulos.length; x++) {
+        let i = cesta.lista.findIndex(
+          (z) => z.idArticulo == articulos[x].idArticulo
+        );
+        if (cesta.lista[i].unidades > 1) {
+          cesta.lista[i].unidades -= 1;
+        } else {
+          cesta.lista.splice(i, 1);
+        }
+      }
+      // Enviar por socket
+      await this.recalcularIvas(cesta);
+      if (await this.updateCesta(cesta)) {
+        await this.actualizarCestas();
         return true;
       }
       throw Error(

@@ -51,6 +51,41 @@ export class CestasController {
     }
   }
 
+  /* Uri */
+  @Post("borrarUnicoItemCesta")
+  async borrarUnicoItemCesta(@Body() { idCesta, articulos }) {
+    try {
+      return await cestasInstance.borrarUnicoItemCesta(idCesta, articulos);
+    } catch (err) {
+      console.log("s");
+      logger.Error(59, err);
+      return false;
+    }
+  }
+  /* Uri */
+  @Post("PagarPorSeparado")
+  async PagarPorSeparado(@Body() { articulos }) {
+    try {
+        return await cestasInstance.CestaPagoSeparado(articulos);
+      throw Error("Error, faltan datos en getCestaById() controller");
+    } catch (err) {
+      logger.Error(60, err);
+      return null;
+    }
+  }
+
+   /* Uri */
+   @Post("DevolverProductosACestaSep")
+   async DevolverProductosACestaSep(@Body() { cesta,articulos }) {
+     try {
+         return await cestasInstance.DevolverCestaPagoSeparado(cesta,articulos);
+       throw Error("Error, faltan datos en getCestaById() controller");
+     } catch (err) {
+       logger.Error(60, err);
+       return null;
+     }
+   }
+
   /* Eze 4.0  (probablemente no se usará porque irá por socket)*/
   @Post("getCestaById")
   async getCestaByID(@Body() { idCesta }) {
@@ -104,8 +139,8 @@ export class CestasController {
     try {
       if (idCesta && idTrabajador)
         if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta)) {
-          cestasInstance.actualizarCestas();
-          trabajadoresInstance.actualizarTrabajadoresFrontend();
+          await cestasInstance.actualizarCestas();
+          await trabajadoresInstance.actualizarTrabajadoresFrontend();
           return true;
         }
       throw Error("Error, faltan datos en cambiarCestaTrabajador controller");
