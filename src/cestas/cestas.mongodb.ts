@@ -17,7 +17,10 @@ export async function deleteCesta(
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const cesta = database.collection<CestasInterface>("cestas");
-  const resultado = await cesta.deleteOne({ _id: new ObjectId(idCesta), indexMesa: null});
+  const resultado = await cesta.deleteOne({
+    _id: new ObjectId(idCesta),
+    indexMesa: null,
+  });
   return resultado.acknowledged && resultado.deletedCount === 1;
 }
 
@@ -27,7 +30,7 @@ export async function deleteCestaMesa(
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const cesta = database.collection<CestasInterface>("cestas");
-  const resultado = await cesta.deleteOne({ _id: new ObjectId(idCesta)});
+  const resultado = await cesta.deleteOne({ _id: new ObjectId(idCesta) });
   return resultado.acknowledged && resultado.deletedCount === 1;
 }
 
@@ -56,6 +59,55 @@ export async function updateCesta(cesta: CestasInterface): Promise<boolean> {
     }
   );
   return resultado.acknowledged && resultado.matchedCount === 1;
+}
+
+/* Uri */
+export async function eliminarTrabajadorDeCesta(trabajador): Promise<boolean> {
+  try {
+    const database = (await conexion).db("tocgame");
+    const unaCesta = database.collection<CestasInterface>("cestas");
+    let trabajadoresEnCesta = await unaCesta.findOne({
+      trabajadores: trabajador,
+    });
+    let idtrabajadoresEnCesta = trabajadoresEnCesta._id;
+    let trab = trabajadoresEnCesta.trabajadores.splice(
+      trabajadoresEnCesta.trabajadores.indexOf(trabajador),
+      0
+    );
+    const resultado = await unaCesta.updateOne(
+      { _id: new ObjectId(idtrabajadoresEnCesta) },
+      {
+        $set: {
+          trabajadores: trab,
+        },
+      }
+    );
+    return resultado.acknowledged;
+  } catch (e) {
+    console.log(e);
+    return false;
+  }
+}
+
+/* Uri */
+export async function trabajadorEnCesta(idcesta, trabajador): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const unaCesta = database.collection<CestasInterface>("cestas");
+  let deleted = await eliminarTrabajadorDeCesta(trabajador);
+  let trabajadoresEnCesta = (
+    await unaCesta.findOne({ _id: new ObjectId(idcesta) })
+  ).trabajadores;
+  console.log(trabajadoresEnCesta, idcesta);
+  trabajadoresEnCesta.push(trabajador);
+  const resultado = await unaCesta.updateOne(
+    { _id: new ObjectId(idcesta) },
+    {
+      $set: {
+        trabajadores: trabajadoresEnCesta,
+      },
+    }
+  );
+  return resultado.acknowledged;
 }
 
 /* Eze 4.0 */

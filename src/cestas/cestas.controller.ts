@@ -104,6 +104,7 @@ export class CestasController {
     try {
       if (idCesta && idTrabajador)
         if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta)) {
+          cestasInstance.setTrabajadorCesta(idCesta,idTrabajador)
           cestasInstance.actualizarCestas();
           trabajadoresInstance.actualizarTrabajadoresFrontend();
           return true;

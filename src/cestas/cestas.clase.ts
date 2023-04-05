@@ -65,11 +65,16 @@ export class CestaClase {
       modo: "VENTA",
       idCliente: null,
       indexMesa: null,
+      trabajadores: []
     };
   }
 
   /* Eze 4.0 */
   getAllCestas = async () => await schCestas.getAllCestas();
+
+  /* Uri */
+
+  setTrabajadorCesta = async(idcesta,trabajador) => await schCestas.trabajadorEnCesta(idcesta,trabajador);
 
   /* Eze 4.0 */
   deleteCesta = async (idCesta: CestasInterface["_id"]) =>
