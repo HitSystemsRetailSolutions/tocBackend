@@ -35,7 +35,7 @@ export async function deleteCestaMesa(
 export async function getAllCestas(): Promise<CestasInterface[]> {
   const database = (await conexion).db("tocgame");
   const cesta = database.collection<CestasInterface>("cestas");
-  return await cesta.find().toArray();
+  return await cesta.find().sort( { indexMesa: 1 } ).toArray();
 }
 
 /* Eze 4.0 */
