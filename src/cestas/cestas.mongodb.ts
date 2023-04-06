@@ -69,13 +69,14 @@ export async function eliminarTrabajadorDeCesta(trabajador): Promise<boolean> {
     let trabajadoresEnCesta = await unaCesta.findOne({
       trabajadores: trabajador,
     });
-    let idtrabajadoresEnCesta = trabajadoresEnCesta._id;
-    let trab = trabajadoresEnCesta.trabajadores.splice(
-      trabajadoresEnCesta.trabajadores.indexOf(trabajador),
-      0
-    );
+    let trab = trabajadoresEnCesta.trabajadores;
+    for (let i = 0; i < trab.length; i++) {
+      if (trabajadoresEnCesta.trabajadores[i] == trabajador) {
+        trab.splice(i, 1);
+      }
+    }
     const resultado = await unaCesta.updateOne(
-      { _id: new ObjectId(idtrabajadoresEnCesta) },
+      { _id: new ObjectId(trabajadoresEnCesta._id) },
       {
         $set: {
           trabajadores: trab,
@@ -84,7 +85,6 @@ export async function eliminarTrabajadorDeCesta(trabajador): Promise<boolean> {
     );
     return resultado.acknowledged;
   } catch (e) {
-    console.log(e);
     return false;
   }
 }
