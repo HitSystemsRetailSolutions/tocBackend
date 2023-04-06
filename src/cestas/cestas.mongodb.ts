@@ -97,7 +97,6 @@ export async function trabajadorEnCesta(idcesta, trabajador): Promise<boolean> {
   let trabajadoresEnCesta = (
     await unaCesta.findOne({ _id: new ObjectId(idcesta) })
   ).trabajadores;
-  console.log(trabajadoresEnCesta, idcesta);
   trabajadoresEnCesta.push(trabajador);
   const resultado = await unaCesta.updateOne(
     { _id: new ObjectId(idcesta) },
