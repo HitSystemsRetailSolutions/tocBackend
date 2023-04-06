@@ -3,7 +3,7 @@ import { apagarinstance } from "./apagar.class";
 
 @Controller("controlTpv")
 export class ApagarController {
-  @Get()
+  @Get("ApagarOrdenador")
   apagar() {
     return apagarinstance.apagarEquipo();
   }
