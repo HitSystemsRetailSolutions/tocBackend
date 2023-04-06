@@ -181,6 +181,7 @@ export class TecladoClase {
             pos: teclas[i].pos,
             color: teclas[i].color,
             esSumable: teclas[i].esSumable,
+            suplementos: teclas[i].suplementos,
           }
         );
       } else {
