@@ -180,7 +180,7 @@ export class CestaClase {
           cesta.lista[i].idArticulo === articulo._id &&
           !cesta.lista[i].promocion &&
           !cesta.lista[i].regalo &&
-          (!infoArticulo.suplementos || infoArticulo.suplementos.length < 1)
+          (!infoArticulo.suplementos || infoArticulo.suplementos.length < 1) && cesta.lista[i].gramos == null
         ) {
           cesta.lista[i].unidades += unidades;
           cesta.lista[i].subtotal = Number(
@@ -245,7 +245,6 @@ export class CestaClase {
           cesta.idCliente
         );
       }
-
       // Va a peso. 1 unidad son 1000 gramos. Los precios son por kilogramo.
       if (gramos > 0)
         return await this.insertarArticulo(
