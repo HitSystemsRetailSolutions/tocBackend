@@ -54,4 +54,4 @@ export type DetalleIvaInterface = {
 };
 
 export type TiposPromociones = "COMBO" | "INDIVIDUAL";
-export type ModoCesta = "VENTA" | "CONSUMO_PERSONAL" | "DEVOLUCION";
+export type ModoCesta = "VENTA" | "CONSUMO_PERSONAL" | "DEVOLUCION" | "PAGO SEPARADO";
