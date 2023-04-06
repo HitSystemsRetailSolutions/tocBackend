@@ -4,8 +4,10 @@ export class Apagar {
   apagarEquipo() {
     if (os.platform() === "linux") {
       exec("sudo -s shutdown now");
+      return true;
     } else {
       exec("shutdown /p");
+      return true;
     }
   }
 }
