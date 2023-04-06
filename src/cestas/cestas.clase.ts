@@ -66,11 +66,16 @@ export class CestaClase {
       modo: modoV,
       idCliente: null,
       indexMesa: null,
+      trabajadores: []
     };
   }
 
   /* Eze 4.0 */
   getAllCestas = async () => await schCestas.getAllCestas();
+
+  /* Uri */
+
+  setTrabajadorCesta = async(idcesta,trabajador) => await schCestas.trabajadorEnCesta(idcesta,trabajador);
 
   /* Eze 4.0 */
   deleteCesta = async (idCesta: CestasInterface["_id"]) =>
@@ -252,7 +257,7 @@ export class CestaClase {
           cesta.lista[i].idArticulo === articulo._id &&
           !cesta.lista[i].promocion &&
           !cesta.lista[i].regalo &&
-          (!infoArticulo.suplementos || infoArticulo.suplementos.length < 1)
+          (!infoArticulo.suplementos || infoArticulo.suplementos.length < 1) && cesta.lista[i].gramos == null
         ) {
           cesta.lista[i].unidades += unidades;
           cesta.lista[i].subtotal = Number(
@@ -317,7 +322,6 @@ export class CestaClase {
           cesta.idCliente
         );
       }
-
       // Va a peso. 1 unidad son 1000 gramos. Los precios son por kilogramo.
       if (gramos > 0)
         return await this.insertarArticulo(

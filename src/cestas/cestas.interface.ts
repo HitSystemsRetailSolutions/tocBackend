@@ -11,6 +11,7 @@ export interface CestasInterface {
   idCliente: ClientesInterface["id"];
   nombreCliente?: string;
   indexMesa?: boolean;
+  trabajadores: ObjectId[];
 }
 
 export type ItemLista = {
