@@ -4,6 +4,16 @@ import { encargosInstance } from "./encargos.clase";
 
 @Controller("encargos")
 export class EncargosController {
+  @Post("getEncargos")
+  async getEncargos(){
+    try {
+      console.log("encargos")
+      return await encargosInstance.getEncargos();
+  } catch (err) {
+    logger.Error(50, err);
+    return null;
+  }
+  }
   @Post("setEncargo")
   async setEncargo(@Body() data) {
     try {

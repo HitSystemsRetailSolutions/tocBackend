@@ -1,13 +1,22 @@
 import { conexion } from "../conexion/mongodb";
 import { EncargosInterface } from "./encargos.interface";
 
-export async function setEncargo(encargo): Promise<boolean> {
+export async function getEncargos(): Promise <EncargosInterface[]>{
   const database = (await conexion).db("tocgame");
   const encargos =
     database.collection<EncargosInterface>("encargos");
+    console.log(await encargos.find({ recogido: false }).toArray())
+    return await encargos.find({ recogido: false }).toArray();
+}
+export async function setEncargo(encargo): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
   // Insertamos todas las traducciones en la tabla traducciones.
   return encargos
     .insertOne(encargo)
     .then(() => true)
-    .catch((err: any) => { console.log(err); return false});
+    .catch((err: any) => {
+      console.log(err);
+      return false;
+    });
 }
