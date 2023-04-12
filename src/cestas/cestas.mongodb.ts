@@ -71,11 +71,9 @@ export async function eliminarTrabajadorDeCesta(trabajador): Promise<boolean> {
     });
     let trab = trabajadoresEnCesta.trabajadores;
     for (let i = 0; i < trab.length; i++) {
-      if (trabajadoresEnCesta.trabajadores[i] == trabajador) {
-        trab.splice(i, 1);
-      }
+      if (trabajadoresEnCesta.trabajadores[i] == trabajador) trab.splice(i, 1);
     }
-    const resultado = await unaCesta.updateOne(
+    await unaCesta.updateOne(
       { _id: new ObjectId(trabajadoresEnCesta._id) },
       {
         $set: {
@@ -83,7 +81,7 @@ export async function eliminarTrabajadorDeCesta(trabajador): Promise<boolean> {
         },
       }
     );
-    return resultado.acknowledged;
+    return true;
   } catch (e) {
     return false;
   }
@@ -93,16 +91,18 @@ export async function eliminarTrabajadorDeCesta(trabajador): Promise<boolean> {
 export async function trabajadorEnCesta(idcesta, trabajador): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const unaCesta = database.collection<CestasInterface>("cestas");
-  let deleted = await eliminarTrabajadorDeCesta(trabajador);
-  let trabajadoresEnCesta = (
-    await unaCesta.findOne({ _id: new ObjectId(idcesta) })
-  ).trabajadores;
-  trabajadoresEnCesta.push(trabajador);
+  await eliminarTrabajadorDeCesta(trabajador);
+  let trabajadoresEnCesta = await unaCesta.findOne({
+    _id: new ObjectId(idcesta),
+  });
+  let x = trabajadoresEnCesta?.trabajadores;
+  if (x == undefined) x = [];
+  x.push(trabajador);
   const resultado = await unaCesta.updateOne(
     { _id: new ObjectId(idcesta) },
     {
       $set: {
-        trabajadores: trabajadoresEnCesta,
+        trabajadores: x,
       },
     }
   );
