@@ -206,7 +206,6 @@ export class InstaladorController {
       });
 
       if (res.data) {
-        console.log(res.data.fichajes)
         if (res.data.fichajes.length > 0) {
           const idCesta = await cestasInstance.crearCesta();
           if (
@@ -288,10 +287,12 @@ export class InstaladorController {
           }
           let Dependenta = res.data.tickets[0].Dependenta
           if(res.data.fichajes.length > 0)res.data.fichajes[0].usuari
+          let date = new Date(res.data.tickets[res.data.tickets.length -1].Data)
+          date.setHours(date.getHours() - 2);
           await cajaInstance.abrirCaja({
             detalleApertura: monedasCaja,
             idDependientaApertura: Number.parseInt(Dependenta),
-            inicioTime: Date.parse(res.data.tickets[res.data.tickets.length -1].Data),
+            inicioTime: Date.parse(date.toString()),
             totalApertura: totalMonedas,
           });
         }
