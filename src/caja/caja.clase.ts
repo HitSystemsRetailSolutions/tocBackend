@@ -84,7 +84,6 @@ export class CajaClase {
     const cestas = await cestasInstance.getAllCestas();
     for (let i = 0; i < cestas.length; i++) {
       cestasInstance.deleteCesta(cestas[i]._id);
-      
     }
     cestasInstance.actualizarCestas();
     const finalTime = await this.getFechaCierre();
@@ -253,7 +252,6 @@ export class CajaClase {
           totalEntradaDinero += arrayMovimientos[i].valor;
           break;
         case "DATAFONO_3G":
-          totalSalidas += arrayMovimientos[i].valor;
           totalTarjeta += arrayMovimientos[i].valor;
           break;
         case "SALIDA":
@@ -278,7 +276,8 @@ export class CajaClase {
           cajaAbiertaActual.totalApertura +
           totalSalidas -
           totalEntradaDinero -
-          totalTickets) *
+          totalTickets +
+          totalDatafono3G) *
           100
       ) / 100;
 
