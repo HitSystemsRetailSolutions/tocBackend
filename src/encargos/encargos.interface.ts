@@ -28,6 +28,7 @@ export enum Periodo {
 
 export interface EncargosInterface {
   _id: string;
+  nombreCliente: string;
   amPm: string | null;
   dejaACuenta: number;
   dias: Dias[];
