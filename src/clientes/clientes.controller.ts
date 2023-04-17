@@ -46,13 +46,12 @@ export class ClientesController {
   @Post("isClienteDescuento")
   async isClienteDescuento(@Body() { idCliente }) {
     try {
-      if (!idCliente) return "0";
+      if (!idCliente) return 0;
       let cli = await clienteInstance.isClienteDescuento(idCliente);
       if (cli.nombre.toLocaleLowerCase().includes("descuento")) {
         return Number(cli.descuento);
       }
-
-      return "0";
+      return 0;
     } catch (err) {
       console.error(err);
       return null;
