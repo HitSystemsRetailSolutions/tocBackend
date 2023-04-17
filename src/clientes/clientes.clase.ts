@@ -11,7 +11,10 @@ export class Clientes {
   /* Eze 4.0 */
   getClienteById = async (idCliente: string): Promise<ClientesInterface> =>
     await schClientes.getClienteById(idCliente);
-
+  
+    isClienteDescuento = async (idCliente: string): Promise<ClientesInterface> =>
+    await schClientes.isClienteDescuento(idCliente);
+    
   /* Uri */
   getClienteByNumber = async (idTarjeta: string): Promise<ClientesInterface> =>
     await schClientes.getClienteByNumber(idTarjeta);

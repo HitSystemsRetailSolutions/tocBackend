@@ -18,8 +18,16 @@ export async function buscar(busqueda: string): Promise<ClientesInterface[]> {
     .toArray();
 }
 
-/* Eze 4.0 */getClienteByNumber
+/* Eze 4.0 */
 export async function getClienteById(
+  idCliente: ClientesInterface["id"]
+): Promise<ClientesInterface> {
+  const database = (await conexion).db("tocgame");
+  const clientes = database.collection<ClientesInterface>("clientes");
+  return await clientes.findOne({ id: idCliente });
+}
+
+export async function isClienteDescuento(
   idCliente: ClientesInterface["id"]
 ): Promise<ClientesInterface> {
   const database = (await conexion).db("tocgame");
