@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { Axios } from "axios";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { ticketsInstance } from "../tickets/tickets.clase";
@@ -41,9 +41,11 @@ class PaytefClass {
       })
         .then(async (respuestaPayef: any) => {
           if (await respuestaPayef.data.info["started"]) {
+            io.emit("procesoPaytef", { proceso: "Inicio proceso" });
             await this.bucleComprobacion(idTicket, total, idTrabajador, type);
           } else {
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
+            io.emit("procesoPaytef", { proceso: "Denegado" });
             logger.Error(
               137,
               "Error, la transacción no ha podido empezar paytef.class"
@@ -76,7 +78,7 @@ class PaytefClass {
         pinpad: "*",
       })
     ).data;
-
+    io.emit("procesoPaytef", { proceso: resEstadoPaytef.info.cardStatus });
     if (resEstadoPaytef.result) {
       if (resEstadoPaytef.result.approved) {
         if (type === "sale") {
@@ -88,6 +90,7 @@ class PaytefClass {
             idTrabajador
           );
           io.emit("consultaPaytef", true);
+          io.emit("procesoPaytef", { proceso: "aprobado" });
         } else if (type === "refund") {
           schTickets.anularTicket(idTicket);
           movimientosInstance.nuevoMovimiento(
@@ -113,6 +116,16 @@ class PaytefClass {
     } else {
       await new Promise((r) => setTimeout(r, 1000));
       await this.bucleComprobacion(idTicket, total, idTrabajador, type);
+    }
+  }
+
+  /* Uri 4.0 */
+  async detectarPytef() {
+    try {
+      const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
+      return (await axios.get(`http://${ipDatafono}:8887/`,{timeout: 500})).data;
+    } catch (e) {
+      return "error";
     }
   }
 

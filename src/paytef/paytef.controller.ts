@@ -53,6 +53,18 @@ export class PaytefController {
       return false;
     }
   }
+  /* Uri */
+  @Post("comprobarDisponibilidad")
+  async comprobarDisponibilidad() {
+    try {
+      const validIp = await paytefInstance.detectarPytef();
+      if(validIp.toString().includes("PAYTEF"))return "ONLINE";
+      return "OFFLINE";
+    } catch (err) {
+      logger.Error(131, err);
+      return false;
+    }
+  }
 
   // @Post("cobrarConTarjeta")
   // async cobrarConTarjeta(@Body() { idTrabajador, idTicket }) {
