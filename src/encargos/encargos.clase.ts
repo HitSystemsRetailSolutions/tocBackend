@@ -3,17 +3,30 @@ import * as moment from "moment";
 import { logger } from "src/logger";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import { ParametrosInterface } from "src/parametros/parametros.interface";
-import { Estat, OpcionRecogida, Periodo } from "./encargos.interface";
+import { EncargosInterface, Estat, OpcionRecogida, Periodo } from "./encargos.interface";
 import * as schEncargos from "./encargos.mongodb";
 
 export class Encargos {
-    async getEncargos() {
-        
-        return await schEncargos.getEncargos();
-        
-      }
+  async getEncargos() {
+    return await schEncargos.getEncargos();
+  }
+  setEntregado = async (id) => {
+    console.log(id);
+    return schEncargos
+      .setEntregado(id)
+      .then((ok: boolean) => {
+        if (!ok) return false;
+        return true;
+      })
+      .catch((err: string) => ({ error: true, msg: err }));
+  };
+
+  getEncargoById = async (idEncargo: EncargosInterface["_id"]) =>
+    await schEncargos.getEncargoById(idEncargo);
+
   setEncargo = async (encargo) => {
     const parametros = await parametrosInstance.getParametros();
+    console.log("cesta",encargo.cesta)
     const encargo_santAna = {
       id: await this.generateId(
         this.getDate(
@@ -72,7 +85,7 @@ export class Encargos {
     // que devuelve un boolean.
     // True -> Se han insertado correctamente el encargo.
     // False -> Ha habido algún error al insertar el encargo.
-    encargo.recogido=false;
+    encargo.recogido = false;
     console.log(encargo);
     return schEncargos
       .setEncargo(encargo)

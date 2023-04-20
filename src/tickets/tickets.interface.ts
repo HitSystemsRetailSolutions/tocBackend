@@ -9,6 +9,7 @@ export interface TicketsInterface {
   _id: number;
   timestamp: number;
   total: number;
+  dejaCuenta?: number;
   cesta: CestasInterface;
   idTrabajador: number;
   idCliente: ClientesInterface["id"];

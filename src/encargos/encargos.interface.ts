@@ -1,3 +1,5 @@
+import { CestasInterface } from "src/cestas/cestas.interface";
+
 type Dias = {
   dia: string;
   nDia: number;
@@ -37,6 +39,7 @@ export interface EncargosInterface {
   idCliente: string;
   opcionRecogida: OpcionRecogida;
   productos: Productos[];
+  cesta: CestasInterface;
   total: number;
   recogido: boolean;
 }

@@ -5,24 +5,39 @@ import { encargosInstance } from "./encargos.clase";
 @Controller("encargos")
 export class EncargosController {
   @Post("getEncargos")
-  async getEncargos(){
+  async getEncargos() {
     try {
-      console.log("encargos")
+
       return await encargosInstance.getEncargos();
-  } catch (err) {
-    logger.Error(50, err);
-    return null;
-  }
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
   }
   @Post("setEncargo")
   async setEncargo(@Body() data) {
     try {
-        if(!data || !data.productos.length || !data.total)
-            return {
-                error: true,
-                msg: 'Faltan datos.'
-            }
-        return encargosInstance.setEncargo(data);
+      if (!data || !data.productos.length || !data.total)
+        return {
+          error: true,
+          msg: "Faltan datos.",
+        };
+      return encargosInstance.setEncargo(data);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+  @Post("setEntregado")
+  async setEntregado(@Body() data) {
+    console.log("idc",data.id);
+    try {
+      if (!data.id)
+        return {
+          error: true,
+          msg: "Faltan datos.",
+        };
+      return encargosInstance.setEntregado(data.id);
     } catch (err) {
       logger.Error(50, err);
       return null;

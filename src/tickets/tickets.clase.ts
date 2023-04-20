@@ -132,12 +132,14 @@ export class TicketsClase {
     total: TicketsInterface["total"],
     idTrabajador: TicketsInterface["idTrabajador"],
     cesta: CestasInterface,
-    consumoPersonal: boolean
+    consumoPersonal: boolean,
+    dejaCuenta?: TicketsInterface["dejaCuenta"],
   ): Promise<TicketsInterface> {
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),
       total: consumoPersonal ? 0 : total,
+      dejaCuenta: dejaCuenta,
       idCliente: cesta.idCliente,
       idTrabajador,
       cesta,
