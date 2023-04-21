@@ -1,6 +1,8 @@
 FROM node
 
-RUN mkdir -p /home/hit/toc/ && chown -R hit:hit /home/hit/toc
+RUN mkdir -p /home/hit/toc/ 
+
+#RUN chown -R hit:hit /home/hit/toc
 
 WORKDIR /home/hit/toc
 
