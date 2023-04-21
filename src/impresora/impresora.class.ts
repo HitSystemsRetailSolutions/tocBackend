@@ -139,6 +139,7 @@ export class Impresora {
           impresora: parametros.tipoImpresora,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
+          dejaCuenta: ticket.dejaCuenta,
         };
       }
       await this._venta(sendObject);
@@ -231,7 +232,8 @@ export class Impresora {
   private async _venta(info, recibo = null) {
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
-    const total = info.total;
+    const total =
+      info.dejaCuenta > 0 ? info.total - info.dejaCuenta : info.total;
     const tipoPago = info.visa;
     //   mqttInstance.loggerMQTT(tipoPago)
     const tiposIva = info.tiposIva;
@@ -252,6 +254,8 @@ export class Impresora {
     let detalleClienteVip = "";
     let detalleNombreCliente = "";
     let detallePuntosCliente = "";
+    let detalleEncargo = "";
+    let detalleDejaCuenta = "";
     if (infoClienteVip && infoClienteVip.esVip) {
       detalleClienteVip = `Nom: ${infoClienteVip.nombre}\nNIF: ${infoClienteVip.nif}\nCP: ${infoClienteVip.cp}\nCiutat: ${infoClienteVip.ciudad}\nAdr: ${infoClienteVip.direccion}\n`;
     }
@@ -350,6 +354,11 @@ export class Impresora {
     if (tipoPago == "DEVOLUCION") {
       //   mqttInstance.loggerMQTT('Entramos en tipo pago devolucion')
       pagoDevolucion = "-- ES DEVOLUCION --\n";
+    }
+
+    if (info.dejaCuenta > 0) {
+      detalleEncargo = "Precio encargo: " + info.total;
+      detalleDejaCuenta = "Pago recibido: " + info.dejaCuenta;
     }
 
     let str1 = "          ";
@@ -482,6 +491,8 @@ export class Impresora {
         .align("LT")
         .size(1, 1)
         .text(pagoDevolucion)
+        .text(detalleEncargo)
+        .text(detalleDejaCuenta)
         .text("TOTAL: " + total.toFixed(2) + " €")
         .control("LF")
         .size(0, 0)
