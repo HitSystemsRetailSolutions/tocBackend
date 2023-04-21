@@ -104,7 +104,7 @@ export class CestasController {
   async crearCesta(@Body() { idTrabajador }) {
     try {
       if (idTrabajador) {
-        const idCesta = await cestasInstance.crearCesta();
+        const idCesta = await cestasInstance.crearCesta(null,idTrabajador);
         if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta)) {
           cestasInstance.actualizarCestas();
           trabajadoresInstance.actualizarTrabajadoresFrontend();
@@ -117,6 +117,26 @@ export class CestasController {
       return false;
     }
   }
+
+  /* Eze 4.0 */
+  @Post("crearCestaDevolucion")
+  async crearCestaDevolucion(@Body() { idTrabajador }) {
+    try {
+      if (idTrabajador) {
+        const idCesta = await cestasInstance.crearCestaDevolucion(idTrabajador);
+        if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta)) {
+          await cestasInstance.actualizarCestas();
+          await trabajadoresInstance.actualizarTrabajadoresFrontend();
+          return true;
+        }
+      }
+      throw Error("Error, faltan datos en crearCesta controller");
+    } catch (err) {
+      logger.Error(61, err);
+      return false;
+    }
+  }
+
   /* Eze 4.0 */
   @Post("onlyCrearCestaParaMesa")
   async onlyCrearCesta(@Body() { indexMesa }) {
