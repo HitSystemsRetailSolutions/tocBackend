@@ -41,7 +41,10 @@ export class CestaClase {
     await schCestas.getCestaById(idCesta);
 
   /* Eze 4.0 */
-  private generarObjetoCesta(nuevoId: CestasInterface["_id"],modoV:ModoCesta = "VENTA"): CestasInterface {
+  private generarObjetoCesta(
+    nuevoId: CestasInterface["_id"],
+    modoV: ModoCesta = "VENTA"
+  ): CestasInterface {
     return {
       _id: nuevoId,
       timestamp: Date.now(),
@@ -66,7 +69,7 @@ export class CestaClase {
       modo: modoV,
       idCliente: null,
       indexMesa: null,
-      trabajadores: []
+      trabajadores: [],
     };
   }
 
@@ -75,7 +78,8 @@ export class CestaClase {
 
   /* Uri */
 
-  setTrabajadorCesta = async(idcesta,trabajador) => await schCestas.trabajadorEnCesta(idcesta,trabajador);
+  setTrabajadorCesta = async (idcesta, trabajador) =>
+    await schCestas.trabajadorEnCesta(idcesta, trabajador);
 
   /* Eze 4.0 */
   deleteCesta = async (idCesta: CestasInterface["_id"]) =>
@@ -94,13 +98,13 @@ export class CestaClase {
   }
 
   async CestaPagoSeparado(articulos) {
-    const nuevaCesta = this.generarObjetoCesta(new ObjectId(),"PAGO SEPARADO");
+    const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO SEPARADO");
     nuevaCesta.indexMesa = null;
     let id = undefined;
     if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
     if (id != undefined) {
-      for (let i = 0; i < articulos.length; i++){
-        let e = articulos[i]
+      for (let i = 0; i < articulos.length; i++) {
+        let e = articulos[i];
         await this.clickTeclaArticulo(
           e.idArticulo,
           e.gramos,
@@ -113,19 +117,18 @@ export class CestaClase {
     }
   }
 
-  
-  async DevolverCestaPagoSeparado(cesta,articulos) {
-      for (let i = 0; i < articulos.length; i++){
-        let e = articulos[i]
-        await this.clickTeclaArticulo(
-          e.idArticulo,
-          e.gramos,
-          cesta,
-          e.unidades,
-          e.arraySuplementos
-        );
-      }
-      return true;
+  async DevolverCestaPagoSeparado(cesta, articulos) {
+    for (let i = 0; i < articulos.length; i++) {
+      let e = articulos[i];
+      await this.clickTeclaArticulo(
+        e.idArticulo,
+        e.gramos,
+        cesta,
+        e.unidades,
+        e.arraySuplementos
+      );
+    }
+    return true;
   }
 
   /* Eze 4.0 */
@@ -257,17 +260,49 @@ export class CestaClase {
           cesta.lista[i].idArticulo === articulo._id &&
           !cesta.lista[i].promocion &&
           !cesta.lista[i].regalo &&
-          (!infoArticulo.suplementos || infoArticulo.suplementos.length < 1) && cesta.lista[i].gramos == null
+          // (!infoArticulo.suplementos || infoArticulo.suplementos.length < 1)
+          cesta.lista[i].gramos == null
         ) {
-          cesta.lista[i].unidades += unidades;
-          cesta.lista[i].subtotal = Number(
-            (
-              cesta.lista[i].subtotal +
-              unidades * articulo.precioConIva
-            ).toFixed(2)
-          );
-          articuloNuevo = false;
-          break;
+          console.log("hola0");
+          if (
+            cesta.lista[i]?.arraySuplementos?.length ===
+            articulo?.suplementos?.length
+          ) {
+            console.log("hola2");
+            let subCesta = cesta.lista[i].arraySuplementos;
+            subCesta.sort();
+            articulo.suplementos.sort();
+            let igual = 0;
+            for (let j = 0; j < articulo.suplementos.length; j++) {
+              if (articulo.suplementos[j] == subCesta[j]) {
+                console.log("igual++");
+                igual++;
+              }
+            }
+            if (igual == cesta.lista[i].arraySuplementos.length) {
+              console.log("hola3, se acumulan!!");
+              cesta.lista[i].unidades += unidades;
+              cesta.lista[i].subtotal = Number(
+                (
+                  cesta.lista[i].subtotal +
+                  unidades * articulo.precioConIva
+                ).toFixed(2)
+              );
+              articuloNuevo = false;
+              break;
+            }
+          } else {
+            console.log("hola1");
+            cesta.lista[i].unidades += unidades;
+            cesta.lista[i].subtotal = Number(
+              (
+                cesta.lista[i].subtotal +
+                unidades * articulo.precioConIva
+              ).toFixed(2)
+            );
+            articuloNuevo = false;
+            break;
+          }
         }
       }
 
