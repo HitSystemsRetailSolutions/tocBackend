@@ -14,6 +14,7 @@ import { ObjectId } from "mongodb";
 import { logger } from "../logger";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { io } from "../sockets.gateway";
+import { cestasInstance } from "../cestas/cestas.clase";
 
 export class CajaClase {
   /* Eze 4.0 */
@@ -80,18 +81,11 @@ export class CajaClase {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
 
-    if (
-      totalDatafono3G > 0 &&
-      !(await movimientosInstance.nuevoMovimiento(
-        totalDatafono3G,
-        "",
-        "DATAFONO_3G",
-        null,
-        idDependientaCierre
-      ))
-    )
-      throw Error("No se ha podido crear el movimiento 3G");
-
+    const cestas = await cestasInstance.getAllCestas();
+    for (let i = 0; i < cestas.length; i++) {
+      cestasInstance.deleteCesta(cestas[i]._id);
+    }
+    cestasInstance.actualizarCestas();
     const finalTime = await this.getFechaCierre();
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
     const cajaCerradaActual = await this.getDatosCierre(
@@ -258,7 +252,6 @@ export class CajaClase {
           totalEntradaDinero += arrayMovimientos[i].valor;
           break;
         case "DATAFONO_3G":
-          totalSalidas += arrayMovimientos[i].valor;
           totalTarjeta += arrayMovimientos[i].valor;
           break;
         case "SALIDA":
@@ -283,7 +276,8 @@ export class CajaClase {
           cajaAbiertaActual.totalApertura +
           totalSalidas -
           totalEntradaDinero -
-          totalTickets) *
+          totalTickets +
+          totalDatafono3G) *
           100
       ) / 100;
 

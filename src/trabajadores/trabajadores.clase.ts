@@ -57,6 +57,11 @@ export class TrabajadoresClase {
     await schTrabajadores.getTrabajadoresFichados();
 
   /* Eze 4.0 */
+  getTrabajadorFichados = async (trabajador) =>
+    await schTrabajadores.getTrabajadorFichados(trabajador);
+
+
+  /* Eze 4.0 */
   async ficharTrabajador(idTrabajador: number): Promise<boolean> {
     if (await schTrabajadores.ficharTrabajador(idTrabajador)) {
       const fichados = await this.nuevoFichajesSincro("ENTRADA", idTrabajador);
@@ -74,6 +79,7 @@ export class TrabajadoresClase {
     const trabajador = await schTrabajadores.getTrabajador(idTrabajador);
     if (trabajador.idCesta) {
       await cestasInstance.deleteCesta(trabajador.idCesta);
+      cestasInstance.actualizarCestas();
     }
     if (await schTrabajadores.desficharTrabajador(idTrabajador)) {
       return await this.nuevoFichajesSincro("SALIDA", idTrabajador);
@@ -158,6 +164,20 @@ export class TrabajadoresClase {
         logger.Error(120, err);
       });
   }
+    /* Eze 4.0 */
+    actualizarSoloTrabajadorFrontend(t) {
+      this.getTrabajadorFichados(t)
+        .then((resTrabajadores) => {
+          if (resTrabajadores && resTrabajadores.length > 0) {
+            io.emit("cargarTrabajadores", resTrabajadores);
+          }
+          return null;
+        })
+        .catch((err) => {
+          logger.Error(120, err);
+        });
+    }
 }
+
 
 export const trabajadoresInstance = new TrabajadoresClase();

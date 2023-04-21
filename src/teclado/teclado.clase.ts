@@ -181,6 +181,7 @@ export class TecladoClase {
             pos: teclas[i].pos,
             color: teclas[i].color,
             esSumable: teclas[i].esSumable,
+            suplementos: teclas[i].suplementos,
           }
         );
       } else {
@@ -195,7 +196,7 @@ export class TecladoClase {
       }
     }
 
-    return menus.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    return menus;
   }
 }
 export const tecladoInstance = new TecladoClase();

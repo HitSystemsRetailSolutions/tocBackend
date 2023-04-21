@@ -17,6 +17,19 @@ export async function deleteCesta(
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const cesta = database.collection<CestasInterface>("cestas");
+  const resultado = await cesta.deleteOne({
+    _id: new ObjectId(idCesta),
+    indexMesa: null,
+  });
+  return resultado.acknowledged && resultado.deletedCount === 1;
+}
+
+/* Uri */
+export async function deleteCestaMesa(
+  idCesta: CestasInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const cesta = database.collection<CestasInterface>("cestas");
   const resultado = await cesta.deleteOne({ _id: new ObjectId(idCesta) });
   return resultado.acknowledged && resultado.deletedCount === 1;
 }
@@ -25,7 +38,7 @@ export async function deleteCesta(
 export async function getAllCestas(): Promise<CestasInterface[]> {
   const database = (await conexion).db("tocgame");
   const cesta = database.collection<CestasInterface>("cestas");
-  return await cesta.find().toArray();
+  return await cesta.find().sort( { indexMesa: 1 } ).toArray();
 }
 
 /* Eze 4.0 */
@@ -46,6 +59,54 @@ export async function updateCesta(cesta: CestasInterface): Promise<boolean> {
     }
   );
   return resultado.acknowledged && resultado.matchedCount === 1;
+}
+
+/* Uri */
+export async function eliminarTrabajadorDeCesta(trabajador): Promise<boolean> {
+  try {
+    const database = (await conexion).db("tocgame");
+    const unaCesta = database.collection<CestasInterface>("cestas");
+    let trabajadoresEnCesta = await unaCesta.findOne({
+      trabajadores: trabajador,
+    });
+    let trab = trabajadoresEnCesta.trabajadores;
+    for (let i = 0; i < trab.length; i++) {
+      if (trabajadoresEnCesta.trabajadores[i] == trabajador) trab.splice(i, 1);
+    }
+    await unaCesta.updateOne(
+      { _id: new ObjectId(trabajadoresEnCesta._id) },
+      {
+        $set: {
+          trabajadores: trab,
+        },
+      }
+    );
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* Uri */
+export async function trabajadorEnCesta(idcesta, trabajador): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const unaCesta = database.collection<CestasInterface>("cestas");
+  await eliminarTrabajadorDeCesta(trabajador);
+  let trabajadoresEnCesta = await unaCesta.findOne({
+    _id: new ObjectId(idcesta),
+  });
+  let x = trabajadoresEnCesta?.trabajadores;
+  if (x == undefined) x = [];
+  x.push(trabajador);
+  const resultado = await unaCesta.updateOne(
+    { _id: new ObjectId(idcesta) },
+    {
+      $set: {
+        trabajadores: x,
+      },
+    }
+  );
+  return resultado.acknowledged;
 }
 
 /* Eze 4.0 */

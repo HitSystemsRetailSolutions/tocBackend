@@ -63,7 +63,35 @@ export class MovimientosClase {
     };
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
-      impresoraInstance.imprimirSalida(nuevoMovimiento);
+      if (concepto === "Entrega Diària") {
+        impresoraInstance.imprimirSalida(nuevoMovimiento); 
+      }
+      return true;
+    }
+    return false;
+  }
+  /* uri */
+  public async insertMovimientos(
+    valor: MovimientosInterface["valor"],
+    concepto: MovimientosInterface["concepto"],
+    tipo: MovimientosInterface["tipo"],
+    idTicket: MovimientosInterface["idTicket"],
+    idTrabajador: MovimientosInterface["idTrabajador"]
+  ) {
+    let codigoBarras = "";
+
+    const nuevoMovimiento: MovimientosInterface = {
+      _id: Date.now(),
+      codigoBarras,
+      concepto,
+      enviado: false,
+      idTicket,
+      idTrabajador,
+      tipo,
+      valor,
+    };
+
+    if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       return true;
     }
     return false;
@@ -112,7 +140,7 @@ export class MovimientosClase {
     const infoCaja = await cajaInstance.getInfoCajaAbierta();
     if (infoCaja) {
       const inicioCaja = infoCaja.inicioTime;
-      const final = Date.now();
+      const final = Date.now()
       const arrayTickets = await ticketsInstance.getTicketsIntervalo(
         inicioCaja,
         final
@@ -121,7 +149,6 @@ export class MovimientosClase {
         inicioCaja,
         final
       );
-
       const arrayFinalTickets: SuperTicketInterface[] = [];
 
       for (let i = 0; i < arrayTickets.length; i++) {

@@ -1,5 +1,5 @@
 import { conexion } from "../conexion/mongodb";
-import { TicketsInterface } from "./tickets.interface";
+import { TicketsInterface, TicketsInterfaceBackUp } from "./tickets.interface";
 import { UtilesModule } from "../utiles/utiles.module";
 import { ticketsInstance } from "./tickets.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
@@ -34,7 +34,7 @@ export async function getTicketsIntervalo(
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
   return await tickets
-    .find({ timestamp: { $lte: finalTime, $gte: inicioTime } })
+    .find({ timestamp: {  $gte: inicioTime } })
     .toArray();
 }
 
@@ -44,7 +44,6 @@ export async function getUltimoTicketIntervalo(
 ): Promise<TicketsInterface[]> {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
-
   return await tickets
     .find({ timestamp: { $lte: finalTime, $gte: inicioTime } })
     .sort({ _id: -1 })
@@ -135,6 +134,40 @@ export async function nuevoTicket(ticket: TicketsInterface): Promise<boolean> {
   return (await tickets.insertOne(ticket)).acknowledged;
 }
 
+/* Uri */
+export async function nuevoTicketBackUP(
+  ticket: TicketsInterfaceBackUp
+): Promise<boolean> {
+  let ticketExist = await this.getTicketByID(ticket._id);
+  if (ticketExist != null) {
+    await actualizarTotalArticulo(
+      ticketExist._id,
+      ticketExist.total,
+      ticket.total
+    );
+    return;
+  }
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterfaceBackUp>("tickets");
+  return (await tickets.insertOne(ticket)).acknowledged;
+}
+
+/* Uri */
+export async function actualizarTotalArticulo(existTicketId, total, sum) {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  return (
+    await tickets.updateOne(
+      { _id: existTicketId },
+      {
+        $set: {
+          total: total + sum,
+        },
+      }
+    )
+  ).acknowledged;
+}
+
 /* Eze v23 */
 export async function desbloquearTicket(idTicket: number) {
   const database = (await conexion).db("tocgame");
@@ -215,6 +248,12 @@ export async function anularTicket(
       ticket.total = ticket.total * -1;
       ticket.cesta.lista.forEach((element) => {
         element.subtotal = element.subtotal * -1;
+        if (element.promocion != null) {
+          element.promocion.precioRealArticuloPrincipal *= -1;
+          if (element.promocion.precioRealArticuloSecundario != null) {
+            element.promocion.precioRealArticuloSecundario *= -1;
+          }
+        }
       });
       for (const property in ticket.cesta.detalleIva) {
         ticket.cesta.detalleIva[property] =

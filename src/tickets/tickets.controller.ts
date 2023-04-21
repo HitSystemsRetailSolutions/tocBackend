@@ -65,13 +65,118 @@ export class TicketsController {
           cesta,
           tipo === "CONSUMO_PERSONAL"
         );
-
-        if (!ticket)
+        if (!ticket){
           throw Error(
             "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
-          );
+          );}
         if (await ticketsInstance.insertarTicket(ticket)) {
           await cestasInstance.borrarArticulosCesta(idCesta, true);
+          if (tipo === "TARJETA")
+            paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
+          else if (
+            (tipo === "TKRS" && tkrsData) ||
+            (tkrsData?.cantidadTkrs > 0 && tipo === "EFECTIVO")
+          ) {
+            if (tkrsData.cantidadTkrs > total) {
+              await movimientosInstance.nuevoMovimiento(
+                total,
+                "",
+                "TKRS_SIN_EXCESO",
+                ticket._id,
+                idTrabajador
+              );
+              await movimientosInstance.nuevoMovimiento(
+                tkrsData.cantidadTkrs - total,
+                "",
+                "TKRS_CON_EXCESO",
+                ticket._id,
+                idTrabajador
+              );
+            } else if (tkrsData.cantidadTkrs < total) {
+              await movimientosInstance.nuevoMovimiento(
+                tkrsData.cantidadTkrs,
+                "",
+                "TKRS_SIN_EXCESO",
+                ticket._id,
+                idTrabajador
+              );
+            } else if (tkrsData.cantidadTkrs === total) {
+              await movimientosInstance.nuevoMovimiento(
+                total,
+                "",
+                "TKRS_SIN_EXCESO",
+                ticket._id,
+                idTrabajador
+              );
+            }
+          } else if (tipo === "DEUDA") {
+            await movimientosInstance.nuevoMovimiento(
+              total,
+              "",
+              "DEUDA",
+              ticket._id,
+              idTrabajador
+            );
+          } else if (tipo !== "EFECTIVO" && tipo != "CONSUMO_PERSONAL") {
+            throw Error(
+              "Falta información del tkrs o bien ninguna forma de pago es correcta"
+            );
+          }
+          if (tipo !== "TARJETA") {
+            await impresoraInstance.abrirCajon();
+          }
+
+          ticketsInstance.actualizarTickets();
+          return true;
+        }
+
+        throw Error(
+          "Error, no se ha podido crear el ticket en crearTicket() controller 2"
+        );
+      }
+      throw Error("Error, faltan datos en crearTicket() controller 1");
+    } catch (err) {
+      logger.Error(107, err);
+      return false;
+    }
+  }
+
+
+  /* Eze 4.0 */
+  @Post("crearTicketSeparado")
+  async crearTicketSeparado(
+    @Body()
+    {
+      total,
+      cesta,
+      idTrabajador,
+      tipo,
+      tkrsData,
+    }: {
+      total: number;
+      cesta:any
+      idTrabajador: TicketsInterface["idTrabajador"];
+      tipo: FormaPago;
+      tkrsData: {
+        cantidadTkrs: number;
+        formaPago: FormaPago;
+      };
+    }
+  ) {
+    try {
+      console.log(cesta)
+      if (typeof total == "number" && cesta && idTrabajador && tipo) {
+        const ticket = await ticketsInstance.generarNuevoTicket(
+          total,
+          idTrabajador,
+          cesta,
+          tipo === "CONSUMO_PERSONAL"
+        );
+        if (!ticket){
+          throw Error(
+            "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
+          );}
+        if (await ticketsInstance.insertarTicket(ticket)) {
           if (tipo === "TARJETA")
             paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
           else if (

@@ -26,6 +26,7 @@ import { TarifasController } from "./tarifas/tarifas.controller";
 import { MesasController } from "./mesas/mesas.controller";
 import { PromocionesController } from "./promociones/promociones.controller";
 import { TraduccionesController } from "./traducciones/traducciones.controller";
+import { EncargosController } from "./encargos/encargos.controller";
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { TraduccionesController } from "./traducciones/traducciones.controller";
     MesasController,
     PromocionesController,
     TraduccionesController,
+    EncargosController,
   ],
   // providers: [SocketGateway],
 })
