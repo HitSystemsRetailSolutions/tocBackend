@@ -1,15 +1,17 @@
 FROM node
 
-RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
+RUN mkdir -p /home/hit/toc/ && chown -R hit:hit /home/hit/toc
 
-WORKDIR /home/node/app
+WORKDIR /home/hit/toc
 
 COPY package*.json ./
-
-# RUN apk add --update python make g++ && rm -rf /var/cache/apk/*
 
 RUN npm install
 
 COPY . .
-EXPOSE 3000
+
+RUN npm run build
+
+EXPOSE 3000 5051
+
 CMD [ "npm", "start" ]
