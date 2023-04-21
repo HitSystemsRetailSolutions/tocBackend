@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import { conexion } from "../conexion/mongodb";
 import { CestasInterface } from "./cestas.interface";
+import { nuevaInstancePromociones } from "src/promociones/promociones.clase";
 
 /* Eze 4.0 */
 export async function getCestaById(
@@ -42,6 +43,11 @@ export async function getAllCestas(): Promise<CestasInterface[]> {
 export async function updateCesta(cesta: CestasInterface): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const unaCesta = database.collection<CestasInterface>("cestas");
+  for (let i = 0; i < cesta.lista.length; i++) {
+   
+    nuevaInstancePromociones.redondearDecimales(cesta.lista[i].subtotal,2)
+  }
+  
   const resultado = await unaCesta.updateOne(
     { _id: new ObjectId(cesta._id) },
     {

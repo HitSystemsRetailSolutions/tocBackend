@@ -15,6 +15,7 @@ import { MovimientosInterface } from "../movimientos/movimientos.interface";
 import * as moment from "moment";
 import { CajaSincro } from "../caja/caja.interface";
 import { logger } from "../logger";
+import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import { buffer } from "stream/consumers";
 moment.locale("es");
 const escpos = require("escpos");
@@ -125,6 +126,7 @@ export class Impresora {
             nombre: infoCliente.nombre,
             puntos: puntos,
           },
+          dejaCuenta: ticket.dejaCuenta,
         };
       } else {
         sendObject = {
@@ -233,7 +235,7 @@ export class Impresora {
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
     const total =
-      info.dejaCuenta > 0 ? info.total - info.dejaCuenta : info.total;
+      info.dejaCuenta > 0 ? nuevaInstancePromociones.redondearDecimales(info.total + info.dejaCuenta,2) : info.total;
     const tipoPago = info.visa;
     //   mqttInstance.loggerMQTT(tipoPago)
     const tiposIva = info.tiposIva;
@@ -355,12 +357,12 @@ export class Impresora {
       //   mqttInstance.loggerMQTT('Entramos en tipo pago devolucion')
       pagoDevolucion = "-- ES DEVOLUCION --\n";
     }
-
+console.log(info.dejaCuenta)
     if (info.dejaCuenta > 0) {
       detalleEncargo = "Precio encargo: " + info.total;
       detalleDejaCuenta = "Pago recibido: " + info.dejaCuenta;
     }
-
+    console.log(detalleEncargo,detalleDejaCuenta,total);
     let str1 = "          ";
     let str2 = "                 ";
     let str3 = "              ";

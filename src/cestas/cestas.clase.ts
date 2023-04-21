@@ -76,9 +76,9 @@ export class CestaClase {
     await schCestas.deleteCesta(idCesta);
 
   /* Uri*/
-  deleteCestaMesa = async (idCesta: CestasInterface["_id"],) =>
+  deleteCestaMesa = async (idCesta: CestasInterface["_id"]) =>
     await schCestas.deleteCestaMesa(idCesta);
-  
+
   /* Eze 4.0 */
   async crearCesta(indexMesa = null): Promise<CestasInterface["_id"]> {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId());
@@ -187,12 +187,11 @@ export class CestaClase {
           (!infoArticulo.suplementos || infoArticulo.suplementos.length < 1)
         ) {
           cesta.lista[i].unidades += unidades;
-          cesta.lista[i].subtotal = Number(
-            (
-              cesta.lista[i].subtotal +
-              unidades * articulo.precioConIva
-            ).toFixed(2)
+          cesta.lista[i].subtotal = nuevaInstancePromociones.redondearDecimales(
+            cesta.lista[i].subtotal + unidades * articulo.precioConIva,
+            2
           );
+          console.log("cesta",cesta.lista[i].subtotal)
           articuloNuevo = false;
           break;
         }

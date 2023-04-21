@@ -57,7 +57,7 @@ export class TicketsController {
       const cestaEncargo= await encargosInstance.getEncargoById(idEncargo);
       console.log("cesta", cestaEncargo.cesta)
       const ticket = await ticketsInstance.generarNuevoTicket(
-        total,
+        total-dejaCuenta,
         idTrabajador,
         cestaEncargo.cesta,
         tipo === "CONSUMO_PERSONAL",
