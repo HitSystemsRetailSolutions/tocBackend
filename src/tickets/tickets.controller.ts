@@ -164,7 +164,6 @@ export class TicketsController {
     }
   ) {
     try {
-      console.log(cesta)
       if (typeof total == "number" && cesta && idTrabajador && tipo) {
         const ticket = await ticketsInstance.generarNuevoTicket(
           total,
