@@ -313,7 +313,7 @@ export class Impresora {
         arrayCompra[i].arraySuplementos &&
         arrayCompra[i].arraySuplementos.length > 0
       ) {
-        detalles += `${1}     ${arrayCompra[i].nombre.slice(0, 20)} +      \n`;
+        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[i].nombre.slice(0, 20)} +      \n`;
         for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
           if (j == arrayCompra[i].arraySuplementos.length - 1) {
             detalles += `       ${arrayCompra[i].arraySuplementos[
