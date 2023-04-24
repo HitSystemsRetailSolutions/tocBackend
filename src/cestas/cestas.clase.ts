@@ -255,44 +255,49 @@ export class CestaClase {
       ))
     ) {
       let infoArticulo = await articulosInstance.getInfoArticulo(articulo._id);
+
       for (let i = 0; i < cesta.lista.length; i++) {
         if (
           cesta.lista[i].idArticulo === articulo._id &&
-          !cesta.lista[i].promocion &&
+          cesta.lista[i].gramos == null &&
           !cesta.lista[i].regalo &&
-          // (!infoArticulo.suplementos || infoArticulo.suplementos.length < 1)
-          cesta.lista[i].gramos == null
+          cesta.lista[i].promocion == null
         ) {
-          console.log("hola0");
           if (
-            cesta.lista[i]?.arraySuplementos?.length ===
-            articulo?.suplementos?.length
+            arraySuplementos &&
+            cesta.lista[i]?.arraySuplementos &&
+            cesta.lista[i]?.arraySuplementos?.length == arraySuplementos?.length
           ) {
-            console.log("hola2");
             let subCesta = cesta.lista[i].arraySuplementos;
-            subCesta.sort();
-            articulo.suplementos.sort();
+
+            subCesta = subCesta.sort(function (a, b) {
+              return a._id - b._id;
+            });
+
+            arraySuplementos = arraySuplementos.sort(function (a, b) {
+              return a._id - b._id;
+            });
             let igual = 0;
-            for (let j = 0; j < articulo.suplementos.length; j++) {
-              if (articulo.suplementos[j] == subCesta[j]) {
-                console.log("igual++");
+            let precioSuplementos = 0;
+            for (let j = 0; j < arraySuplementos.length; j++) {
+              if (arraySuplementos[j]._id === subCesta[j]._id) {
+                precioSuplementos += arraySuplementos[j].precioConIva;
                 igual++;
               }
             }
             if (igual == cesta.lista[i].arraySuplementos.length) {
-              console.log("hola3, se acumulan!!");
               cesta.lista[i].unidades += unidades;
               cesta.lista[i].subtotal = Number(
                 (
                   cesta.lista[i].subtotal +
+                  precioSuplementos +
                   unidades * articulo.precioConIva
                 ).toFixed(2)
               );
               articuloNuevo = false;
               break;
             }
-          } else {
-            console.log("hola1");
+          } else if (cesta.lista[i].arraySuplementos == null) {
             cesta.lista[i].unidades += unidades;
             cesta.lista[i].subtotal = Number(
               (
@@ -318,6 +323,7 @@ export class CestaClase {
           gramos: gramos,
         });
       }
+
       let numProductos = 0;
       let total = 0;
       for (let i = 0; i < cesta.lista.length; i++) {
@@ -512,7 +518,8 @@ export class CestaClase {
         ) {
           const detalleDeSuplementos = await this.getDetalleIvaSuplementos(
             cesta.lista[i].arraySuplementos,
-            cesta.idCliente
+            cesta.idCliente,
+            cesta.lista[i].unidades
           );
           cesta.detalleIva = fusionarObjetosDetalleIva(
             cesta.detalleIva,
@@ -553,7 +560,8 @@ export class CestaClase {
   /* Eze 4.0 */
   async getDetalleIvaSuplementos(
     arraySuplementos: ArticulosInterface[],
-    idCliente: ClientesInterface["id"]
+    idCliente: ClientesInterface["id"],
+    unidades: number
   ): Promise<DetalleIvaInterface> {
     let objetoIva: DetalleIvaInterface = {
       base1: 0,
@@ -581,7 +589,7 @@ export class CestaClase {
         idCliente
       );
       objetoIva = fusionarObjetosDetalleIva(
-        construirObjetoIvas(articulo.precioConIva, articulo.tipoIva, 1),
+        construirObjetoIvas(articulo.precioConIva, articulo.tipoIva, unidades),
         objetoIva
       );
     }

@@ -147,7 +147,6 @@ export class InstaladorController {
   @Post("descargarTodo")
   async descargarTodo() {
     try {
-      console.log("Solicito datos");
       const parametros = await parametrosInstance.getParametros();
       const res: any = await axios.post("datos/cargarTodo", {
         database: parametros.database,
@@ -155,7 +154,6 @@ export class InstaladorController {
         licencia: parametros.licencia,
       });
       if (res.data) {
-        console.log("recibo datos");
         const trabajadores = await trabajadoresInstance.insertarTrabajadores(
           res.data.dependientas
         );
@@ -175,7 +173,6 @@ export class InstaladorController {
         const tarifas = await tarifasInstance.guardarTarifasEspeciales(
           res.data.tarifasEspeciales
         );
-        console.log("Todo lo necesario instalado");
         if (
           // Solo los datos obligatorios
           trabajadores &&
@@ -296,7 +293,6 @@ export class InstaladorController {
             totalApertura: totalMonedas,
           });
         }
-        console.log("opcionales instalados");
         return [1,monedas];
       }
       console.error("Error de autenticación en SanPedro");
