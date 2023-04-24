@@ -70,7 +70,6 @@ class PaytefClass {
           //io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
         });
     } else {
-      console.log("ssadsdas")
       io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
       logger.Error(
         136,
@@ -136,7 +135,7 @@ class PaytefClass {
       }
     } catch (e) {
       console.log("error de conexión (pago ya enviado) / ", intentosBucleBucle);
-      if (intentosBucleBucle >= 7) {
+      if (intentosBucleBucle >= 5) {
         intentosBucleBucle = 0;
         io.emit("consultaPaytefRefund", {
           ok: false,
