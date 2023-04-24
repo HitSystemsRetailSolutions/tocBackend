@@ -8,7 +8,10 @@ import { CancelInterface } from "./paytef.interface";
 import { io } from "../sockets.gateway";
 import { logger } from "../logger";
 import * as schTickets from "../tickets/tickets.mongodb";
-let intentosBucle = 0;
+let intentosBuclePago = 0;
+let intentosBucleBucle = 0;
+
+axios.defaults.timeout = 5000; // Evitem que el client esperi...
 class PaytefClass {
   /* Eze 4.0 */
   async iniciarTransaccion(
@@ -37,7 +40,6 @@ class PaytefClass {
         method: "POST",
         url: `http://${parametros.ipTefpay}:8887/transaction/start`,
         data: opciones,
-        timeout: 20000,
       })
         .then(async (respuestaPayef: any) => {
           if (await respuestaPayef.data.info["started"]) {
@@ -52,12 +54,23 @@ class PaytefClass {
             );
           }
         })
-        .catch((err) => {
-          logger.Error(135, err);
-          this.bucleComprobacion(idTicket, total, idTrabajador, type);
+        .catch(async (err) => {
+          console.log(
+            "error de conexión (no se puede enviar el pago) / ",
+            intentosBuclePago
+          );
+          if (intentosBuclePago >= 4) {
+            intentosBuclePago = 0;
+            io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
+          } else {
+            await new Promise((r) => setTimeout(r, 100));
+            intentosBuclePago += 1;
+            this.iniciarTransaccion(idTrabajador, idTicket, total, type);
+          }
           //io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
         });
     } else {
+      console.log("ssadsdas")
       io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
       logger.Error(
         136,
@@ -104,6 +117,8 @@ class PaytefClass {
             );
 
             io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
+            intentosBucleBucle = 0;
+            intentosBuclePago = 0;
           } else {
             logger.Error("Error grave de devoluciones/movimientos !!!");
           }
@@ -120,17 +135,17 @@ class PaytefClass {
         await this.bucleComprobacion(idTicket, total, idTrabajador, type);
       }
     } catch (e) {
-      console.log("error de conexión / ", intentosBucle);
-      if (intentosBucle > 7) {
-        intentosBucle = 0
+      console.log("error de conexión (pago ya enviado) / ", intentosBucleBucle);
+      if (intentosBucleBucle >= 7) {
+        intentosBucleBucle = 0;
         io.emit("consultaPaytefRefund", {
           ok: false,
           id: idTicket,
           datos: [total * -1, "Targeta", "TARJETA", idTicket + 1, idTrabajador],
         });
       } else {
-        await new Promise((r) => setTimeout(r, 1000));
-        intentosBucle += 1;
+        await new Promise((r) => setTimeout(r, 100));
+        intentosBucleBucle += 1;
         await this.bucleComprobacion(idTicket, total, idTrabajador, type);
       }
     }
