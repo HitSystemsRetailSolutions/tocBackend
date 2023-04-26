@@ -106,8 +106,8 @@ export class CestasController {
       if (idTrabajador) {
         const idCesta = await cestasInstance.crearCesta(null,idTrabajador);
         if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta)) {
-          cestasInstance.actualizarCestas();
-          trabajadoresInstance.actualizarTrabajadoresFrontend();
+          await cestasInstance.actualizarCestas();
+          await trabajadoresInstance.actualizarTrabajadoresFrontend();
           return true;
         }
       }

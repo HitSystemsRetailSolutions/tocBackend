@@ -88,7 +88,7 @@ export class CestaClase {
 
   /* Eze 4.0 */
   async crearCesta(indexMesa = null,trabajador = null): Promise<CestasInterface["_id"]> {
-    const nuevaCesta = this.generarObjetoCesta(new ObjectId(),"VENTA",trabajador);
+    const nuevaCesta = await this.generarObjetoCesta(new ObjectId(),"VENTA",trabajador);
     nuevaCesta.indexMesa = indexMesa;
     if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
     throw Error("Error, no se ha podido crear la cesta");
