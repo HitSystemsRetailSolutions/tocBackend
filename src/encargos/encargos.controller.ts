@@ -7,7 +7,6 @@ export class EncargosController {
   @Post("getEncargos")
   async getEncargos() {
     try {
-
       return await encargosInstance.getEncargos();
     } catch (err) {
       logger.Error(50, err);
@@ -30,7 +29,6 @@ export class EncargosController {
   }
   @Post("setEntregado")
   async setEntregado(@Body() data) {
-    console.log("idc",data.id);
     try {
       if (!data.id)
         return {

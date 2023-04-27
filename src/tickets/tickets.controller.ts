@@ -54,38 +54,36 @@ export class TicketsController {
     }
   ) {
     try {
-      const cestaEncargo= await encargosInstance.getEncargoById(idEncargo);
-      console.log("cesta", cestaEncargo.cesta)
+      const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
+
       const ticket = await ticketsInstance.generarNuevoTicket(
-        total-dejaCuenta,
+        total - dejaCuenta,
         idTrabajador,
         cestaEncargo.cesta,
         tipo === "CONSUMO_PERSONAL",
-        dejaCuenta,
+        dejaCuenta
       );
-      console.log(ticket);
+
       if (!ticket) {
         throw Error(
           "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
         );
       }
-      console.log("ok0")
+
       if (await ticketsInstance.insertarTicket(ticket)) {
-        console.log("ok1")
         await encargosInstance.setEntregado(idEncargo);
-        console.log("ok2")
+
         if (tipo !== "TARJETA") {
           await impresoraInstance.abrirCajon();
         }
-        console.log("ok3")
+
         ticketsInstance.actualizarTickets();
         return true;
       }
-      console.log("okerror")
+
       throw Error(
         "Error, no se ha podido crear el ticket en crearTicket() controller 2"
       );
-      
     } catch (err) {
       logger.Error(1072, err);
       return false;

@@ -64,7 +64,6 @@ export class InstaladorController {
       }
       throw Error("Faltan datos en instalador/pedirDatos controller");
     } catch (err) {
-      console.log(err);
       logger.Error(93, err);
     }
   }
@@ -91,7 +90,6 @@ export class InstaladorController {
       }
       return "";
     } catch (err) {
-      console.log(err);
       logger.Error(93, err);
     }
   }
@@ -138,7 +136,6 @@ export class InstaladorController {
         "No hemos podido detectar la IP, porfavor rellene los campos."
       );
     } catch (err) {
-      console.log(err);
       logger.Error(93, err);
     }
   }
@@ -147,7 +144,6 @@ export class InstaladorController {
   @Post("descargarTodo")
   async descargarTodo() {
     try {
-      console.log("Solicito datos");
       const parametros = await parametrosInstance.getParametros();
       const res: any = await axios.post("datos/cargarTodo", {
         database: parametros.database,
@@ -155,7 +151,6 @@ export class InstaladorController {
         licencia: parametros.licencia,
       });
       if (res.data) {
-        console.log("recibo datos");
         const trabajadores = await trabajadoresInstance.insertarTrabajadores(
           res.data.dependientas
         );
@@ -175,7 +170,7 @@ export class InstaladorController {
         const tarifas = await tarifasInstance.guardarTarifasEspeciales(
           res.data.tarifasEspeciales
         );
-        console.log("Todo lo necesario instalado");
+
         if (
           // Solo los datos obligatorios
           trabajadores &&
@@ -184,13 +179,9 @@ export class InstaladorController {
         ) {
           return await this.descargarUltimo();
         }
-        console.log(
-          `Backend: res1: ${trabajadores}, res2: ${articulos}, res3: ${clientes}, res4: ${familias}, res5: ${promociones}, res7: ${teclas}, res8: ${tarifas}`
-        );
       }
       throw Error("Error de autenticación en SanPedro");
     } catch (err) {
-      console.log(err);
       logger.Error(95, err);
       return false;
     }
@@ -206,7 +197,6 @@ export class InstaladorController {
       });
 
       if (res.data) {
-        console.log(res.data.fichajes)
         if (res.data.fichajes.length > 0) {
           const idCesta = await cestasInstance.crearCesta();
           if (
@@ -229,7 +219,7 @@ export class InstaladorController {
             movData.Dependenta
           );
         }
-        let monedas = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+        let monedas = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let monedasCaja = [];
         let totalMonedas = 0;
         if (res.data.UltimoCierre.length > 0) {
@@ -242,7 +232,9 @@ export class InstaladorController {
             monedasCaja.push({
               _id: element.Motiu.toString().replace("En : ", ""),
               valor: element.Import,
-              unidades: element.Import/Number(element.Motiu.toString().replace("En : ", "")),
+              unidades:
+                element.Import /
+                Number(element.Motiu.toString().replace("En : ", "")),
             });
           });
           const UltimoCierre = await cajaInstance.guardarMonedas(
@@ -286,22 +278,23 @@ export class InstaladorController {
               );
             }
           }
-          let Dependenta = res.data.tickets[0].Dependenta
-          if(res.data.fichajes.length > 0)res.data.fichajes[0].usuari
+          let Dependenta = res.data.tickets[0].Dependenta;
+          if (res.data.fichajes.length > 0) res.data.fichajes[0].usuari;
           await cajaInstance.abrirCaja({
             detalleApertura: monedasCaja,
             idDependientaApertura: Number.parseInt(Dependenta),
-            inicioTime: Date.parse(res.data.tickets[res.data.tickets.length -1].Data),
+            inicioTime: Date.parse(
+              res.data.tickets[res.data.tickets.length - 1].Data
+            ),
             totalApertura: totalMonedas,
           });
         }
-        console.log("opcionales instalados");
-        return [1,monedas];
+
+        return [1, monedas];
       }
       console.error("Error de autenticación en SanPedro");
-      return [0,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
+      return [0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];
     } catch (err) {
-      console.log(err);
       logger.Error(95, err);
       return false;
     }

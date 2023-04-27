@@ -3,7 +3,12 @@ import * as moment from "moment";
 import { logger } from "src/logger";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import { ParametrosInterface } from "src/parametros/parametros.interface";
-import { EncargosInterface, Estat, OpcionRecogida, Periodo } from "./encargos.interface";
+import {
+  EncargosInterface,
+  Estat,
+  OpcionRecogida,
+  Periodo,
+} from "./encargos.interface";
 import * as schEncargos from "./encargos.mongodb";
 
 export class Encargos {
@@ -11,7 +16,31 @@ export class Encargos {
     return await schEncargos.getEncargos();
   }
   setEntregado = async (id) => {
-    console.log(id);
+    const encargo = await this.getEncargoById(id);
+    if (encargo.opcionRecogida == 3) {
+      for (let i = 0; i < encargo.dias.length; i++) {
+        if (encargo.dias[i].checked && encargo.dias.length - 1 == i) {
+          encargo.dias[i].checked = false;
+          return schEncargos
+            .setChecked(id, encargo.dias)
+            .then((ok: boolean) => {
+              if (!ok)
+                return schEncargos.setEntregado(id).then((ok: boolean) => {
+                  if (!ok) return false;
+                  return true;
+                });
+            });
+        } else if (encargo.dias[i].checked) {
+          encargo.dias[i].checked = false;
+          return schEncargos
+            .setChecked(id, encargo.dias)
+            .then((ok: boolean) => {
+              if (!ok) return false;
+              return true;
+            });
+        }
+      }
+    }
     return schEncargos
       .setEntregado(id)
       .then((ok: boolean) => {
@@ -26,7 +55,7 @@ export class Encargos {
 
   setEncargo = async (encargo) => {
     const parametros = await parametrosInstance.getParametros();
-    console.log("cesta",encargo.cesta)
+
     const encargo_santAna = {
       id: await this.generateId(
         this.getDate(
@@ -86,7 +115,7 @@ export class Encargos {
     // True -> Se han insertado correctamente el encargo.
     // False -> Ha habido algún error al insertar el encargo.
     encargo.recogido = false;
-    console.log(encargo);
+
     return schEncargos
       .setEncargo(encargo)
       .then((ok: boolean) => {

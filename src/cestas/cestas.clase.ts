@@ -191,7 +191,7 @@ export class CestaClase {
             cesta.lista[i].subtotal + unidades * articulo.precioConIva,
             2
           );
-          console.log("cesta",cesta.lista[i].subtotal)
+
           articuloNuevo = false;
           break;
         }

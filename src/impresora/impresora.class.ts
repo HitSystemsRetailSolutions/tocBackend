@@ -235,7 +235,12 @@ export class Impresora {
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
     const total =
-      info.dejaCuenta > 0 ? nuevaInstancePromociones.redondearDecimales(info.total + info.dejaCuenta,2) : info.total;
+      info.dejaCuenta > 0
+        ? nuevaInstancePromociones.redondearDecimales(
+            info.total + info.dejaCuenta,
+            2
+          )
+        : info.total;
     const tipoPago = info.visa;
     //   mqttInstance.loggerMQTT(tipoPago)
     const tiposIva = info.tiposIva;
@@ -357,12 +362,12 @@ export class Impresora {
       //   mqttInstance.loggerMQTT('Entramos en tipo pago devolucion')
       pagoDevolucion = "-- ES DEVOLUCION --\n";
     }
-console.log(info.dejaCuenta)
+
     if (info.dejaCuenta > 0) {
       detalleEncargo = "Precio encargo: " + info.total;
       detalleDejaCuenta = "Pago recibido: " + info.dejaCuenta;
     }
-    console.log(detalleEncargo,detalleDejaCuenta,total);
+
     let str1 = "          ";
     let str2 = "                 ";
     let str3 = "              ";
