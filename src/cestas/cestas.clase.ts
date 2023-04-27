@@ -3,12 +3,13 @@ import {
   CestasInterface,
   DetalleIvaInterface,
   ItemLista,
+  ModoCesta,
 } from "./cestas.interface";
 import {
   construirObjetoIvas,
   fusionarObjetosDetalleIva,
 } from "../funciones/funciones";
-import { articulosInstance } from "../articulos/articulos.clase";
+import { Articulos, articulosInstance } from "../articulos/articulos.clase";
 import { cajaInstance } from "../caja/caja.clase";
 import { ArticulosInterface } from "../articulos/articulos.interface";
 import { ClientesInterface } from "../clientes/clientes.interface";
@@ -40,7 +41,10 @@ export class CestaClase {
     await schCestas.getCestaById(idCesta);
 
   /* Eze 4.0 */
-  private generarObjetoCesta(nuevoId: CestasInterface["_id"]): CestasInterface {
+  private generarObjetoCesta(
+    nuevoId: CestasInterface["_id"],
+    modoV: ModoCesta = "VENTA"
+  ): CestasInterface {
     return {
       _id: nuevoId,
       timestamp: Date.now(),
@@ -62,14 +66,20 @@ export class CestaClase {
         importe5: 0,
       },
       lista: [],
-      modo: "VENTA",
+      modo: modoV,
       idCliente: null,
       indexMesa: null,
+      trabajadores: [],
     };
   }
 
   /* Eze 4.0 */
   getAllCestas = async () => await schCestas.getAllCestas();
+
+  /* Uri */
+
+  setTrabajadorCesta = async (idcesta, trabajador) =>
+    await schCestas.trabajadorEnCesta(idcesta, trabajador);
 
   /* Eze 4.0 */
   deleteCesta = async (idCesta: CestasInterface["_id"]) =>
@@ -85,6 +95,40 @@ export class CestaClase {
     nuevaCesta.indexMesa = indexMesa;
     if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
     throw Error("Error, no se ha podido crear la cesta");
+  }
+
+  async CestaPagoSeparado(articulos) {
+    const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO SEPARADO");
+    nuevaCesta.indexMesa = null;
+    let id = undefined;
+    if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
+    if (id != undefined) {
+      for (let i = 0; i < articulos.length; i++) {
+        let e = articulos[i];
+        await this.clickTeclaArticulo(
+          e.idArticulo,
+          e.gramos,
+          id,
+          e.unidades,
+          e.arraySuplementos
+        );
+      }
+      return id;
+    }
+  }
+
+  async DevolverCestaPagoSeparado(cesta, articulos) {
+    for (let i = 0; i < articulos.length; i++) {
+      let e = articulos[i];
+      await this.clickTeclaArticulo(
+        e.idArticulo,
+        e.gramos,
+        cesta,
+        e.unidades,
+        e.arraySuplementos
+      );
+    }
+    return true;
   }
 
   /* Eze 4.0 */
@@ -107,6 +151,38 @@ export class CestaClase {
       await this.recalcularIvas(cesta);
       if (await this.updateCesta(cesta)) {
         this.actualizarCestas();
+        return true;
+      }
+      throw Error(
+        "Error, no se ha podido actualizar la cesta borrarItemCesta()"
+      );
+    } catch (err) {
+      logger.Error(57, err);
+      return false;
+    }
+  }
+
+  /* Eze 4.0 */
+  async borrarUnicoItemCesta(
+    idCesta: CestasInterface["_id"],
+    articulos: any
+  ): Promise<boolean> {
+    try {
+      let cesta = await this.getCestaById(idCesta);
+      for (let x = 0; x < articulos.length; x++) {
+        let i = cesta.lista.findIndex(
+          (z) => z.idArticulo == articulos[x].idArticulo
+        );
+        if (cesta.lista[i].unidades > 1) {
+          cesta.lista[i].unidades -= 1;
+        } else {
+          cesta.lista.splice(i, 1);
+        }
+      }
+      // Enviar por socket
+      await this.recalcularIvas(cesta);
+      if (await this.updateCesta(cesta)) {
+        await this.actualizarCestas();
         return true;
       }
       throw Error(
@@ -179,21 +255,58 @@ export class CestaClase {
       ))
     ) {
       let infoArticulo = await articulosInstance.getInfoArticulo(articulo._id);
+
       for (let i = 0; i < cesta.lista.length; i++) {
         if (
           cesta.lista[i].idArticulo === articulo._id &&
-          !cesta.lista[i].promocion &&
+          cesta.lista[i].gramos == null &&
           !cesta.lista[i].regalo &&
-          (!infoArticulo.suplementos || infoArticulo.suplementos.length < 1)
+          cesta.lista[i].promocion == null
         ) {
-          cesta.lista[i].unidades += unidades;
-          cesta.lista[i].subtotal = nuevaInstancePromociones.redondearDecimales(
-            cesta.lista[i].subtotal + unidades * articulo.precioConIva,
-            2
-          );
 
-          articuloNuevo = false;
-          break;
+          if (
+            arraySuplementos &&
+            cesta.lista[i]?.arraySuplementos &&
+            cesta.lista[i]?.arraySuplementos?.length == arraySuplementos?.length
+          ) {
+            let subCesta = cesta.lista[i].arraySuplementos;
+
+            subCesta = subCesta.sort(function (a, b) {
+              return a._id - b._id;
+            });
+
+            arraySuplementos = arraySuplementos.sort(function (a, b) {
+              return a._id - b._id;
+            });
+            let igual = 0;
+            let precioSuplementos = 0;
+            for (let j = 0; j < arraySuplementos.length; j++) {
+              if (arraySuplementos[j]._id === subCesta[j]._id) {
+                precioSuplementos += arraySuplementos[j].precioConIva;
+                igual++;
+              }
+            }
+            if (igual == cesta.lista[i].arraySuplementos.length) {
+              cesta.lista[i].unidades += unidades;
+              cesta.lista[i].subtotal = nuevaInstancePromociones.redondearDecimales(
+                cesta.lista[i].subtotal + unidades * articulo.precioConIva,
+                2
+              );
+    
+              articuloNuevo = false;
+              break;
+            }
+          } else if (cesta.lista[i].arraySuplementos == null) {
+            cesta.lista[i].unidades += unidades;
+            cesta.lista[i].subtotal = Number(
+              (
+                cesta.lista[i].subtotal +
+                unidades * articulo.precioConIva
+              ).toFixed(2)
+            );
+            articuloNuevo = false;
+            break;
+          }
         }
       }
 
@@ -209,6 +322,7 @@ export class CestaClase {
           gramos: gramos,
         });
       }
+
       let numProductos = 0;
       let total = 0;
       for (let i = 0; i < cesta.lista.length; i++) {
@@ -248,7 +362,6 @@ export class CestaClase {
           cesta.idCliente
         );
       }
-
       // Va a peso. 1 unidad son 1000 gramos. Los precios son por kilogramo.
       if (gramos > 0)
         return await this.insertarArticulo(
@@ -404,7 +517,8 @@ export class CestaClase {
         ) {
           const detalleDeSuplementos = await this.getDetalleIvaSuplementos(
             cesta.lista[i].arraySuplementos,
-            cesta.idCliente
+            cesta.idCliente,
+            cesta.lista[i].unidades
           );
           cesta.detalleIva = fusionarObjetosDetalleIva(
             cesta.detalleIva,
@@ -445,7 +559,8 @@ export class CestaClase {
   /* Eze 4.0 */
   async getDetalleIvaSuplementos(
     arraySuplementos: ArticulosInterface[],
-    idCliente: ClientesInterface["id"]
+    idCliente: ClientesInterface["id"],
+    unidades: number
   ): Promise<DetalleIvaInterface> {
     let objetoIva: DetalleIvaInterface = {
       base1: 0,
@@ -473,7 +588,7 @@ export class CestaClase {
         idCliente
       );
       objetoIva = fusionarObjetosDetalleIva(
-        construirObjetoIvas(articulo.precioConIva, articulo.tipoIva, 1),
+        construirObjetoIvas(articulo.precioConIva, articulo.tipoIva, unidades),
         objetoIva
       );
     }

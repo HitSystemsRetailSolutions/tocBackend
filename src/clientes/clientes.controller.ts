@@ -42,6 +42,22 @@ export class ClientesController {
     }
   }
 
+  /* Uri */
+  @Post("isClienteDescuento")
+  async isClienteDescuento(@Body() { idCliente }) {
+    try {
+      if (!idCliente) return 0;
+      let cli = await clienteInstance.isClienteDescuento(idCliente);
+      if (cli.nombre.toLocaleLowerCase().includes("descuento")) {
+        return Number(cli.descuento);
+      }
+      return 0;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  }
+
   /* Eze 4.0 */
   @Post("descargarClientesFinales")
   async descargarClientesFinales() {

@@ -69,7 +69,6 @@ export async function getTrabajadorFichados(
   const database = (await conexion).db("tocgame");
   const trabajadores =
     database.collection<TrabajadoresInterface>("trabajadores");
-
   return await trabajadores
     .find({ fichado: true, idTrabajador: trabajador })
     .toArray();

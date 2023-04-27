@@ -23,6 +23,7 @@ export interface TicketsInterfaceBackUp {
   total: number;
   idTrabajador: number;
   consumoPersonal?: boolean;
+  idCliente: ClientesInterface["id"];
   enviado:boolean;
 }
 

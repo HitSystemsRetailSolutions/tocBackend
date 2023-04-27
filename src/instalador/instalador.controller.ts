@@ -170,7 +170,6 @@ export class InstaladorController {
         const tarifas = await tarifasInstance.guardarTarifasEspeciales(
           res.data.tarifasEspeciales
         );
-
         if (
           // Solo los datos obligatorios
           trabajadores &&
@@ -278,19 +277,18 @@ export class InstaladorController {
               );
             }
           }
-          let Dependenta = res.data.tickets[0].Dependenta;
-          if (res.data.fichajes.length > 0) res.data.fichajes[0].usuari;
+          let Dependenta = res.data.tickets[0].Dependenta
+          if(res.data.fichajes.length > 0)res.data.fichajes[0].usuari
+          let date = new Date(res.data.tickets[res.data.tickets.length -1].Data)
+          date.setHours(date.getHours() - 2);
           await cajaInstance.abrirCaja({
             detalleApertura: monedasCaja,
             idDependientaApertura: Number.parseInt(Dependenta),
-            inicioTime: Date.parse(
-              res.data.tickets[res.data.tickets.length - 1].Data
-            ),
+            inicioTime: Date.parse(date.toString()),
             totalApertura: totalMonedas,
           });
         }
-
-        return [1, monedas];
+        return [1,monedas];
       }
       console.error("Error de autenticación en SanPedro");
       return [0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];

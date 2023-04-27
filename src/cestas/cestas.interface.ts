@@ -11,6 +11,7 @@ export interface CestasInterface {
   idCliente: ClientesInterface["id"];
   nombreCliente?: string;
   indexMesa?: boolean;
+  trabajadores: ObjectId[];
 }
 
 export type ItemLista = {
@@ -53,4 +54,4 @@ export type DetalleIvaInterface = {
 };
 
 export type TiposPromociones = "COMBO" | "INDIVIDUAL";
-export type ModoCesta = "VENTA" | "CONSUMO_PERSONAL" | "DEVOLUCION";
+export type ModoCesta = "VENTA" | "CONSUMO_PERSONAL" | "DEVOLUCION" | "PAGO SEPARADO";

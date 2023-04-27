@@ -106,12 +106,15 @@ export class TicketsClase {
     idTrabajador,
     consumoPersonal
   ): Promise<boolean> {
+    let date = new Date(timestamp)
+    date.setHours(date.getHours() - 2);
     let ticket: TicketsInterfaceBackUp = {
       _id: _id,
-      timestamp: Date.parse(timestamp),
+      timestamp: Date.parse(date.toString()),
       total: total,
       idTrabajador: idTrabajador,
       consumoPersonal: consumoPersonal,
+      idCliente: null,
       enviado: true,
     };
     return await schTickets.nuevoTicketBackUP(ticket);

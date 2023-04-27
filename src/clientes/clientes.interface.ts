@@ -4,4 +4,5 @@ export interface ClientesInterface {
   tarjetaCliente: string;
   albaran: boolean;
   noPagaEnTienda: boolean;
+  descuento: number;
 }

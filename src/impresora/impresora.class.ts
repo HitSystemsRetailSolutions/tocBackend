@@ -223,7 +223,7 @@ export class Impresora {
   }
 
   private enviarMQTT(encodedData) {
-    var client = mqtt.connect("mqtt://localhost:1883", {
+    var client = mqtt.connect("mqtt://127.0.0.1:1883", {
       username: "ImpresoraMQTT",
     });
     client.on("connect", function () {
@@ -324,7 +324,7 @@ export class Impresora {
         arrayCompra[i].arraySuplementos &&
         arrayCompra[i].arraySuplementos.length > 0
       ) {
-        detalles += `${1}     ${arrayCompra[i].nombre.slice(0, 20)} +      \n`;
+        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[i].nombre.slice(0, 20)} +      \n`;
         for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
           if (j == arrayCompra[i].arraySuplementos.length - 1) {
             detalles += `       ${arrayCompra[i].arraySuplementos[
