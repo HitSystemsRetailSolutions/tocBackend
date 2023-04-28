@@ -42,10 +42,13 @@ class PaytefClass {
         data: opciones,
       })
         .then(async (respuestaPayef: any) => {
+logger.Error(99,"if (await respuestaPayef..................");
           if (await respuestaPayef.data.info["started"]) {
             io.emit("procesoPaytef", { proceso: "Inicio proceso" });
+logger.Error(99,"this.bucleComprobacion(idTicket, total, idTrabajador, type);");
             await this.bucleComprobacion(idTicket, total, idTrabajador, type);
           } else {
+logger.Error(99,"NO TE RESPOSTA")
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
             io.emit("procesoPaytef", { proceso: "Denegado" });
             logger.Error(
@@ -55,14 +58,17 @@ class PaytefClass {
           }
         })
         .catch(async (err) => {
+logger.Error(99,"NO ES POT CONECTAR EL AXIOS")
           console.log(
             "error de conexión (no se puede enviar el pago) / ",
             intentosBuclePago
           );
-          if (intentosBuclePago >= 4) {
+          if (intentosBuclePago >= 2) {
+logger.Error(99,"MASSES INTENTS SENSE PODER COMUNICAR-ME")
             intentosBuclePago = 0;
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
           } else {
+logger.Error(99,"REINTENTO RESPOSTA")
             await new Promise((r) => setTimeout(r, 100));
             intentosBuclePago += 1;
             this.iniciarTransaccion(idTrabajador, idTicket, total, type);
@@ -86,6 +92,7 @@ class PaytefClass {
     type: "refund" | "sale" = "sale"
   ): Promise<void> {
     try {
+logger.Error(99,"FAIG BUCLE")
       const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
       const resEstadoPaytef: any = (
         await axios.post(`http://${ipDatafono}:8887/transaction/poll`, {
@@ -93,9 +100,13 @@ class PaytefClass {
         })
       ).data;
       io.emit("procesoPaytef", { proceso: resEstadoPaytef.info.cardStatus });
+logger.Error(99,"HE FET AXIOS")
+logger.Error(990,JSON.stringify(resEstadoPaytef))
+logger.Error(990,JSON.stringify(resEstadoPaytef.info))
       if (resEstadoPaytef.result) {
         if (resEstadoPaytef.result.approved) {
           if (type === "sale") {
+logger.Error(100,"APROVAT SALE")
             movimientosInstance.nuevoMovimiento(
               total,
               "Targeta",
@@ -106,6 +117,7 @@ class PaytefClass {
             io.emit("consultaPaytef", true);
             io.emit("procesoPaytef", { proceso: "aprobado" });
           } else if (type === "refund") {
+logger.Error(100,"APROVAT REFOUND")
             schTickets.anularTicket(idTicket);
             movimientosInstance.nuevoMovimiento(
               total * -1,
@@ -114,7 +126,7 @@ class PaytefClass {
               idTicket + 1,
               idTrabajador
             );
-
+logger.Error(100,"TOT CORRECTE")
             io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
             intentosBucleBucle = 0;
             intentosBuclePago = 0;
@@ -125,17 +137,22 @@ class PaytefClass {
           ticketsInstance.actualizarTickets();
           movimientosInstance.construirArrayVentas();
         } else if (type === "sale") {
+logger.Error(100,"DENEGAT SALE")
           io.emit("consultaPaytef", false);
         } else if (type === "refund") {
+logger.Error(100,"DENEGAT REFOUND")
           io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
         }
       } else {
+logger.Error(99,"NO TINC RESULTAT, REINTENTO")
         await new Promise((r) => setTimeout(r, 1000));
         await this.bucleComprobacion(idTicket, total, idTrabajador, type);
       }
     } catch (e) {
       console.log("error de conexión (pago ya enviado) / ", intentosBucleBucle);
-      if (intentosBucleBucle >= 5) {
+logger.Error(99,"ERROR, INTENTO DE NOU")
+      if (intentosBucleBucle >= 4) {
+logger.Error(99,"MASSES INTENTS, FINALITZO I ENVIO MODAL")
         intentosBucleBucle = 0;
         io.emit("consultaPaytefRefund", {
           ok: false,
