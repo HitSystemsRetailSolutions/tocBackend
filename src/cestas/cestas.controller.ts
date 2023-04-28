@@ -57,7 +57,6 @@ export class CestasController {
     try {
       return await cestasInstance.borrarUnicoItemCesta(idCesta, articulos);
     } catch (err) {
-      console.log("s");
       logger.Error(59, err);
       return false;
     }
@@ -66,7 +65,7 @@ export class CestasController {
   @Post("PagarPorSeparado")
   async PagarPorSeparado(@Body() { articulos }) {
     try {
-        return await cestasInstance.CestaPagoSeparado(articulos);
+      return await cestasInstance.CestaPagoSeparado(articulos);
       throw Error("Error, faltan datos en getCestaById() controller");
     } catch (err) {
       logger.Error(60, err);
@@ -74,17 +73,17 @@ export class CestasController {
     }
   }
 
-   /* Uri */
-   @Post("DevolverProductosACestaSep")
-   async DevolverProductosACestaSep(@Body() { cesta,articulos }) {
-     try {
-         return await cestasInstance.DevolverCestaPagoSeparado(cesta,articulos);
-       throw Error("Error, faltan datos en getCestaById() controller");
-     } catch (err) {
-       logger.Error(60, err);
-       return null;
-     }
-   }
+  /* Uri */
+  @Post("DevolverProductosACestaSep")
+  async DevolverProductosACestaSep(@Body() { cesta, articulos }) {
+    try {
+      return await cestasInstance.DevolverCestaPagoSeparado(cesta, articulos);
+      throw Error("Error, faltan datos en getCestaById() controller");
+    } catch (err) {
+      logger.Error(60, err);
+      return null;
+    }
+  }
 
   /* Eze 4.0  (probablemente no se usará porque irá por socket)*/
   @Post("getCestaById")
@@ -158,12 +157,12 @@ export class CestasController {
   async cambiarCestaTrabajador(@Body() { idTrabajador, idCesta }) {
     try {
       if (idCesta && idTrabajador)
-          await trabajadoresInstance.setIdCesta(idTrabajador, idCesta)
-          await cestasInstance.setTrabajadorCesta(idCesta,idTrabajador)
-          await trabajadoresInstance.actualizarTrabajadoresFrontend();
-          await cestasInstance.actualizarCestas();
-          return true;
-        
+        await trabajadoresInstance.setIdCesta(idTrabajador, idCesta);
+      await cestasInstance.setTrabajadorCesta(idCesta, idTrabajador);
+      await trabajadoresInstance.actualizarTrabajadoresFrontend();
+      await cestasInstance.actualizarCestas();
+      return true;
+
       throw Error("Error, faltan datos en cambiarCestaTrabajador controller");
     } catch (err) {
       logger.Error(62, err);

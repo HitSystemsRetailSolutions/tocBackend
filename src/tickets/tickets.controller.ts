@@ -8,6 +8,8 @@ import { FormaPago } from "../movimientos/movimientos.interface";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { cajaInstance } from "src/caja/caja.clase";
 import { impresoraInstance } from "../impresora/impresora.class";
+import { encargosInstance } from "src/encargos/encargos.clase";
+import { EncargosInterface } from "src/encargos/encargos.interface";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -32,6 +34,59 @@ export class TicketsController {
     } catch (err) {
       logger.Error(106, err);
       return null;
+    }
+  }
+
+  @Post("crearTicketEncargo") async crearTicketEncargo(
+    @Body()
+    {
+      idEncargo,
+      total,
+      dejaCuenta,
+      idTrabajador,
+      tipo,
+    }: {
+      idEncargo: EncargosInterface["_id"];
+      total: number;
+      dejaCuenta: TicketsInterface["dejaCuenta"];
+      tipo: FormaPago;
+      idTrabajador: TicketsInterface["idTrabajador"];
+    }
+  ) {
+    try {
+      const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
+
+      const ticket = await ticketsInstance.generarNuevoTicket(
+        total - dejaCuenta,
+        idTrabajador,
+        cestaEncargo.cesta,
+        tipo === "CONSUMO_PERSONAL",
+        dejaCuenta
+      );
+
+      if (!ticket) {
+        throw Error(
+          "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
+        );
+      }
+
+      if (await ticketsInstance.insertarTicket(ticket)) {
+        await encargosInstance.setEntregado(idEncargo);
+
+        if (tipo !== "TARJETA") {
+          await impresoraInstance.abrirCajon();
+        }
+
+        ticketsInstance.actualizarTickets();
+        return true;
+      }
+
+      throw Error(
+        "Error, no se ha podido crear el ticket en crearTicket() controller 2"
+      );
+    } catch (err) {
+      logger.Error(1072, err);
+      return false;
     }
   }
 
@@ -65,10 +120,11 @@ export class TicketsController {
           cesta,
           tipo === "CONSUMO_PERSONAL"
         );
-        if (!ticket){
+        if (!ticket) {
           throw Error(
             "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
-          );}
+          );
+        }
         if (await ticketsInstance.insertarTicket(ticket)) {
           await cestasInstance.borrarArticulosCesta(idCesta, true);
           if (tipo === "TARJETA")
@@ -141,7 +197,6 @@ export class TicketsController {
     }
   }
 
-
   /* Eze 4.0 */
   @Post("crearTicketSeparado")
   async crearTicketSeparado(
@@ -154,7 +209,7 @@ export class TicketsController {
       tkrsData,
     }: {
       total: number;
-      cesta:any
+      cesta: any;
       idTrabajador: TicketsInterface["idTrabajador"];
       tipo: FormaPago;
       tkrsData: {
@@ -164,7 +219,6 @@ export class TicketsController {
     }
   ) {
     try {
-      console.log(cesta)
       if (typeof total == "number" && cesta && idTrabajador && tipo) {
         const ticket = await ticketsInstance.generarNuevoTicket(
           total,
@@ -172,10 +226,11 @@ export class TicketsController {
           cesta,
           tipo === "CONSUMO_PERSONAL"
         );
-        if (!ticket){
+        if (!ticket) {
           throw Error(
             "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
-          );}
+          );
+        }
         if (await ticketsInstance.insertarTicket(ticket)) {
           if (tipo === "TARJETA")
             paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
