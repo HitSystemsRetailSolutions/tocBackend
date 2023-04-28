@@ -43,7 +43,8 @@ export class CestaClase {
   /* Eze 4.0 */
   private generarObjetoCesta(
     nuevoId: CestasInterface["_id"],
-    modoV: ModoCesta = "VENTA"
+    modoV: ModoCesta = "VENTA",
+    trabajador: CestasInterface["trabajador"] = null
   ): CestasInterface {
     return {
       _id: nuevoId,
@@ -69,7 +70,12 @@ export class CestaClase {
       modo: modoV,
       idCliente: null,
       indexMesa: null,
+<<<<<<< HEAD
+      trabajador: trabajador,
+      trabajadores: []
+=======
       trabajadores: [],
+>>>>>>> main
     };
   }
 
@@ -90,12 +96,19 @@ export class CestaClase {
     await schCestas.deleteCestaMesa(idCesta);
 
   /* Eze 4.0 */
-  async crearCesta(indexMesa = null): Promise<CestasInterface["_id"]> {
-    const nuevaCesta = this.generarObjetoCesta(new ObjectId());
+  async crearCesta(indexMesa = null,trabajador = null): Promise<CestasInterface["_id"]> {
+    const nuevaCesta = await this.generarObjetoCesta(new ObjectId(),"VENTA",trabajador);
     nuevaCesta.indexMesa = indexMesa;
     if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
     throw Error("Error, no se ha podido crear la cesta");
   }
+
+    /* Uri */
+    async crearCestaDevolucion(trabajador = null): Promise<CestasInterface["_id"]> {
+      const nuevaCesta = this.generarObjetoCesta(new ObjectId(),"DEVOLUCION",trabajador);
+      if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
+      throw Error("Error, no se ha podido crear la cesta");
+    }
 
   async CestaPagoSeparado(articulos) {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO SEPARADO");
