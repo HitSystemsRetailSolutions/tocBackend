@@ -70,12 +70,9 @@ export class CestaClase {
       modo: modoV,
       idCliente: null,
       indexMesa: null,
-<<<<<<< HEAD
       trabajador: trabajador,
       trabajadores: []
-=======
-      trabajadores: [],
->>>>>>> main
+
     };
   }
 
