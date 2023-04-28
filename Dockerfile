@@ -1,16 +1,12 @@
-FROM node
+FROM node 
 
-RUN mkdir -p /home/hit/toc/ 
+WORKDIR /usr/src
 
-#RUN chown -R hit:hit /home/hit/toc
-
-WORKDIR /home/hit/toc
-
-COPY package*.json ./
+COPY ["package.json", "package-lock.json",  "/usr/src"]
 
 RUN npm install
 
-COPY . .
+COPY [".", "/usr/src/"]
 
 RUN npm run build
 

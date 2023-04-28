@@ -220,7 +220,7 @@ export class Impresora {
   }
 
   private enviarMQTT(encodedData) {
-    var client = mqtt.connect("mqtt://127.0.0.1:1883", {
+    var client = mqtt.connect(process.env.MQTT_URL) || mqtt.connect("mqtt://127.0.0.1:1883", {
       username: "ImpresoraMQTT",
     });
     client.on("connect", function () {

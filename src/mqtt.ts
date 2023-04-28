@@ -1,6 +1,6 @@
 // import mqtt from "mqtt";
 const mqtt = require("mqtt");
-const client = mqtt.connect("mqtt://localhost");
+const client =  mqtt.connect(process.env.MQTT_URL) || mqtt.connect("mqtt://localhost") ;
 
 class Mqtt {
   public loggerMQTT(txt: string) {
