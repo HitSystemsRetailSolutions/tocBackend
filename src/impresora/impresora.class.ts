@@ -223,6 +223,7 @@ export class Impresora {
     var client = mqtt.connect(process.env.MQTT_URL) || mqtt.connect("mqtt://127.0.0.1:1883", {
       username: "ImpresoraMQTT",
     });
+    
     client.on("connect", function () {
       let buff = Buffer.from(encodedData, "hex");
       client.publish("hit.hardware/printer", buff);
