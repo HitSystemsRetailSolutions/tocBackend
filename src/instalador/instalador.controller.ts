@@ -64,7 +64,6 @@ export class InstaladorController {
       }
       throw Error("Faltan datos en instalador/pedirDatos controller");
     } catch (err) {
-      console.log(err);
       logger.Error(93, err);
     }
   }
@@ -91,7 +90,6 @@ export class InstaladorController {
       }
       return "";
     } catch (err) {
-      console.log(err);
       logger.Error(93, err);
     }
   }
@@ -138,7 +136,6 @@ export class InstaladorController {
         "No hemos podido detectar la IP, porfavor rellene los campos."
       );
     } catch (err) {
-      console.log(err);
       logger.Error(93, err);
     }
   }
@@ -181,13 +178,9 @@ export class InstaladorController {
         ) {
           return await this.descargarUltimo();
         }
-        console.log(
-          `Backend: res1: ${trabajadores}, res2: ${articulos}, res3: ${clientes}, res4: ${familias}, res5: ${promociones}, res7: ${teclas}, res8: ${tarifas}`
-        );
       }
       throw Error("Error de autenticación en SanPedro");
     } catch (err) {
-      console.log(err);
       logger.Error(95, err);
       return false;
     }
@@ -225,7 +218,7 @@ export class InstaladorController {
             movData.Dependenta
           );
         }
-        let monedas = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+        let monedas = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let monedasCaja = [];
         let totalMonedas = 0;
         if (res.data.UltimoCierre.length > 0) {
@@ -238,7 +231,9 @@ export class InstaladorController {
             monedasCaja.push({
               _id: element.Motiu.toString().replace("En : ", ""),
               valor: element.Import,
-              unidades: element.Import/Number(element.Motiu.toString().replace("En : ", "")),
+              unidades:
+                element.Import /
+                Number(element.Motiu.toString().replace("En : ", "")),
             });
           });
           const UltimoCierre = await cajaInstance.guardarMonedas(
@@ -296,9 +291,8 @@ export class InstaladorController {
         return [1,monedas];
       }
       console.error("Error de autenticación en SanPedro");
-      return [0,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
+      return [0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];
     } catch (err) {
-      console.log(err);
       logger.Error(95, err);
       return false;
     }

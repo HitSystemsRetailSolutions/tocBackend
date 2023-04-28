@@ -263,6 +263,7 @@ export class CestaClase {
           !cesta.lista[i].regalo &&
           cesta.lista[i].promocion == null
         ) {
+
           if (
             arraySuplementos &&
             cesta.lista[i]?.arraySuplementos &&
@@ -287,13 +288,11 @@ export class CestaClase {
             }
             if (igual == cesta.lista[i].arraySuplementos.length) {
               cesta.lista[i].unidades += unidades;
-              cesta.lista[i].subtotal = Number(
-                (
-                  cesta.lista[i].subtotal +
-                  precioSuplementos +
-                  unidades * articulo.precioConIva
-                ).toFixed(2)
+              cesta.lista[i].subtotal = nuevaInstancePromociones.redondearDecimales(
+                cesta.lista[i].subtotal + unidades * articulo.precioConIva,
+                2
               );
+    
               articuloNuevo = false;
               break;
             }
