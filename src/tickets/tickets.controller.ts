@@ -61,6 +61,7 @@ export class TicketsController {
         idTrabajador,
         cestaEncargo.cesta,
         tipo === "CONSUMO_PERSONAL",
+        false,
         dejaCuenta
       );
 
@@ -114,11 +115,15 @@ export class TicketsController {
     try {
       if (typeof total == "number" && idCesta && idTrabajador && tipo) {
         const cesta = await cestasInstance.getCestaById(idCesta);
+        let d3G = false;
+        if (tipo === "DATAFONO_3G") d3G = true;
         const ticket = await ticketsInstance.generarNuevoTicket(
           total,
           idTrabajador,
           cesta,
-          tipo === "CONSUMO_PERSONAL"
+          tipo === "CONSUMO_PERSONAL",
+          d3G,
+          null
         );
         if (!ticket) {
           throw Error(
@@ -173,7 +178,11 @@ export class TicketsController {
               ticket._id,
               idTrabajador
             );
-          } else if (tipo !== "EFECTIVO" && tipo != "CONSUMO_PERSONAL") {
+          } else if (
+            tipo !== "EFECTIVO" &&
+            tipo != "CONSUMO_PERSONAL" &&
+            tipo !== "DATAFONO_3G"
+          ) {
             throw Error(
               "Falta información del tkrs o bien ninguna forma de pago es correcta"
             );
@@ -220,11 +229,15 @@ export class TicketsController {
   ) {
     try {
       if (typeof total == "number" && cesta && idTrabajador && tipo) {
+        let d3G = false;
+        if (tipo === "DATAFONO_3G") d3G = true;
         const ticket = await ticketsInstance.generarNuevoTicket(
           total,
           idTrabajador,
           cesta,
-          tipo === "CONSUMO_PERSONAL"
+          tipo === "CONSUMO_PERSONAL",
+          d3G,
+          null
         );
         if (!ticket) {
           throw Error(

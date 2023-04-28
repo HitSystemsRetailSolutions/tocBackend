@@ -10,10 +10,11 @@ export interface TicketsInterface {
   timestamp: number;
   total: number;
   dejaCuenta?: number;
+  datafono3G: boolean;
   cesta: CestasInterface;
   idTrabajador: number;
   idCliente: ClientesInterface["id"];
-  consumoPersonal?: boolean;
+  consumoPersonal: boolean;
   enviado: boolean;
 }
 
@@ -24,7 +25,7 @@ export interface TicketsInterfaceBackUp {
   idTrabajador: number;
   consumoPersonal?: boolean;
   idCliente: ClientesInterface["id"];
-  enviado:boolean;
+  enviado: boolean;
 }
 
 export interface SuperTicketInterface extends TicketsInterface {
