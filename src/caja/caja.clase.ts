@@ -263,11 +263,14 @@ export class CajaClase {
     }
 
     // totalEfectivo -= totalDatafono3G;
-
+    let totalTicketDatafono3G = 0;
     // ESTO SERÁ PARA CALCULAR EL DESCUADRE
     for (let i = 0; i < arrayTicketsCaja.length; i++) {
       nClientes++;
       totalTickets += arrayTicketsCaja[i].total;
+      if (arrayTicketsCaja[i].datafono3G) {
+        totalTicketDatafono3G += arrayTicketsCaja[i].total;
+      }
     }
 
     const descuadre =
@@ -306,6 +309,7 @@ export class CajaClase {
       recaudado: recaudado,
       totalCierre: totalCierre,
       totalDatafono3G: totalDatafono3G,
+      totalTicketDatafono3G: totalTicketDatafono3G,
       totalDeuda: totalDeuda,
       totalEfectivo: totalEfectivo,
       totalEntradas: totalEntradas,
