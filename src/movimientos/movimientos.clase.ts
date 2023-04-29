@@ -130,6 +130,7 @@ export class MovimientosClase {
 
   /* Eze v23 */
   getMovimientoMasAntiguo = () => schMovimientos.getMovimientoMasAntiguo();
+  getMovimientoTarjetaMasAntiguo = async (idTiket) => await schMovimientos.getMovimientoTarjetaMasAntiguo(idTiket);
 
   /* Eze v4 */
   setMovimientoEnviado = (movimiento: MovimientosInterface) =>

@@ -60,8 +60,8 @@ export class PaytefController {
     try {
       if (idTrabajador) {
         const ticket = await ticketsInstance.getUltimoTicket();
-          movimientosInstance.nuevoMovimiento(
-          ticket.total ,
+        movimientosInstance.nuevoMovimiento(
+          ticket.total,
           "Targeta",
           "TARJETA",
           ticket._id,
@@ -71,7 +71,7 @@ export class PaytefController {
       }
       throw Error("Faltan datos {idTrabajador} controller");
     } catch (err) {
-      console.log(err)
+      console.log(err);
       logger.Error(131, err);
       return false;
     }
@@ -82,10 +82,23 @@ export class PaytefController {
   async comprobarDisponibilidad() {
     try {
       const validIp = await paytefInstance.detectarPytef();
-      if(validIp.toString().includes("PAYTEF"))return "ONLINE";
+      if (validIp.toString().includes("PAYTEF")) return "ONLINE";
       return "OFFLINE";
     } catch (err) {
       logger.Error(131, err);
+      return false;
+    }
+  }
+
+  /* Uri */
+  @Post("comprobarUltimoTicket")
+  async comprobarUltimoTicket(@Body() {idticket} ) {
+    try {
+      console.log(await paytefInstance.ComprobarReconectado(idticket),"si")
+      return await paytefInstance.ComprobarReconectado(idticket);
+    } catch (err) {
+      logger.Error(131, err);
+      console.log(err)
       return false;
     }
   }
