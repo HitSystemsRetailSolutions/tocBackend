@@ -42,13 +42,16 @@ class PaytefClass {
         data: opciones,
       })
         .then(async (respuestaPayef: any) => {
-logger.Error(99,"if (await respuestaPayef..................");
+          logger.Error(99, "if (await respuestaPayef..................");
           if (await respuestaPayef.data.info["started"]) {
             io.emit("procesoPaytef", { proceso: "Inicio proceso" });
-logger.Error(99,"this.bucleComprobacion(idTicket, total, idTrabajador, type);");
+            logger.Error(
+              99,
+              "this.bucleComprobacion(idTicket, total, idTrabajador, type);"
+            );
             await this.bucleComprobacion(idTicket, total, idTrabajador, type);
           } else {
-logger.Error(99,"NO TE RESPOSTA")
+            logger.Error(99, "NO TE RESPOSTA");
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
             io.emit("procesoPaytef", { proceso: "Denegado" });
             logger.Error(
@@ -58,17 +61,17 @@ logger.Error(99,"NO TE RESPOSTA")
           }
         })
         .catch(async (err) => {
-logger.Error(99,"NO ES POT CONECTAR EL AXIOS")
-          console.log(
+          logger.Error(99, "NO ES POT CONECTAR EL AXIOS");
+          logger.Error(
             "error de conexión (no se puede enviar el pago) / ",
             intentosBuclePago
           );
           if (intentosBuclePago >= 2) {
-logger.Error(99,"MASSES INTENTS SENSE PODER COMUNICAR-ME")
+            logger.Error(99, "MASSES INTENTS SENSE PODER COMUNICAR-ME");
             intentosBuclePago = 0;
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
           } else {
-logger.Error(99,"REINTENTO RESPOSTA")
+            logger.Error(99, "REINTENTO RESPOSTA");
             await new Promise((r) => setTimeout(r, 100));
             intentosBuclePago += 1;
             this.iniciarTransaccion(idTrabajador, idTicket, total, type);
@@ -92,7 +95,7 @@ logger.Error(99,"REINTENTO RESPOSTA")
     type: "refund" | "sale" = "sale"
   ): Promise<void> {
     try {
-logger.Error(99,"FAIG BUCLE")
+      logger.Error(99, "FAIG BUCLE");
       const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
       const resEstadoPaytef: any = (
         await axios.post(`http://${ipDatafono}:8887/transaction/poll`, {
@@ -100,33 +103,80 @@ logger.Error(99,"FAIG BUCLE")
         })
       ).data;
       io.emit("procesoPaytef", { proceso: resEstadoPaytef.info.cardStatus });
-logger.Error(99,"HE FET AXIOS")
-logger.Error(990,JSON.stringify(resEstadoPaytef))
-logger.Error(990,JSON.stringify(resEstadoPaytef.info))
+      logger.Error(99, "HE FET AXIOS");
+      logger.Error(990, JSON.stringify(resEstadoPaytef));
+      logger.Error(990, JSON.stringify(resEstadoPaytef.info));
       if (resEstadoPaytef.result) {
         if (resEstadoPaytef.result.approved) {
           if (type === "sale") {
-logger.Error(100,"APROVAT SALE")
-            movimientosInstance.nuevoMovimiento(
-              total,
-              "Targeta",
-              "TARJETA",
-              idTicket,
-              idTrabajador
-            );
+            logger.Error(100, "APROVAT SALE");
+            await axios
+              .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
+                pinpad: "*",
+              })
+              .then((respuesta: any) => {
+                if (
+                  respuesta.data.result.result.transactionReference == idTicket
+                ) {
+                  movimientosInstance.nuevoMovimiento(
+                    total,
+                    "Targeta",
+                    "TARJETA",
+                    idTicket,
+                    idTrabajador
+                  );
+                } else {
+                  io.emit("consultaPaytefRefund", {
+                    ok: false,
+                    errorconex: true,
+                    id: idTicket,
+                    datos: [
+                      total * -1,
+                      "Targeta",
+                      "TARJETA",
+                      idTicket + 1,
+                      idTrabajador,
+                    ],
+                  });
+                }
+              });
+
             io.emit("consultaPaytef", true);
             io.emit("procesoPaytef", { proceso: "aprobado" });
           } else if (type === "refund") {
-logger.Error(100,"APROVAT REFOUND")
+            logger.Error(100, "APROVAT REFOUND");
             schTickets.anularTicket(idTicket);
-            movimientosInstance.nuevoMovimiento(
-              total * -1,
-              "Targeta",
-              "TARJETA",
-              idTicket + 1,
-              idTrabajador
-            );
-logger.Error(100,"TOT CORRECTE")
+            await axios
+              .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
+                pinpad: "*",
+              })
+              .then((respuesta: any) => {
+                if (
+                  respuesta.data.result.result.transactionReference == idTicket
+                ) {
+                  movimientosInstance.nuevoMovimiento(
+                    total * -1,
+                    "Targeta",
+                    "TARJETA",
+                    idTicket + 1,
+                    idTrabajador
+                  );
+                } else {
+                  io.emit("consultaPaytefRefund", {
+                    ok: false,
+                    errorconex: true,
+                    id: idTicket,
+                    datos: [
+                      total * -1,
+                      "Targeta",
+                      "TARJETA",
+                      idTicket + 1,
+                      idTrabajador,
+                    ],
+                  });
+                }
+              });
+            logger.Error(100, "TOT CORRECTE");
             io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
             intentosBucleBucle = 0;
             intentosBuclePago = 0;
@@ -137,25 +187,27 @@ logger.Error(100,"TOT CORRECTE")
           ticketsInstance.actualizarTickets();
           movimientosInstance.construirArrayVentas();
         } else if (type === "sale") {
-logger.Error(100,"DENEGAT SALE")
+          logger.Error(100, "DENEGAT SALE");
           io.emit("consultaPaytef", false);
         } else if (type === "refund") {
-logger.Error(100,"DENEGAT REFOUND")
+          logger.Error(100, "DENEGAT REFOUND");
           io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
         }
       } else {
-logger.Error(99,"NO TINC RESULTAT, REINTENTO")
+        logger.Error(99, "NO TINC RESULTAT, REINTENTO");
         await new Promise((r) => setTimeout(r, 1000));
         await this.bucleComprobacion(idTicket, total, idTrabajador, type);
       }
     } catch (e) {
-      console.log("error de conexión (pago ya enviado) / ", intentosBucleBucle);
-logger.Error(99,"ERROR, INTENTO DE NOU")
-      if (intentosBucleBucle >= 4) {
-logger.Error(99,"MASSES INTENTS, FINALITZO I ENVIO MODAL")
+      logger.Error(e);
+      logger.Error("error de conexión (pago ya enviado) / ", intentosBucleBucle);
+      logger.Error(99, "ERROR, INTENTO DE NOU");
+      if (intentosBucleBucle >= 0) {
+        logger.Error(99, "MASSES INTENTS, FINALITZO I ENVIO MODAL");
         intentosBucleBucle = 0;
         io.emit("consultaPaytefRefund", {
           ok: false,
+          errorconex: true,
           id: idTicket,
           datos: [total * -1, "Targeta", "TARJETA", idTicket + 1, idTrabajador],
         });
@@ -176,6 +228,42 @@ logger.Error(99,"MASSES INTENTS, FINALITZO I ENVIO MODAL")
     } catch (e) {
       return "error";
     }
+  }
+
+  /* Uri */
+  async ComprobarReconectado(ticket): Promise<string> {
+    let rnt = "2";
+    try {
+      const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
+      await axios
+        .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
+          pinpad: "*",
+        })
+        .then((datafonoLastTicket: any) => {
+          if (datafonoLastTicket.data) {
+            let result = datafonoLastTicket.data.result.result;
+            if (String(result.approved) == "false") rnt = "3";
+            if (result.transactionReference == ticket) {
+              if (
+                movimientosInstance.getMovimientoTarjetaMasAntiguo(
+                  result.transactionReference
+                ) != null
+              ) {
+                rnt = "4";
+              }
+              rnt = "1";
+            }
+          } else {
+            rnt = "2";
+          }
+        })
+        .catch((e) => {
+          rnt = "2";
+        });
+    } catch (e) {
+      rnt = "2";
+    }
+    return rnt;
   }
 
   /* Eze 4.0 */
