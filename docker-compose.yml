@@ -12,8 +12,7 @@ services:
      - 3000:3000
      - 5051:5051
     volumes:
-     - .:/usr/src
-     - /usr/src/node_modules
+     - ./logs:/usr/src/logs
     restart: unless-stopped
     networks:
      - toc_network
