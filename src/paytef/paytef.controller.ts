@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post } from "@nestjs/common";
 import { paytefInstance } from "./paytef.class";
 import { logger } from "../logger";
 import { ticketsInstance } from "../tickets/tickets.clase";
+import { movimientosInstance } from "src/movimientos/movimientos.clase";
 
 const exec = require("child_process").exec;
 
@@ -50,6 +51,54 @@ export class PaytefController {
       throw Error("Faltan datos {idTrabajador} controller");
     } catch (err) {
       logger.Error(131, err);
+      return false;
+    }
+  }
+
+  @Post("darPorValidoUltimoTicket")
+  async darPorValidoUltimoTicket(@Body() { idTrabajador }) {
+    try {
+      if (idTrabajador) {
+        const ticket = await ticketsInstance.getUltimoTicket();
+        movimientosInstance.nuevoMovimiento(
+          ticket.total,
+          "Targeta",
+          "TARJETA",
+          ticket._id,
+          idTrabajador
+        );
+        return true;
+      }
+      throw Error("Faltan datos {idTrabajador} controller");
+    } catch (err) {
+      console.log(err);
+      logger.Error(131, err);
+      return false;
+    }
+  }
+
+  /* Uri */
+  @Post("comprobarDisponibilidad")
+  async comprobarDisponibilidad() {
+    try {
+      const validIp = await paytefInstance.detectarPytef();
+      if (validIp.toString().includes("PAYTEF")) return "ONLINE";
+      return "OFFLINE";
+    } catch (err) {
+      logger.Error(131, err);
+      return false;
+    }
+  }
+
+  /* Uri */
+  @Post("comprobarUltimoTicket")
+  async comprobarUltimoTicket(@Body() {idticket} ) {
+    try {
+      console.log(await paytefInstance.ComprobarReconectado(idticket),"si")
+      return await paytefInstance.ComprobarReconectado(idticket);
+    } catch (err) {
+      logger.Error(131, err);
+      console.log(err)
       return false;
     }
   }

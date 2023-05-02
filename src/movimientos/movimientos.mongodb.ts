@@ -71,6 +71,17 @@ export async function getMovimientoMasAntiguo(): Promise<MovimientosInterface> {
   return await movimientos.findOne({ enviado: false }, { sort: { _id: 1 } });
 }
 
+/* Uri */
+export async function getMovimientoTarjetaMasAntiguo(
+  idTicket:MovimientosInterface
+): Promise<MovimientosInterface> {
+  const database = (await conexion).db("tocgame");
+  const movimientos = database.collection<MovimientosInterface>("movimientos");
+  return await movimientos.findOne(
+    { idTicket: 152 }
+  );
+}
+
 /* Eze 4.0 */
 export async function limpiezaMovimientos(): Promise<boolean> {
   const database = (await conexion).db("tocgame");

@@ -45,7 +45,8 @@ export class TrabajadoresController {
   async fichar(@Body() { idTrabajador }) {
     try {
       if (idTrabajador) {
-        const idCesta = await cestasInstance.crearCesta();
+        console.log("dfaad")
+        const idCesta = await cestasInstance.crearCesta(null,idTrabajador);
         if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta))
           return trabajadoresInstance.ficharTrabajador(idTrabajador);
         throw Error(

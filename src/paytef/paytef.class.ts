@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { Axios } from "axios";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { ticketsInstance } from "../tickets/tickets.clase";
@@ -8,7 +8,10 @@ import { CancelInterface } from "./paytef.interface";
 import { io } from "../sockets.gateway";
 import { logger } from "../logger";
 import * as schTickets from "../tickets/tickets.mongodb";
+let intentosBuclePago = 0;
+let intentosBucleBucle = 0;
 
+axios.defaults.timeout = 5000; // Evitem que el client esperi...
 class PaytefClass {
   /* Eze 4.0 */
   async iniciarTransaccion(
@@ -37,22 +40,43 @@ class PaytefClass {
         method: "POST",
         url: `http://${parametros.ipTefpay}:8887/transaction/start`,
         data: opciones,
-        timeout: 30000,
       })
         .then(async (respuestaPayef: any) => {
+          logger.Error(99, "if (await respuestaPayef..................");
           if (await respuestaPayef.data.info["started"]) {
+            io.emit("procesoPaytef", { proceso: "Inicio proceso" });
+            logger.Error(
+              99,
+              "this.bucleComprobacion(idTicket, total, idTrabajador, type);"
+            );
             await this.bucleComprobacion(idTicket, total, idTrabajador, type);
           } else {
+            logger.Error(99, "NO TE RESPOSTA");
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
+            io.emit("procesoPaytef", { proceso: "Denegado" });
             logger.Error(
               137,
               "Error, la transacción no ha podido empezar paytef.class"
             );
           }
         })
-        .catch((err) => {
-          logger.Error(135, err);
-          io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
+        .catch(async (err) => {
+          logger.Error(99, "NO ES POT CONECTAR EL AXIOS");
+          logger.Error(
+            "error de conexión (no se puede enviar el pago) / ",
+            intentosBuclePago
+          );
+          if (intentosBuclePago >= 2) {
+            logger.Error(99, "MASSES INTENTS SENSE PODER COMUNICAR-ME");
+            intentosBuclePago = 0;
+            io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
+          } else {
+            logger.Error(99, "REINTENTO RESPOSTA");
+            await new Promise((r) => setTimeout(r, 100));
+            intentosBuclePago += 1;
+            this.iniciarTransaccion(idTrabajador, idTicket, total, type);
+          }
+          //io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
         });
     } else {
       io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
@@ -70,50 +94,176 @@ class PaytefClass {
     idTrabajador: TicketsInterface["idTrabajador"],
     type: "refund" | "sale" = "sale"
   ): Promise<void> {
-    const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
-    const resEstadoPaytef: any = (
-      await axios.post(`http://${ipDatafono}:8887/transaction/poll`, {
-        pinpad: "*",
-      })
-    ).data;
+    try {
+      logger.Error(99, "FAIG BUCLE");
+      const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
+      const resEstadoPaytef: any = (
+        await axios.post(`http://${ipDatafono}:8887/transaction/poll`, {
+          pinpad: "*",
+        })
+      ).data;
+      io.emit("procesoPaytef", { proceso: resEstadoPaytef.info.cardStatus });
+      logger.Error(99, "HE FET AXIOS");
+      logger.Error(990, JSON.stringify(resEstadoPaytef));
+      logger.Error(990, JSON.stringify(resEstadoPaytef.info));
+      if (resEstadoPaytef.result) {
+        if (resEstadoPaytef.result.approved) {
+          if (type === "sale") {
+            logger.Error(100, "APROVAT SALE");
+            await axios
+              .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
+                pinpad: "*",
+              })
+              .then((respuesta: any) => {
+                if (
+                  respuesta.data.result.result.transactionReference == idTicket
+                ) {
+                  movimientosInstance.nuevoMovimiento(
+                    total,
+                    "Targeta",
+                    "TARJETA",
+                    idTicket,
+                    idTrabajador
+                  );
+                } else {
+                  io.emit("consultaPaytefRefund", {
+                    ok: false,
+                    errorconex: true,
+                    id: idTicket,
+                    datos: [
+                      total * -1,
+                      "Targeta",
+                      "TARJETA",
+                      idTicket + 1,
+                      idTrabajador,
+                    ],
+                  });
+                }
+              });
 
-    if (resEstadoPaytef.result) {
-      if (resEstadoPaytef.result.approved) {
-        if (type === "sale") {
-          movimientosInstance.nuevoMovimiento(
-            total,
-            "Targeta",
-            "TARJETA",
-            idTicket,
-            idTrabajador
-          );
-          io.emit("consultaPaytef", true);
+            io.emit("consultaPaytef", true);
+            io.emit("procesoPaytef", { proceso: "aprobado" });
+          } else if (type === "refund") {
+            logger.Error(100, "APROVAT REFOUND");
+            schTickets.anularTicket(idTicket);
+            await axios
+              .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
+                pinpad: "*",
+              })
+              .then((respuesta: any) => {
+                if (
+                  respuesta.data.result.result.transactionReference == idTicket
+                ) {
+                  movimientosInstance.nuevoMovimiento(
+                    total * -1,
+                    "Targeta",
+                    "TARJETA",
+                    idTicket + 1,
+                    idTrabajador
+                  );
+                } else {
+                  io.emit("consultaPaytefRefund", {
+                    ok: false,
+                    errorconex: true,
+                    id: idTicket,
+                    datos: [
+                      total * -1,
+                      "Targeta",
+                      "TARJETA",
+                      idTicket + 1,
+                      idTrabajador,
+                    ],
+                  });
+                }
+              });
+            logger.Error(100, "TOT CORRECTE");
+            io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
+            intentosBucleBucle = 0;
+            intentosBuclePago = 0;
+          } else {
+            logger.Error("Error grave de devoluciones/movimientos !!!");
+          }
+
+          ticketsInstance.actualizarTickets();
+          movimientosInstance.construirArrayVentas();
+        } else if (type === "sale") {
+          logger.Error(100, "DENEGAT SALE");
+          io.emit("consultaPaytef", false);
         } else if (type === "refund") {
-          schTickets.anularTicket(idTicket);
-          movimientosInstance.nuevoMovimiento(
-            total * -1,
-            "Targeta",
-            "TARJETA",
-            idTicket + 1,
-            idTrabajador
-          );
-
-          io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
-        } else {
-          logger.Error("Error grave de devoluciones/movimientos !!!");
+          logger.Error(100, "DENEGAT REFOUND");
+          io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
         }
-
-        ticketsInstance.actualizarTickets();
-        movimientosInstance.construirArrayVentas();
-      } else if (type === "sale") {
-        io.emit("consultaPaytef", false);
-      } else if (type === "refund") {
-        io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
+      } else {
+        logger.Error(99, "NO TINC RESULTAT, REINTENTO");
+        await new Promise((r) => setTimeout(r, 1000));
+        await this.bucleComprobacion(idTicket, total, idTrabajador, type);
       }
-    } else {
-      await new Promise((r) => setTimeout(r, 1000));
-      await this.bucleComprobacion(idTicket, total, idTrabajador, type);
+    } catch (e) {
+      logger.Error(e);
+      logger.Error("error de conexión (pago ya enviado) / ", intentosBucleBucle);
+      logger.Error(99, "ERROR, INTENTO DE NOU");
+      if (intentosBucleBucle >= 0) {
+        logger.Error(99, "MASSES INTENTS, FINALITZO I ENVIO MODAL");
+        intentosBucleBucle = 0;
+        io.emit("consultaPaytefRefund", {
+          ok: false,
+          errorconex: true,
+          id: idTicket,
+          datos: [total * -1, "Targeta", "TARJETA", idTicket + 1, idTrabajador],
+        });
+      } else {
+        await new Promise((r) => setTimeout(r, 100));
+        intentosBucleBucle += 1;
+        await this.bucleComprobacion(idTicket, total, idTrabajador, type);
+      }
     }
+  }
+
+  /* Uri 4.0 */
+  async detectarPytef() {
+    try {
+      const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
+      return (await axios.get(`http://${ipDatafono}:8887/`, { timeout: 500 }))
+        .data;
+    } catch (e) {
+      return "error";
+    }
+  }
+
+  /* Uri */
+  async ComprobarReconectado(ticket): Promise<string> {
+    let rnt = "2";
+    try {
+      const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
+      await axios
+        .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
+          pinpad: "*",
+        })
+        .then((datafonoLastTicket: any) => {
+          if (datafonoLastTicket.data) {
+            let result = datafonoLastTicket.data.result.result;
+            if (String(result.approved) == "false") rnt = "3";
+            if (result.transactionReference == ticket) {
+              if (
+                movimientosInstance.getMovimientoTarjetaMasAntiguo(
+                  result.transactionReference
+                ) != null
+              ) {
+                rnt = "4";
+              }
+              rnt = "1";
+            }
+          } else {
+            rnt = "2";
+          }
+        })
+        .catch((e) => {
+          rnt = "2";
+        });
+    } catch (e) {
+      rnt = "2";
+    }
+    return rnt;
   }
 
   /* Eze 4.0 */

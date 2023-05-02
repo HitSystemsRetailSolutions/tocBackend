@@ -57,6 +57,9 @@ export class TicketsClase {
   getUltimoTicketIntervalo = (fechaInicio: number, fechaFinal: number) =>
     schTickets.getUltimoTicketIntervalo(fechaInicio, fechaFinal);
 
+    getUltimoTicketTarjeta = (tarjeta: number,) =>
+    schTickets.getUltimoTicketTarjeta(tarjeta);
+
   getUltimoTicket = async (): Promise<TicketsInterface> =>
     await schTickets.getUltimoTicket();
 
@@ -106,7 +109,7 @@ export class TicketsClase {
     idTrabajador,
     consumoPersonal
   ): Promise<boolean> {
-    let date = new Date(timestamp)
+    let date = new Date(timestamp);
     date.setHours(date.getHours() - 2);
     let ticket: TicketsInterfaceBackUp = {
       _id: _id,
@@ -135,12 +138,16 @@ export class TicketsClase {
     total: TicketsInterface["total"],
     idTrabajador: TicketsInterface["idTrabajador"],
     cesta: CestasInterface,
-    consumoPersonal: boolean
+    consumoPersonal: boolean,
+    datafono3G: TicketsInterface["datafono3G"],
+    dejaCuenta?: TicketsInterface["dejaCuenta"]
   ): Promise<TicketsInterface> {
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),
       total: consumoPersonal ? 0 : total,
+      dejaCuenta: dejaCuenta,
+      datafono3G: datafono3G,
       idCliente: cesta.idCliente,
       idTrabajador,
       cesta,

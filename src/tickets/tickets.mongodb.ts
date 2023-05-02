@@ -50,7 +50,17 @@ export async function getUltimoTicketIntervalo(
     .limit(1)
     .toArray();
 }
-
+export async function getUltimoTicketTarjeta(
+  ticket: number,
+): Promise<TicketsInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  return await tickets
+    .find({ _id: ticket })
+    .sort({ _id: -1 })
+    .limit(1)
+    .toArray();
+}
 /* Eze v23 */
 export async function getDedudaGlovo(
   inicioTime: number,
