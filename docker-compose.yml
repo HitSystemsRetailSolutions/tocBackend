@@ -1,0 +1,33 @@
+version: '3.8'
+services:
+  tocgame:
+    container_name: tocBackend
+    build: .
+    environment:
+      MONGO_URL: "mongodb://mongodb:27017"
+      MQTT_URL: "mqtt://172.17.0.1"
+    depends_on:
+      - mongodb
+    ports:
+     - 3000:3000
+     - 5051:5051
+    volumes:
+     - ./logs:/usr/src/logs
+    restart: unless-stopped
+    networks:
+     - toc_network
+
+  mongodb:
+    container_name: mongodb
+    image: mongo:4.4
+    volumes:
+     - ~/mongo/data:/data/db
+    ports:
+     - 27017:27017
+    restart: always
+    networks:
+     - toc_network
+
+networks:
+  toc_network:
+    driver: bridge
