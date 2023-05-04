@@ -94,7 +94,6 @@ export class PaytefController {
   @Post("comprobarUltimoTicket")
   async comprobarUltimoTicket(@Body() {idticket} ) {
     try {
-      console.log(await paytefInstance.ComprobarReconectado(idticket),"si")
       return await paytefInstance.ComprobarReconectado(idticket);
     } catch (err) {
       logger.Error(131, err);
