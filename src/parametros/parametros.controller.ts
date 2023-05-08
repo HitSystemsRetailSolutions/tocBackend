@@ -28,11 +28,25 @@ export class ParametrosController {
     }
   }
 
-  /* Eze 4.0 */
+  /* Uri */
+  @Post("getPropiedad")
+  async getPropiedad() {
+    try {
+      return await this.getConfiguradorDB();
+    } catch (err) {
+      logger.Error(41, err);
+      return null;
+    }
+  }
+
+  /* Uri */
   @Post("setPropiedad")
   async setPropiedad(@Body() { parametros }) {
+    console.log(parametros);
     try {
       if (parametros) {
+        delete parametros["prohibirSuplementos"];
+        await this.sendConfiguradorDB(parametros);
         return await parametrosInstance.setPropiedad(parametros);
       }
 
@@ -40,6 +54,33 @@ export class ParametrosController {
     } catch (err) {
       logger.Error("parametros.controller.ts @setPropiedad");
       return false;
+    }
+  }
+
+  /* Uri */
+  async sendConfiguradorDB(params) {
+    const parametros = await parametrosInstance.getParametros();
+    const res: any = await axios.post("configurador/setConfiguration", {
+      database: parametros.database,
+      licencia: parametros.licencia,
+      configuraciones: params,
+    });
+    if (!res) {
+      throw Error("Error al sincronizar con SantaAna");
+    }
+  }
+
+  /* Uri */
+  async getConfiguradorDB() {
+    const parametros = await parametrosInstance.getParametros();
+    const res: any = await axios.post("configurador/getConfiguration", {
+      database: parametros.database,
+      licencia: parametros.licencia,
+    });
+    if (res.data) {
+      return this.setPropiedad({parametros:res.data});
+    } else {
+      throw Error("Error al sincronizar con SantaAna");
     }
   }
 
@@ -141,3 +182,9 @@ export class ParametrosController {
     }
   }
 }
+
+
+const parametrosController = new ParametrosController();
+
+export { parametrosController };
+

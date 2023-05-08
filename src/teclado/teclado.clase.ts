@@ -182,6 +182,7 @@ export class TecladoClase {
             color: teclas[i].color,
             esSumable: teclas[i].esSumable,
             suplementos: teclas[i].suplementos,
+            precioConIva: teclas[i].precioConIva,
           }
         );
       } else {
@@ -192,6 +193,7 @@ export class TecladoClase {
           color: teclas[i].color,
           esSumable: teclas[i].esSumable,
           suplementos: teclas[i].suplementos,
+          precioConIva: teclas[i].precioConIva,
         });
       }
     }

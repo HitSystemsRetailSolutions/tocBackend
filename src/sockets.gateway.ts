@@ -4,12 +4,13 @@ import { cajaInstance } from "./caja/caja.clase";
 import { cestasInstance } from "./cestas/cestas.clase";
 import { logger } from "./logger";
 import { movimientosInstance } from "./movimientos/movimientos.clase";
-import { parametrosInstance } from "./parametros/parametros.clase";
+import { ParametrosClase, parametrosInstance } from "./parametros/parametros.clase";
 import { paytefInstance } from "./paytef/paytef.class";
 import { nuevaInstancePromociones } from "./promociones/promociones.clase";
 import { tecladoInstance } from "./teclado/teclado.clase";
 import { ticketsInstance } from "./tickets/tickets.clase";
 import { trabajadoresInstance } from "./trabajadores/trabajadores.clase";
+import { parametrosController } from "./parametros/parametros.controller";
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -59,6 +60,18 @@ io.on("connection", (socket) => {
       logger.Error(36, err);
     }
   });
+
+    /* Uri */
+    socket.on("cargarConfigurador", async (data) => {
+      try {
+        socket.emit(
+          "cargarConfigurador",
+          await parametrosController.getPropiedad()
+        );
+      } catch (err) {
+        logger.Error(36, err);
+      }
+    });
 
   /* Eze 4.0 */
   socket.on("cargarCestas", async (data) => {
