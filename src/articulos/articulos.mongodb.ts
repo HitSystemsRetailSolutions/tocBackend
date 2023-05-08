@@ -49,7 +49,8 @@ export async function insertarArticulosNuevos(
     esSumable,
     nombreArticulo,
     id["_id"] + 1,
-    posicion
+    posicion,
+    precioConIva
   );
   return (await articulos.insertMany(valors)).acknowledged;
 }
@@ -60,7 +61,8 @@ export async function insertarTeclasNuevos(
   esSumable,
   Nombre,
   idArt,
-  pos
+  pos,
+  preuIva
 ) {
   const database = (await conexion).db("tocgame");
   const articulos = database.collection<TeclasInterface>("teclas");
@@ -73,6 +75,7 @@ export async function insertarTeclasNuevos(
       pos: pos,
       color: 16769279,
       esSumable: esSumable,
+      precioConIva: preuIva
     },
   ];
   return await articulos.insertMany(valors);

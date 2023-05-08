@@ -5,5 +5,6 @@ export interface TeclasInterface {
   pos: number;
   color: number;
   esSumable: boolean;
+  precioConIva: number;
   suplementos?: number[];
 }
