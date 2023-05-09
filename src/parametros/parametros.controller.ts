@@ -42,7 +42,7 @@ export class ParametrosController {
   /* Uri */
   @Post("setPropiedad")
   async setPropiedad(@Body() { parametros }) {
-    console.log(parametros);
+
     try {
       if (parametros) {
         delete parametros["prohibirSuplementos"];
