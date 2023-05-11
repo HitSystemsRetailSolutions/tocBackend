@@ -50,6 +50,76 @@ export class Encargos {
       .catch((err: string) => ({ error: true, msg: err }));
   };
 
+  ordenarImpresion = async (orden,encargos) =>{
+  
+    if(orden=="Cliente"){
+      console.log("como")
+      // encargos.sort((a, b) => a.nombreCliente.localeCompare(b.nombreCliente))
+      this.imprimirClientesPorProducto(encargos);
+    }else{
+      console.log("he")
+      this.imprimirProductosPorClienteCantidad(encargos);
+    }
+    return true;
+  }
+  public imprimirClientesPorProducto(encargos) {
+    const clientesYProductos = {};
+  
+    // Recorrer los encargos y crear un objeto con los clientes y los productos que han pedido
+    encargos.forEach(encargo => {
+      const cliente = encargo.nombreCliente;
+      encargo.productos.forEach(producto => {
+        const nombreProducto = producto.nombre;
+        const unidadesProducto = producto.unidades;
+        if (!clientesYProductos[cliente]) {
+          clientesYProductos[cliente] = {};
+        }
+        if (!clientesYProductos[cliente][nombreProducto]) {
+          clientesYProductos[cliente][nombreProducto] = 0;
+        }
+        clientesYProductos[cliente][nombreProducto] += unidadesProducto;
+      });
+    });
+  
+    // Imprimir los clientes y los productos que han pedido
+    Object.keys(clientesYProductos).forEach(cliente => {
+      console.log(cliente);
+      const productos = clientesYProductos[cliente];
+      Object.keys(productos).forEach(producto => {
+        const unidades = productos[producto];
+        console.log(` - ${producto}: ${unidades}`);
+      });
+    });
+  }
+  public imprimirProductosPorClienteCantidad(encargos) {
+    const productosPorCliente = {};
+  
+    // Recorrer los encargos y crear un objeto con los productos y los nombres y unidades de los clientes
+    encargos.forEach(encargo => {
+      encargo.productos.forEach(producto => {
+        if (!productosPorCliente[producto.nombre]) {
+          productosPorCliente[producto.nombre] = [];
+        }
+        productosPorCliente[producto.nombre].push({
+          nombre: encargo.nombreCliente,
+          unidades: producto.unidades,
+        });
+      });
+    });
+  
+    // Ordenar alfabéticamente los productos
+    const productosOrdenados = Object.keys(productosPorCliente).sort();
+  
+    // Imprimir los productos y los nombres y unidades de los clientes que han pedido ese producto
+    productosOrdenados.forEach(producto => {
+      const clientes = productosPorCliente[producto];
+      console.log(`${producto}:`);
+      clientes.forEach(cliente => {
+        console.log(`- ${cliente.nombre}, ${cliente.unidades} unidad(es)`);
+      });
+    });
+  }
+  
   getEncargoById = async (idEncargo: EncargosInterface["_id"]) =>
     await schEncargos.getEncargoById(idEncargo);
 
