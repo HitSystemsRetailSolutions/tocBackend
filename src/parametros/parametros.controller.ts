@@ -64,6 +64,7 @@ export class ParametrosController {
       database: parametros.database,
       licencia: parametros.licencia,
       configuraciones: params,
+      timeout:30000,
     });
     if (!res) {
       throw Error("Error al sincronizar con SantaAna");
