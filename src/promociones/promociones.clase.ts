@@ -637,7 +637,10 @@ export class NuevaPromocion {
     let promocioNou = true;
     for (let i = 0; i < cesta.lista.length; i++) {
       if (nom == cesta.lista[i].nombre && promocioNou) {
-        cesta.lista[i].unidades++;
+        data.cantidadPromos > 1
+          ? (cesta.lista[i].unidades += data.cantidadPromos)
+          : cesta.lista[i].unidades++;
+
         cesta.lista[i].subtotal = Number(
           (cesta.lista[i].subtotal + data.precioConIva).toFixed(2)
         );
@@ -879,7 +882,6 @@ export class NuevaPromocion {
     }
     return null;
   };
-
 
   /* Eze 4.0 */
   public deshacerPromociones(ticket: TicketsInterface) {

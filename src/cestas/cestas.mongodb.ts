@@ -39,7 +39,7 @@ export async function deleteCestaMesa(
 export async function getAllCestas(): Promise<CestasInterface[]> {
   const database = (await conexion).db("tocgame");
   const cesta = database.collection<CestasInterface>("cestas");
-  return await cesta.find().sort( { indexMesa: 1 } ).toArray();
+  return await cesta.find().sort({ indexMesa: 1 }).toArray();
 }
 
 /* Eze 4.0 */
@@ -47,10 +47,9 @@ export async function updateCesta(cesta: CestasInterface): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const unaCesta = database.collection<CestasInterface>("cestas");
   for (let i = 0; i < cesta.lista.length; i++) {
-   
-    nuevaInstancePromociones.redondearDecimales(cesta.lista[i].subtotal,2)
+    nuevaInstancePromociones.redondearDecimales(cesta.lista[i].subtotal, 2);
   }
-  
+
   const resultado = await unaCesta.updateOne(
     { _id: new ObjectId(cesta._id) },
     {

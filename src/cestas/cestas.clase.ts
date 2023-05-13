@@ -636,7 +636,8 @@ export class CestaClase {
       if (borrarModo) cesta.modo = "VENTA";
 
       if (await this.updateCesta(cesta)) {
-        this.actualizarCestas();
+
+        await this.actualizarCestas();
         return true;
       }
     }
