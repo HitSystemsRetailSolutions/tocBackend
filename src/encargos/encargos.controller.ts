@@ -50,8 +50,8 @@ export class EncargosController {
           error: true,
           msg: "Faltan datos.",
         };
-        console.log(data.orden);
-      console.log(data.array[0].productos);
+
+
       return encargosInstance.ordenarImpresion(data.orden,data.array);
     } catch (err) {
       logger.Error(50, err);

@@ -10,6 +10,7 @@ import {
   Periodo,
 } from "./encargos.interface";
 import * as schEncargos from "./encargos.mongodb";
+import { impresoraInstance } from "src/impresora/impresora.class";
 
 export class Encargos {
   async getEncargos() {
@@ -53,18 +54,16 @@ export class Encargos {
   ordenarImpresion = async (orden,encargos) =>{
   
     if(orden=="Cliente"){
-      console.log("como")
       // encargos.sort((a, b) => a.nombreCliente.localeCompare(b.nombreCliente))
       this.imprimirClientesPorProducto(encargos);
     }else{
-      console.log("he")
       this.imprimirProductosPorClienteCantidad(encargos);
     }
     return true;
   }
   public imprimirClientesPorProducto(encargos) {
     const clientesYProductos = {};
-  
+    let string='';
     // Recorrer los encargos y crear un objeto con los clientes y los productos que han pedido
     encargos.forEach(encargo => {
       const cliente = encargo.nombreCliente;
@@ -83,17 +82,21 @@ export class Encargos {
   
     // Imprimir los clientes y los productos que han pedido
     Object.keys(clientesYProductos).forEach(cliente => {
-      console.log(cliente);
+    
+      string+='\n'+ cliente+'\n';
       const productos = clientesYProductos[cliente];
       Object.keys(productos).forEach(producto => {
         const unidades = productos[producto];
-        console.log(` - ${producto}: ${unidades}`);
+        
+        string+=` - ${producto}: ${unidades} \n`;
       });
     });
+
+    impresoraInstance.imprimirListaEncargos(string);
   }
   public imprimirProductosPorClienteCantidad(encargos) {
     const productosPorCliente = {};
-  
+    let string="";
     // Recorrer los encargos y crear un objeto con los productos y los nombres y unidades de los clientes
     encargos.forEach(encargo => {
       encargo.productos.forEach(producto => {
@@ -113,11 +116,15 @@ export class Encargos {
     // Imprimir los productos y los nombres y unidades de los clientes que han pedido ese producto
     productosOrdenados.forEach(producto => {
       const clientes = productosPorCliente[producto];
-      console.log(`${producto}:`);
+      
+      string+='\n'+producto+"\n";
       clientes.forEach(cliente => {
-        console.log(`- ${cliente.nombre}, ${cliente.unidades} unidad(es)`);
+        
+        string+=`- ${cliente.nombre}, ${cliente.unidades} unidad(es) \n`;
       });
     });
+
+    impresoraInstance.imprimirListaEncargos(string);
   }
   
   getEncargoById = async (idEncargo: EncargosInterface["_id"]) =>
