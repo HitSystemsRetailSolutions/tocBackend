@@ -62,69 +62,71 @@ export class Encargos {
     return true;
   }
   public imprimirClientesPorProducto(encargos) {
-    const clientesYProductos = {};
-    let string='';
-    // Recorrer los encargos y crear un objeto con los clientes y los productos que han pedido
+    let string = '';
+    const clientesProductos = {};
+  
+    // Recorrer los encargos y agrupar los productos por cliente
     encargos.forEach(encargo => {
       const cliente = encargo.nombreCliente;
+      if (!clientesProductos[cliente]) {
+        clientesProductos[cliente] = [];
+      }
+  
       encargo.productos.forEach(producto => {
         const nombreProducto = producto.nombre;
-        const unidadesProducto = producto.unidades;
-        if (!clientesYProductos[cliente]) {
-          clientesYProductos[cliente] = {};
-        }
-        if (!clientesYProductos[cliente][nombreProducto]) {
-          clientesYProductos[cliente][nombreProducto] = 0;
-        }
-        clientesYProductos[cliente][nombreProducto] += unidadesProducto;
+        const suplementos = producto.arraySuplementos || [];
+        const productoConSuplementos = `${nombreProducto} ${suplementos.map(suplemento => `\n  ${suplemento.nombre}`).join(', ')}`;
+        const unidades = producto.unidades;
+  
+        clientesProductos[cliente].push({ producto: productoConSuplementos, unidades });
       });
     });
   
     // Imprimir los clientes y los productos que han pedido
-    Object.keys(clientesYProductos).forEach(cliente => {
-    
-      string+='\n'+ cliente+'\n';
-      const productos = clientesYProductos[cliente];
-      Object.keys(productos).forEach(producto => {
-        const unidades = productos[producto];
-        
-        string+=` - ${producto}: ${unidades} \n`;
+    Object.keys(clientesProductos).forEach(cliente => {
+      string += `\n${cliente}\n`;
+      const productos = clientesProductos[cliente];
+      productos.forEach(producto => {
+        string += ` - ${producto.producto}: ${producto.unidades}\n`;
       });
     });
-
+  
+    console.log(string);
     impresoraInstance.imprimirListaEncargos(string);
   }
   public imprimirProductosPorClienteCantidad(encargos) {
-    const productosPorCliente = {};
-    let string="";
-    // Recorrer los encargos y crear un objeto con los productos y los nombres y unidades de los clientes
-    encargos.forEach(encargo => {
-      encargo.productos.forEach(producto => {
-        if (!productosPorCliente[producto.nombre]) {
-          productosPorCliente[producto.nombre] = [];
-        }
-        productosPorCliente[producto.nombre].push({
-          nombre: encargo.nombreCliente,
-          unidades: producto.unidades,
-        });
-      });
-    });
-  
-    // Ordenar alfabéticamente los productos
-    const productosOrdenados = Object.keys(productosPorCliente).sort();
-  
-    // Imprimir los productos y los nombres y unidades de los clientes que han pedido ese producto
-    productosOrdenados.forEach(producto => {
-      const clientes = productosPorCliente[producto];
-      
-      string+='\n'+producto+"\n";
-      clientes.forEach(cliente => {
-        
-        string+=`- ${cliente.nombre}, ${cliente.unidades} unidad(es) \n`;
-      });
-    });
+    let string = '';
+  const productosClientes = {};
 
-    impresoraInstance.imprimirListaEncargos(string);
+  // Recorrer los encargos y agrupar los clientes por producto
+  encargos.forEach(encargo => {
+    const cliente = encargo.nombreCliente;
+    encargo.productos.forEach(producto => {
+      const nombreProducto = producto.nombre;
+      const suplementos = producto.arraySuplementos || [];
+      const productoConSuplementos = `${nombreProducto} ${suplementos.map(suplemento => `\n  ${suplemento.nombre}`).join(', ')}`;
+
+      if (!productosClientes[productoConSuplementos]) {
+        productosClientes[productoConSuplementos] = [];
+      }
+
+      if (!productosClientes[productoConSuplementos].includes(cliente)) {
+        productosClientes[productoConSuplementos].push(cliente);
+      }
+    });
+  });
+
+  // Imprimir los productos y los clientes que los han seleccionado
+  Object.keys(productosClientes).forEach(producto => {
+    string += `\n${producto}\n`;
+    const clientes = productosClientes[producto];
+    clientes.forEach(cliente => {
+      string += ` - ${cliente}\n`;
+    });
+  });
+
+  console.log(string);
+  impresoraInstance.imprimirListaEncargos(string);
   }
   
   getEncargoById = async (idEncargo: EncargosInterface["_id"]) =>
