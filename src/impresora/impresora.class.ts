@@ -113,6 +113,7 @@ export class Impresora {
 
         sendObject = {
           numFactura: ticket._id,
+          timestamp: ticket.timestamp,
           arrayCompra: ticket.cesta.lista,
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
@@ -131,6 +132,7 @@ export class Impresora {
       } else {
         sendObject = {
           numFactura: ticket._id,
+          timestamp: ticket.timestamp,
           arrayCompra: ticket.cesta.lista,
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
@@ -162,6 +164,7 @@ export class Impresora {
       if (devolucion && trabajador) {
         sendObject = {
           numFactura: devolucion._id,
+          timestamp: devolucion.timestamp,
           arrayCompra: devolucion.cesta.lista,
           total: devolucion.total,
           visa: "DEVOLUCION",
@@ -235,6 +238,7 @@ export class Impresora {
     });
   }
   private async _venta(info, recibo = null) {
+
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
     const total =
@@ -352,7 +356,7 @@ export class Impresora {
         ].nombre.slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
       }
     }
-    const fecha = new Date();
+    const fecha = new Date(info.timestamp);
     if (tipoPago == "TARJETA") {
       pagoTarjeta = "----------- PAGADO CON TARJETA ---------\n";
     }
