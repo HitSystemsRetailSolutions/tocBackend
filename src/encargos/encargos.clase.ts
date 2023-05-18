@@ -73,7 +73,7 @@ export class Encargos {
       }
   
       encargo.productos.forEach(producto => {
-        const nombreProducto = producto.nombre;
+        const nombreProducto = producto.nombre.substring(0,33);
         const suplementos = producto.arraySuplementos || [];
         const productoConSuplementos = `${nombreProducto} ${suplementos.map(suplemento => `\n  ${suplemento.nombre}`).join(', ')}`;
         const unidades = producto.unidades;
@@ -91,7 +91,6 @@ export class Encargos {
       });
     });
   
-    console.log(string);
     impresoraInstance.imprimirListaEncargos(string);
   }
   public imprimirProductosPorClienteCantidad(encargos) {
@@ -102,7 +101,7 @@ export class Encargos {
   encargos.forEach(encargo => {
     const cliente = encargo.nombreCliente;
     encargo.productos.forEach(producto => {
-      const nombreProducto = producto.nombre;
+      const nombreProducto = producto.nombre.substring(0,33);
       const suplementos = producto.arraySuplementos || [];
       const productoConSuplementos = `${nombreProducto} ${suplementos.map(suplemento => `\n  ${suplemento.nombre}`).join(', ')}`;
 
@@ -125,7 +124,6 @@ export class Encargos {
     });
   });
 
-  console.log(string);
   impresoraInstance.imprimirListaEncargos(string);
   }
   

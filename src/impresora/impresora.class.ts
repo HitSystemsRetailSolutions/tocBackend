@@ -190,6 +190,7 @@ public async imprimirListaEncargos(lista:string){
       .font("a")
       .style("b")
       .size(0, 0)
+      .align("LT")
       .text(lista)
       .cut("PAPER_FULL_CUT")
       .close().buffer._buffer
