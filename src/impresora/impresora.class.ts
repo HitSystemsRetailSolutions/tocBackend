@@ -909,8 +909,9 @@ export class Impresora {
   /* Eze 4.0 */
   async imprimirCajaAsync(caja: CajaSincro) {
     try {
-      const fechaInicio = new Date(caja.inicioTime);
-      const fechaFinal = new Date(caja.finalTime);
+      const moment = require("moment-timezone");
+      const fechaInicio = moment(caja.inicioTime).tz("Europe/Madrid");
+      const fechaFinal = moment(caja.finalTime).tz("Europe/Madrid");;
       const arrayMovimientos =
         await movimientosInstance.getMovimientosIntervalo(
           caja.inicioTime,
@@ -973,6 +974,15 @@ export class Impresora {
       const mesFinal = fechaFinal.getMonth() + 1;
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
+      const diasSemana = [
+        "Diumenge",
+        "Dilluns",
+        "Dimarts",
+        "Dimecres",
+        "Dijous",
+        "Divendres",
+        "Dissabte",
+      ];
       this.enviarMQTT(
         printer
           .setCharacterCodeTable(19)
@@ -989,20 +999,14 @@ export class Impresora {
           .text("Resp. apertura   : " + trabajadorApertura.nombre)
           .text("Resp. cierre   : " + trabajadorCierre.nombre)
           .text(
-            `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
-              (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
-            }:${
-              (fechaInicio.getMinutes() < 10 ? "0" : "") +
-              fechaInicio.getMinutes()
-            }`
+            `Inici: ${
+              diasSemana[fechaInicio.format("d")]
+            } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`
           )
           .text(
-            `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
-              (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
-            }:${
-              (fechaFinal.getMinutes() < 10 ? "0" : "") +
-              fechaFinal.getMinutes()
-            }`
+            `Final: ${
+              diasSemana[fechaFinal.format("d")]
+            } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`
           )
           .text("")
           .size(0, 1)
