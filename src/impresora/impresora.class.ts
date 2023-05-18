@@ -238,7 +238,6 @@ export class Impresora {
     });
   }
   private async _venta(info, recibo = null) {
-
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
     const total =
@@ -331,7 +330,9 @@ export class Impresora {
         arrayCompra[i].arraySuplementos &&
         arrayCompra[i].arraySuplementos.length > 0
       ) {
-        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[i].nombre.slice(0, 20)} +      \n`;
+        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
+          i
+        ].nombre.slice(0, 20)} +      \n`;
         for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
           if (j == arrayCompra[i].arraySuplementos.length - 1) {
             detalles += `       ${arrayCompra[i].arraySuplementos[
@@ -356,7 +357,11 @@ export class Impresora {
         ].nombre.slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
       }
     }
+    const moment = require("moment-timezone");
     const fecha = new Date(info.timestamp);
+    //const offset = fecha.getTimezoneOffset() * 60000; // Obtener el desplazamiento de la zona horaria en minutos y convertirlo a milisegundos
+
+    const fechaEspaña = moment(info.timestamp).tz("Europe/Madrid");
     if (tipoPago == "TARJETA") {
       pagoTarjeta = "----------- PAGADO CON TARJETA ---------\n";
     }
@@ -464,6 +469,11 @@ export class Impresora {
       "Divendres",
       "Dissabte",
     ];
+    /*`Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
+      fecha.getMonth() + 1
+    }-${fecha.getFullYear()}  ${
+      (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
+    }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
 
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
@@ -477,11 +487,9 @@ export class Impresora {
         .size(0, 0)
         .text(cabecera)
         .text(
-          `Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
-            fecha.getMonth() + 1
-          }-${fecha.getFullYear()}  ${
-            (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
-          }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`
+          `Data: ${
+            diasSemana[fechaEspaña.format("d")]
+          } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`
         )
         .text("Factura simplificada N: " + numFactura)
         .text("Ates per: " + nombreDependienta)
