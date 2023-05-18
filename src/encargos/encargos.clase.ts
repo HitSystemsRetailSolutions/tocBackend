@@ -54,7 +54,6 @@ export class Encargos {
   ordenarImpresion = async (orden,encargos) =>{
   
     if(orden=="Cliente"){
-      // encargos.sort((a, b) => a.nombreCliente.localeCompare(b.nombreCliente))
       this.imprimirClientesPorProducto(encargos);
     }else{
       this.imprimirProductosPorClienteCantidad(encargos);
@@ -69,16 +68,20 @@ export class Encargos {
     encargos.forEach(encargo => {
       const cliente = encargo.nombreCliente;
       if (!clientesProductos[cliente]) {
-        clientesProductos[cliente] = [];
+        clientesProductos[cliente] = {};
       }
   
       encargo.productos.forEach(producto => {
-        const nombreProducto = producto.nombre.substring(0,33);
+        const nombreProducto = producto.nombre.substring(0, 33);
         const suplementos = producto.arraySuplementos || [];
         const productoConSuplementos = `${nombreProducto} ${suplementos.map(suplemento => `\n  ${suplemento.nombre}`).join(', ')}`;
         const unidades = producto.unidades;
   
-        clientesProductos[cliente].push({ producto: productoConSuplementos, unidades });
+        if (!clientesProductos[cliente][productoConSuplementos]) {
+          clientesProductos[cliente][productoConSuplementos] = unidades;
+        } else {
+          clientesProductos[cliente][productoConSuplementos] += unidades;
+        }
       });
     });
   
@@ -86,13 +89,16 @@ export class Encargos {
     Object.keys(clientesProductos).forEach(cliente => {
       string += `\n${cliente}\n`;
       const productos = clientesProductos[cliente];
-      productos.forEach(producto => {
-        string += ` - ${producto.producto}: ${producto.unidades}\n`;
+      Object.keys(productos).forEach(producto => {
+        const unidades = productos[producto];
+        string += ` - ${producto}: ${unidades}\n`;
       });
     });
   
+    console.log(string);
     impresoraInstance.imprimirListaEncargos(string);
   }
+  
   public imprimirProductosPorClienteCantidad(encargos) {
     let string = '';
   const productosClientes = {};
@@ -101,26 +107,32 @@ export class Encargos {
   encargos.forEach(encargo => {
     const cliente = encargo.nombreCliente;
     encargo.productos.forEach(producto => {
-      const nombreProducto = producto.nombre.substring(0,33);
+      const nombreProducto = producto.nombre.substring(0, 33);
       const suplementos = producto.arraySuplementos || [];
       const productoConSuplementos = `${nombreProducto} ${suplementos.map(suplemento => `\n  ${suplemento.nombre}`).join(', ')}`;
+      const unidades = producto.unidades;
 
       if (!productosClientes[productoConSuplementos]) {
-        productosClientes[productoConSuplementos] = [];
+        productosClientes[productoConSuplementos] = {};
       }
 
-      if (!productosClientes[productoConSuplementos].includes(cliente)) {
-        productosClientes[productoConSuplementos].push(cliente);
+      if (!productosClientes[productoConSuplementos][cliente]) {
+        productosClientes[productoConSuplementos][cliente] = 0;
       }
+
+      productosClientes[productoConSuplementos][cliente] += unidades;
     });
   });
 
-  // Imprimir los productos y los clientes que los han seleccionado
-  Object.keys(productosClientes).forEach(producto => {
+  const productosOrdenados = Object.keys(productosClientes).sort();
+
+  // Imprimir los productos y los clientes con las unidades pedidas
+  productosOrdenados.forEach(producto => {
     string += `\n${producto}\n`;
     const clientes = productosClientes[producto];
-    clientes.forEach(cliente => {
-      string += ` - ${cliente}\n`;
+    Object.keys(clientes).forEach(cliente => {
+      const unidades = clientes[cliente];
+      string += ` - ${cliente}: ${unidades}\n`;
     });
   });
 
