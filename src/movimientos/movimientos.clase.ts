@@ -64,7 +64,7 @@ export class MovimientosClase {
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrega Diària") {
-        impresoraInstance.imprimirSalida(nuevoMovimiento); 
+        impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
       return true;
     }
@@ -130,7 +130,8 @@ export class MovimientosClase {
 
   /* Eze v23 */
   getMovimientoMasAntiguo = () => schMovimientos.getMovimientoMasAntiguo();
-  getMovimientoTarjetaMasAntiguo = async (idTiket) => await schMovimientos.getMovimientoTarjetaMasAntiguo(idTiket);
+  getMovimientoTarjetaMasAntiguo = async (idTiket) =>
+    await schMovimientos.getMovimientoTarjetaMasAntiguo(idTiket);
 
   /* Eze v4 */
   setMovimientoEnviado = (movimiento: MovimientosInterface) =>
@@ -141,7 +142,7 @@ export class MovimientosClase {
     const infoCaja = await cajaInstance.getInfoCajaAbierta();
     if (infoCaja) {
       const inicioCaja = infoCaja.inicioTime;
-      const final = Date.now()
+      const final = Date.now();
       const arrayTickets = await ticketsInstance.getTicketsIntervalo(
         inicioCaja,
         final
@@ -196,7 +197,7 @@ export class MovimientosClase {
   /* Eze 4.0 */
   private calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
     if (superTicket.consumoPersonal) return "CONSUMO_PERSONAL";
-
+    if (superTicket.datafono3G) return "DATAFONO_3G";
     if (superTicket.movimientos.length === 1) {
       if (superTicket.movimientos[0].tipo === "TARJETA") {
         if (superTicket.movimientos[0].valor < 0) {
