@@ -183,7 +183,22 @@ export class Impresora {
       logger.Error("imprimirDevolucion()", err);
     }
   }
-
+public async imprimirListaEncargos(lista:string){
+  const device = new escpos.Network();
+  const printer = new escpos.Printer(device);
+  this.enviarMQTT(
+    printer
+      .setCharacterCodeTable(19)
+      .encode("CP858")
+      .font("a")
+      .style("b")
+      .size(0, 0)
+      .align("LT")
+      .text(lista)
+      .cut("PAPER_FULL_CUT")
+      .close().buffer._buffer
+  );
+}
   private async imprimirRecibo(recibo: string) {
     mqttInstance.loggerMQTT("imprimir recibo");
     try {

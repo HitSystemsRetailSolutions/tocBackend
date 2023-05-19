@@ -41,4 +41,21 @@ export class EncargosController {
       return null;
     }
   }
+
+  @Post("imprimirEncargosHoy")
+  async imprimirEncargosHoy(@Body() data) {
+    try {
+      if (!data.orden || !data.array)
+        return {
+          error: true,
+          msg: "Faltan datos.",
+        };
+
+
+      return encargosInstance.ordenarImpresion(data.orden,data.array);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
 }
