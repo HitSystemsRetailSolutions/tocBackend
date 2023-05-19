@@ -289,6 +289,7 @@ export class CajaClase {
       ).toFixed(2)
     );
     
+    recaudado = totalTickets + descuadre;
     return {
       calaixFetZ: totalTickets,
       primerTicket: arrayTicketsCaja[0]._id,
