@@ -8,11 +8,18 @@ services:
       MQTT_URL: "mqtt://172.17.0.1"
     depends_on:
       - mongodb
+    privileged: true
     ports:
      - 3000:3000
      - 5051:5051
     volumes:
      - ./logs:/usr/src/logs
+     - /bin/systemctl:/bin/systemctl
+     - /run/systemd/system:/run/systemd/system
+     - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
+     - /sys/fs/cgroup:/sys/fs/cgroup
+     - "/etc/timezone:/etc/timezone:ro" 
+     - "/etc/localtime:/etc/localtime:ro"
     restart: unless-stopped
     networks:
      - toc_network
