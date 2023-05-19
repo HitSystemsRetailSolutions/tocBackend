@@ -269,7 +269,7 @@ export class CajaClase {
       }
     }
 
-    const descuadre =
+    /*const descuadre =
       Math.round(
         (totalCierre -
           cajaAbiertaActual.totalApertura +
@@ -278,21 +278,17 @@ export class CajaClase {
           totalTickets +
           totalDatafono3G) *
           100
-      ) / 100;
-
-    //  const descuadre =
-    //    Math.round(
-    //      (cajaAbiertaActual.totalApertura
-    //       - totalCierre
-    //       - totalSalidas
-    //       + totalEntradaDinero
-    //       + totalTickets
-    //       ) *
-    //        100
-    //    ) / 100;
-
-    recaudado = totalTickets + descuadre - totalSalidas;
-
+      ) / 100;-*/
+    const descuadre = Number(
+      (
+        (cajaAbiertaActual.totalApertura +
+          totalTickets +
+          totalEntradaDinero -
+          (totalDatafono3G + totalSalidas + totalCierre)) *
+        -1
+      ).toFixed(2)
+    );
+    
     return {
       calaixFetZ: totalTickets,
       primerTicket: arrayTicketsCaja[0]._id,
