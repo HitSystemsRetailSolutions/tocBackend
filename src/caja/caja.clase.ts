@@ -81,10 +81,6 @@ export class CajaClase {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
 
-    const cestas = await cestasInstance.getAllCestas();
-    for (let i = 0; i < cestas.length; i++) {
-      cestasInstance.deleteCesta(cestas[i]._id);
-    }
     cestasInstance.actualizarCestas();
     const finalTime = await this.getFechaCierre();
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
