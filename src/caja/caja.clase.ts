@@ -96,7 +96,6 @@ export class CajaClase {
       totalDatafono3G,
       finalTime.time
     );
-
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
       impresoraInstance.imprimirCajaAsync(ultimaCaja);
