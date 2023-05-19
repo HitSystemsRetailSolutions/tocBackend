@@ -113,6 +113,7 @@ export class Impresora {
 
         sendObject = {
           numFactura: ticket._id,
+          timestamp: ticket.timestamp,
           arrayCompra: ticket.cesta.lista,
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
@@ -131,6 +132,7 @@ export class Impresora {
       } else {
         sendObject = {
           numFactura: ticket._id,
+          timestamp: ticket.timestamp,
           arrayCompra: ticket.cesta.lista,
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
@@ -162,6 +164,7 @@ export class Impresora {
       if (devolucion && trabajador) {
         sendObject = {
           numFactura: devolucion._id,
+          timestamp: devolucion.timestamp,
           arrayCompra: devolucion.cesta.lista,
           total: devolucion.total,
           visa: "DEVOLUCION",
@@ -327,7 +330,9 @@ export class Impresora {
         arrayCompra[i].arraySuplementos &&
         arrayCompra[i].arraySuplementos.length > 0
       ) {
-        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[i].nombre.slice(0, 20)} +      \n`;
+        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
+          i
+        ].nombre.slice(0, 20)} +      \n`;
         for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
           if (j == arrayCompra[i].arraySuplementos.length - 1) {
             detalles += `       ${arrayCompra[i].arraySuplementos[
@@ -352,7 +357,11 @@ export class Impresora {
         ].nombre.slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
       }
     }
-    const fecha = new Date();
+    const moment = require("moment-timezone");
+    const fecha = new Date(info.timestamp);
+    //const offset = fecha.getTimezoneOffset() * 60000; // Obtener el desplazamiento de la zona horaria en minutos y convertirlo a milisegundos
+
+    const fechaEspaña = moment(info.timestamp).tz("Europe/Madrid");
     if (tipoPago == "TARJETA") {
       pagoTarjeta = "----------- PAGADO CON TARJETA ---------\n";
     }
@@ -460,6 +469,11 @@ export class Impresora {
       "Divendres",
       "Dissabte",
     ];
+    /*`Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
+      fecha.getMonth() + 1
+    }-${fecha.getFullYear()}  ${
+      (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
+    }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
 
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
@@ -473,11 +487,9 @@ export class Impresora {
         .size(0, 0)
         .text(cabecera)
         .text(
-          `Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
-            fecha.getMonth() + 1
-          }-${fecha.getFullYear()}  ${
-            (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
-          }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`
+          `Data: ${diasSemana[fechaEspaña.format("d")]} ${fechaEspaña.format(
+            "DD-MM-YYYY HH:mm"
+          )}`
         )
         .text("Factura simplificada N: " + numFactura)
         .text("Ates per: " + nombreDependienta)
@@ -525,7 +537,8 @@ export class Impresora {
   async imprimirSalida(movimiento: MovimientosInterface) {
     try {
       const parametros = await parametrosInstance.getParametros();
-      const fechaStr = moment(movimiento._id).format("llll");
+      const moment = require("moment-timezone");
+      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
       const trabajador = await trabajadoresInstance.getTrabajadorById(
         movimiento.idTrabajador
       );
@@ -539,7 +552,7 @@ export class Impresora {
         .align("CT")
         .size(0, 0)
         .text(parametros.nombreTienda)
-        .text(fechaStr)
+        .text(fechaStr.format("DD-MM-YYYY HH:mm"))
         .text("Dependienta: " + trabajador.nombre)
         .text("Retirada efectivo: " + movimiento.valor + "€")
         .size(1, 1)
@@ -671,7 +684,9 @@ export class Impresora {
   /* Eze 4.0 */
   async imprimirCaja(caja: CajaSincro) {
     const fechaInicio = new Date(caja.inicioTime);
-    const fechaFinal = new Date(caja.finalTime);
+    const fechaFinalx = new Date(caja.finalTime);
+    const moment = require("moment-timezone");
+    const fechaFinal = moment(caja.finalTime).tz("Europe/Madrid");
     const arrayMovimientos = await movimientosInstance.getMovimientosIntervalo(
       caja.inicioTime,
       caja.finalTime
@@ -685,9 +700,9 @@ export class Impresora {
     );
     let sumaTarjetas = 0;
     let textoMovimientos = "";
-
     for (let i = 0; i < arrayMovimientos.length; i++) {
       const auxFecha = new Date(arrayMovimientos[i]._id);
+      console.log(auxFecha);
       switch (arrayMovimientos[i].tipo) {
         case "TARJETA":
           sumaTarjetas += arrayMovimientos[i].valor;
@@ -731,7 +746,18 @@ export class Impresora {
 
     const mesInicial = fechaInicio.getMonth() + 1;
     const mesFinal = fechaFinal.getMonth() + 1;
-
+    console.log(
+      `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
+        (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
+      }:${
+        (fechaInicio.getMinutes() < 10 ? "0" : "") + fechaInicio.getMinutes()
+      }`
+    );
+    console.log(
+      `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
+        (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
+      }:${(fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()}`
+    );
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
     this.enviarMQTT(
@@ -897,8 +923,9 @@ export class Impresora {
   /* Eze 4.0 */
   async imprimirCajaAsync(caja: CajaSincro) {
     try {
-      const fechaInicio = new Date(caja.inicioTime);
-      const fechaFinal = new Date(caja.finalTime);
+      const moment = require("moment-timezone");
+      const fechaInicio = moment(caja.inicioTime).tz("Europe/Madrid");
+      const fechaFinal = moment(caja.finalTime).tz("Europe/Madrid");
       const arrayMovimientos =
         await movimientosInstance.getMovimientosIntervalo(
           caja.inicioTime,
@@ -956,11 +983,17 @@ export class Impresora {
         `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
 
       permisosImpresora();
-
-      const mesInicial = fechaInicio.getMonth() + 1;
-      const mesFinal = fechaFinal.getMonth() + 1;
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
+      const diasSemana = [
+        "Diumenge",
+        "Dilluns",
+        "Dimarts",
+        "Dimecres",
+        "Dijous",
+        "Divendres",
+        "Dissabte",
+      ];
       this.enviarMQTT(
         printer
           .setCharacterCodeTable(19)
@@ -977,20 +1010,14 @@ export class Impresora {
           .text("Resp. apertura   : " + trabajadorApertura.nombre)
           .text("Resp. cierre   : " + trabajadorCierre.nombre)
           .text(
-            `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
-              (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
-            }:${
-              (fechaInicio.getMinutes() < 10 ? "0" : "") +
-              fechaInicio.getMinutes()
-            }`
+            `Inici: ${diasSemana[fechaInicio.format("d")]} ${fechaInicio.format(
+              "DD-MM-YYYY HH:mm"
+            )}`
           )
           .text(
-            `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
-              (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
-            }:${
-              (fechaFinal.getMinutes() < 10 ? "0" : "") +
-              fechaFinal.getMinutes()
-            }`
+            `Final: ${diasSemana[fechaFinal.format("d")]} ${fechaFinal.format(
+              "DD-MM-YYYY HH:mm"
+            )}`
           )
           .text("")
           .size(0, 1)
@@ -1122,6 +1149,7 @@ export class Impresora {
           .close().buffer._buffer
       );
     } catch (err) {
+      console.log(err)
       logger.Error(145, err);
     }
   }
