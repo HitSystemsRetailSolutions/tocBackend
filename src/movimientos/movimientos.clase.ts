@@ -46,7 +46,7 @@ export class MovimientosClase {
   ) {
     let codigoBarras = "";
 
-    if (concepto === "Entrega Diària") {
+    if (concepto === "Entrega Diària" || concepto ===  "Entrada") {
       codigoBarras = await this.generarCodigoBarrasSalida();
       codigoBarras = String(Ean13Utils.generate(codigoBarras));
     }
