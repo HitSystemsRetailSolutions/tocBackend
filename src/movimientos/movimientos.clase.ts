@@ -66,6 +66,9 @@ export class MovimientosClase {
       if (concepto === "Entrega Diària") {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
+      if (concepto === "Entrada") {
+        impresoraInstance.imprimirEntrada(nuevoMovimiento);
+      }
       return true;
     }
     return false;

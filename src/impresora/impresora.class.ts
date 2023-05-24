@@ -183,22 +183,22 @@ export class Impresora {
       logger.Error("imprimirDevolucion()", err);
     }
   }
-public async imprimirListaEncargos(lista:string){
-  const device = new escpos.Network();
-  const printer = new escpos.Printer(device);
-  this.enviarMQTT(
-    printer
-      .setCharacterCodeTable(19)
-      .encode("CP858")
-      .font("a")
-      .style("b")
-      .size(0, 0)
-      .align("LT")
-      .text(lista)
-      .cut("PAPER_FULL_CUT")
-      .close().buffer._buffer
-  );
-}
+  public async imprimirListaEncargos(lista: string) {
+    const device = new escpos.Network();
+    const printer = new escpos.Printer(device);
+    this.enviarMQTT(
+      printer
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .size(0, 0)
+        .align("LT")
+        .text(lista)
+        .cut("PAPER_FULL_CUT")
+        .close().buffer._buffer
+    );
+  }
   private async imprimirRecibo(recibo: string) {
     mqttInstance.loggerMQTT("imprimir recibo");
     try {
@@ -594,40 +594,18 @@ public async imprimirListaEncargos(lista:string){
   }
 
   /* Falta */
-  async imprimirEntrada(
-    totalIngresado: number,
-    fecha: number,
-    nombreDependienta: string
-  ) {
-    const parametros = await parametrosInstance.getParametros();
+  async imprimirEntrada(movimiento: MovimientosInterface) {
     try {
-      const fechaStr = dateToString2(fecha);
-      permisosImpresora();
-      // if(parametros.tipoImpresora === 'USB')
-      // {
-      //     const arrayDevices = escpos.USB.findPrinter();
-      //     if (arrayDevices.length > 0) {
-      //         /* Solo puede haber un dispositivo USB */
-      //         const dispositivoUnico = arrayDevices[0];
-      //         var device = new escpos.USB(dispositivoUnico); //USB
-      //     } else if (arrayDevices.length == 0) {
-      //         throw 'Error, no hay ningún dispositivo USB conectado';
-      //     } else {
-      //         throw 'Error, hay más de un dispositivo USB conectado';
-      //     }
-      // }
-      // else if(parametros.tipoImpresora === 'SERIE') {
-      //     var device = new escpos.Serial('/dev/ttyS0', {
-      //         baudRate: 115000,
-      //         stopBit: 2
-      //     });
-      // }
-
+      const parametros = await parametrosInstance.getParametros();
+      const moment = require("moment-timezone");
+      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
+      const trabajador = await trabajadoresInstance.getTrabajadorById(
+        movimiento.idTrabajador
+      );
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
       this.enviarMQTT(
         printer
-
           .setCharacterCodeTable(19)
           .encode("CP858")
           .font("a")
@@ -635,21 +613,20 @@ public async imprimirListaEncargos(lista:string){
           .align("CT")
           .size(0, 0)
           .text(parametros.nombreTienda)
-          .text(fechaStr)
-          .text("Dependienta: " + nombreDependienta)
-          .text("Ingreso efectivo: " + totalIngresado)
+          .text(fechaStr.format("DD-MM-YYYY HH:mm"))
+          .text("Dependienta: " + trabajador.nombre)
+          .text("Ingreso efectivo: " + movimiento.valor + "€")
           .size(1, 1)
-          .text(totalIngresado)
+          .text(movimiento.valor + "€")
           .size(0, 0)
-          .text("")
+          .text("Concepto")
           .size(1, 1)
-          .text("")
-          .text("")
-          .text("")
+          .text(movimiento.concepto)
           .cut()
           .close().buffer._buffer
       );
     } catch (err) {
+      console.log(err);
       mqttInstance.loggerMQTT(err);
     }
   }
@@ -1164,7 +1141,7 @@ public async imprimirListaEncargos(lista:string){
           .close().buffer._buffer
       );
     } catch (err) {
-      console.log(err)
+      console.log(err);
       logger.Error(145, err);
     }
   }
