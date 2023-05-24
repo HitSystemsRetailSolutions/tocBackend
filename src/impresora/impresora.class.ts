@@ -294,7 +294,7 @@ export class Impresora {
     }
     //const preuUnitari =
     for (let i = 0; i < arrayCompra.length; i++) {
-      if ((await parametrosInstance.getParametros())["params"]["PreuUnitari"]) {
+      if ((await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si") {
         arrayCompra[i]["subtotal"] = Number(
           (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
         );
