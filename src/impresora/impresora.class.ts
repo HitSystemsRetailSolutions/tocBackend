@@ -183,22 +183,22 @@ export class Impresora {
       logger.Error("imprimirDevolucion()", err);
     }
   }
-public async imprimirListaEncargos(lista:string){
-  const device = new escpos.Network();
-  const printer = new escpos.Printer(device);
-  this.enviarMQTT(
-    printer
-      .setCharacterCodeTable(19)
-      .encode("CP858")
-      .font("a")
-      .style("b")
-      .size(0, 0)
-      .align("LT")
-      .text(lista)
-      .cut("PAPER_FULL_CUT")
-      .close().buffer._buffer
-  );
-}
+  public async imprimirListaEncargos(lista: string) {
+    const device = new escpos.Network();
+    const printer = new escpos.Printer(device);
+    this.enviarMQTT(
+      printer
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .size(0, 0)
+        .align("LT")
+        .text(lista)
+        .cut("PAPER_FULL_CUT")
+        .close().buffer._buffer
+    );
+  }
   private async imprimirRecibo(recibo: string) {
     mqttInstance.loggerMQTT("imprimir recibo");
     try {
@@ -292,8 +292,13 @@ public async imprimirListaEncargos(lista:string){
       detalleNombreCliente = infoCliente.nombre;
       detallePuntosCliente = "PUNTOS: " + infoCliente.puntos;
     }
-
+    //const preuUnitari =
     for (let i = 0; i < arrayCompra.length; i++) {
+      if ((await parametrosInstance.getParametros())["params"]["PreuUnitari"]) {
+        arrayCompra[i]["subtotal"] = Number(
+          (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
+        );
+      }
       if (arrayCompra[i].promocion) {
         let nombrePrincipal = (
           await articulosInstance.getInfoArticulo(
@@ -1164,7 +1169,7 @@ public async imprimirListaEncargos(lista:string){
           .close().buffer._buffer
       );
     } catch (err) {
-      console.log(err)
+      console.log(err);
       logger.Error(145, err);
     }
   }
