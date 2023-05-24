@@ -604,27 +604,33 @@ export class Impresora {
       );
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
-      this.enviarMQTT(
-        printer
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .align("CT")
-          .size(0, 0)
-          .text(parametros.nombreTienda)
-          .text(fechaStr.format("DD-MM-YYYY HH:mm"))
-          .text("Dependienta: " + trabajador.nombre)
-          .text("Ingreso efectivo: " + movimiento.valor + "€")
-          .size(1, 1)
-          .text(movimiento.valor + "€")
-          .size(0, 0)
-          .text("Concepto")
-          .size(1, 1)
-          .text(movimiento.concepto)
-          .cut()
-          .close().buffer._buffer
-      );
+      let buffer = printer
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .align("CT")
+        .size(0, 0)
+        .text(parametros.nombreTienda)
+        .text(fechaStr.format("DD-MM-YYYY HH:mm"))
+        .text("Dependienta: " + trabajador.nombre)
+        .text("Ingreso efectivo: " + movimiento.valor + "€")
+        .size(1, 1)
+        .text(movimiento.valor + "€")
+        .size(0, 0)
+        .text("Concepto")
+        .size(1, 1)
+        .text(movimiento.concepto)
+        .cut()
+        .close().buffer._buffer;
+      if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
+        buffer = buffer.barcode(
+          movimiento.codigoBarras.slice(0, 12),
+          "EAN13",
+          4
+        );
+      }
+      buffer = buffer.text("").text("").text("").cut().close().buffer._buffer;
     } catch (err) {
       console.log(err);
       mqttInstance.loggerMQTT(err);
