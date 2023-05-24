@@ -631,6 +631,7 @@ export class Impresora {
         );
       }
       buffer = buffer.text("").text("").text("").cut().close().buffer._buffer;
+      this.enviarMQTT(buffer);
     } catch (err) {
       console.log(err);
       mqttInstance.loggerMQTT(err);
