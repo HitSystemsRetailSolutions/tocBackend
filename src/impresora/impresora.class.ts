@@ -620,9 +620,8 @@ export class Impresora {
         .size(0, 0)
         .text("Concepto")
         .size(1, 1)
-        .text(movimiento.concepto)
-        .cut()
-        .close();
+        .text(movimiento.concepto);
+        
       if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
         buffer = buffer.barcode(
           movimiento.codigoBarras.slice(0, 12),
