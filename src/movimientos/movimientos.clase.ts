@@ -46,7 +46,7 @@ export class MovimientosClase {
   ) {
     let codigoBarras = "";
 
-    if (concepto === "Entrega Diària") {
+    if (concepto === "Entrega Diària" || concepto ===  "Entrada") {
       codigoBarras = await this.generarCodigoBarrasSalida();
       codigoBarras = String(Ean13Utils.generate(codigoBarras));
     }
@@ -65,6 +65,9 @@ export class MovimientosClase {
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrega Diària") {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
+      }
+      if (concepto === "Entrada") {
+        impresoraInstance.imprimirEntrada(nuevoMovimiento);
       }
       return true;
     }
