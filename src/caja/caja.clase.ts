@@ -15,6 +15,7 @@ import { logger } from "../logger";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { io } from "../sockets.gateway";
 import { cestasInstance } from "../cestas/cestas.clase";
+import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 
 export class CajaClase {
   /* Eze 4.0 */
@@ -178,6 +179,45 @@ export class CajaClase {
     });
   }
 
+  getFechaApertura() {
+    return schCajas.getApeturaCaja().then(async (res) => {
+      if(!res) return false;
+      const fechaApertura = new Date(res.inicioTime).toDateString();
+      const fechaHoy = new Date().toDateString();
+      let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0][
+        "_id"
+      ];
+      if (trabId == undefined) trabId = 0;
+      if (fechaHoy != fechaApertura) {
+        await cajaInstance.cerrarCaja(
+          0,
+          [
+            { _id: "0.01", valor: 0, unidades: 0 },
+            { _id: "0.02", valor: 0, unidades: 0 },
+            { _id: "0.05", valor: 0, unidades: 0 },
+            { _id: "0.10", valor: 0, unidades: 0 },
+            { _id: "0.20", valor: 0, unidades: 0 },
+            { _id: "0.50", valor: 0, unidades: 0 },
+            { _id: "1", valor: 0, unidades: 0 },
+            { _id: "2", valor: 0, unidades: 0 },
+            { _id: "5", valor: 0, unidades: 0 },
+            { _id: "10", valor: 0, unidades: 0 },
+            { _id: "20", valor: 0, unidades: 0 },
+            { _id: "50", valor: 0, unidades: 0 },
+            { _id: "100", valor: 0, unidades: 0 },
+            { _id: "200", valor: 0, unidades: 0 },
+            { _id: "500", valor: 0, unidades: 0 },
+          ],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          0,
+          trabId
+        );
+        return true;
+      }
+      return false;
+    });
+  }
+
   /* Eze 4.0 */
   async getDatosCierre(
     cajaAbiertaActual: CajaAbiertaInterface,
@@ -287,7 +327,7 @@ export class CajaClase {
         -1
       ).toFixed(2)
     );
-    
+
     recaudado = totalTickets + descuadre;
     return {
       calaixFetZ: totalTickets,

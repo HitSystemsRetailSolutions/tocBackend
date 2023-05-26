@@ -95,7 +95,6 @@ export class Encargos {
       });
     });
   
-    console.log(string);
     impresoraInstance.imprimirListaEncargos(string);
   }
   
