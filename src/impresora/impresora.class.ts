@@ -292,8 +292,13 @@ export class Impresora {
       detalleNombreCliente = infoCliente.nombre;
       detallePuntosCliente = "PUNTOS: " + infoCliente.puntos;
     }
-
+    //const preuUnitari =
     for (let i = 0; i < arrayCompra.length; i++) {
+      if ((await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si") {
+        arrayCompra[i]["subtotal"] = Number(
+          (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
+        );
+      }
       if (arrayCompra[i].promocion) {
         let nombrePrincipal = (
           await articulosInstance.getInfoArticulo(
