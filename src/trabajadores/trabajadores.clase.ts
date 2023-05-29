@@ -60,7 +60,6 @@ export class TrabajadoresClase {
   getTrabajadorFichados = async (trabajador) =>
     await schTrabajadores.getTrabajadorFichados(trabajador);
 
-
   /* Eze 4.0 */
   async ficharTrabajador(idTrabajador: number): Promise<boolean> {
     if (await schTrabajadores.ficharTrabajador(idTrabajador)) {
@@ -164,20 +163,30 @@ export class TrabajadoresClase {
         logger.Error(120, err);
       });
   }
-    /* Eze 4.0 */
-    actualizarSoloTrabajadorFrontend(t) {
-      this.getTrabajadorFichados(t)
-        .then((resTrabajadores) => {
-          if (resTrabajadores && resTrabajadores.length > 0) {
-            io.emit("cargarTrabajadores", resTrabajadores);
-          }
-          return null;
-        })
-        .catch((err) => {
-          logger.Error(120, err);
-        });
-    }
-}
+  /* Eze 4.0 */
+  actualizarSoloTrabajadorFrontend(t) {
+    this.getTrabajadorFichados(t)
+      .then((resTrabajadores) => {
+        if (resTrabajadores && resTrabajadores.length > 0) {
+          io.emit("cargarTrabajadores", resTrabajadores);
+        }
+        return null;
+      })
+      .catch((err) => {
+        logger.Error(120, err);
+      });
+  }
+  /* Uri */
+  usarTrabajador = async (idTrabajador, inUse) => {
+    if (!idTrabajador) return null;
+    return await schTrabajadores.usarTrabajador(idTrabajador, inUse);
+  };
 
+  /* Uri */
+  trabajadorActivo = async (idTrabajador) => {
+    if (!idTrabajador) return;
+    return await schTrabajadores.trabajadorActivo(idTrabajador);
+  };
+}
 
 export const trabajadoresInstance = new TrabajadoresClase();

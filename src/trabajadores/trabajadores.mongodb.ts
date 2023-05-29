@@ -96,6 +96,32 @@ export async function ficharTrabajador(idTrabajador: number): Promise<boolean> {
   ).acknowledged;
 }
 
+/* Uri */
+export async function usarTrabajador(
+  idTrabajador: number,
+  inUse: boolean
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const trabajadores = database.collection("trabajadores");
+  (
+    await trabajadores.updateOne(
+      { _id: idTrabajador },
+      { $set: { activo: inUse } }
+    )
+  ).acknowledged;
+  return true;
+}
+
+/* Uri*/
+export async function trabajadorActivo(
+  trabajador: number
+): Promise<TrabajadoresInterface> {
+  const database = (await conexion).db("tocgame");
+  const trabajadores =
+    database.collection<TrabajadoresInterface>("trabajadores");
+  return await trabajadores.findOne({ _id: trabajador });
+}
+
 /* Eze 4.0 */
 export async function desficharTrabajador(
   idTrabajador: number

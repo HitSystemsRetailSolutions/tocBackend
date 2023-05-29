@@ -2,6 +2,7 @@ import { Body, Controller, Post, Get } from "@nestjs/common";
 import { trabajadoresInstance } from "./trabajadores.clase";
 import { cestasInstance } from "../cestas/cestas.clase";
 import { logger } from "../logger";
+import { io } from "src/sockets.gateway";
 
 @Controller("trabajadores")
 export class TrabajadoresController {
@@ -45,7 +46,7 @@ export class TrabajadoresController {
   async fichar(@Body() { idTrabajador }) {
     try {
       if (idTrabajador) {
-        const idCesta = await cestasInstance.crearCesta(null,idTrabajador);
+        const idCesta = await cestasInstance.crearCesta(null, idTrabajador);
         if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta))
           return trabajadoresInstance.ficharTrabajador(idTrabajador);
         throw Error(
@@ -114,6 +115,31 @@ export class TrabajadoresController {
   async getTrabajadoresDescansando() {
     try {
       return await trabajadoresInstance.getTrabajadoresDescansando();
+    } catch (err) {
+      logger.Error(132, err);
+      return false;
+    }
+  }
+
+  /* uri :) */
+  @Post("cambiarTrabajador")
+  async cambiarTrabajador(@Body() { idAntiguo, idNuevo, forced = false }) {
+    try {
+      const inUse = (await trabajadoresInstance.trabajadorActivo(idNuevo))
+        .activo;
+      if (inUse && !forced) return 0;
+      const result = await trabajadoresInstance.usarTrabajador(
+        idAntiguo,
+        false
+      );
+      let res = (await trabajadoresInstance.usarTrabajador(idNuevo, true))
+        ? 2
+        : 1;
+      if (res == 2)
+        io.emit("nuevoTrabajadorActivo", {
+          id: idNuevo,
+        });
+      return res;
     } catch (err) {
       logger.Error(132, err);
       return false;
