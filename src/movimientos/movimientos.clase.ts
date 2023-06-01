@@ -203,6 +203,7 @@ export class MovimientosClase {
         if (superTicket.movimientos[0].valor < 0) {
           return "DEVUELTO";
         } else {
+          
           return "TARJETA";
         }
       } else if (superTicket.movimientos[0].tipo === "TKRS_SIN_EXCESO") {
