@@ -76,8 +76,9 @@ export class TrabajadoresClase {
   /* Eze 4.0 */
   async desficharTrabajador(idTrabajador: number): Promise<boolean> {
     const trabajador = await schTrabajadores.getTrabajador(idTrabajador);
+    await cestasInstance.borrarTrabajadores(idTrabajador);
     if (trabajador.idCesta) {
-      await cestasInstance.deleteCesta(trabajador.idCesta);
+      await cestasInstance.deleteCesta(trabajador._id);
       cestasInstance.actualizarCestas();
     }
     if (await schTrabajadores.desficharTrabajador(idTrabajador)) {
@@ -176,6 +177,7 @@ export class TrabajadoresClase {
         logger.Error(120, err);
       });
   }
+
   /* Uri */
   usarTrabajador = async (idTrabajador, inUse) => {
     if (!idTrabajador) return null;
