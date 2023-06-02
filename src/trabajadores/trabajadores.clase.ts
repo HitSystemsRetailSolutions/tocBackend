@@ -177,6 +177,18 @@ export class TrabajadoresClase {
         logger.Error(120, err);
       });
   }
+
+  /* Uri */
+  usarTrabajador = async (idTrabajador, inUse) => {
+    if (!idTrabajador) return null;
+    return await schTrabajadores.usarTrabajador(idTrabajador, inUse);
+  };
+
+  /* Uri */
+  trabajadorActivo = async (idTrabajador) => {
+    if (!idTrabajador) return;
+    return await schTrabajadores.trabajadorActivo(idTrabajador);
+  };
 }
 
 export const trabajadoresInstance = new TrabajadoresClase();
