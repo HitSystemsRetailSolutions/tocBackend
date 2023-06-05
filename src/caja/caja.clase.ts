@@ -181,7 +181,7 @@ export class CajaClase {
 
   getFechaApertura() {
     return schCajas.getApeturaCaja().then(async (res) => {
-      if(!res) return false;
+      if (!res) return false;
       const fechaApertura = new Date(res.inicioTime).toDateString();
       const fechaHoy = new Date().toDateString();
       let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0][
@@ -241,8 +241,8 @@ export class CajaClase {
     let totalTickets = 0;
     let nClientes = 0;
 
-    if (arrayTicketsCaja.length <= 0)
-      throw Error("No hay tickets en esta caja");
+    // if (arrayTicketsCaja.length <= 0)
+    // throw Error("No hay tickets en esta caja");
 
     let totalTarjeta = 0;
     let totalEfectivo = 0;
@@ -331,8 +331,12 @@ export class CajaClase {
     recaudado = totalTickets + descuadre;
     return {
       calaixFetZ: totalTickets,
-      primerTicket: arrayTicketsCaja[0]._id,
-      ultimoTicket: arrayTicketsCaja[arrayTicketsCaja.length - 1]._id,
+      primerTicket:
+        arrayTicketsCaja[0]?._id == undefined ? -1 : arrayTicketsCaja[0]._id,
+      ultimoTicket:
+        arrayTicketsCaja[arrayTicketsCaja.length - 1]?._id == undefined
+          ? -1
+          : arrayTicketsCaja[arrayTicketsCaja.length - 1]._id,
       descuadre,
       detalleCierre: detalleCierre,
       finalTime: finalTime,
