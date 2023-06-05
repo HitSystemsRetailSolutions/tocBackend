@@ -51,6 +51,17 @@ export class Articulos {
     );
   }
 
+  async insertarTeclasNuevos(menu, esSumable, Nombre, idArt, pos, preuIva) {
+    return await schArticulos.insertarTeclasNuevos(
+      menu,
+      esSumable,
+      Nombre,
+      idArt,
+      pos,
+      preuIva
+    );
+  }
+
   /* Eze 4.0 */
   async getSuplementos(suplementos) {
     return await schArticulos.getSuplementos(suplementos);
