@@ -10,6 +10,7 @@ import { cajaInstance } from "src/caja/caja.clase";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { encargosInstance } from "src/encargos/encargos.clase";
 import { EncargosInterface } from "src/encargos/encargos.interface";
+import { mqttInstance } from "src/mqtt";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -190,7 +191,7 @@ export class TicketsController {
           if (tipo !== "TARJETA") {
             await impresoraInstance.abrirCajon();
           }
-
+          mqttInstance.enviarVisor("Bon Dia!            Següent, si us plau");
           ticketsInstance.actualizarTickets();
           return true;
         }
