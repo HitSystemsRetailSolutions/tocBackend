@@ -96,6 +96,19 @@ export class Impresora {
     mqttInstance.enviarVisor(lineasVisor);
   }
 
+  async saludarCliente() {
+    let linea1Visor =
+      "Bon Dia!    " + "Següent, si us plau";
+    let restar = linea1Visor;
+    linea1Visor += "                                        ";
+
+    let lineasVisor: string = linea1Visor.substring(
+      0,
+      linea1Visor.length - restar.length
+    );
+    mqttInstance.enviarVisor(lineasVisor);
+  }
+
   /* Eze 4.0 */
   async imprimirTicket(idTicket: number) {
     const ticket = await ticketsInstance.getTicketById(idTicket);
