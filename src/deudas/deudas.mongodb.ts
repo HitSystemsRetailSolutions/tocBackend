@@ -3,6 +3,7 @@ import { conexion } from "../conexion/mongodb";
 import { DeudasInterface } from "./deudas.interface";
 
 export async function setDeuda(deuda): Promise<boolean> {
+  console.log("mongoDeuda")
   const database = (await conexion).db("tocgame");
   const deudas = database.collection<DeudasInterface>("deudas");
   // Insertamos todas las traducciones en la tabla traducciones.

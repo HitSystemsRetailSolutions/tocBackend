@@ -49,26 +49,30 @@ export class Deudas {
   //   await schEncargos.getEncargoById(idEncargo);
 
   setDeuda = async (deuda) => {
+    console.log("setDeuda");
     const parametros = await parametrosInstance.getParametros();
-    const dataDeuda=this.getDate(deuda.data)
+    const dataDeuda=this.getDate(deuda.timestamp);
+    const detall="[NumTicket:" + deuda.idTicket.toString() + "]";
     const deuda_santAna = {
       id: this.getId(
         parametros.codigoTienda,
         deuda.idTrabajador,
         dataDeuda,
       ),
+      timestamp:deuda.timestamp,
       dependenta: deuda.idTrabajador,
       cliente: deuda.idCliente,
-      data: this.getDate(deuda.data),
+      data: dataDeuda,
       estat: 0,
       tipus: 1,
       import: deuda.total,
       botiga: parametros.licencia,
-      detall: "[NumTicket:" + deuda._id + "]",
+      detall: detall,
+      bbdd: parametros.database,
     };
     // Mandamos la deuda al SantaAna
     const { data }: any = await axios.post(
-      "encargos/setEncargo",
+      "deudas/setDeuda",
       deuda_santAna
     );
     // Si data no existe (null, undefined, etc...) o error = true devolvemos false
@@ -80,10 +84,8 @@ export class Deudas {
         msg: data.msg,
       };
     }
-    // Si existe, llamámos a la función de setEncargo
+    // Si existe, llamámos a la función de setDeuda
     // que devuelve un boolean.
-    // True -> Se han insertado correctamente el encargo.
-    // False -> Ha habido algún error al insertar el encargo.
     deuda.pagado = false;
 
     return schDeudas

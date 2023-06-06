@@ -119,12 +119,7 @@ export class TicketsController {
       concepto?: MovimientosInterface["concepto"];
     }
   ) {
-    console.log(total,
-      idCesta,
-      idTrabajador,
-      tipo,
-      tkrsData,
-      concepto);
+ 
     try {
       if (typeof total == "number" && idCesta && idTrabajador && tipo) {
         const cesta = await cestasInstance.getCestaById(idCesta);
@@ -138,7 +133,7 @@ export class TicketsController {
           d3G,
           null
         );
-        console.log("creado",ticket)
+
         if (!ticket) {
           throw Error(
             "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
@@ -185,7 +180,7 @@ export class TicketsController {
               );
             }
           } else if (tipo === "DEUDA") {
-            console.log("bien");
+
             //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
             // se diferenciara su uso cuando el concepto sea igual a DEUDA
             if (concepto && concepto == "DEUDA") {
@@ -206,6 +201,7 @@ export class TicketsController {
                 total: total,
                 timestamp: ticket.timestamp,
               };
+              console.log("binde")
               await deudasInstance.setDeuda(deuda);
             } else {
               await movimientosInstance.nuevoMovimiento(

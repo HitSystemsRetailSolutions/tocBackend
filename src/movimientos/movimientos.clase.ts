@@ -196,7 +196,7 @@ export class MovimientosClase {
   /* Eze 4.0 */
   private calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
     if (superTicket.consumoPersonal) return "CONSUMO_PERSONAL";
-console.log("supert",superTicket)
+console.log("supert")
     if (superTicket.movimientos.length === 1) {
       if (superTicket.movimientos[0].tipo === "TARJETA") {
         if (superTicket.movimientos[0].valor < 0) {
@@ -209,6 +209,8 @@ console.log("supert",superTicket)
           return "TKRS + EFECTIVO";
         else return "TKRS";
       } else if (superTicket.movimientos[0].tipo === "DEUDA") {
+        return "DEUDA";
+      }else if (superTicket.movimientos[0].tipo === "SALIDA") {
         return "DEUDA";
       } else {
         throw Error("Forma de pago desconocida");
