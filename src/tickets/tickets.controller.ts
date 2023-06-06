@@ -191,7 +191,16 @@ export class TicketsController {
           if (tipo !== "TARJETA") {
             await impresoraInstance.abrirCajon();
           }
-          mqttInstance.enviarVisor("Bon Dia!            Següent, si us plau");
+          let linea1Visor =
+            "Bon Dia!    " + "Següent, si us plau";
+          let restar = linea1Visor;
+          linea1Visor += "                                        ";
+      
+          let lineasVisor: string = linea1Visor.substring(
+            0,
+            linea1Visor.length - restar.length
+          );
+          mqttInstance.enviarVisor(lineasVisor);
           ticketsInstance.actualizarTickets();
           return true;
         }
