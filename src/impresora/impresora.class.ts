@@ -97,16 +97,9 @@ export class Impresora {
   }
 
   async saludarCliente() {
-    let linea1Visor =
-      "Bon Dia!    " + "Següent, si us plau";
-    let restar = linea1Visor;
-    linea1Visor += "                                        ";
-
-    let lineasVisor: string = linea1Visor.substring(
-      0,
-      linea1Visor.length - restar.length
-    );
-    mqttInstance.enviarVisor(lineasVisor);
+    let txt =
+      "Bon Dia!            Caixa oberta        ";
+    mqttInstance.enviarVisor(txt);
   }
 
   /* Eze 4.0 */
