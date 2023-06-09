@@ -1232,10 +1232,10 @@ export class Impresora {
   
     let string = `${datosExtra}${data.texto}                                               `;
     let lines = 2;
-    string = string.padEnd(lines * 20, " ");
+    string = string.padEnd(lines * 19, " ");
     let output = "";
     for (let i = 0; i < lines; i++) {
-      output += string.substring(i * 20, (i + 1) * 20) + "";
+      output += string.substring(i * 19, (i + 1) * 19) + "";
     }
     console.log(output,output.length)
     mqttInstance.enviarVisor(output);
