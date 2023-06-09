@@ -1170,7 +1170,6 @@ export class Impresora {
   }
 
   async mostrarVisor(data) {
-    console.log(data);
     let eur = "E";
   
     let limitNombre = 0;
@@ -1232,12 +1231,13 @@ export class Impresora {
     data.texto += " " + data.precio + eur;
   
     let string = `${datosExtra}${data.texto}                                               `;
-    let lines = Math.ceil(string.length / 20);
+    let lines = 2;
     string = string.padEnd(lines * 20, " ");
     let output = "";
     for (let i = 0; i < lines; i++) {
       output += string.substring(i * 20, (i + 1) * 20) + "";
     }
+    console.log(output,output.length)
     mqttInstance.enviarVisor(output);
   }
   
