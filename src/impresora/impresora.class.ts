@@ -1224,13 +1224,23 @@ export class Impresora {
     if (data.texto.includes("`")) {
       data.texto = data.texto.replace(/`/g, " ");
     }
-    // Limito el texto a 14 caracteres, ya que la línea completa tiene 20 espacios. (1-14 -> artículo, 15 -> espacio en blanco, 16-20 -> precio)
-    data.texto = data.texto.substring(0, 14);
+    // Limito el texto del nombre del producto
+    const maxNombreLength = 11;
+    if (data.texto.length > maxNombreLength) {
+      data.texto = data.texto.substring(0, maxNombreLength) + "...";
+    }
     data.texto += " " + data.precio + eur;
+  
     let string = `${datosExtra}${data.texto}                                               `;
-    string = string.substring(0, 40) + "                                             ";
-    mqttInstance.enviarVisor(string.substring(0, 40));
+    let lines = Math.ceil(string.length / 20);
+    string = string.padEnd(lines * 20, " ");
+    let output = "";
+    for (let i = 0; i < lines; i++) {
+      output += string.substring(i * 20, (i + 1) * 20) + "";
+    }
+    mqttInstance.enviarVisor(output);
   }
+  
 
   async imprimirEntregas() {
     const params = await parametrosInstance.getParametros();

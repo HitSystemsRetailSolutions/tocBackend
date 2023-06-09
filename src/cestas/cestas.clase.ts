@@ -183,12 +183,12 @@ export class CestaClase {
           numProductos += cesta.lista[i].unidades;
           total += cesta.lista[i].subtotal;
         }
+        let precio = cesta.lista[cesta.lista.length - 1]?.subtotal == undefined ? 0 : cesta.lista[cesta.lista.length - 1]?.subtotal;
+        let nombre = cesta.lista[cesta.lista.length - 1]?.nombre == undefined ? "" : cesta.lista[cesta.lista.length - 1]?.nombre;
         impresoraInstance.mostrarVisor({
           total: total.toFixed(2),
-          precio: cesta.lista[cesta.lista.length - 1].subtotal
-            .toFixed(2)
-            .toString(),
-          texto: cesta.lista[cesta.lista.length - 1].nombre,
+          precio: precio,
+          texto: nombre,
           numProductos: numProductos,
         });
         this.actualizarCestas();
