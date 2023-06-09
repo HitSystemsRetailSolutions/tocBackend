@@ -711,7 +711,6 @@ export class Impresora {
     let textoMovimientos = "";
     for (let i = 0; i < arrayMovimientos.length; i++) {
       const auxFecha = new Date(arrayMovimientos[i]._id);
-      console.log(auxFecha);
       switch (arrayMovimientos[i].tipo) {
         case "TARJETA":
           sumaTarjetas += arrayMovimientos[i].valor;
@@ -755,18 +754,6 @@ export class Impresora {
 
     const mesInicial = fechaInicio.getMonth() + 1;
     const mesFinal = fechaFinal.getMonth() + 1;
-    console.log(
-      `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
-        (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
-      }:${
-        (fechaInicio.getMinutes() < 10 ? "0" : "") + fechaInicio.getMinutes()
-      }`
-    );
-    console.log(
-      `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
-        (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
-      }:${(fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()}`
-    );
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
     this.enviarMQTT(
@@ -1176,8 +1163,9 @@ export class Impresora {
     let datosExtra = "";
     if (data.total !== undefined) {
       lengthTotal = data.total.toString();
-  
-      const numArticle = "Productes: " + data.numProductos;
+      let prods = "Productes"
+      if (data.numProductos > 99) prods = "Prods."
+      const numArticle = prods+": " + data.numProductos;
       const total = data.total + eur;
       const size = 20 - (numArticle.length + total.length);
       const espacios = [
@@ -1228,7 +1216,6 @@ export class Impresora {
     for (let i = 0; i < 2; i++) {
       output += string.substring(i * 20, (i + 1) * 20) + "";
     }
-    console.log("|"+output+"|",output.length)
     mqttInstance.enviarVisor(output);
   }
   
