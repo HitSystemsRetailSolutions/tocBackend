@@ -1169,11 +1169,10 @@ export class Impresora {
     this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer);
   }
 
-  /* Eze 4.0 */
   async mostrarVisor(data) {
-    console.log(data)
+    console.log(data);
     let eur = "E";
-
+  
     let limitNombre = 0;
     let lengthTotal = "";
     let datosExtra = "";
@@ -1186,7 +1185,7 @@ export class Impresora {
       else if (lengthTotal.length == 5) limitNombre = 13;
       else if (lengthTotal.length == 6) limitNombre = 12;
       else if (lengthTotal.length == 7) limitNombre = 11;
-
+  
       const numArticle = "Productes: " + data.numProductos;
       const total = data.total + eur;
       const espacio = " ";
@@ -1214,22 +1213,22 @@ export class Impresora {
       datosExtra = "";
       eur = "";
     }
-    // quito caracteres conflictivos para el visor
+    // Elimino caracteres conflictivos para el visor
     data.texto = data.texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (data.texto.indexOf("'") != -1) {
-      data.texto = data.texto.replace("'", " ");
+    if (data.texto.includes("'")) {
+      data.texto = data.texto.replace(/'/g, " ");
     }
-    if (data.texto.indexOf("´") != -1) {
-      data.texto = data.texto.replace("´", " ");
+    if (data.texto.includes("´")) {
+      data.texto = data.texto.replace(/´/g, " ");
     }
-    if (data.texto.indexOf("`") != -1) {
-      data.texto = data.texto.replace("`", " ");
+    if (data.texto.includes("`")) {
+      data.texto = data.texto.replace(/`/g, " ");
     }
-    // Limito el texto a 14, ya que la línea completa tiene 20 espacios. (1-14 -> artículo, 15 -> espacio en blanco, 16-20 -> precio)
+    // Limito el texto a 14 caracteres, ya que la línea completa tiene 20 espacios. (1-14 -> artículo, 15 -> espacio en blanco, 16-20 -> precio)
     data.texto = data.texto.substring(0, 14);
     data.texto += " " + data.precio + eur;
     let string = `${datosExtra}${data.texto}                                               `;
-    string = string + "                                             ";
+    string = string.substring(0, 40) + "                                             ";
     mqttInstance.enviarVisor(string.substring(0, 40));
   }
 
