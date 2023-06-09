@@ -1170,76 +1170,32 @@ export class Impresora {
   }
 
   async mostrarVisor(data) {
+    console.log(data);
     let eur = "E";
-  
     let limitNombre = 0;
     let lengthTotal = "";
     let datosExtra = "";
+  
     if (data.total !== undefined) {
       lengthTotal = data.total.toString();
-      if (lengthTotal.length == 1) limitNombre = 17;
-      else if (lengthTotal.length == 2) limitNombre = 16;
-      else if (lengthTotal.length == 3) limitNombre = 15;
-      else if (lengthTotal.length == 4) limitNombre = 14;
-      else if (lengthTotal.length == 5) limitNombre = 13;
-      else if (lengthTotal.length == 6) limitNombre = 12;
-      else if (lengthTotal.length == 7) limitNombre = 11;
+      limitNombre = 17 - lengthTotal.length;
+      const numArticle = `Total: ${data.numProductos}`;
+      const total = `${Number(data.total).toFixed(2)}${eur}`;
+      console.log(20 - (numArticle.length + total.length))
+      const espacios = (20 - (numArticle.length + total.length)) > -1 ? " ".repeat(20 - (numArticle.length + total.length)) : "";
+      datosExtra = `${numArticle}${espacios}${total}`;
+    }
   
-      const numArticle = "Productes: " + data.numProductos;
-      const total = data.total + eur;
-      const espacio = " ";
-      const size = 20 - (numArticle.length + total.length);
-      const espacios = [
-        "",
-        " ",
-        "  ",
-        "   ",
-        "    ",
-        "     ",
-        "      ",
-        "       ",
-        "        ",
-        "         ",
-        "          ",
-        "           ",
-        "            ",
-        "             ",
-        "              ",
-      ];
-      datosExtra = numArticle + espacios[size] + total;
-    }
-    if (datosExtra.length <= 2) {
-      datosExtra = "";
-      eur = "";
-    }
-    // Elimino caracteres conflictivos para el visor
-    data.texto = data.texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (data.texto.includes("'")) {
-      data.texto = data.texto.replace(/'/g, " ");
-    }
-    if (data.texto.includes("´")) {
-      data.texto = data.texto.replace(/´/g, " ");
-    }
-    if (data.texto.includes("`")) {
-      data.texto = data.texto.replace(/`/g, " ");
-    }
-    // Limito el texto del nombre del producto
-    const maxNombreLength = 11;
-    if (data.texto.length > maxNombreLength) {
-      data.texto = data.texto.substring(0, maxNombreLength) + "...";
-    }
-    data.texto += " " + data.precio + eur;
+    let nombreProducto = data.texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    nombreProducto = nombreProducto.replace(/['´`]/g, " ").substring(0, 14);
+    nombreProducto += ` ${Number(data.total).toFixed(2)}${eur}`;
   
-    let string = `${datosExtra}${data.texto}                                               `;
-    let lines = 2;
-    string = string.padEnd(lines * 19, " ");
-    let output = "";
-    for (let i = 0; i < lines; i++) {
-      output += string.substring(i * 19, (i + 1) * 19) + "";
-    }
+    let output = `${datosExtra}${nombreProducto}\n`.padEnd(40, " ");
+    output = output.padEnd(2 * 20, " ");
     console.log(output,output.length)
     mqttInstance.enviarVisor(output);
   }
+  
   
 
   async imprimirEntregas() {
