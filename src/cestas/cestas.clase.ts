@@ -177,6 +177,20 @@ export class CestaClase {
       // Enviar por socket
       await this.recalcularIvas(cesta);
       if (await this.updateCesta(cesta)) {
+        let numProductos = 0;
+        let total = 0;
+        for (let i = 0; i < cesta.lista.length; i++) {
+          numProductos += cesta.lista[i].unidades;
+          total += cesta.lista[i].subtotal;
+        }
+        let precio = cesta.lista[cesta.lista.length - 1]?.subtotal == undefined ? 0 : cesta.lista[cesta.lista.length - 1]?.subtotal;
+        let nombre = cesta.lista[cesta.lista.length - 1]?.nombre == undefined ? "" : cesta.lista[cesta.lista.length - 1]?.nombre;
+        impresoraInstance.mostrarVisor({
+          total: total.toFixed(2),
+          precio: precio,
+          texto: nombre,
+          numProductos: numProductos,
+        });
         this.actualizarCestas();
         return true;
       }
@@ -184,6 +198,7 @@ export class CestaClase {
         "Error, no se ha podido actualizar la cesta borrarItemCesta()"
       );
     } catch (err) {
+      console.log(err)
       logger.Error(57, err);
       return false;
     }

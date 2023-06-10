@@ -96,6 +96,12 @@ export class Impresora {
     mqttInstance.enviarVisor(lineasVisor);
   }
 
+  async saludarCliente() {
+    let txt =
+      "Bon Dia!            Caixa oberta        ";
+    mqttInstance.enviarVisor(txt);
+  }
+
   /* Eze 4.0 */
   async imprimirTicket(idTicket: number) {
     const ticket = await ticketsInstance.getTicketById(idTicket);
@@ -705,7 +711,6 @@ export class Impresora {
     let textoMovimientos = "";
     for (let i = 0; i < arrayMovimientos.length; i++) {
       const auxFecha = new Date(arrayMovimientos[i]._id);
-      console.log(auxFecha);
       switch (arrayMovimientos[i].tipo) {
         case "TARJETA":
           sumaTarjetas += arrayMovimientos[i].valor;
@@ -749,18 +754,6 @@ export class Impresora {
 
     const mesInicial = fechaInicio.getMonth() + 1;
     const mesFinal = fechaFinal.getMonth() + 1;
-    console.log(
-      `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
-        (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
-      }:${
-        (fechaInicio.getMinutes() < 10 ? "0" : "") + fechaInicio.getMinutes()
-      }`
-    );
-    console.log(
-      `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
-        (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
-      }:${(fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()}`
-    );
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
     this.enviarMQTT(
@@ -1163,26 +1156,17 @@ export class Impresora {
     this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer);
   }
 
-  /* Eze 4.0 */
   async mostrarVisor(data) {
     let eur = "E";
-
-    let limitNombre = 0;
+  
     let lengthTotal = "";
     let datosExtra = "";
     if (data.total !== undefined) {
       lengthTotal = data.total.toString();
-      if (lengthTotal.length == 1) limitNombre = 17;
-      else if (lengthTotal.length == 2) limitNombre = 16;
-      else if (lengthTotal.length == 3) limitNombre = 15;
-      else if (lengthTotal.length == 4) limitNombre = 14;
-      else if (lengthTotal.length == 5) limitNombre = 13;
-      else if (lengthTotal.length == 6) limitNombre = 12;
-      else if (lengthTotal.length == 7) limitNombre = 11;
-
-      const numArticle = "Productes: " + data.numProductos;
+      let prods = "Productes"
+      if (data.numProductos > 99) prods = "Prods."
+      const numArticle = prods+": " + data.numProductos;
       const total = data.total + eur;
-      const espacio = " ";
       const size = 20 - (numArticle.length + total.length);
       const espacios = [
         "",
@@ -1207,24 +1191,34 @@ export class Impresora {
       datosExtra = "";
       eur = "";
     }
-    // quito caracteres conflictivos para el visor
+    // Elimino caracteres conflictivos para el visor
     data.texto = data.texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (data.texto.indexOf("'") != -1) {
-      data.texto = data.texto.replace("'", " ");
+    if (data.texto.includes("'")) {
+      data.texto = data.texto.replace(/'/g, " ");
     }
-    if (data.texto.indexOf("´") != -1) {
-      data.texto = data.texto.replace("´", " ");
+    if (data.texto.includes("´")) {
+      data.texto = data.texto.replace(/´/g, " ");
     }
-    if (data.texto.indexOf("`") != -1) {
-      data.texto = data.texto.replace("`", " ");
+    if (data.texto.includes("`")) {
+      data.texto = data.texto.replace(/`/g, " ");
     }
-    // Limito el texto a 14, ya que la línea completa tiene 20 espacios. (1-14 -> artículo, 15 -> espacio en blanco, 16-20 -> precio)
-    data.texto = data.texto.substring(0, 14);
+    // Limito el texto del nombre del producto
+    const maxNombreLength = 11;
+    if (data.texto.length > maxNombreLength) {
+      data.texto = data.texto.substring(0, maxNombreLength) + "...";
+    }
     data.texto += " " + data.precio + eur;
+  
     let string = `${datosExtra}${data.texto}                                               `;
-    string = string + "                                             ";
-    mqttInstance.enviarVisor(string.substring(0, 40));
+    let lines = 2;
+    string = string.padEnd(lines * 20, " ");
+    let output = "";
+    for (let i = 0; i < 2; i++) {
+      output += string.substring(i * 20, (i + 1) * 20) + "";
+    }
+    mqttInstance.enviarVisor(output);
   }
+  
 
   async imprimirEntregas() {
     const params = await parametrosInstance.getParametros();
