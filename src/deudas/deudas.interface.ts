@@ -3,7 +3,7 @@ import { CestasInterface } from "src/cestas/cestas.interface";
 export interface DeudasInterface {
     _id: string;
     idTicket:string;
-    data:number;
+    timestamp:number;
     total: number;
     idTrabajador: string;
     nombreCliente: string;
