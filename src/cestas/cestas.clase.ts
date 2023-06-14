@@ -21,6 +21,7 @@ import { clienteInstance } from "../clientes/clientes.clase";
 import { impresoraInstance } from "../impresora/impresora.class";
 import axios from "axios";
 import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
+import { tarifasInstance } from "src/tarifas/tarifas.class";
 
 export class CestaClase {
   /* Eze 4.0 */
@@ -183,8 +184,14 @@ export class CestaClase {
           numProductos += cesta.lista[i].unidades;
           total += cesta.lista[i].subtotal;
         }
-        let precio = cesta.lista[cesta.lista.length - 1]?.subtotal == undefined ? 0 : cesta.lista[cesta.lista.length - 1]?.subtotal;
-        let nombre = cesta.lista[cesta.lista.length - 1]?.nombre == undefined ? "" : cesta.lista[cesta.lista.length - 1]?.nombre;
+        let precio =
+          cesta.lista[cesta.lista.length - 1]?.subtotal == undefined
+            ? 0
+            : cesta.lista[cesta.lista.length - 1]?.subtotal;
+        let nombre =
+          cesta.lista[cesta.lista.length - 1]?.nombre == undefined
+            ? ""
+            : cesta.lista[cesta.lista.length - 1]?.nombre;
         impresoraInstance.mostrarVisor({
           total: total.toFixed(2),
           precio: precio,
@@ -198,7 +205,7 @@ export class CestaClase {
         "Error, no se ha podido actualizar la cesta borrarItemCesta()"
       );
     } catch (err) {
-      console.log(err)
+      console.log(err);
       logger.Error(57, err);
       return false;
     }
@@ -404,6 +411,7 @@ export class CestaClase {
           cesta.idCliente
         );
       }
+
       // Va a peso. 1 unidad son 1000 gramos. Los precios son por kilogramo.
       if (gramos > 0)
         return await this.insertarArticulo(
@@ -523,7 +531,6 @@ export class CestaClase {
       importe4: 0,
       importe5: 0,
     };
-
     for (let i = 0; i < cesta.lista.length; i++) {
       if (cesta.lista[i].regalo) continue;
       if (cesta.lista[i].promocion) {
@@ -540,6 +547,14 @@ export class CestaClase {
           articulo,
           cesta.idCliente
         );
+        if (cesta.indexMesa != null) {
+          articulo.precioConIva =
+            (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
+            null
+              ? articulo.precioConIva
+              : (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo))
+                  .precioConIva;
+        }
 
         const auxDetalleIva = construirObjetoIvas(
           articulo.precioConIva,

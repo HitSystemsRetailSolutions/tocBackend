@@ -14,4 +14,13 @@ export class TarifasController {
       return false;
     }
   }
+  @Get("TarifasMesas")
+  async TarifasMesas(idArticulo) {
+    try {
+      return await tarifasInstance.tarifaMesas(idArticulo);
+    } catch (err) {
+      logger.Error(101, err);
+      return false;
+    }
+  }
 }
