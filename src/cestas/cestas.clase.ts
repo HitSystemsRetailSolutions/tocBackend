@@ -20,6 +20,7 @@ import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import { clienteInstance } from "../clientes/clientes.clase";
 import { impresoraInstance } from "../impresora/impresora.class";
 import axios from "axios";
+import { parametrosInstance } from "src/parametros/parametros.clase";
 
 export class CestaClase {
   /* Eze 4.0 */
@@ -71,8 +72,7 @@ export class CestaClase {
       idCliente: null,
       indexMesa: null,
       trabajador: trabajador,
-      trabajadores: []
-
+      trabajadores: [],
     };
   }
 
@@ -93,19 +93,32 @@ export class CestaClase {
     await schCestas.deleteCestaMesa(idCesta);
 
   /* Eze 4.0 */
-  async crearCesta(indexMesa = null,trabajador = null): Promise<CestasInterface["_id"]> {
-    const nuevaCesta = await this.generarObjetoCesta(new ObjectId(),"VENTA",trabajador);
+  async crearCesta(
+    indexMesa = null,
+    trabajador = null
+  ): Promise<CestasInterface["_id"]> {
+    const nuevaCesta = await this.generarObjetoCesta(
+      new ObjectId(),
+      "VENTA",
+      trabajador
+    );
     nuevaCesta.indexMesa = indexMesa;
     if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
     throw Error("Error, no se ha podido crear la cesta");
   }
 
-    /* Uri */
-    async crearCestaDevolucion(trabajador = null): Promise<CestasInterface["_id"]> {
-      const nuevaCesta = this.generarObjetoCesta(new ObjectId(),"DEVOLUCION",trabajador);
-      if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
-      throw Error("Error, no se ha podido crear la cesta");
-    }
+  /* Uri */
+  async crearCestaDevolucion(
+    trabajador = null
+  ): Promise<CestasInterface["_id"]> {
+    const nuevaCesta = this.generarObjetoCesta(
+      new ObjectId(),
+      "DEVOLUCION",
+      trabajador
+    );
+    if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
+    throw Error("Error, no se ha podido crear la cesta");
+  }
 
   async CestaPagoSeparado(articulos) {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO SEPARADO");
@@ -156,6 +169,13 @@ export class CestaClase {
   ): Promise<boolean> {
     try {
       let cesta = await this.getCestaById(idCesta);
+      let productos = [];
+      productos.push(cesta.lista[index]);
+      let registroLogSantaAna = await this.registroLogSantaAna(
+        cesta,
+        productos
+      );
+
       cesta.lista.splice(index, 1);
       // Enviar por socket
       await this.recalcularIvas(cesta);
@@ -273,7 +293,6 @@ export class CestaClase {
           !cesta.lista[i].regalo &&
           cesta.lista[i].promocion == null
         ) {
-
           if (
             arraySuplementos &&
             cesta.lista[i]?.arraySuplementos &&
@@ -298,11 +317,12 @@ export class CestaClase {
             }
             if (igual == cesta.lista[i].arraySuplementos.length) {
               cesta.lista[i].unidades += unidades;
-              cesta.lista[i].subtotal = nuevaInstancePromociones.redondearDecimales(
-                cesta.lista[i].subtotal + unidades * articulo.precioConIva,
-                2
-              );
-    
+              cesta.lista[i].subtotal =
+                nuevaInstancePromociones.redondearDecimales(
+                  cesta.lista[i].subtotal + unidades * articulo.precioConIva,
+                  2
+                );
+
               articuloNuevo = false;
               break;
             }
@@ -612,7 +632,7 @@ export class CestaClase {
     borrarModo = false
   ) {
     const cesta = await this.getCestaById(idCesta);
-
+    const registroLogSantaAna = this.registroLogSantaAna(cesta, cesta.lista);
     if (cesta) {
       cesta.lista = [];
       cesta.detalleIva = {
@@ -636,7 +656,6 @@ export class CestaClase {
       if (borrarModo) cesta.modo = "VENTA";
 
       if (await this.updateCesta(cesta)) {
-
         await this.actualizarCestas();
         return true;
       }
@@ -711,6 +730,29 @@ export class CestaClase {
       return true;
     }
     throw Error("No se ha podido actualizar la cesta");
+  }
+
+  async registroLogSantaAna(
+    cesta: CestasInterface,
+    productos: CestasInterface["lista"]
+  ) {
+    let cliente = await clienteInstance.getClienteById(cesta.idCliente);
+    let parametros = await parametrosInstance.getParametros();
+
+    let lista = {
+      timestamp: new Date().getTime(),
+      botiga: parametros.codigoTienda,
+      bbdd: parametros.database,
+      accio: "ArticleEsborrat",
+      productos: productos,
+      dependienta: cesta.trabajador,
+      descuento: Number(cliente.descuento),
+      idCliente: cesta.idCliente,
+    };
+
+    const data = await axios.post("lista/setRegistro", {
+      lista: lista,
+    });
   }
 }
 
