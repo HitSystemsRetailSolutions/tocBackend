@@ -11,6 +11,7 @@ import { tecladoInstance } from "./teclado/teclado.clase";
 import { ticketsInstance } from "./tickets/tickets.clase";
 import { trabajadoresInstance } from "./trabajadores/trabajadores.clase";
 import { parametrosController } from "./parametros/parametros.controller";
+import { tarifasInstance } from "./tarifas/tarifas.class";
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -60,6 +61,7 @@ io.on("connection", (socket) => {
       logger.Error(36, err);
     }
   });
+ 
 
     /* Uri */
     socket.on("cargarConfigurador", async (data) => {

@@ -19,7 +19,7 @@ export class TecladoController {
           gramos,
           idCesta,
           unidades,
-          arraySuplementos
+          arraySuplementos,
         );
         await cestasInstance.actualizarCestas();
         return resultado;

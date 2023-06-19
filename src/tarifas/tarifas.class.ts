@@ -33,6 +33,11 @@ export class TarifasClass {
   /* Eze 4.0 */
   clienteTieneTarifa = async (idCliente: ClientesInterface["id"]) =>
     await schTarifas.tieneTarifaEspecial(idCliente);
+
+  /* uri */
+  async tarifaMesas(idArticulo): Promise<TarifaInterface> {
+    return await schTarifas.tarifasMesas(idArticulo);
+  }
 }
 
 export const tarifasInstance = new TarifasClass();
