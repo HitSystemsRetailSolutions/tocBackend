@@ -15,6 +15,7 @@ import { encargosInstance } from "src/encargos/encargos.clase";
 import { EncargosInterface } from "src/encargos/encargos.interface";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { timestamp } from "rxjs";
+import { mqttInstance } from "src/mqtt";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -224,7 +225,6 @@ export class TicketsController {
           if (tipo !== "TARJETA" || concepto == "DEUDA") {
             await impresoraInstance.abrirCajon();
           }
-
           ticketsInstance.actualizarTickets();
           return true;
         }

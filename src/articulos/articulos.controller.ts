@@ -121,8 +121,18 @@ export class ArticulosController {
       params.precioBase != undefined &&
       params.tipoIva != undefined &&
       params.menus != undefined &&
-      params.posicion != undefined
+      params.posicion != undefined &&
+      params.articuloExistente != undefined
     ) {
+      if (params.articuloExistente && params.idArticulo) 
+        return articulosInstance.insertarTeclasNuevos(
+          params.menus,
+          params.esSumable,
+          params.nombreArticulo,
+          params.idArticulo,
+          params.posicion,
+          params.precioConIva
+        );
       return articulosInstance
         .insertarArticulosNuevos(
           params.nombreArticulo,

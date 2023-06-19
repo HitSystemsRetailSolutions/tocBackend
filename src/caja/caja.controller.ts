@@ -59,10 +59,17 @@ export class CajaController {
   @Get("estadoCaja")
   async estadoCaja() {
     try {
-      return await cajaInstance.cajaAbierta();
+      if (!(await cajaInstance.cajaAbierta())) return 3;
+      return await cajaInstance.getFechaApertura().then(async (res) => {
+        if (res == true) {
+          return 1;
+        }
+        return 0;
+      });
     } catch (err) {
       logger.Error(54, err);
-      return false;
+      console.log(err);
+      return 0;
     }
   }
 

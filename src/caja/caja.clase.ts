@@ -15,6 +15,7 @@ import { logger } from "../logger";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { io } from "../sockets.gateway";
 import { cestasInstance } from "../cestas/cestas.clase";
+import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 
 export class CajaClase {
   /* Eze 4.0 */
@@ -81,10 +82,6 @@ export class CajaClase {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
 
-    const cestas = await cestasInstance.getAllCestas();
-    for (let i = 0; i < cestas.length; i++) {
-      cestasInstance.deleteCesta(cestas[i]._id);
-    }
     cestasInstance.actualizarCestas();
     const finalTime = await this.getFechaCierre();
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
@@ -96,7 +93,6 @@ export class CajaClase {
       totalDatafono3G,
       finalTime.time
     );
-
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
       impresoraInstance.imprimirCajaAsync(ultimaCaja);
@@ -183,6 +179,45 @@ export class CajaClase {
     });
   }
 
+  getFechaApertura() {
+    return schCajas.getApeturaCaja().then(async (res) => {
+      if (!res) return false;
+      const fechaApertura = new Date(res.inicioTime).toDateString();
+      const fechaHoy = new Date().toDateString();
+      let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0][
+        "_id"
+      ];
+      if (trabId == undefined) trabId = 0;
+      if (fechaHoy != fechaApertura) {
+        await cajaInstance.cerrarCaja(
+          0,
+          [
+            { _id: "0.01", valor: 0, unidades: 0 },
+            { _id: "0.02", valor: 0, unidades: 0 },
+            { _id: "0.05", valor: 0, unidades: 0 },
+            { _id: "0.10", valor: 0, unidades: 0 },
+            { _id: "0.20", valor: 0, unidades: 0 },
+            { _id: "0.50", valor: 0, unidades: 0 },
+            { _id: "1", valor: 0, unidades: 0 },
+            { _id: "2", valor: 0, unidades: 0 },
+            { _id: "5", valor: 0, unidades: 0 },
+            { _id: "10", valor: 0, unidades: 0 },
+            { _id: "20", valor: 0, unidades: 0 },
+            { _id: "50", valor: 0, unidades: 0 },
+            { _id: "100", valor: 0, unidades: 0 },
+            { _id: "200", valor: 0, unidades: 0 },
+            { _id: "500", valor: 0, unidades: 0 },
+          ],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          0,
+          trabId
+        );
+        return true;
+      }
+      return false;
+    });
+  }
+
   /* Eze 4.0 */
   async getDatosCierre(
     cajaAbiertaActual: CajaAbiertaInterface,
@@ -206,8 +241,8 @@ export class CajaClase {
     let totalTickets = 0;
     let nClientes = 0;
 
-    if (arrayTicketsCaja.length <= 0)
-      throw Error("No hay tickets en esta caja");
+    // if (arrayTicketsCaja.length <= 0)
+    // throw Error("No hay tickets en esta caja");
 
     let totalTarjeta = 0;
     let totalEfectivo = 0;
@@ -273,7 +308,7 @@ export class CajaClase {
       }
     }
 
-    const descuadre =
+    /*const descuadre =
       Math.round(
         (totalCierre -
           cajaAbiertaActual.totalApertura +
@@ -282,25 +317,26 @@ export class CajaClase {
           totalTickets +
           totalDatafono3G) *
           100
-      ) / 100;
+      ) / 100;-*/
+    const descuadre = Number(
+      (
+        (cajaAbiertaActual.totalApertura +
+          totalTickets +
+          totalEntradaDinero -
+          (totalDatafono3G + totalSalidas + totalCierre)) *
+        -1
+      ).toFixed(2)
+    );
 
-    //  const descuadre =
-    //    Math.round(
-    //      (cajaAbiertaActual.totalApertura
-    //       - totalCierre
-    //       - totalSalidas
-    //       + totalEntradaDinero
-    //       + totalTickets
-    //       ) *
-    //        100
-    //    ) / 100;
-
-    recaudado = totalTickets + descuadre - totalSalidas;
-
+    recaudado = totalTickets + descuadre;
     return {
       calaixFetZ: totalTickets,
-      primerTicket: arrayTicketsCaja[0]._id,
-      ultimoTicket: arrayTicketsCaja[arrayTicketsCaja.length - 1]._id,
+      primerTicket:
+        arrayTicketsCaja[0]?._id == undefined ? -1 : arrayTicketsCaja[0]._id,
+      ultimoTicket:
+        arrayTicketsCaja[arrayTicketsCaja.length - 1]?._id == undefined
+          ? -1
+          : arrayTicketsCaja[arrayTicketsCaja.length - 1]._id,
       descuadre,
       detalleCierre: detalleCierre,
       finalTime: finalTime,

@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { conexion } from "../conexion/mongodb";
 import { CestasInterface } from "./cestas.interface";
 import { nuevaInstancePromociones } from "src/promociones/promociones.clase";
+import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 
 /* Eze 4.0 */
 export async function getCestaById(
@@ -14,12 +15,12 @@ export async function getCestaById(
 
 /* Eze 4.0 */
 export async function deleteCesta(
-  idCesta: CestasInterface["_id"]
+  trabajador: TrabajadoresInterface["_id"]
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const cesta = database.collection<CestasInterface>("cestas");
-  const resultado = await cesta.deleteOne({
-    _id: new ObjectId(idCesta),
+  const resultado = await cesta.deleteMany({
+    trabajador: trabajador,
     indexMesa: null,
   });
   return resultado.acknowledged && resultado.deletedCount === 1;
@@ -150,8 +151,19 @@ export async function vaciarCesta(
   return resultado.acknowledged && resultado.matchedCount === 1;
 }
 
+/* Uri */
+export async function haveCesta(trabajador: number) {
+  const database = (await conexion).db("tocgame");
+  const cestasColeccion = database.collection<CestasInterface>("cestas");
+  return (await cestasColeccion.findOne({ trabajador: trabajador }))
+    ?.trabajador == undefined
+    ? false
+    : true;
+}
+
 /* Eze 4.0 */
 export async function createCesta(cesta: CestasInterface): Promise<boolean> {
+  if (await haveCesta(cesta?.trabajador) && cesta.modo != "DEVOLUCION") return;
   const database = (await conexion).db("tocgame");
   const cestasColeccion = database.collection<CestasInterface>("cestas");
   return (await cestasColeccion.insertOne(cesta)).acknowledged;
