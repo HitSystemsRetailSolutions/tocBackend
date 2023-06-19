@@ -118,6 +118,15 @@ export async function getUltimoCierre(): Promise<CajaSincro> {
   return res[0];
 }
 
+
+/* Eze 4.0 */
+export async function getApeturaCaja(): Promise<CajaAbiertaInterface> {
+  const database = (await conexion).db("tocgame");
+  const caja = database.collection<CajaAbiertaInterface>("caja");
+  const res = await caja.find().sort({ _id: -1 }).limit(1).toArray();
+  return res[0];
+}
+
 /* Eze 4.0 */
 export async function getMonedas(
   tipo: TiposInfoMoneda

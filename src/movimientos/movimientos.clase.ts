@@ -46,7 +46,7 @@ export class MovimientosClase {
   ) {
     let codigoBarras = "";
 
-    if (concepto === "Entrega Diària") {
+    if (concepto === "Entrega Diària" || concepto ===  "Entrada") {
       codigoBarras = await this.generarCodigoBarrasSalida();
       codigoBarras = String(Ean13Utils.generate(codigoBarras));
     }
@@ -65,6 +65,9 @@ export class MovimientosClase {
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrega Diària") {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
+      }
+      if (concepto === "Entrada") {
+        impresoraInstance.imprimirEntrada(nuevoMovimiento);
       }
       return true;
     }
@@ -211,6 +214,8 @@ export class MovimientosClase {
           return "TKRS + EFECTIVO";
         else return "TKRS";
       } else if (superTicket.movimientos[0].tipo === "DEUDA") {
+        return "DEUDA";
+      }else if (superTicket.movimientos[0].tipo === "SALIDA") {
         return "DEUDA";
       } else {
         throw Error("Forma de pago desconocida");

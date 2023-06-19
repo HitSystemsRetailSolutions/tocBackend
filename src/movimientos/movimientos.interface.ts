@@ -29,9 +29,9 @@ export type FormaPago =
   | "TARJETA"
   | "TKRS"
   | "CONSUMO_PERSONAL"
-  | "DEUDA"
   | "TKRS + EFECTIVO"
   | "DEVUELTO"
   | "ANULADO"
   | "ERROR_DETECTADO"
-  | "DATAFONO_3G";
+  | "DATAFONO_3G"
+  | "DEUDA";

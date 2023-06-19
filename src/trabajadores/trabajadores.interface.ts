@@ -9,6 +9,7 @@ export interface TrabajadoresInterface {
   idCesta: CestasInterface["_id"];
   satelite: string;
   descansando: boolean;
+  activo: boolean;
 }
 
 export interface SincroFichajesInterface {

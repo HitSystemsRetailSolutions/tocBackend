@@ -4,12 +4,18 @@ import { logger } from "../logger";
 import { cestasInstance } from "../cestas/cestas.clase";
 import { paytefInstance } from "../paytef/paytef.class";
 import { TicketsInterface } from "./tickets.interface";
-import { FormaPago } from "../movimientos/movimientos.interface";
+import {
+  FormaPago,
+  MovimientosInterface,
+} from "../movimientos/movimientos.interface";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { cajaInstance } from "src/caja/caja.clase";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { encargosInstance } from "src/encargos/encargos.clase";
 import { EncargosInterface } from "src/encargos/encargos.interface";
+import { deudasInstance } from "src/deudas/deudas.clase";
+import { timestamp } from "rxjs";
+import { mqttInstance } from "src/mqtt";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -101,6 +107,7 @@ export class TicketsController {
       idTrabajador,
       tipo,
       tkrsData,
+      concepto,
     }: {
       total: number;
       idCesta: TicketsInterface["cesta"]["_id"];
@@ -110,8 +117,10 @@ export class TicketsController {
         cantidadTkrs: number;
         formaPago: FormaPago;
       };
+      concepto?: MovimientosInterface["concepto"];
     }
   ) {
+ 
     try {
       if (typeof total == "number" && idCesta && idTrabajador && tipo) {
         const cesta = await cestasInstance.getCestaById(idCesta);
@@ -125,6 +134,7 @@ export class TicketsController {
           d3G,
           null
         );
+
         if (!ticket) {
           throw Error(
             "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
@@ -171,13 +181,38 @@ export class TicketsController {
               );
             }
           } else if (tipo === "DEUDA") {
-            await movimientosInstance.nuevoMovimiento(
-              total,
-              "",
-              "DEUDA",
-              ticket._id,
-              idTrabajador
-            );
+
+            //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
+            // se diferenciara su uso cuando el concepto sea igual a DEUDA
+            if (concepto && concepto == "DEUDA") {
+              console.log("muy bien");
+              await movimientosInstance.nuevoMovimiento(
+                total,
+                "",
+                "SALIDA",
+                ticket._id,
+                idTrabajador
+              );
+              var deuda = {
+                idTicket: ticket._id,
+                cesta: cesta,
+                idTrabajador: idTrabajador,
+                idCliente: cesta.idCliente,
+                nombreCliente: cesta.nombreCliente,
+                total: total,
+                timestamp: ticket.timestamp,
+              };
+              console.log("binde")
+              await deudasInstance.setDeuda(deuda);
+            } else {
+              await movimientosInstance.nuevoMovimiento(
+                total,
+                "",
+                "DEUDA",
+                ticket._id,
+                idTrabajador
+              );
+            }
           } else if (
             tipo !== "EFECTIVO" &&
             tipo != "CONSUMO_PERSONAL" &&
@@ -187,10 +222,9 @@ export class TicketsController {
               "Falta información del tkrs o bien ninguna forma de pago es correcta"
             );
           }
-          if (tipo !== "TARJETA") {
+          if (tipo !== "TARJETA" || concepto == "DEUDA") {
             await impresoraInstance.abrirCajon();
           }
-
           ticketsInstance.actualizarTickets();
           return true;
         }

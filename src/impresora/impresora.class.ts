@@ -96,6 +96,12 @@ export class Impresora {
     mqttInstance.enviarVisor(lineasVisor);
   }
 
+  async saludarCliente() {
+    let txt =
+      "Bon Dia!            Caixa oberta        ";
+    mqttInstance.enviarVisor(txt);
+  }
+
   /* Eze 4.0 */
   async imprimirTicket(idTicket: number) {
     const ticket = await ticketsInstance.getTicketById(idTicket);
@@ -183,22 +189,22 @@ export class Impresora {
       logger.Error("imprimirDevolucion()", err);
     }
   }
-public async imprimirListaEncargos(lista:string){
-  const device = new escpos.Network();
-  const printer = new escpos.Printer(device);
-  this.enviarMQTT(
-    printer
-      .setCharacterCodeTable(19)
-      .encode("CP858")
-      .font("a")
-      .style("b")
-      .size(0, 0)
-      .align("LT")
-      .text(lista)
-      .cut("PAPER_FULL_CUT")
-      .close().buffer._buffer
-  );
-}
+  public async imprimirListaEncargos(lista: string) {
+    const device = new escpos.Network();
+    const printer = new escpos.Printer(device);
+    this.enviarMQTT(
+      printer
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .size(0, 0)
+        .align("LT")
+        .text(lista)
+        .cut("PAPER_FULL_CUT")
+        .close().buffer._buffer
+    );
+  }
   private async imprimirRecibo(recibo: string) {
     mqttInstance.loggerMQTT("imprimir recibo");
     try {
@@ -292,8 +298,13 @@ public async imprimirListaEncargos(lista:string){
       detalleNombreCliente = infoCliente.nombre;
       detallePuntosCliente = "PUNTOS: " + infoCliente.puntos;
     }
-
+    //const preuUnitari =
     for (let i = 0; i < arrayCompra.length; i++) {
+      if ((await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si") {
+        arrayCompra[i]["subtotal"] = Number(
+          (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
+        );
+      }
       if (arrayCompra[i].promocion) {
         let nombrePrincipal = (
           await articulosInstance.getInfoArticulo(
@@ -594,62 +605,45 @@ public async imprimirListaEncargos(lista:string){
   }
 
   /* Falta */
-  async imprimirEntrada(
-    totalIngresado: number,
-    fecha: number,
-    nombreDependienta: string
-  ) {
-    const parametros = await parametrosInstance.getParametros();
+  async imprimirEntrada(movimiento: MovimientosInterface) {
     try {
-      const fechaStr = dateToString2(fecha);
-      permisosImpresora();
-      // if(parametros.tipoImpresora === 'USB')
-      // {
-      //     const arrayDevices = escpos.USB.findPrinter();
-      //     if (arrayDevices.length > 0) {
-      //         /* Solo puede haber un dispositivo USB */
-      //         const dispositivoUnico = arrayDevices[0];
-      //         var device = new escpos.USB(dispositivoUnico); //USB
-      //     } else if (arrayDevices.length == 0) {
-      //         throw 'Error, no hay ningún dispositivo USB conectado';
-      //     } else {
-      //         throw 'Error, hay más de un dispositivo USB conectado';
-      //     }
-      // }
-      // else if(parametros.tipoImpresora === 'SERIE') {
-      //     var device = new escpos.Serial('/dev/ttyS0', {
-      //         baudRate: 115000,
-      //         stopBit: 2
-      //     });
-      // }
-
+      const parametros = await parametrosInstance.getParametros();
+      const moment = require("moment-timezone");
+      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
+      const trabajador = await trabajadoresInstance.getTrabajadorById(
+        movimiento.idTrabajador
+      );
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
-      this.enviarMQTT(
-        printer
-
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .align("CT")
-          .size(0, 0)
-          .text(parametros.nombreTienda)
-          .text(fechaStr)
-          .text("Dependienta: " + nombreDependienta)
-          .text("Ingreso efectivo: " + totalIngresado)
-          .size(1, 1)
-          .text(totalIngresado)
-          .size(0, 0)
-          .text("")
-          .size(1, 1)
-          .text("")
-          .text("")
-          .text("")
-          .cut()
-          .close().buffer._buffer
-      );
+      let buffer = printer
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .align("CT")
+        .size(0, 0)
+        .text(parametros.nombreTienda)
+        .text(fechaStr.format("DD-MM-YYYY HH:mm"))
+        .text("Dependienta: " + trabajador.nombre)
+        .text("Ingreso efectivo: " + movimiento.valor + "€")
+        .size(1, 1)
+        .text(movimiento.valor + "€")
+        .size(0, 0)
+        .text("Concepto")
+        .size(1, 1)
+        .text(movimiento.concepto);
+        
+      if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
+        buffer = buffer.barcode(
+          movimiento.codigoBarras.slice(0, 12),
+          "EAN13",
+          4
+        );
+      }
+      buffer = buffer.text("").text("").text("").cut().close().buffer._buffer;
+      this.enviarMQTT(buffer);
     } catch (err) {
+      console.log(err);
       mqttInstance.loggerMQTT(err);
     }
   }
@@ -717,7 +711,6 @@ public async imprimirListaEncargos(lista:string){
     let textoMovimientos = "";
     for (let i = 0; i < arrayMovimientos.length; i++) {
       const auxFecha = new Date(arrayMovimientos[i]._id);
-      console.log(auxFecha);
       switch (arrayMovimientos[i].tipo) {
         case "TARJETA":
           sumaTarjetas += arrayMovimientos[i].valor;
@@ -761,18 +754,6 @@ public async imprimirListaEncargos(lista:string){
 
     const mesInicial = fechaInicio.getMonth() + 1;
     const mesFinal = fechaFinal.getMonth() + 1;
-    console.log(
-      `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
-        (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
-      }:${
-        (fechaInicio.getMinutes() < 10 ? "0" : "") + fechaInicio.getMinutes()
-      }`
-    );
-    console.log(
-      `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
-        (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
-      }:${(fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()}`
-    );
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
     this.enviarMQTT(
@@ -1164,7 +1145,7 @@ public async imprimirListaEncargos(lista:string){
           .close().buffer._buffer
       );
     } catch (err) {
-      console.log(err)
+      console.log(err);
       logger.Error(145, err);
     }
   }
@@ -1175,26 +1156,17 @@ public async imprimirListaEncargos(lista:string){
     this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer);
   }
 
-  /* Eze 4.0 */
   async mostrarVisor(data) {
     let eur = "E";
-
-    let limitNombre = 0;
+  
     let lengthTotal = "";
     let datosExtra = "";
     if (data.total !== undefined) {
       lengthTotal = data.total.toString();
-      if (lengthTotal.length == 1) limitNombre = 17;
-      else if (lengthTotal.length == 2) limitNombre = 16;
-      else if (lengthTotal.length == 3) limitNombre = 15;
-      else if (lengthTotal.length == 4) limitNombre = 14;
-      else if (lengthTotal.length == 5) limitNombre = 13;
-      else if (lengthTotal.length == 6) limitNombre = 12;
-      else if (lengthTotal.length == 7) limitNombre = 11;
-
-      const numArticle = "Productes: " + data.numProductos;
+      let prods = "Productes"
+      if (data.numProductos > 99) prods = "Prods."
+      const numArticle = prods+": " + data.numProductos;
       const total = data.total + eur;
-      const espacio = " ";
       const size = 20 - (numArticle.length + total.length);
       const espacios = [
         "",
@@ -1219,24 +1191,34 @@ public async imprimirListaEncargos(lista:string){
       datosExtra = "";
       eur = "";
     }
-    // quito caracteres conflictivos para el visor
+    // Elimino caracteres conflictivos para el visor
     data.texto = data.texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (data.texto.indexOf("'") != -1) {
-      data.texto = data.texto.replace("'", " ");
+    if (data.texto.includes("'")) {
+      data.texto = data.texto.replace(/'/g, " ");
     }
-    if (data.texto.indexOf("´") != -1) {
-      data.texto = data.texto.replace("´", " ");
+    if (data.texto.includes("´")) {
+      data.texto = data.texto.replace(/´/g, " ");
     }
-    if (data.texto.indexOf("`") != -1) {
-      data.texto = data.texto.replace("`", " ");
+    if (data.texto.includes("`")) {
+      data.texto = data.texto.replace(/`/g, " ");
     }
-    // Limito el texto a 14, ya que la línea completa tiene 20 espacios. (1-14 -> artículo, 15 -> espacio en blanco, 16-20 -> precio)
-    data.texto = data.texto.substring(0, 14);
+    // Limito el texto del nombre del producto
+    const maxNombreLength = 11;
+    if (data.texto.length > maxNombreLength) {
+      data.texto = data.texto.substring(0, maxNombreLength) + "...";
+    }
     data.texto += " " + data.precio + eur;
+  
     let string = `${datosExtra}${data.texto}                                               `;
-    string = string + "                                             ";
-    mqttInstance.enviarVisor(string.substring(0, 40));
+    let lines = 2;
+    string = string.padEnd(lines * 20, " ");
+    let output = "";
+    for (let i = 0; i < 2; i++) {
+      output += string.substring(i * 20, (i + 1) * 20) + "";
+    }
+    mqttInstance.enviarVisor(output);
   }
+  
 
   async imprimirEntregas() {
     const params = await parametrosInstance.getParametros();
