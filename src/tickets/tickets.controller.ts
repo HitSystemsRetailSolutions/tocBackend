@@ -185,7 +185,6 @@ export class TicketsController {
             //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
             // se diferenciara su uso cuando el concepto sea igual a DEUDA
             if (concepto && concepto == "DEUDA") {
-              console.log("muy bien");
               await movimientosInstance.nuevoMovimiento(
                 total,
                 "",
@@ -202,7 +201,6 @@ export class TicketsController {
                 total: total,
                 timestamp: ticket.timestamp,
               };
-              console.log("binde")
               await deudasInstance.setDeuda(deuda);
             } else {
               await movimientosInstance.nuevoMovimiento(

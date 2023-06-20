@@ -30,7 +30,6 @@ export class DeudasController {
 
   @Post("ticketPagado")
   async ticketPagado(@Body() data) {
-    console.log(data);
     try {
       if (!data)
         return {
@@ -45,7 +44,6 @@ export class DeudasController {
   }
   @Post("eliminarDeuda")
   async eliminarDeuda(@Body() data) {
-    console.log(data);
     try {
       if (!data)
         return {

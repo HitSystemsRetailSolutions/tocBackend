@@ -24,7 +24,6 @@ import { parametrosInstance } from "src/parametros/parametros.clase";
 import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 import { tarifasInstance } from "src/tarifas/tarifas.class";
 
-
 export class CestaClase {
   /* Eze 4.0 */
   async actualizarCestas() {
@@ -772,7 +771,12 @@ export class CestaClase {
     cesta: CestasInterface,
     productos: CestasInterface["lista"]
   ) {
-    let cliente:number  = await clienteInstance.getClienteById(cesta.idCliente) == null ? 0 : Number((await clienteInstance.getClienteById(cesta.idCliente)).descuento);
+    let cliente: number =
+      (await clienteInstance.getClienteById(cesta.idCliente))?.descuento == undefined
+        ? 0
+        : Number(
+            (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
+          );
     let parametros = await parametrosInstance.getParametros();
 
     let lista = {

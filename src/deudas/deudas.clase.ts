@@ -43,7 +43,6 @@ export class Deudas {
       idTrabajador +
       "_" +
       dataDeuda.replace(/\D/g, "");
-    console.log(dataDeuda.replace(/\D/g, ""));
     return id;
   }
   // async getDeudas() {
@@ -139,10 +138,8 @@ export class Deudas {
               idTicket: deuda.idTicket,
               bbdd: parametros.database,
             };
-            console.log(certificadoDeuda)
              // Mandamos la deuda al SantaAna
             const { data }: any = await axios.post("deudas/setCertificadoDeuda", certificadoDeuda);
-            console.log("bien");
             return data;
           })
           .catch((err: string) => ({ error: true, msg: err }));
