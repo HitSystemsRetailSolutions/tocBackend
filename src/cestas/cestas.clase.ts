@@ -772,7 +772,7 @@ export class CestaClase {
     cesta: CestasInterface,
     productos: CestasInterface["lista"]
   ) {
-    let cliente = await clienteInstance.getClienteById(cesta.idCliente);
+    let cliente:number  = await clienteInstance.getClienteById(cesta.idCliente) == null ? 0 : Number((await clienteInstance.getClienteById(cesta.idCliente)).descuento);
     let parametros = await parametrosInstance.getParametros();
 
     let lista = {
@@ -782,7 +782,7 @@ export class CestaClase {
       accio: "ArticleEsborrat",
       productos: productos,
       dependienta: cesta.trabajador,
-      descuento: Number(cliente.descuento),
+      descuento: cliente,
       idCliente: cesta.idCliente,
     };
 
