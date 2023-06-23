@@ -258,6 +258,7 @@ export async function anularTicket(
       ticket.total = ticket.total * -1;
       ticket.cesta.lista.forEach((element) => {
         element.subtotal = element.subtotal * -1;
+        element.unidades = element.unidades * -1;
         if (element.promocion != null) {
           element.promocion.precioRealArticuloPrincipal *= -1;
           if (element.promocion.precioRealArticuloSecundario != null) {
