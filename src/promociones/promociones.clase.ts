@@ -104,7 +104,11 @@ export class NuevaPromocion {
 
     /* COMBO */
     // const mediaPromo = this.buscarPromo(idArticulo, unidadesTotales);
-    const promosPosibles = this.buscarPromo(idArticulo, unidadesTotales, cesta);
+    const promosPosibles = await this.buscarPromo(
+      idArticulo,
+      unidadesTotales,
+      cesta
+    );
     if (promosPosibles?.promosPrincipales?.length > 0) {
       for (let i = 0; i < promosPosibles.promosPrincipales.length; i++) {
         let mediaPromo = promosPosibles.promosPrincipales[i];
@@ -381,6 +385,90 @@ export class NuevaPromocion {
     return { seAplican: unidadesPromo, sobranPrincipal, sobranSecundario };
   }
 
+  private async comprovarIntervaloFechas(promocion) {
+    let fechaInicio = promocion.fechaInicio;
+    let fechaFinal = promocion.fechaFinal;
+
+    let diaInicio = await this.obtenerDiaSemana(fechaInicio);
+    let diaFinal = await this.obtenerDiaSemana(fechaFinal);
+    let anoPromocion = await this.obtenerAno(fechaInicio);
+    let fechaActual = new Date();
+    var diaActual = fechaActual.getDay();
+    var anoActual = fechaActual.getFullYear();
+
+    var dateInicio = new Date(fechaInicio);
+    var dateFinal = new Date(fechaFinal);
+
+    // condicion para saber si la promocion es de una fecha en especifico
+    if (anoPromocion == 2007) {
+      // si da 7, la promocion esta activa todos los dias
+      if (diaFinal == 7 && diaInicio == 7) {
+        return true;
+      } else if (diaActual == diaInicio && diaActual == diaFinal) {
+        var FIH = dateInicio.getUTCHours(); // Obtener la hora de fechaInicio
+        var FIM = dateInicio.getUTCMinutes();
+        var FIS = dateInicio.getUTCSeconds();
+
+        var FFH = dateFinal.getUTCHours(); // Obtener la hora de fechaFinal
+        var FFM = dateFinal.getUTCMinutes();
+        var FFS = dateFinal.getUTCSeconds();
+
+        var horaActual = fechaActual.getHours();
+        var minutoActual = fechaActual.getMinutes();
+        var segundoActual = fechaActual.getSeconds();
+
+        if (
+          (horaActual > FIH ||
+            (horaActual === FIH &&
+              minutoActual >= FIM &&
+              segundoActual >= FIS)) &&
+          (horaActual < FFH ||
+            (horaActual === FFH && minutoActual <= FFM && segundoActual <= FFS))
+        ) {
+          return true;
+        }
+      }
+      // comprovacion si la fecha de hoy esta en el intervalo utilizado.
+    } else if (
+      fechaActual.getTime() >= dateInicio.getTime() &&
+      fechaActual.getTime() <= dateFinal.getTime()
+    ) {
+      return true;
+    }
+    // devolvemos false si la promocion no esta activa hoy.
+    return false;
+  }
+  private async obtenerDiaSemana(fecha) {
+    var dia = parseInt(fecha.slice(8, 10), 10);
+
+    // Ajustar el día de la semana para que 08 sea lunes, 09 sea martes, etc.
+    switch (dia) {
+      case 1:
+        return 7;
+      case 8:
+        return 1; // Lunes
+      case 9:
+        return 2; // Martes
+      case 10:
+        return 3; // Miércoles
+      case 11:
+        return 4; // Jueves
+      case 12:
+        return 5; // Viernes
+      case 13:
+        return 6; // Sábado
+      case 14:
+        return 0; // Domingo
+      default:
+        return -1; // Valor inválido
+    }
+  }
+  private async obtenerAno(fecha) {
+    var ano = parseInt(fecha.slice(0, 4), 10);
+
+    // Ajustar el día de la semana para que 08 sea lunes, 09 sea martes, etc.
+    return ano;
+  }
   private async buscarPromocionesIndividuales(
     idArticulo: ArticulosInterface["_id"],
     unidadesTotales: number
@@ -393,7 +481,8 @@ export class NuevaPromocion {
         for (let j = 0; j < this.promosIndividuales[i].principal.length; j++) {
           if (
             this.promosIndividuales[i].principal[j] === idArticulo &&
-            unidadesTotales >= this.promosIndividuales[i].cantidadPrincipal
+            unidadesTotales >= this.promosIndividuales[i].cantidadPrincipal &&
+            (await this.comprovarIntervaloFechas(this.promosIndividuales[i]))
           ) {
             // Hay oferta
             const cantidadPromos = Math.trunc(
@@ -421,7 +510,8 @@ export class NuevaPromocion {
         }
       } else if (
         this.promosIndividuales[i].secundario &&
-        this.promosIndividuales[i].secundario.length > 0
+        this.promosIndividuales[i].secundario.length > 0 &&
+        (await this.comprovarIntervaloFechas(this.promosIndividuales[i]))
       ) {
         for (let j = 0; j < this.promosIndividuales[i].secundario.length; j++) {
           if (
@@ -457,14 +547,14 @@ export class NuevaPromocion {
     return null;
   }
 
-  private buscarPromo(
+  private async buscarPromo(
     idArticulo: ArticulosInterface["_id"],
     unidadesTotales: number,
     cesta: CestasInterface
-  ): {
+  ): Promise<{
     promosSecundarios: MediaPromoEncontrada[];
     promosPrincipales: MediaPromoEncontrada[];
-  } {
+  }> {
     const promosSecundarios = [];
     const promosPrincipales = [];
 
@@ -487,7 +577,10 @@ export class NuevaPromocion {
                 for (let k = 0; k < this.promosCombo[i].principal.length; k++) {
                   if (
                     this.promosCombo[i].principal[k] ===
-                    cesta.lista[c].idArticulo
+                      cesta.lista[c].idArticulo &&
+                    (await this.comprovarIntervaloFechas(
+                      this.promosIndividuales[i]
+                    ))
                   ) {
                     const cantidadPromos = Math.trunc(
                       unidadesTotales / this.promosCombo[i].cantidadSecundario
@@ -523,7 +616,10 @@ export class NuevaPromocion {
                 ) {
                   if (
                     this.promosCombo[i].secundario[k] ===
-                    cesta.lista[c].idArticulo
+                      cesta.lista[c].idArticulo &&
+                    (await this.comprovarIntervaloFechas(
+                      this.promosIndividuales[i]
+                    ))
                   ) {
                     const cantidadPromos = Math.trunc(
                       unidadesTotales / this.promosCombo[i].cantidadPrincipal
