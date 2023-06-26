@@ -33,9 +33,7 @@ export async function getTicketsIntervalo(
 ): Promise<TicketsInterface[]> {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
-  return await tickets
-    .find({ timestamp: {  $gte: inicioTime } })
-    .toArray();
+  return await tickets.find({ timestamp: { $gte: inicioTime } }).toArray();
 }
 
 export async function getUltimoTicketIntervalo(
@@ -51,7 +49,7 @@ export async function getUltimoTicketIntervalo(
     .toArray();
 }
 export async function getUltimoTicketTarjeta(
-  ticket: number,
+  ticket: number
 ): Promise<TicketsInterface[]> {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
@@ -249,7 +247,6 @@ export async function anularTicket(
   });
   if (resultado === null) {
     let ticket = await getTicketByID(idTicket);
-
     if (ticket.total > 0) {
       const id = await ticketsInstance.getProximoId();
       ticket.enviado = false;
@@ -270,6 +267,7 @@ export async function anularTicket(
         ticket.cesta.detalleIva[property] =
           ticket.cesta.detalleIva[property] * -1;
       }
+      ticket.anulado = { idTicketPositivo: idTicket };
       const tickets = database.collection<TicketsInterface>("tickets");
       const resultado = (await tickets.insertOne(ticket)).acknowledged;
       await ticketsAnulados.insertOne({ idTicketAnulado: idTicket });
