@@ -401,10 +401,10 @@ export class NuevaPromocion {
 
     // condicion para saber si la promocion es de una fecha en especifico
     if (anoPromocion == 2007) {
+      console.log("hola");
       // si da 7, la promocion esta activa todos los dias
-      if (diaFinal == 7 && diaInicio == 7) {
-        return true;
-      } else if (diaActual == diaInicio && diaActual == diaFinal) {
+      if (diaActual == diaInicio && diaActual == diaFinal || (diaFinal==7 && diaFinal==7)) {
+        console.log("h3");
         var FIH = dateInicio.getUTCHours(); // Obtener la hora de fechaInicio
         var FIM = dateInicio.getUTCMinutes();
         var FIS = dateInicio.getUTCSeconds();
@@ -416,7 +416,7 @@ export class NuevaPromocion {
         var horaActual = fechaActual.getHours();
         var minutoActual = fechaActual.getMinutes();
         var segundoActual = fechaActual.getSeconds();
-
+        console.log(FIH,FIM,FIS," ",FFH,FFM,FFS," ",horaActual,minutoActual,segundoActual)
         if (
           (horaActual > FIH ||
             (horaActual === FIH &&
@@ -425,6 +425,7 @@ export class NuevaPromocion {
           (horaActual < FFH ||
             (horaActual === FFH && minutoActual <= FFM && segundoActual <= FFS))
         ) {
+          console.log("h4");
           return true;
         }
       }
@@ -582,6 +583,7 @@ export class NuevaPromocion {
                       this.promosIndividuales[i]
                     ))
                   ) {
+                    console.log("p1",this.promosIndividuales[i]._id)
                     const cantidadPromos = Math.trunc(
                       unidadesTotales / this.promosCombo[i].cantidadSecundario
                     );
@@ -621,6 +623,7 @@ export class NuevaPromocion {
                       this.promosIndividuales[i]
                     ))
                   ) {
+                    console.log("p2",this.promosIndividuales[i]._id)
                     const cantidadPromos = Math.trunc(
                       unidadesTotales / this.promosCombo[i].cantidadPrincipal
                     );
