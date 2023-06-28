@@ -388,23 +388,22 @@ export class NuevaPromocion {
   private async comprovarIntervaloFechas(promocion) {
     let fechaInicio = promocion.fechaInicio;
     let fechaFinal = promocion.fechaFinal;
-
     let diaInicio = await this.obtenerDiaSemana(fechaInicio);
     let diaFinal = await this.obtenerDiaSemana(fechaFinal);
     let anoPromocion = await this.obtenerAno(fechaInicio);
     let fechaActual = new Date();
     var diaActual = fechaActual.getDay();
-    var anoActual = fechaActual.getFullYear();
 
     var dateInicio = new Date(fechaInicio);
     var dateFinal = new Date(fechaFinal);
 
     // condicion para saber si la promocion es de una fecha en especifico
     if (anoPromocion == 2007) {
-      console.log("hola");
       // si da 7, la promocion esta activa todos los dias
-      if (diaActual == diaInicio && diaActual == diaFinal || (diaFinal==7 && diaFinal==7)) {
-        console.log("h3");
+      if (
+        (diaActual == diaInicio && diaActual == diaFinal) ||
+        (diaFinal == 7 && diaFinal == 7)
+      ) {
         var FIH = dateInicio.getUTCHours(); // Obtener la hora de fechaInicio
         var FIM = dateInicio.getUTCMinutes();
         var FIS = dateInicio.getUTCSeconds();
@@ -416,7 +415,6 @@ export class NuevaPromocion {
         var horaActual = fechaActual.getHours();
         var minutoActual = fechaActual.getMinutes();
         var segundoActual = fechaActual.getSeconds();
-        console.log(FIH,FIM,FIS," ",FFH,FFM,FFS," ",horaActual,minutoActual,segundoActual)
         if (
           (horaActual > FIH ||
             (horaActual === FIH &&
@@ -425,7 +423,6 @@ export class NuevaPromocion {
           (horaActual < FFH ||
             (horaActual === FFH && minutoActual <= FFM && segundoActual <= FFS))
         ) {
-          console.log("h4");
           return true;
         }
       }
@@ -483,6 +480,7 @@ export class NuevaPromocion {
           if (
             this.promosIndividuales[i].principal[j] === idArticulo &&
             unidadesTotales >= this.promosIndividuales[i].cantidadPrincipal &&
+            // comprovar si la promocion esta activada hoy
             (await this.comprovarIntervaloFechas(this.promosIndividuales[i]))
           ) {
             // Hay oferta
@@ -512,6 +510,7 @@ export class NuevaPromocion {
       } else if (
         this.promosIndividuales[i].secundario &&
         this.promosIndividuales[i].secundario.length > 0 &&
+        // comprovar si la promocion esta activada hoy
         (await this.comprovarIntervaloFechas(this.promosIndividuales[i]))
       ) {
         for (let j = 0; j < this.promosIndividuales[i].secundario.length; j++) {
@@ -579,11 +578,9 @@ export class NuevaPromocion {
                   if (
                     this.promosCombo[i].principal[k] ===
                       cesta.lista[c].idArticulo &&
-                    (await this.comprovarIntervaloFechas(
-                      this.promosIndividuales[i]
-                    ))
+                    // comprovar si la promocion esta activada hoy
+                    (await this.comprovarIntervaloFechas(this.promosCombo[i]))
                   ) {
-                    console.log("p1",this.promosIndividuales[i]._id)
                     const cantidadPromos = Math.trunc(
                       unidadesTotales / this.promosCombo[i].cantidadSecundario
                     );
@@ -619,11 +616,9 @@ export class NuevaPromocion {
                   if (
                     this.promosCombo[i].secundario[k] ===
                       cesta.lista[c].idArticulo &&
-                    (await this.comprovarIntervaloFechas(
-                      this.promosIndividuales[i]
-                    ))
+                    // comprovar si la promocion esta activada hoy
+                    (await this.comprovarIntervaloFechas(this.promosCombo[i]))
                   ) {
-                    console.log("p2",this.promosIndividuales[i]._id)
                     const cantidadPromos = Math.trunc(
                       unidadesTotales / this.promosCombo[i].cantidadPrincipal
                     );
