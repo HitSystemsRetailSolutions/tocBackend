@@ -217,6 +217,16 @@ export class Encargos {
       })
       .catch((err: string) => ({ error: true, msg: err }));
   };
+  updateGraella = async (idEncargo) => {
+    const encargo = this.getEncargoById(idEncargo);
+
+    if (!encargo) return false;
+    const { data }: any = await axios.post(
+      "encargos/updateGraella",
+      encargo
+    );
+    return true;
+  };
   private async generateId(
     formatDate: string,
     idTrabajador: string,

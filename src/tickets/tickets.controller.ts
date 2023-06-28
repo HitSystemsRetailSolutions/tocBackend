@@ -61,6 +61,9 @@ export class TicketsController {
   ) {
     try {
       const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
+      // modifica
+      const graellaModificada = await encargosInstance.updateGraella(idEncargo);
+      if (!graellaModificada) return false;
 
       const ticket = await ticketsInstance.generarNuevoTicket(
         total - dejaCuenta,
@@ -120,7 +123,6 @@ export class TicketsController {
       concepto?: MovimientosInterface["concepto"];
     }
   ) {
- 
     try {
       if (typeof total == "number" && idCesta && idTrabajador && tipo) {
         const cesta = await cestasInstance.getCestaById(idCesta);
@@ -181,7 +183,6 @@ export class TicketsController {
               );
             }
           } else if (tipo === "DEUDA") {
-
             //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
             // se diferenciara su uso cuando el concepto sea igual a DEUDA
             if (concepto && concepto == "DEUDA") {
