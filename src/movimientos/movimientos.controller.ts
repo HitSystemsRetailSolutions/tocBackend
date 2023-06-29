@@ -47,7 +47,7 @@ export class MovimientosController {
     const { licencia } = await parametrosController.getParametros();
     let prediccion = undefined;
     await axios
-      .post("/movimientos/getPrediccion", { tienda: 888 })
+      .post("/movimientos/getPrediccion", { tienda: licencia })
       .then((res) => {
         prediccion = res.data;
       })
