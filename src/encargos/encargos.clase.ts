@@ -190,6 +190,7 @@ export class Encargos {
       "encargos/setEncargo",
       encargo_santAna
     );
+    console.log(data);
     // Si data no existe (null, undefined, etc...) o error = true devolvemos false
     if (!data || data.error) {
       // He puesto el 143 pero no se cual habría que poner, no se cual es el sistema que seguís
@@ -208,7 +209,9 @@ export class Encargos {
     // False -> Ha habido algún error al insertar el encargo.
     encargo.timestamp = timestamp;
     encargo.recogido = false;
-
+    for (let i = 0; i < encargo.productos.length ; i++) {
+      encargo.productos[i].idGraella = 'data.ids[i]';
+    }
     return schEncargos
       .setEncargo(encargo)
       .then((ok: boolean) => {
@@ -217,14 +220,22 @@ export class Encargos {
       })
       .catch((err: string) => ({ error: true, msg: err }));
   };
-  updateGraella = async (idEncargo) => {
-    const encargo = this.getEncargoById(idEncargo);
+  updateEncargoGraella = async (idEncargo) => {
+    const encargo = await this.getEncargoById(idEncargo);
+    const parametros = await parametrosInstance.getParametros();
 
     if (!encargo) return false;
+    const idGraellas = encargo.productos.map((producto) => producto.idGraella);
+    let encargoGraella = {
+      ids: idGraellas,
+      bbdd: parametros.database,
+    };
+
     const { data }: any = await axios.post(
-      "encargos/updateGraella",
-      encargo
+      "encargos/updateEncargoGraella",
+      encargoGraella
     );
+
     return true;
   };
   private async generateId(

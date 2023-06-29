@@ -62,7 +62,7 @@ export class TicketsController {
     try {
       const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
       // modifica
-      const graellaModificada = await encargosInstance.updateGraella(idEncargo);
+      const graellaModificada = await encargosInstance.updateEncargoGraella(idEncargo);
       if (!graellaModificada) return false;
 
       const ticket = await ticketsInstance.generarNuevoTicket(
