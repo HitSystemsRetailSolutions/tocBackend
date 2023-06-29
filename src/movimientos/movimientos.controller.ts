@@ -1,7 +1,9 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, Get } from "@nestjs/common";
 import { UtilesModule } from "../utiles/utiles.module";
 import { movimientosInstance } from "./movimientos.clase";
 import { logger } from "../logger";
+import { parametrosController } from "../parametros/parametros.controller";
+import axios from "axios";
 
 @Controller("movimientos")
 export class MovimientosController {
@@ -38,5 +40,20 @@ export class MovimientosController {
       logger.Error(142, err);
       return false;
     }
+  }
+  /* Yasai :D */
+  @Post("getPred")
+  async getPred() {
+    const { licencia } = await parametrosController.getParametros();
+    let prediccion = undefined;
+    await axios
+      .post("/movimientos/getPrediccion", { tienda: 888 })
+      .then((res) => {
+        prediccion = res.data;
+      })
+      .catch((err) => {
+        prediccion = -1;
+      });
+    return prediccion;
   }
 }

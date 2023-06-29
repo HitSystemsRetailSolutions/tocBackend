@@ -1,9 +1,10 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, Get } from "@nestjs/common";
 import { ticketsInstance } from "./tickets.clase";
 import { logger } from "../logger";
 import { cestasInstance } from "../cestas/cestas.clase";
 import { paytefInstance } from "../paytef/paytef.class";
 import { TicketsInterface } from "./tickets.interface";
+import { parametrosController } from "src/parametros/parametros.controller";
 import {
   FormaPago,
   MovimientosInterface,
@@ -16,6 +17,7 @@ import { EncargosInterface } from "src/encargos/encargos.interface";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { timestamp } from "rxjs";
 import { mqttInstance } from "src/mqtt";
+import axios from "axios";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -120,7 +122,6 @@ export class TicketsController {
       concepto?: MovimientosInterface["concepto"];
     }
   ) {
- 
     try {
       if (typeof total == "number" && idCesta && idTrabajador && tipo) {
         const cesta = await cestasInstance.getCestaById(idCesta);
@@ -181,7 +182,6 @@ export class TicketsController {
               );
             }
           } else if (tipo === "DEUDA") {
-
             //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
             // se diferenciara su uso cuando el concepto sea igual a DEUDA
             if (concepto && concepto == "DEUDA") {
