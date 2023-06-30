@@ -70,13 +70,27 @@ export async function setVidAndPid(vid: string, pid: string): Promise<boolean> {
 }
 
 /* Eze 4.0 */
+/* Actualizacion: yasai :D */
 export async function setIpPaytef(ip: string): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const parametros = database.collection("parametros");
   return (
     await parametros.updateOne(
       { _id: "PARAMETROS" },
-      { $set: { ipTefpay: ip } },
+      { $set: { ipTefpay: ip, tipoDatafono: 'PAYTEF' } },
+      { upsert: true }
+    )
+  ).acknowledged;
+}
+
+/* yasai :D */
+export async function set3G(): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const parametros = database.collection("parametros");
+  return (
+    await parametros.updateOne(
+      { _id: "PARAMETROS" },
+      { $set: { ipTefpay: '', tipoDatafono: '3G' } },
       { upsert: true }
     )
   ).acknowledged;

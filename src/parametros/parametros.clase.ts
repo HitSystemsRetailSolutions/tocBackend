@@ -74,6 +74,10 @@ export class ParametrosClase {
   setIpPaytef = async (ip: string): Promise<boolean> =>
     await schParametros.setIpPaytef(ip);
 
+  /* yasai :D */
+  set3G = async (): Promise<boolean> => 
+    await schParametros.set3G();
+
   /* Eze 4.0 */
   generarObjetoParametros(): ParametrosInterface {
     return {
