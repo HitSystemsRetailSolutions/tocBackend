@@ -44,10 +44,10 @@ export class MovimientosController {
   /* Yasai :D */
   @Post("getPred")
   async getPred() {
-    const { licencia } = await parametrosController.getParametros();
+    const { licencia, database } = await parametrosController.getParametros();
     let prediccion = undefined;
     await axios
-      .post("/movimientos/getPrediccion", { tienda: licencia })
+      .post("/movimientos/getPrediccion", { tienda: licencia, database })
       .then((res) => {
         prediccion = res.data;
       })
