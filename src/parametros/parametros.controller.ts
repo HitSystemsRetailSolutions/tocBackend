@@ -42,7 +42,6 @@ export class ParametrosController {
   /* Uri */
   @Post("setPropiedad")
   async setPropiedad(@Body() { parametros }) {
-
     try {
       if (parametros) {
         delete parametros["prohibirSuplementos"];
@@ -64,7 +63,7 @@ export class ParametrosController {
       database: parametros.database,
       licencia: parametros.licencia,
       configuraciones: params,
-      timeout:30000,
+      timeout: 30000,
     });
     if (!res) {
       throw Error("Error al sincronizar con SantaAna");
@@ -79,7 +78,7 @@ export class ParametrosController {
       licencia: parametros.licencia,
     });
     if (res.data) {
-      return this.setPropiedad({parametros:res.data});
+      return this.setPropiedad({ parametros: res.data });
     } else {
       throw Error("Error al sincronizar con SantaAna");
     }
@@ -171,6 +170,16 @@ export class ParametrosController {
       return false;
     }
   }
+  /* yasai :D */
+  @Post("set3g")
+  async set3g() {
+    try {
+      return await parametrosInstance.set3G();
+    } catch (err) {
+      logger.Error(45, err);
+      return false;
+    }
+  }
 
   /* Eze 4.0 */
   @Get("getIpPaytef")
@@ -184,8 +193,6 @@ export class ParametrosController {
   }
 }
 
-
 const parametrosController = new ParametrosController();
 
 export { parametrosController };
-
