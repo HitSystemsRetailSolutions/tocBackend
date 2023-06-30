@@ -15,9 +15,12 @@ export interface TicketsInterface {
   idTrabajador: number;
   idCliente: ClientesInterface["id"];
   consumoPersonal: boolean;
+  anulado?: Anulado;
   enviado: boolean;
 }
-
+export interface Anulado {
+  idTicketPositivo: number;
+}
 export interface TicketsInterfaceBackUp {
   _id: number;
   timestamp: number;

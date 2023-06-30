@@ -52,7 +52,7 @@ export async function getUltimoTicketIntervalo(
     .toArray();
 }
 export async function getUltimoTicketTarjeta(
-  ticket: number,
+  ticket: number
 ): Promise<TicketsInterface[]> {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
@@ -178,6 +178,21 @@ export async function actualizarTotalArticulo(existTicketId, total, sum) {
     )
   ).acknowledged;
 }
+/* yasai :D */
+export async function toggle3G(existTicketId, oldValue = false) {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  return (
+    await tickets.updateOne(
+      { _id: existTicketId },
+      {
+        $set: {
+          datafono3G: !oldValue,
+        },
+      }
+    )
+  ).acknowledged;
+}
 
 /* Eze v23 */
 export async function desbloquearTicket(idTicket: number) {
@@ -250,18 +265,23 @@ export async function anularTicket(
   });
   if (resultado === null) {
     let ticket = await getTicketByID(idTicket);
-
     if (ticket.total > 0) {
       const id = await ticketsInstance.getProximoId();
       ticket.enviado = false;
       ticket._id = id;
       ticket.timestamp = Date.now();
       ticket.total = ticket.total * -1;
+      ticket.datafono3G = false;
       ticket.cesta.lista.forEach((element) => {
         element.subtotal = element.subtotal * -1;
         element.unidades = element.unidades * -1;
         if (element.promocion != null) {
           element.promocion.precioRealArticuloPrincipal *= -1;
+          element.promocion.unidadesOferta *= -1;
+          element.promocion.cantidadArticuloPrincipal *= -1;
+          if (element.promocion.cantidadArticuloSecundario != null) {
+            element.promocion.cantidadArticuloPrincipal *= -1;
+          }
           if (element.promocion.precioRealArticuloSecundario != null) {
             element.promocion.precioRealArticuloSecundario *= -1;
           }
@@ -271,6 +291,7 @@ export async function anularTicket(
         ticket.cesta.detalleIva[property] =
           ticket.cesta.detalleIva[property] * -1;
       }
+      ticket.anulado = { idTicketPositivo: idTicket };
       const tickets = database.collection<TicketsInterface>("tickets");
       const resultado = (await tickets.insertOne(ticket)).acknowledged;
       await ticketsAnulados.insertOne({ idTicketAnulado: idTicket });
