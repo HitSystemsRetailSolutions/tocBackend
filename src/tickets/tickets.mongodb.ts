@@ -33,7 +33,10 @@ export async function getTicketsIntervalo(
 ): Promise<TicketsInterface[]> {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
-  return await tickets.find({ timestamp: { $gte: inicioTime } }).toArray();
+  const defTickets = await tickets
+    .find({ timestamp: {  $gte: inicioTime } })
+    .toArray();
+  return defTickets.filter((ticket) => ticket.timestamp <= finalTime);
 }
 
 export async function getUltimoTicketIntervalo(

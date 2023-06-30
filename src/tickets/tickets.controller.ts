@@ -1,9 +1,10 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, Get } from "@nestjs/common";
 import { ticketsInstance } from "./tickets.clase";
 import { logger } from "../logger";
 import { cestasInstance } from "../cestas/cestas.clase";
 import { paytefInstance } from "../paytef/paytef.class";
 import { TicketsInterface } from "./tickets.interface";
+import { parametrosController } from "src/parametros/parametros.controller";
 import {
   FormaPago,
   MovimientosInterface,
@@ -16,6 +17,7 @@ import { EncargosInterface } from "src/encargos/encargos.interface";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { timestamp } from "rxjs";
 import { mqttInstance } from "src/mqtt";
+import axios from "axios";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
