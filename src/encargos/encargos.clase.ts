@@ -210,7 +210,7 @@ export class Encargos {
     encargo.timestamp = timestamp;
     encargo.recogido = false;
     for (let i = 0; i < encargo.productos.length ; i++) {
-      encargo.productos[i].idGraella = 'data.ids[i]';
+      encargo.productos[i].idGraella = data.ids[encargo.productos.length-(i+1)].id;
     }
     return schEncargos
       .setEncargo(encargo)
