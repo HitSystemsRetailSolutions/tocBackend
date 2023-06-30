@@ -12,6 +12,7 @@ import { ticketsInstance } from "./tickets/tickets.clase";
 import { trabajadoresInstance } from "./trabajadores/trabajadores.clase";
 import { parametrosController } from "./parametros/parametros.controller";
 import { tarifasInstance } from "./tarifas/tarifas.class";
+import { toggle3G } from "./tickets/tickets.mongodb";
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -31,6 +32,19 @@ io.on("connection", (socket) => {
           ticket._id,
           ticket.total
         );
+      }
+      throw Error("Faltan datos {idTrabajador} controller");
+    } catch (err) {
+      logger.Error(131, err);
+    }
+  });
+
+  socket.on("toggle3g", async ({ idTrabajador, idTicket }) => {
+    try {
+      if (idTrabajador && idTicket) {
+        const ticket = await ticketsInstance.getTicketById(idTicket);
+        if(!ticket) throw Error("Ticket no encontrado");
+        toggle3G(idTicket, ticket.datafono3G);
       }
       throw Error("Faltan datos {idTrabajador} controller");
     } catch (err) {

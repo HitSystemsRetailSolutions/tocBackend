@@ -177,6 +177,21 @@ export async function actualizarTotalArticulo(existTicketId, total, sum) {
     )
   ).acknowledged;
 }
+/* yasai :D */
+export async function toggle3G(existTicketId, oldValue = false) {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  return (
+    await tickets.updateOne(
+      { _id: existTicketId },
+      {
+        $set: {
+          datafono3G: !oldValue,
+        },
+      }
+    )
+  ).acknowledged;
+}
 
 /* Eze v23 */
 export async function desbloquearTicket(idTicket: number) {
@@ -256,6 +271,7 @@ export async function anularTicket(
       ticket._id = id;
       ticket.timestamp = Date.now();
       ticket.total = ticket.total * -1;
+      ticket.datafono3G = false;
       ticket.cesta.lista.forEach((element) => {
         element.subtotal = element.subtotal * -1;
         element.unidades = element.unidades * -1;
