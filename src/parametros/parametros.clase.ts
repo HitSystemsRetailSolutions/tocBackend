@@ -86,6 +86,7 @@ export class ParametrosClase {
       codigoTienda: 0,
       database: "",
       nombreEmpresa: "",
+      tarifaMesa: "",
       nombreTienda: "",
       tipoImpresora: "USB",
       tipoDatafono: "PAYTEF",

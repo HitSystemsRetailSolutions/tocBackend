@@ -1,5 +1,7 @@
 import { Controller, Post, Body } from "@nestjs/common";
 import axios from "axios";
+axios.defaults.timeout = 20000;
+
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { trabajadoresInstance } from "../trabajadores/trabajadores.clase";
@@ -23,15 +25,13 @@ export class InstaladorController {
   @Post("pedirDatos")
   async instalador(
     @Body()
-    { password, numLlicencia, tipoImpresora, tipoDatafono, impresoraCafeteria }
+    { password, numLlicencia, tipoDatafono}
   ) {
     try {
       if (
         password &&
         numLlicencia &&
-        tipoImpresora &&
-        tipoDatafono &&
-        impresoraCafeteria
+        tipoDatafono 
       ) {
         const resAuth: any = await axios.post("parametros/instaladorLicencia", {
           password,
@@ -41,9 +41,7 @@ export class InstaladorController {
           const objParams = parametrosInstance.generarObjetoParametros();
           axios.defaults.headers.common["Authorization"] = resAuth.data.token;
           objParams.licencia = numLlicencia;
-          objParams.tipoImpresora = tipoImpresora;
           objParams.tipoDatafono = tipoDatafono;
-          objParams.impresoraCafeteria = impresoraCafeteria;
           objParams.ultimoTicket = resAuth.data.ultimoTicket;
           objParams.codigoTienda = resAuth.data.codigoTienda;
           objParams.nombreEmpresa = resAuth.data.nombreEmpresa;
@@ -57,7 +55,6 @@ export class InstaladorController {
             pid: "",
             vid: "",
           };
-
           return await parametrosInstance.setParametros(objParams);
         }
         throw Error("Error: San Pedro no puede autentificar esta petición");
@@ -93,6 +90,18 @@ export class InstaladorController {
       logger.Error(93, err);
     }
   }
+
+  /* Uri */
+  @Post("getIPTienda")
+  async getIPTienda(@Body() { ip }) {
+    try {
+      return (await axios.post("parametros/getTiendaIP", {
+        ip,
+      }))?.data;
+    } catch (err) {
+      logger.Error(93, err);
+    }
+  }
   /* Uri */
   @Post("pedirDatosIP")
   async pedirDatosIP(
@@ -111,9 +120,7 @@ export class InstaladorController {
           const objParams = parametrosInstance.generarObjetoParametros();
           axios.defaults.headers.common["Authorization"] = resAuth.data.token;
           objParams.licencia = resAuth.data.licencia;
-          objParams.tipoImpresora = "USB";
           objParams.tipoDatafono = "3G";
-          objParams.impresoraCafeteria = "NO";
           objParams.ultimoTicket = resAuth.data.ultimoTicket;
           objParams.codigoTienda = resAuth.data.codigoTienda;
           objParams.nombreEmpresa = resAuth.data.nombreEmpresa;
@@ -181,6 +188,7 @@ export class InstaladorController {
       }
       throw Error("Error de autenticación en SanPedro");
     } catch (err) {
+      console.log(err)
       logger.Error(95, err);
       return false;
     }
@@ -277,9 +285,11 @@ export class InstaladorController {
               );
             }
           }
-          let Dependenta = res.data.tickets[0].Dependenta
-          if(res.data.fichajes.length > 0)res.data.fichajes[0].usuari
-          let date = new Date(res.data.tickets[res.data.tickets.length -1].Data)
+          let Dependenta = res.data.tickets[0].Dependenta;
+          if (res.data.fichajes.length > 0) res.data.fichajes[0].usuari;
+          let date = new Date(
+            res.data.tickets[res.data.tickets.length - 1].Data
+          );
           date.setHours(date.getHours() - 2);
           await cajaInstance.abrirCaja({
             detalleApertura: monedasCaja,
@@ -288,7 +298,7 @@ export class InstaladorController {
             totalApertura: totalMonedas,
           });
         }
-        return [1,monedas];
+        return [1, monedas];
       }
       console.error("Error de autenticación en SanPedro");
       return [0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];

@@ -8,6 +8,7 @@ export interface ParametrosInterface {
   tipoDatafono: TiposDatafono;
   tipoImpresora: TiposImpresora;
   impresoraCafeteria: string;
+  tarifaMesa: string;
   clearOneCliente?: number;
   clearOneTienda?: number;
   clearOneTpv?: number;
