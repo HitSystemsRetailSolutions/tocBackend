@@ -177,7 +177,7 @@ export class CestaClase {
       let cesta = await this.getCestaById(idCesta);
       let productos = [];
       productos.push(cesta.lista[index]);
-      let registroLogSantaAna = await this.registroLogSantaAna(
+      await this.registroLogSantaAna(
         cesta,
         productos
       );
@@ -667,7 +667,7 @@ export class CestaClase {
     borrarModo = false
   ) {
     const cesta = await this.getCestaById(idCesta);
-    const registroLogSantaAna = this.registroLogSantaAna(cesta, cesta.lista);
+    this.registroLogSantaAna(cesta, cesta.lista);
     if (cesta) {
       cesta.lista = [];
       cesta.detalleIva = {
@@ -771,6 +771,7 @@ export class CestaClase {
     cesta: CestasInterface,
     productos: CestasInterface["lista"]
   ) {
+
     let cliente: number =
       (await clienteInstance.getClienteById(cesta.idCliente))?.descuento == undefined
         ? 0
@@ -790,9 +791,9 @@ export class CestaClase {
       idCliente: cesta.idCliente,
     };
 
-    const data = await axios.post("lista/setRegistro", {
+    await axios.post("lista/setRegistro", {
       lista: lista,
-    });
+    }).catch((err) => {console.error("Error al enviar el registro a Santa Ana");});
   }
 }
 
