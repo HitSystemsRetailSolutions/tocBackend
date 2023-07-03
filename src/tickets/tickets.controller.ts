@@ -62,7 +62,9 @@ export class TicketsController {
     try {
       const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
       // modifica
-      const graellaModificada = await encargosInstance.updateEncargoGraella(idEncargo);
+      const graellaModificada = await encargosInstance.updateEncargoGraella(
+        idEncargo
+      );
       if (!graellaModificada) return false;
 
       const ticket = await ticketsInstance.generarNuevoTicket(
@@ -81,7 +83,9 @@ export class TicketsController {
       }
 
       if (await ticketsInstance.insertarTicket(ticket)) {
-        await encargosInstance.setEntregado(idEncargo);
+        const enc = await encargosInstance.getEncargoById(idEncargo);
+        if (enc.opcionRecogida != 3)
+          await encargosInstance.setEntregado(idEncargo);
 
         if (tipo !== "TARJETA") {
           await impresoraInstance.abrirCajon();

@@ -17,6 +17,7 @@ export class Encargos {
     return await schEncargos.getEncargos();
   }
   setEntregado = async (id) => {
+    console.log("anulando el mongo");
     const encargo = await this.getEncargoById(id);
     if (encargo.opcionRecogida == 3) {
       for (let i = 0; i < encargo.dias.length; i++) {
@@ -153,7 +154,7 @@ export class Encargos {
       "YYYY-MM-DD HH:mm:ss.S",
       encargo.amPm
     );
-    let timestamp = new Date(fecha).getTime();
+    let timestamp = new Date().getTime();
     const encargo_santAna = {
       id: await this.generateId(
         this.getDate(
@@ -209,8 +210,9 @@ export class Encargos {
     // False -> Ha habido algún error al insertar el encargo.
     encargo.timestamp = timestamp;
     encargo.recogido = false;
-    for (let i = 0; i < encargo.productos.length ; i++) {
-      encargo.productos[i].idGraella = data.ids[encargo.productos.length-(i+1)].id;
+    for (let i = 0; i < encargo.productos.length; i++) {
+      encargo.productos[i].idGraella =
+        data.ids[encargo.productos.length - (i + 1)].id;
     }
     return schEncargos
       .setEncargo(encargo)
@@ -229,14 +231,61 @@ export class Encargos {
     let encargoGraella = {
       ids: idGraellas,
       bbdd: parametros.database,
+      tmp: encargo.timestamp,
     };
-
+    console.log(encargoGraella);
     const { data }: any = await axios.post(
       "encargos/updateEncargoGraella",
       encargoGraella
     );
+    if (!data.error && encargo.opcionRecogida != 3) {
+      return true;
+    } else if (!data.error && encargo.opcionRecogida == 3) {
+      let diaEnc = new Date(encargo.fecha);
+      let diaSemanaHoy = diaEnc.getDay();
+      let diaSemanaEnc = encargo.dias[0].nDia + 1;
+      // Calculamos la cantidad de días que hay que sumar a la fecha de hoy para llegar al día de la semana del encargo
+      let diasASumar = (diaSemanaEnc - diaSemanaHoy + 7) % 7;
 
-    return true;
+      // Creamos una nueva fecha sumando los días necesarios a la fecha de hoy
+      let fechaActual = new Date(
+        diaEnc.getTime() + diasASumar * 24 * 60 * 60 * 1000
+      );
+      const anio = fechaActual.getFullYear();
+      const mes = fechaActual.getMonth() + 1; // Se suma 1 porque los meses empiezan en 0
+      const dia = fechaActual.getDate();
+
+      let nuevaFecha = `${anio}-${mes.toString().padStart(2, "0")}-${dia
+        .toString()
+        .padStart(2, "0")}`;
+      await schEncargos.setFecha(encargo._id, nuevaFecha);
+    }
+
+    return false;
+  };
+
+  anularTicket = async (idEncargo) => {
+    const encargo = await this.getEncargoById(idEncargo);
+    const parametros = await parametrosInstance.getParametros();
+
+    if (encargo) {
+      const idGraellas = encargo.productos.map(
+        (producto) => producto.idGraella
+      );
+
+      let encargoGraella = {
+        ids: idGraellas,
+        bbdd: parametros.database,
+        tmp: encargo.timestamp,
+      };
+      const { data }: any = await axios.post(
+        "encargos/deleteEncargoGraella",
+        encargoGraella
+      );
+      console.log("santaanadelete return", data);
+      if (!data.error) return true;
+    }
+    return false;
   };
   private async generateId(
     formatDate: string,

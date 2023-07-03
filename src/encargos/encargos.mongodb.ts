@@ -31,7 +31,7 @@ export async function setEntregado(
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const encargos = database.collection<EncargosInterface>("encargos");
-
+console.log("idmongo",id)
   return (
     await encargos.updateOne(
       { _id: new ObjectId(id) },
@@ -57,6 +57,22 @@ export async function setChecked(
       {
         $set: {
           dias: nDia,
+        },
+      }
+    )
+  ).acknowledged;
+}
+
+export async function setFecha(id:EncargosInterface["_id"],fecha:string){
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+
+  return (
+    await encargos.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          fecha: fecha,
         },
       }
     )
