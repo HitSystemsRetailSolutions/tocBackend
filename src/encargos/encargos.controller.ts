@@ -38,7 +38,6 @@ export class EncargosController {
         };
 
       const anularEncargoSantaAna = await encargosInstance.anularTicket(data.id);
-      console.log("return santaana",anularEncargoSantaAna);
       if (anularEncargoSantaAna) return encargosInstance.setEntregado(data.id);
 
       return false;

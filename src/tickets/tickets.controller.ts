@@ -83,8 +83,6 @@ export class TicketsController {
       }
 
       if (await ticketsInstance.insertarTicket(ticket)) {
-        const enc = await encargosInstance.getEncargoById(idEncargo);
-        if (enc.opcionRecogida != 3)
           await encargosInstance.setEntregado(idEncargo);
 
         if (tipo !== "TARJETA") {

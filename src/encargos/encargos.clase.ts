@@ -17,32 +17,34 @@ export class Encargos {
     return await schEncargos.getEncargos();
   }
   setEntregado = async (id) => {
-    console.log("anulando el mongo");
-    const encargo = await this.getEncargoById(id);
-    if (encargo.opcionRecogida == 3) {
-      for (let i = 0; i < encargo.dias.length; i++) {
-        if (encargo.dias[i].checked && encargo.dias.length - 1 == i) {
-          encargo.dias[i].checked = false;
-          return schEncargos
-            .setChecked(id, encargo.dias)
-            .then((ok: boolean) => {
-              if (!ok)
-                return schEncargos.setEntregado(id).then((ok: boolean) => {
-                  if (!ok) return false;
-                  return true;
-                });
-            });
-        } else if (encargo.dias[i].checked) {
-          encargo.dias[i].checked = false;
-          return schEncargos
-            .setChecked(id, encargo.dias)
-            .then((ok: boolean) => {
-              if (!ok) return false;
-              return true;
-            });
-        }
-      }
-    }
+
+    // cuando pidan que encargos de cada cierto dia de la semana se pueda escoger mas de un dia, codigo medio hecho
+    // de momento solo se puede escoger un dia de la semana
+    // const encargo = await this.getEncargoById(id);
+    // if (encargo.opcionRecogida == 3) {
+    //   for (let i = 0; i < encargo.dias.length; i++) {
+    //     if (encargo.dias[i].checked && encargo.dias.length - 1 == i) {
+    //       encargo.dias[i].checked = false;
+    //       return schEncargos
+    //         .setChecked(id, encargo.dias)
+    //         .then((ok: boolean) => {
+    //           if (!ok)
+    //             return schEncargos.setEntregado(id).then((ok: boolean) => {
+    //               if (!ok) return false;
+    //               return true;
+    //             });
+    //         });
+    //     } else if (encargo.dias[i].checked) {
+    //       encargo.dias[i].checked = false;
+    //       return schEncargos
+    //         .setChecked(id, encargo.dias)
+    //         .then((ok: boolean) => {
+    //           if (!ok) return false;
+    //           return true;
+    //         });
+    //     }
+    //   }
+    // }
     return schEncargos
       .setEntregado(id)
       .then((ok: boolean) => {
@@ -191,7 +193,6 @@ export class Encargos {
       "encargos/setEncargo",
       encargo_santAna
     );
-    console.log(data);
     // Si data no existe (null, undefined, etc...) o error = true devolvemos false
     if (!data || data.error) {
       // He puesto el 143 pero no se cual habría que poner, no se cual es el sistema que seguís
@@ -210,10 +211,12 @@ export class Encargos {
     // False -> Ha habido algún error al insertar el encargo.
     encargo.timestamp = timestamp;
     encargo.recogido = false;
+    // insertamos las ids insertadas en la tabla utilizada a los prodctos
     for (let i = 0; i < encargo.productos.length; i++) {
       encargo.productos[i].idGraella =
         data.ids[encargo.productos.length - (i + 1)].id;
     }
+    // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
       .then((ok: boolean) => {
@@ -222,6 +225,7 @@ export class Encargos {
       })
       .catch((err: string) => ({ error: true, msg: err }));
   };
+  // actualiza el registro del encargo al recoger
   updateEncargoGraella = async (idEncargo) => {
     const encargo = await this.getEncargoById(idEncargo);
     const parametros = await parametrosInstance.getParametros();
@@ -233,7 +237,7 @@ export class Encargos {
       bbdd: parametros.database,
       tmp: encargo.timestamp,
     };
-    console.log(encargoGraella);
+//  se envia el encargo a bbdd para actualizar el registro
     const { data }: any = await axios.post(
       "encargos/updateEncargoGraella",
       encargoGraella
@@ -241,29 +245,31 @@ export class Encargos {
     if (!data.error && encargo.opcionRecogida != 3) {
       return true;
     } else if (!data.error && encargo.opcionRecogida == 3) {
+      // se creara automaticamente un encargo si el que se ha recogido es la opcionRecogida 3
       let diaEnc = new Date(encargo.fecha);
-      let diaSemanaHoy = diaEnc.getDay();
-      let diaSemanaEnc = encargo.dias[0].nDia + 1;
-      // Calculamos la cantidad de días que hay que sumar a la fecha de hoy para llegar al día de la semana del encargo
-      let diasASumar = (diaSemanaEnc - diaSemanaHoy + 7) % 7;
+      diaEnc.setDate(diaEnc.getDate() + 7);
 
-      // Creamos una nueva fecha sumando los días necesarios a la fecha de hoy
-      let fechaActual = new Date(
-        diaEnc.getTime() + diasASumar * 24 * 60 * 60 * 1000
-      );
-      const anio = fechaActual.getFullYear();
-      const mes = fechaActual.getMonth() + 1; // Se suma 1 porque los meses empiezan en 0
-      const dia = fechaActual.getDate();
+      // Creamos una nueva fecha sumando una semana mas a la que tiene el encargo
+
+      const anio = diaEnc.getFullYear();
+      const mes = diaEnc.getMonth() + 1; // Se suma 1 porque los meses empiezan en 0
+      const dia = diaEnc.getDate();
 
       let nuevaFecha = `${anio}-${mes.toString().padStart(2, "0")}-${dia
         .toString()
         .padStart(2, "0")}`;
-      await schEncargos.setFecha(encargo._id, nuevaFecha);
+      encargo.fecha = nuevaFecha;
+      encargo.timestamp = new Date().getTime();
+      // reseteamos el dejaAcuenta y la _id antes de crear el nuevo encargo
+      encargo.dejaACuenta = 0;
+      encargo._id=undefined;
+      await this.setEncargo(encargo);
+      return true;
     }
 
     return false;
   };
-
+// anula el ticket 
   anularTicket = async (idEncargo) => {
     const encargo = await this.getEncargoById(idEncargo);
     const parametros = await parametrosInstance.getParametros();
@@ -278,11 +284,11 @@ export class Encargos {
         bbdd: parametros.database,
         tmp: encargo.timestamp,
       };
+      // borrara el registro del encargo en la bbdd
       const { data }: any = await axios.post(
         "encargos/deleteEncargoGraella",
         encargoGraella
       );
-      console.log("santaanadelete return", data);
       if (!data.error) return true;
     }
     return false;

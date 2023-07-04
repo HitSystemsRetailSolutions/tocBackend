@@ -26,12 +26,12 @@ export async function getEncargoById(
   const cesta = database.collection<EncargosInterface>("encargos");
   return await cesta.findOne({ _id: new ObjectId(idEncargo) });
 }
+// actualizamos el valor entregado a true;
 export async function setEntregado(
   id: EncargosInterface["_id"]
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const encargos = database.collection<EncargosInterface>("encargos");
-console.log("idmongo",id)
   return (
     await encargos.updateOne(
       { _id: new ObjectId(id) },
@@ -43,7 +43,7 @@ console.log("idmongo",id)
     )
   ).acknowledged;
 }
-
+// actualizamos el valor checked a true
 export async function setChecked(
   id: EncargosInterface["_id"],
   nDia: EncargosInterface["dias"]
@@ -57,22 +57,6 @@ export async function setChecked(
       {
         $set: {
           dias: nDia,
-        },
-      }
-    )
-  ).acknowledged;
-}
-
-export async function setFecha(id:EncargosInterface["_id"],fecha:string){
-  const database = (await conexion).db("tocgame");
-  const encargos = database.collection<EncargosInterface>("encargos");
-
-  return (
-    await encargos.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          fecha: fecha,
         },
       }
     )
