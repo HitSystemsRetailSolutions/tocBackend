@@ -43,6 +43,7 @@ export class ClientesController {
   }
 
   /* Uri */
+  /* y yasai :D */
   @Post("isClienteDescuento")
   async isClienteDescuento(@Body() { idCliente }) {
     try {
