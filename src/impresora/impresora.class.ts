@@ -97,8 +97,7 @@ export class Impresora {
   }
 
   async saludarCliente() {
-    let txt =
-      "Bon Dia!            Caixa oberta        ";
+    let txt = "Bon Dia!            Caixa oberta        ";
     mqttInstance.enviarVisor(txt);
   }
 
@@ -155,6 +154,62 @@ export class Impresora {
       await this._venta(sendObject);
     }
   }
+
+  async imprimirFirma(idTicket: number) {
+    const ticket = await ticketsInstance.getTicketById(idTicket);
+    const parametros = await parametrosInstance.getParametros();
+    const trabajador: TrabajadoresInterface =
+      await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
+
+    let sendObject = null;
+
+    if (ticket && trabajador) {
+      if (ticket.idCliente && ticket.idCliente != "") {
+        let infoCliente: ClientesInterface = null;
+        infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
+        const puntos = await clienteInstance.getPuntosCliente(ticket.idCliente);
+
+        sendObject = {
+          numFactura: ticket._id,
+          timestamp: ticket.timestamp,
+          arrayCompra: ticket.cesta.lista,
+          total: ticket.total,
+          visa: await ticketsInstance.getFormaPago(ticket),
+          tiposIva: ticket.cesta.detalleIva,
+          cabecera: parametros.header,
+          pie: parametros.footer,
+          nombreTrabajador: trabajador.nombreCorto,
+          impresora: parametros.tipoImpresora,
+          infoClienteVip: null, // Mirar bien para terminar todo
+          infoCliente: {
+            nombre: infoCliente.nombre,
+            puntos: puntos,
+          },
+          dejaCuenta: ticket.dejaCuenta,
+          firma: true
+        };
+      } else {
+        sendObject = {
+          numFactura: ticket._id,
+          timestamp: ticket.timestamp,
+          arrayCompra: ticket.cesta.lista,
+          total: ticket.total,
+          visa: await ticketsInstance.getFormaPago(ticket),
+          tiposIva: ticket.cesta.detalleIva,
+          cabecera: parametros.header,
+          pie: parametros.footer,
+          nombreTrabajador: trabajador.nombreCorto,
+          impresora: parametros.tipoImpresora,
+          infoClienteVip: null, // Mirar bien para terminar todo
+          infoCliente: null,
+          dejaCuenta: ticket.dejaCuenta,
+          firma: true
+        };
+      }
+      await this._venta(sendObject);
+    }
+  }
+
   /* Eze 4.0 */
   async imprimirDevolucion(idDevolucion: ObjectId) {
     try {
@@ -272,6 +327,7 @@ export class Impresora {
     //   mqttInstance.loggerMQTT(tipoPago)
     const tiposIva = info.tiposIva;
     const cabecera = info.cabecera;
+    const firmaText = !info.firma ? "" : "\n\n\n\n\n";
     const pie = info.pie;
     const nombreDependienta = info.nombreTrabajador;
     const tipoImpresora = info.impresora;
@@ -300,7 +356,10 @@ export class Impresora {
     }
     //const preuUnitari =
     for (let i = 0; i < arrayCompra.length; i++) {
-      if ((await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si") {
+      if (
+        (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
+        "Si"
+      ) {
         arrayCompra[i]["subtotal"] = Number(
           (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
         );
@@ -548,6 +607,7 @@ export class Impresora {
         .text("Base IVA         IVA         IMPORT")
         .text(detalleIva)
         .text("-- ES COPIA --")
+        .text(firmaText)
         .control("LF")
         .text("ID: " + random() + " - " + random())
         .text(pie)
@@ -632,7 +692,7 @@ export class Impresora {
         .text("Concepto")
         .size(1, 1)
         .text(movimiento.concepto);
-        
+
       if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
         buffer = buffer.barcode(
           movimiento.codigoBarras.slice(0, 12),
@@ -1158,14 +1218,14 @@ export class Impresora {
 
   async mostrarVisor(data) {
     let eur = "E";
-  
+
     let lengthTotal = "";
     let datosExtra = "";
     if (data.total !== undefined) {
       lengthTotal = data.total.toString();
-      let prods = "Productes"
-      if (data.numProductos > 99) prods = "Prods."
-      const numArticle = prods+": " + data.numProductos;
+      let prods = "Productes";
+      if (data.numProductos > 99) prods = "Prods.";
+      const numArticle = prods + ": " + data.numProductos;
       const total = data.total + eur;
       const size = 20 - (numArticle.length + total.length);
       const espacios = [
@@ -1208,7 +1268,7 @@ export class Impresora {
       data.texto = data.texto.substring(0, maxNombreLength) + "...";
     }
     data.texto += " " + data.precio + eur;
-  
+
     let string = `${datosExtra}${data.texto}                                               `;
     let lines = 2;
     string = string.padEnd(lines * 20, " ");
@@ -1218,7 +1278,6 @@ export class Impresora {
     }
     mqttInstance.enviarVisor(output);
   }
-  
 
   async imprimirEntregas() {
     const params = await parametrosInstance.getParametros();
