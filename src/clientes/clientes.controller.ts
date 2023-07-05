@@ -4,6 +4,7 @@ import { parametrosInstance } from "../parametros/parametros.clase";
 import { clienteInstance } from "./clientes.clase";
 import { ClientesInterface } from "./clientes.interface";
 import { logger } from "../logger";
+import { conexion } from "src/conexion/mongodb";
 
 @Controller("clientes")
 export class ClientesController {
@@ -48,10 +49,7 @@ export class ClientesController {
     try {
       if (!idCliente) return 0;
       let cli = await clienteInstance.isClienteDescuento(idCliente);
-      if (cli.nombre.toLocaleLowerCase().includes("descuento")) {
         return Number(cli.descuento);
-      }
-      return 0;
     } catch (err) {
       console.error(err);
       return null;
@@ -71,6 +69,64 @@ export class ClientesController {
       );
     } catch (err) {
       logger.Error(67, err);
+      return false;
+    }
+  }
+
+  @Post("actualizarCliente")
+  async actualizarCliente(
+    @Body()
+    {
+      idCliente,
+      nombre,
+      telefono,
+      email,
+      direccion,
+      tarjetaCliente,
+      nif,
+      descuento,
+    }
+  ) {
+    try {
+      if (
+        !( idCliente && nombre && telefono && email && direccion && tarjetaCliente && nif && descuento )
+      ) {
+        throw Error("Error, faltan datos en actualizarCliente() controller");
+      }
+      const cliente = {
+        nombre,
+        telefono,
+        email,
+        direccion,
+        tarjetaCliente,
+        nif,
+        descuento,
+      };
+      const db = (await conexion).db("tocgame");
+      const params = db.collection("parametros");
+      const clientes = db.collection("clientes");
+      let database = "";
+      await params
+        .findOne({ _id: "PARAMETROS" })
+        .then((res) => {
+          if (res) {
+            database = res.database;
+          }
+        })
+        .catch((err) => {
+          logger.Error(68, err);
+          return false;
+        });
+
+      await clientes.findOneAndUpdate({id : idCliente}, {$set: cliente});
+
+      await axios.post("clientes/updateCliente", {
+        idCliente,
+        cliente,
+        database,
+      });
+    } catch (err) {
+      logger.Error(68, err);
       return false;
     }
   }
