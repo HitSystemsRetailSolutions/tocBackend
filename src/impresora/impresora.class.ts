@@ -17,6 +17,7 @@ import { CajaSincro } from "../caja/caja.interface";
 import { logger } from "../logger";
 import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import { buffer } from "stream/consumers";
+import * as schDeudas from "../deudas/deudas.mongodb";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -97,8 +98,7 @@ export class Impresora {
   }
 
   async saludarCliente() {
-    let txt =
-      "Bon Dia!            Caixa oberta        ";
+    let txt = "Bon Dia!            Caixa oberta        ";
     mqttInstance.enviarVisor(txt);
   }
 
@@ -300,7 +300,10 @@ export class Impresora {
     }
     //const preuUnitari =
     for (let i = 0; i < arrayCompra.length; i++) {
-      if ((await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si") {
+      if (
+        (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
+        "Si"
+      ) {
         arrayCompra[i]["subtotal"] = Number(
           (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
         );
@@ -632,7 +635,7 @@ export class Impresora {
         .text("Concepto")
         .size(1, 1)
         .text(movimiento.concepto);
-        
+
       if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
         buffer = buffer.barcode(
           movimiento.codigoBarras.slice(0, 12),
@@ -1158,14 +1161,14 @@ export class Impresora {
 
   async mostrarVisor(data) {
     let eur = "E";
-  
+
     let lengthTotal = "";
     let datosExtra = "";
     if (data.total !== undefined) {
       lengthTotal = data.total.toString();
-      let prods = "Productes"
-      if (data.numProductos > 99) prods = "Prods."
-      const numArticle = prods+": " + data.numProductos;
+      let prods = "Productes";
+      if (data.numProductos > 99) prods = "Prods.";
+      const numArticle = prods + ": " + data.numProductos;
       const total = data.total + eur;
       const size = 20 - (numArticle.length + total.length);
       const espacios = [
@@ -1208,7 +1211,7 @@ export class Impresora {
       data.texto = data.texto.substring(0, maxNombreLength) + "...";
     }
     data.texto += " " + data.precio + eur;
-  
+
     let string = `${datosExtra}${data.texto}                                               `;
     let lines = 2;
     string = string.padEnd(lines * 20, " ");
@@ -1218,7 +1221,6 @@ export class Impresora {
     }
     mqttInstance.enviarVisor(output);
   }
-  
 
   async imprimirEntregas() {
     const params = await parametrosInstance.getParametros();
@@ -1253,6 +1255,57 @@ export class Impresora {
         mqttInstance.loggerMQTT(err);
         return { error: true, info: "Error en CATCH imprimirEntregas() 1" };
       });
+  }
+  async imprimirIntervaloDeuda(fechaInicial, fechaFinal) {
+    const unDiaEnMilisegundos = 86400000;
+    const tmpInicial = new Date(fechaInicial).getTime();
+    const tmpFinal = new Date(fechaFinal).getTime() + unDiaEnMilisegundos;
+
+    console.log(tmpInicial, tmpFinal);
+    const deudas = await schDeudas.getIntervaloDeuda(tmpInicial, tmpFinal);
+    console.log(deudas.length);
+    if (deudas.length == 0)
+      return { error: true, msg: "No se encontraron deudas" };
+    let string = "";
+
+    // Imprimir los productos y los clientes con las unidades pedidas
+    await deudas.forEach((deuda) => {
+      const date = new Date(deuda.timestamp);
+      const options = { hour12: false };
+      const fecha = date.toLocaleDateString();
+      const hora = date.toLocaleTimeString(undefined, options);
+
+      string += `\n${fecha} ${hora}\n`;
+      string += ` - cliente: ${deuda.nombreCliente}\n`;
+      string += ` - total: ${deuda.total}\n`;
+      string += ` - productos:\n`
+      const clientes = deuda.cesta.lista;
+      deuda.cesta.lista.forEach((producto) => {
+        const nombreProducto = producto.nombre.substring(0, 32);
+        const suplementos = producto.arraySuplementos || [];
+        const productoConSuplementos = `${nombreProducto} ${suplementos
+          .map((suplemento) => `\n  ${suplemento.nombre}`)
+          .join(", ")}`;
+        const unidades = producto.unidades;
+        string += `  · ${producto}: ${unidades}\n`;
+      });
+    });
+    
+    const device = new escpos.Network();
+    const printer = new escpos.Printer(device);
+    this.enviarMQTT(
+      printer
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .size(0, 0)
+        .align("LT")
+        .text(string)
+        .cut("PAPER_FULL_CUT")
+        .close().buffer._buffer
+    );
+    return { error: false, msg: "Good work bro" };
   }
 }
 export const impresoraInstance = new Impresora();
