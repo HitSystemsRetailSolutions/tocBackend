@@ -251,7 +251,7 @@ export class Impresora {
     }
   }
   public async imprimirListaEncargos(lista: string) {
-    const device = new escpos.Network();
+    const device = new escpos.Network('localhost');
     const printer = new escpos.Printer(device);
     this.enviarMQTT(
       printer
@@ -269,7 +269,7 @@ export class Impresora {
   private async imprimirRecibo(recibo: string) {
     mqttInstance.loggerMQTT("imprimir recibo");
     try {
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       this.enviarMQTT(
         printer
@@ -288,7 +288,7 @@ export class Impresora {
   }
   public async testMqtt(txt: string) {
     try {
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       this.enviarMQTT(
         printer
@@ -311,7 +311,7 @@ export class Impresora {
     // conectamos con el cliente
     var client =
       // mqtt.connect(process.env.MQTT_URL) ||
-      mqtt.connect("mqtt://192.168.1.30:1883", {
+      mqtt.connect("mqtt://127.0.0.1:1883", {
         username: "ImpresoraMQTT",
       });
     // cuando se conecta enviamos los datos
@@ -573,7 +573,7 @@ export class Impresora {
       (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
     }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
     // declaramos el dispositivo y la impresora escpos
-    const device = new escpos.Network('192.168.1.30');
+    const device = new escpos.Network('localhost');
     const printer = new escpos.Printer(device);
     // lo mandamos a la funcion enviarMQTT que se supone que imprime
     this.enviarMQTT(
@@ -627,7 +627,6 @@ export class Impresora {
         .control("LF")
         .control("LF")
         .control("LF")
-        .cut("PAPER_FULL_CUT")
         .close().buffer._buffer
     );
   }
@@ -641,7 +640,7 @@ export class Impresora {
       const trabajador = await trabajadoresInstance.getTrabajadorById(
         movimiento.idTrabajador
       );
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       let buffer = printer
         .setCharacterCodeTable(19)
@@ -686,7 +685,7 @@ export class Impresora {
       const trabajador = await trabajadoresInstance.getTrabajadorById(
         movimiento.idTrabajador
       );
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       let buffer = printer
         .setCharacterCodeTable(19)
@@ -744,7 +743,7 @@ export class Impresora {
       //         stopBit: 2
       //     });
       // }
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       this.enviarMQTT(
         printer
@@ -827,7 +826,7 @@ export class Impresora {
 
     const mesInicial = fechaInicio.getMonth() + 1;
     const mesFinal = fechaFinal.getMonth() + 1;
-    const device = new escpos.Network();
+    const device = new escpos.Network('localhost');
     const printer = new escpos.Printer(device);
     this.enviarMQTT(
       printer
@@ -1052,7 +1051,7 @@ export class Impresora {
         `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
 
       permisosImpresora();
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       const diasSemana = [
         "Diumenge",
@@ -1224,7 +1223,7 @@ export class Impresora {
   }
 
   async abrirCajon() {
-    const device = new escpos.Network();
+    const device = new escpos.Network('localhost');
     const printer = new escpos.Printer(device);
     this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer);
   }
@@ -1301,7 +1300,7 @@ export class Impresora {
       })
       .then(async (res: any) => {
         try {
-          const device = new escpos.Network();
+          const device = new escpos.Network('localhost');
           const printer = new escpos.Printer(device);
           this.enviarMQTT(
             printer
