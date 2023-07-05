@@ -328,6 +328,7 @@ export class Impresora {
     const tiposIva = info.tiposIva;
     const cabecera = info.cabecera;
     const firmaText = !info.firma ? "" : "\n\n\n\n\n";
+    const copiaText = !info.firma ? "-- ES COPIA --" : "-- FIRMA CLIENTE --";
     const pie = info.pie;
     const nombreDependienta = info.nombreTrabajador;
     const tipoImpresora = info.impresora;
@@ -606,7 +607,7 @@ export class Impresora {
         .align("CT")
         .text("Base IVA         IVA         IMPORT")
         .text(detalleIva)
-        .text("-- ES COPIA --")
+        .text(copiaText)
         .text(firmaText)
         .control("LF")
         .text("ID: " + random() + " - " + random())
