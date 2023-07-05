@@ -103,19 +103,23 @@ export class Impresora {
 
   /* Eze 4.0 */
   async imprimirTicket(idTicket: number) {
+    // recoge el ticket por la id
     const ticket = await ticketsInstance.getTicketById(idTicket);
     const parametros = await parametrosInstance.getParametros();
+    
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
-
+    // Preparamos el objeto que vamos a mandar a la impresora
     let sendObject = null;
-
+    // Si el ticket existe y el trabajador tambien
     if (ticket && trabajador) {
+      // Si el ticket tiene cliente imprimimos los datos del cliente tambien
       if (ticket.idCliente && ticket.idCliente != "") {
+        // recogemos los datos del cliente
         let infoCliente: ClientesInterface = null;
         infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
         const puntos = await clienteInstance.getPuntosCliente(ticket.idCliente);
-
+        // preparamos los parametros que vamos a enviar a la impresora
         sendObject = {
           numFactura: ticket._id,
           timestamp: ticket.timestamp,
@@ -135,6 +139,7 @@ export class Impresora {
           dejaCuenta: ticket.dejaCuenta,
         };
       } else {
+        // si no tenemos cliente preparamos el objeto sin los datos del cliente
         sendObject = {
           numFactura: ticket._id,
           timestamp: ticket.timestamp,
@@ -151,6 +156,7 @@ export class Impresora {
           dejaCuenta: ticket.dejaCuenta,
         };
       }
+      // enviamos el objeto
       await this._venta(sendObject);
     }
   }
@@ -300,20 +306,22 @@ export class Impresora {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
   }
-
+  // recovimos los datos de la impresion
   private enviarMQTT(encodedData) {
+    // conectamos con el cliente
     var client =
-      mqtt.connect(process.env.MQTT_URL) ||
-      mqtt.connect("mqtt://127.0.0.1:1883", {
+      // mqtt.connect(process.env.MQTT_URL) ||
+      mqtt.connect("mqtt://192.168.1.30:1883", {
         username: "ImpresoraMQTT",
       });
-
+    // cuando se conecta enviamos los datos
     client.on("connect", function () {
       let buff = Buffer.from(encodedData, "hex");
       client.publish("hit.hardware/printer", buff);
     });
   }
   private async _venta(info, recibo = null) {
+    // recojemos datos de los parametros
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
     const total =
@@ -334,6 +342,7 @@ export class Impresora {
     const tipoImpresora = info.impresora;
     const infoClienteVip = info.infoClienteVip;
     const infoCliente = info.infoCliente;
+
     let strRecibo = "";
     if (recibo != null && recibo != undefined) {
       strRecibo = recibo;
@@ -350,12 +359,13 @@ export class Impresora {
     if (infoClienteVip && infoClienteVip.esVip) {
       detalleClienteVip = `Nom: ${infoClienteVip.nombre}\nNIF: ${infoClienteVip.nif}\nCP: ${infoClienteVip.cp}\nCiutat: ${infoClienteVip.ciudad}\nAdr: ${infoClienteVip.direccion}\n`;
     }
-
+    // recojemos datos del cliente si nos los han mandado
     if (infoCliente != null) {
       detalleNombreCliente = infoCliente.nombre;
       detallePuntosCliente = "PUNTOS: " + infoCliente.puntos;
     }
     //const preuUnitari =
+    // recojemos los productos del ticket
     for (let i = 0; i < arrayCompra.length; i++) {
       if (
         (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
@@ -443,10 +453,11 @@ export class Impresora {
         ].nombre.slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
       }
     }
+    // recogemos fechas
     const moment = require("moment-timezone");
     const fecha = new Date(info.timestamp);
     //const offset = fecha.getTimezoneOffset() * 60000; // Obtener el desplazamiento de la zona horaria en minutos y convertirlo a milisegundos
-
+    // recojemos el tipo de pago
     const fechaEspaña = moment(info.timestamp).tz("Europe/Madrid");
     if (tipoPago == "TARJETA") {
       pagoTarjeta = "----------- PAGADO CON TARJETA ---------\n";
@@ -478,6 +489,7 @@ export class Impresora {
     let detalleIva = "";
     let detalleIva0 = "";
     let detalleIva5 = "";
+    // IVA
     if (tiposIva.importe1 > 0) {
       base = tiposIva.base1.toFixed(2) + " €";
       valorIva = "4%: " + tiposIva.valorIva1.toFixed(2) + " €";
@@ -560,12 +572,12 @@ export class Impresora {
     }-${fecha.getFullYear()}  ${
       (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
     }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
-
-    const device = new escpos.Network();
+    // declaramos el dispositivo y la impresora escpos
+    const device = new escpos.Network('192.168.1.30');
     const printer = new escpos.Printer(device);
+    // lo mandamos a la funcion enviarMQTT que se supone que imprime
     this.enviarMQTT(
       printer
-
         .setCharacterCodeTable(19)
         .encode("CP858")
         .font("a")
