@@ -3,6 +3,8 @@ import { trabajadoresInstance } from "./trabajadores.clase";
 import { cestasInstance } from "../cestas/cestas.clase";
 import { logger } from "../logger";
 import { io } from "src/sockets.gateway";
+import { parametrosInstance } from "src/parametros/parametros.clase";
+import axios from "axios";
 
 @Controller("trabajadores")
 export class TrabajadoresController {
@@ -47,8 +49,11 @@ export class TrabajadoresController {
     try {
       if (idTrabajador) {
         const idCesta = await cestasInstance.crearCesta(null, idTrabajador);
-        if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta))
+        const parametros = await parametrosInstance.getParametros();
+        if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta)){
+          axios.post("/trabajadores/fichar", { idTrabajador , entrar: true});
           return trabajadoresInstance.ficharTrabajador(idTrabajador);
+        }
         throw Error(
           "Error, no se ha podido asignar el idCesta nuevo al trabajador. trabajadores controller"
         );
@@ -64,8 +69,10 @@ export class TrabajadoresController {
   @Post("desfichar")
   async desfichar(@Body() { idTrabajador }) {
     try {
-      if (idTrabajador)
+      if (idTrabajador){
+        axios.post("/trabajadores/fichar", { idTrabajador , entrar: false});
         return await trabajadoresInstance.desficharTrabajador(idTrabajador);
+      }
       throw Error("Error, faltan datos en desfichar() controller");
     } catch (err) {
       logger.Error(113, err);
