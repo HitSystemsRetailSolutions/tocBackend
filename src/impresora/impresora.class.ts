@@ -592,7 +592,6 @@ export class Impresora {
     const database = (await conexion).db("tocgame");
     const coleccion = database.collection("parametros");
     const preuU = (await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si";
-    console.log(preuU);
     
     // lo mandamos a la funcion enviarMQTT que se supone que imprime
     this.enviarMQTT(
