@@ -1260,14 +1260,14 @@ export class Impresora {
     const unDiaEnMilisegundos = 86400000;
     const tmpInicial = new Date(fechaInicial).getTime();
     const tmpFinal = new Date(fechaFinal).getTime() + unDiaEnMilisegundos;
-
+    // buscamos deudas con pagado=false des del intervalo que ha llegado a la funcion
     const deudas = await schDeudas.getIntervaloDeuda(tmpInicial, tmpFinal);
 
     if (deudas.length == 0)
       return { error: true, msg: "No se encontraron deudas en ese intervalo" };
     let string = "";
 
-    // Imprimir los productos y los clientes con las unidades pedidas
+    // Imprimir las deudas por orden de fecha
     await deudas.forEach((deuda) => {
       const date = new Date(deuda.timestamp);
       const options = { hour12: false };
@@ -1287,11 +1287,12 @@ export class Impresora {
           .join(", ")}`;
         const unidades = producto.unidades;
         string += `\n  -> ${producto.nombre}: ${unidades}u`;
-        string += `${productoConSuplementos}`;
+        string += `${productoConSuplementos}\n`;
       });
     });
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
+    // enviamos el string a la impresora por mqtt
     this.enviarMQTT(
       printer
         .setCharacterCodeTable(19)
