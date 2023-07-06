@@ -316,7 +316,7 @@ export class Impresora {
       });
     // cuando se conecta enviamos los datos
     client.on("connect", function () {
-      let buff = Buffer.from(encodedData, "hex");
+      let buff = Buffer.from(encodedData, "utf8");
       client.publish("hit.hardware/printer", buff);
     });
   }
@@ -579,10 +579,10 @@ export class Impresora {
     this.enviarMQTT(
       printer
         .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .size(0, 0)
+        .encode("cp858")
+        .font("A")
+        // .style("b")
+        // .size(0, 0)
         .text(cabecera)
         .text(
           `Data: ${diasSemana[fechaEspaña.format("d")]} ${fechaEspaña.format(
