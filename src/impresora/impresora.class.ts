@@ -1276,7 +1276,7 @@ export class Impresora {
 
       string += `\n${fecha} ${hora}`;
       string += `\n - cliente: ${deuda.nombreCliente}`;
-      string += `\n - total: ${deuda.total} €`;
+      string += `\n - total: ${deuda.total} EUR`;
       string += `\n - productos:`;
       const clientes = deuda.cesta.lista;
       deuda.cesta.lista.forEach((producto) => {
@@ -1286,7 +1286,7 @@ export class Impresora {
           .map((suplemento) => `\n    ${suplemento.nombre}`)
           .join(", ")}`;
         const unidades = producto.unidades;
-        string += `\n  · ${producto.nombre}: ${unidades}u`;
+        string += `\n  -> ${producto.nombre}: ${unidades}u`;
         string += `${productoConSuplementos}`;
       });
     });
