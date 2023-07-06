@@ -59,7 +59,7 @@ export class ImpresoraController {
   @Post("imprimirIntervaloDeuda")
   async imprimirIntervaloDeuda(@Body() params) {
     try {
-      console.log(params)
+
       if (params.fechaFinal && params.fechaInicial)
         return await impresoraInstance.imprimirIntervaloDeuda(
           params.fechaInicial,

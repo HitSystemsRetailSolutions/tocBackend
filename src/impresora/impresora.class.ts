@@ -1261,11 +1261,10 @@ export class Impresora {
     const tmpInicial = new Date(fechaInicial).getTime();
     const tmpFinal = new Date(fechaFinal).getTime() + unDiaEnMilisegundos;
 
-    console.log(tmpInicial, tmpFinal);
     const deudas = await schDeudas.getIntervaloDeuda(tmpInicial, tmpFinal);
-    console.log(deudas.length);
+
     if (deudas.length == 0)
-      return { error: true, msg: "No se encontraron deudas" };
+      return { error: true, msg: "No se encontraron deudas en ese intervalo" };
     let string = "";
 
     // Imprimir los productos y los clientes con las unidades pedidas
@@ -1275,22 +1274,22 @@ export class Impresora {
       const fecha = date.toLocaleDateString();
       const hora = date.toLocaleTimeString(undefined, options);
 
-      string += `\n${fecha} ${hora}\n`;
-      string += ` - cliente: ${deuda.nombreCliente}\n`;
-      string += ` - total: ${deuda.total}\n`;
-      string += ` - productos:\n`
+      string += `\n${fecha} ${hora}`;
+      string += `\n - cliente: ${deuda.nombreCliente}`;
+      string += `\n - total: ${deuda.total} €`;
+      string += `\n - productos:`;
       const clientes = deuda.cesta.lista;
       deuda.cesta.lista.forEach((producto) => {
         const nombreProducto = producto.nombre.substring(0, 32);
         const suplementos = producto.arraySuplementos || [];
-        const productoConSuplementos = `${nombreProducto} ${suplementos
-          .map((suplemento) => `\n  ${suplemento.nombre}`)
+        const productoConSuplementos = ` ${suplementos
+          .map((suplemento) => `\n    ${suplemento.nombre}`)
           .join(", ")}`;
         const unidades = producto.unidades;
-        string += `  · ${producto}: ${unidades}\n`;
+        string += `\n  · ${producto.nombre}: ${unidades}u`;
+        string += `${productoConSuplementos}`;
       });
     });
-    
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
     this.enviarMQTT(
