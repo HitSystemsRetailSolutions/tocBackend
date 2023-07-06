@@ -75,29 +75,48 @@ export class ClientesController {
     }
   }
 
-  /* Eze 4.0 */
+  /* Yasai :D */
   @Post("crearNuevoCliente")
-  async crearNuevoCliente(@Body() { idTarjetaCliente, nombreCliente }) {
+  async crearNuevoCliente(
+    @Body()
+    {
+      nombre,
+      telefono,
+      email,
+      direccion,
+      tarjetaCliente,
+      nif,
+      descuento,
+    }
+  ) {
     try {
-      if (idTarjetaCliente && nombreCliente) {
-        if (
-          idTarjetaCliente.toString().length > 5 &&
-          nombreCliente.length >= 3
-        ) {
-          const parametros = await parametrosInstance.getParametros();
-          const resCrear = await axios.post("clientes/crearNuevoCliente", {
-            idTarjetaCliente: idTarjetaCliente,
-            nombreCliente: nombreCliente,
+
+      const parametros = await parametrosInstance.getParametros();
+
+      if (nombre && tarjetaCliente) {
+        if (tarjetaCliente.toString().length > 5 && nombre.length >= 3) {
+          const hola = {
+            nombre,
+            telefono,
+            email,
+            direccion,
+            tarjetaCliente,
+            nif,
+            descuento,
             idCliente: `CliBoti_${parametros.codigoTienda}_${Date.now()}`,
-            parametros: parametros,
-          });
-
-          await this.descargarClientesFinales();
-
-          if (resCrear.data) {
-            return true;
-          }
-          return false;
+            idTarjetaCliente: tarjetaCliente,
+          };
+          await axios
+            .post("clientes/crearNuevoCliente", hola )
+            .then((res) => {
+              return !!res.data;
+            })
+            .finally(async () => {
+              await this.descargarClientesFinales();
+            })
+            .catch((err) => {
+              return false;
+            });
         }
       }
       throw Error("Error, faltan datos en crearNuevoCliente() controller");
