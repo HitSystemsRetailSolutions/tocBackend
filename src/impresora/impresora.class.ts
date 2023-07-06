@@ -17,6 +17,7 @@ import { CajaSincro } from "../caja/caja.interface";
 import { logger } from "../logger";
 import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import { buffer } from "stream/consumers";
+import { conexion } from "src/conexion/mongodb";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -320,6 +321,21 @@ export class Impresora {
       client.publish("hit.hardware/printer", buff);
     });
   }
+
+  private enviarMQTTCajon(encodedData) {
+    // conectamos con el cliente
+    var client =
+      // mqtt.connect(process.env.MQTT_URL) ||
+      mqtt.connect("mqtt://127.0.0.1:1883", {
+        username: "ImpresoraMQTT",
+      });
+    // cuando se conecta enviamos los datos
+    client.on("connect", function () {
+      let buff = Buffer.from(encodedData, "utf8");
+      client.publish("hit.hardware/cajon", buff);
+    });
+  }
+
   private async _venta(info, recibo = null) {
     // recojemos datos de los parametros
     const numFactura = info.numFactura;
@@ -366,12 +382,10 @@ export class Impresora {
     }
     //const preuUnitari =
     // recojemos los productos del ticket
+    const preuUnitari = (await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si";
     for (let i = 0; i < arrayCompra.length; i++) {
-      if (
-        (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
-        "Si"
-      ) {
-        arrayCompra[i]["subtotal"] = Number(
+      if (preuUnitari) {
+        arrayCompra[i]["preuU"] = Number(
           (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
         );
       }
@@ -388,7 +402,7 @@ export class Impresora {
         detalles += `${
           arrayCompra[i].unidades *
           arrayCompra[i].promocion.cantidadArticuloPrincipal
-        }     ${nombrePrincipal.slice(0, 20)}       ${arrayCompra[
+        }     ${nombrePrincipal.slice(0, 20)}${preuUnitari ? "     " +arrayCompra[i]["preuU"] :""}       ${arrayCompra[
           i
         ].subtotal.toFixed(2)}\n`;
         detalles += `     >     ${
@@ -433,7 +447,7 @@ export class Impresora {
           if (j == arrayCompra[i].arraySuplementos.length - 1) {
             detalles += `       ${arrayCompra[i].arraySuplementos[
               j
-            ].nombre.slice(0, 20)}         ${arrayCompra[i].subtotal.toFixed(
+            ].nombre.slice(0, 20)}${preuUnitari ? "     " +arrayCompra[i]["preuU"] :""}         ${arrayCompra[i].subtotal.toFixed(
               2
             )}\n`;
           } else {
@@ -450,7 +464,7 @@ export class Impresora {
         }
         detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
           i
-        ].nombre.slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+        ].nombre.slice(0, 20)}${preuUnitari ? "     " +arrayCompra[i]["preuU"] :""}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
       }
     }
     // recogemos fechas
@@ -575,6 +589,11 @@ export class Impresora {
     // declaramos el dispositivo y la impresora escpos
     const device = new escpos.Network('localhost');
     const printer = new escpos.Printer(device);
+    const database = (await conexion).db("tocgame");
+    const coleccion = database.collection("parametros");
+    const preuU = (await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si";
+    console.log(preuU);
+    
     // lo mandamos a la funcion enviarMQTT que se supone que imprime
     this.enviarMQTT(
       printer
@@ -597,7 +616,7 @@ export class Impresora {
         .control("LF")
         .control("LF")
         .control("LF")
-        .text("Quantitat      Article        Import (€)")
+        .text(`Quantitat      Article   ${preuU ? '  Preu U.' : ""}     Import (€)`)
         .text("-----------------------------------------")
         .align("LT")
         .text(detalles)
@@ -1225,7 +1244,7 @@ export class Impresora {
   async abrirCajon() {
     const device = new escpos.Network('localhost');
     const printer = new escpos.Printer(device);
-    this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer);
+    this.enviarMQTTCajon(printer.cashdraw(2).close().buffer._buffer);
   }
 
   async mostrarVisor(data) {
