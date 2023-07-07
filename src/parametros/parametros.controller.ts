@@ -44,7 +44,6 @@ export class ParametrosController {
   async setPropiedad(@Body() { parametros }) {
     try {
       if (parametros) {
-        delete parametros["prohibirSuplementos"];
         await this.sendConfiguradorDB(parametros);
         return await parametrosInstance.setPropiedad(parametros);
       }
