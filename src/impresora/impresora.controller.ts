@@ -34,6 +34,20 @@ export class ImpresoraController {
     impresoraInstance.despedirCliente(params.precioTotal);
   }
 
+  @Post("firma")
+  async despedidaFirma(@Body() {idTicket}) {
+    try {
+      if (idTicket) {
+        await impresoraInstance.imprimirFirma(idTicket);
+        return true;
+      }
+      throw Error("Faltan datos en impresora/imprimirTicket");
+    } catch (err) {
+      logger.Error(139, err);
+      return false;
+    }
+  }
+
   @Post("saludo")
   saludarCliente() {
     impresoraInstance.saludarCliente();
