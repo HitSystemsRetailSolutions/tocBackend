@@ -26,6 +26,9 @@ export async function setParametros(
         ProhibirCercaArticles: "",
         SuperFidelitza: "",
         TriaTaula: "",
+        PreuUnitari: "",
+        prohibirAnular3g: "",
+        verInformesVentas: "",
       },
     }
   );
