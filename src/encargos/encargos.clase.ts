@@ -208,7 +208,7 @@ export class Encargos {
     // False -> Ha habido algún error al insertar el encargo.
     encargo.timestamp = timestamp;
     encargo.recogido = false;
-
+    await impresoraInstance.imprimirEncargo(encargo);
     return schEncargos
       .setEncargo(encargo)
       .then((ok: boolean) => {
