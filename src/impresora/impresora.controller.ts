@@ -69,4 +69,20 @@ export class ImpresoraController {
       return false;
     }
   }
+
+  @Post("imprimirIntervaloDeuda")
+  async imprimirIntervaloDeuda(@Body() params) {
+    try {
+
+      if (params.fechaFinal && params.fechaInicial)
+        return await impresoraInstance.imprimirIntervaloDeuda(
+          params.fechaInicial,
+          params.fechaFinal
+        );
+
+      return false;
+    } catch (err) {
+      return false;
+    }
+  }
 }
