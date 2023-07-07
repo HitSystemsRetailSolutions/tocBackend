@@ -55,24 +55,6 @@ export async function setUltimoTicket(idTicket: number): Promise<boolean> {
 }
 
 /* Eze 4.0 */
-export async function setVidAndPid(vid: string, pid: string): Promise<boolean> {
-  const database = (await conexion).db("tocgame");
-  const parametros = database.collection("parametros");
-  return (
-    await parametros.updateOne(
-      { _id: "PARAMETROS" },
-      {
-        $set: {
-          impresoraUsbInfo: { vid: vid, pid: pid },
-          tipoImpresora: "USB",
-        },
-      },
-      { upsert: true }
-    )
-  ).acknowledged;
-}
-
-/* Eze 4.0 */
 /* Actualizacion: yasai :D */
 export async function setIpPaytef(ip: string): Promise<boolean> {
   const database = (await conexion).db("tocgame");
@@ -105,34 +87,5 @@ export async function actualizarPropiedad(params: any): Promise<boolean> {
   const parametros = database.collection("parametros");
   return (
     await parametros.updateOne({ _id: "PARAMETROS" }, { $set: { params } })
-  ).acknowledged;
-}
-
-/* Eze 4.0 */
-export async function setTipoImpresora(
-  tipo: ParametrosInterface["tipoImpresora"]
-): Promise<boolean> {
-  const database = (await conexion).db("tocgame");
-  const parametros = database.collection("parametros");
-  return (
-    await parametros.updateOne(
-      { _id: "PARAMETROS" },
-      { $set: { tipoImpresora: tipo } },
-      { upsert: true }
-    )
-  ).acknowledged;
-}
-
-export async function setVisor(
-  tipo: ParametrosInterface["visor"]
-): Promise<boolean> {
-  const database = (await conexion).db("tocgame");
-  const parametros = database.collection("parametros");
-  return (
-    await parametros.updateOne(
-      { _id: "PARAMETROS" },
-      { $set: { visor: tipo } },
-      { upsert: true }
-    )
   ).acknowledged;
 }
