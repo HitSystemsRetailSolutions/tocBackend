@@ -132,7 +132,6 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          impresora: parametros.tipoImpresora,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: {
             nombre: infoCliente.nombre,
@@ -152,7 +151,6 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          impresora: parametros.tipoImpresora,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
           dejaCuenta: ticket.dejaCuenta,
@@ -187,7 +185,6 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          impresora: parametros.tipoImpresora,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: {
             nombre: infoCliente.nombre,
@@ -207,7 +204,6 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          impresora: parametros.tipoImpresora,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
           dejaCuenta: ticket.dejaCuenta,
@@ -241,7 +237,6 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          impresora: parametros.tipoImpresora,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
         };

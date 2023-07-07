@@ -12,6 +12,7 @@ export interface ParametrosInterface {
   footer: string;
   token: string;
   ipTefpay?: string;
+  tarifaMesa: string;
 }
 
 export type TiposDatafono = "3G" | "PAYTEF" | "CLEARONE";
