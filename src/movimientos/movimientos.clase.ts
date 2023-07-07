@@ -36,6 +36,14 @@ export class MovimientosClase {
   getMovimientosIntervalo = (inicioTime: number, finalTime: number) =>
     schMovimientos.getMovimientosIntervalo(inicioTime, finalTime);
 
+  /* Yasai :D */
+  public async existeMovimiento(
+    idTicket: MovimientosInterface["idTicket"],
+    valor: MovimientosInterface["valor"]
+  ): Promise<boolean> {
+    return await schMovimientos.existeMovimiento(idTicket, valor);
+  }
+
   /* Eze 4.0 */
   public async nuevoMovimiento(
     valor: MovimientosInterface["valor"],
@@ -61,6 +69,8 @@ export class MovimientosClase {
       tipo,
       valor,
     };
+
+    if(await schMovimientos.existeMovimiento(idTicket, valor)) return false;
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrega Diària") {
