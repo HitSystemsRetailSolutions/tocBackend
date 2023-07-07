@@ -73,6 +73,7 @@ export class ParametrosClase {
       codigoTienda: 0,
       database: "",
       nombreEmpresa: "",
+      tarifaMesa: "",
       nombreTienda: "",
       tipoDatafono: "PAYTEF",
       ultimoTicket: -1,
