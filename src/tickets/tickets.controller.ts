@@ -229,7 +229,7 @@ export class TicketsController {
             await impresoraInstance.abrirCajon();
           }
           ticketsInstance.actualizarTickets();
-          return true;
+          return ticket._id;
         }
 
         throw Error(
