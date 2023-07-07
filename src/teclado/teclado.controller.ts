@@ -6,11 +6,11 @@ import { logger } from "../logger";
 
 @Controller("teclado")
 export class TecladoController {
-  /* Eze 4.0 */
+  /* Yasai :D */
   @Post("clickTeclaArticulo")
   async clickTeclaArticulo(
     @Body()
-    { idArticulo, gramos, idCesta, unidades, arraySuplementos }
+    { idArticulo, gramos, idCesta, unidades, arraySuplementos, nombre = "" }
   ) {
     try {
       if (UtilesModule.checkVariable(idArticulo, gramos, idCesta, unidades)) {
@@ -20,6 +20,7 @@ export class TecladoController {
           idCesta,
           unidades,
           arraySuplementos,
+          nombre
         );
         await cestasInstance.actualizarCestas();
         return resultado;

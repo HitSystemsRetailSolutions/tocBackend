@@ -26,6 +26,7 @@ export class InstaladorController {
   async instalador(
     @Body()
     { password, numLlicencia, tipoDatafono}
+
   ) {
     try {
       if (
@@ -48,13 +49,9 @@ export class InstaladorController {
           objParams.nombreTienda = resAuth.data.nombreTienda;
           objParams.token = resAuth.data.token;
           objParams.database = resAuth.data.database;
-          objParams.visor = "";
           objParams.header = resAuth.data.header;
           objParams.footer = resAuth.data.footer;
-          objParams.impresoraUsbInfo = {
-            pid: "",
-            vid: "",
-          };
+
           return await parametrosInstance.setParametros(objParams);
         }
         throw Error("Error: San Pedro no puede autentificar esta petición");
@@ -127,13 +124,9 @@ export class InstaladorController {
           objParams.nombreTienda = resAuth.data.nombreTienda;
           objParams.token = resAuth.data.token;
           objParams.database = resAuth.data.database;
-          objParams.visor = "";
           objParams.header = resAuth.data.header;
           objParams.footer = resAuth.data.footer;
-          objParams.impresoraUsbInfo = {
-            pid: "",
-            vid: "",
-          };
+
 
           return await parametrosInstance.setParametros(objParams);
         }

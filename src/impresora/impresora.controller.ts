@@ -34,6 +34,20 @@ export class ImpresoraController {
     impresoraInstance.despedirCliente(params.precioTotal);
   }
 
+  @Post("firma")
+  async despedidaFirma(@Body() {idTicket}) {
+    try {
+      if (idTicket) {
+        await impresoraInstance.imprimirFirma(idTicket);
+        return true;
+      }
+      throw Error("Faltan datos en impresora/imprimirTicket");
+    } catch (err) {
+      logger.Error(139, err);
+      return false;
+    }
+  }
+
   @Post("saludo")
   saludarCliente() {
     impresoraInstance.saludarCliente();
@@ -51,6 +65,22 @@ export class ImpresoraController {
         new ObjectId("639b1ea2d9aff66ec40a6ccf")
       );
       return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  @Post("imprimirIntervaloDeuda")
+  async imprimirIntervaloDeuda(@Body() params) {
+    try {
+
+      if (params.fechaFinal && params.fechaInicial)
+        return await impresoraInstance.imprimirIntervaloDeuda(
+          params.fechaInicial,
+          params.fechaFinal
+        );
+
+      return false;
     } catch (err) {
       return false;
     }
