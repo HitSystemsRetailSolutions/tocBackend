@@ -23,15 +23,14 @@ export class InstaladorController {
   @Post("pedirDatos")
   async instalador(
     @Body()
-    { password, numLlicencia, tipoImpresora, tipoDatafono, impresoraCafeteria }
+    { password, numLlicencia, tipoImpresora, tipoDatafono }
   ) {
     try {
       if (
         password &&
         numLlicencia &&
         tipoImpresora &&
-        tipoDatafono &&
-        impresoraCafeteria
+        tipoDatafono 
       ) {
         const resAuth: any = await axios.post("parametros/instaladorLicencia", {
           password,
@@ -41,22 +40,15 @@ export class InstaladorController {
           const objParams = parametrosInstance.generarObjetoParametros();
           axios.defaults.headers.common["Authorization"] = resAuth.data.token;
           objParams.licencia = numLlicencia;
-          objParams.tipoImpresora = tipoImpresora;
           objParams.tipoDatafono = tipoDatafono;
-          objParams.impresoraCafeteria = impresoraCafeteria;
           objParams.ultimoTicket = resAuth.data.ultimoTicket;
           objParams.codigoTienda = resAuth.data.codigoTienda;
           objParams.nombreEmpresa = resAuth.data.nombreEmpresa;
           objParams.nombreTienda = resAuth.data.nombreTienda;
           objParams.token = resAuth.data.token;
           objParams.database = resAuth.data.database;
-          objParams.visor = "";
           objParams.header = resAuth.data.header;
           objParams.footer = resAuth.data.footer;
-          objParams.impresoraUsbInfo = {
-            pid: "",
-            vid: "",
-          };
 
           return await parametrosInstance.setParametros(objParams);
         }
@@ -111,22 +103,16 @@ export class InstaladorController {
           const objParams = parametrosInstance.generarObjetoParametros();
           axios.defaults.headers.common["Authorization"] = resAuth.data.token;
           objParams.licencia = resAuth.data.licencia;
-          objParams.tipoImpresora = "USB";
           objParams.tipoDatafono = "3G";
-          objParams.impresoraCafeteria = "NO";
           objParams.ultimoTicket = resAuth.data.ultimoTicket;
           objParams.codigoTienda = resAuth.data.codigoTienda;
           objParams.nombreEmpresa = resAuth.data.nombreEmpresa;
           objParams.nombreTienda = resAuth.data.nombreTienda;
           objParams.token = resAuth.data.token;
           objParams.database = resAuth.data.database;
-          objParams.visor = "";
           objParams.header = resAuth.data.header;
           objParams.footer = resAuth.data.footer;
-          objParams.impresoraUsbInfo = {
-            pid: "",
-            vid: "",
-          };
+
 
           return await parametrosInstance.setParametros(objParams);
         }

@@ -97,7 +97,6 @@ export class ParametrosController {
         delete res.data.tipoDatafono;
         delete res.data.token;
         delete res.data.licencia;
-        delete res.data.impresoraUsbInfo;
         return await parametrosInstance.setParametros(res.data);
       }
 
@@ -105,56 +104,6 @@ export class ParametrosController {
     } catch (err) {
       logger.Error(42, err);
       return false;
-    }
-  }
-
-  /* Eze 4.0 */
-  @Post("setVidAndPid")
-  async vidAndPid(@Body() { vid, pid }) {
-    try {
-      if (vid && pid && vid != "" && pid != "")
-        return await parametrosInstance.setVidAndPid(vid, pid);
-      throw Error("Error, faltan datos en setVidAndPid() controller");
-    } catch (err) {
-      logger.Error(43, err);
-      return false;
-    }
-  }
-
-  /* Eze 4.0 */
-  @Post("setTipoImpresora")
-  async setTipoImpresora(@Body() { tipo }) {
-    try {
-      if (tipo && tipo != "") {
-        return await parametrosInstance.setTipoImpresora(tipo);
-      }
-      throw Error("Faltan datos en parametros/setTipoImpresora");
-    } catch (err) {
-      logger.Error(143, err);
-      return false;
-    }
-  }
-
-  @Post("setTipoVisor")
-  async setTipoVisor(@Body() { tipo }) {
-    try {
-      if (tipo && tipo != "") {
-        return await parametrosInstance.setTipoVisor(tipo);
-      }
-      throw Error("Faltan datos en parametros/setTipoVisor");
-    } catch (err) {
-      logger.Error(243, err);
-      return false;
-    }
-  }
-  /* Eze 4.0 */
-  @Get("getVidAndPid")
-  async getVidAndPid() {
-    try {
-      return (await parametrosInstance.getParametros()).impresoraUsbInfo;
-    } catch (err) {
-      logger.Error(44, err);
-      return null;
     }
   }
 
