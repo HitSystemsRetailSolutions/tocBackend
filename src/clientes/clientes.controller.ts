@@ -44,12 +44,13 @@ export class ClientesController {
   }
 
   /* Uri */
+  /* y yasai :D */
   @Post("isClienteDescuento")
   async isClienteDescuento(@Body() { idCliente }) {
     try {
       if (!idCliente) return 0;
       let cli = await clienteInstance.isClienteDescuento(idCliente);
-        return Number(cli.descuento);
+      return Number(cli.descuento);
     } catch (err) {
       console.error(err);
       return null;
