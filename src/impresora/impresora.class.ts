@@ -641,6 +641,7 @@ export class Impresora {
         .control("LF")
         .control("LF")
         .control("LF")
+        .cut("PAPER_FULL_CUT")
         .close().buffer._buffer
     );
   }
