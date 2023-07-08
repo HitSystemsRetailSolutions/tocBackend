@@ -327,7 +327,7 @@ export class Impresora {
       });
     // cuando se conecta enviamos los datos
     client.on("connect", function () {
-      let buff = Buffer.from(encodedData, "utf8");
+      let buff = Buffer.from(encodedData, "hex");
       client.publish("hit.hardware/cajon", buff);
     });
   }
