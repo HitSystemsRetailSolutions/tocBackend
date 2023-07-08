@@ -26,12 +26,12 @@ export async function getEncargoById(
   const cesta = database.collection<EncargosInterface>("encargos");
   return await cesta.findOne({ _id: new ObjectId(idEncargo) });
 }
+// actualizamos el valor entregado a true;
 export async function setEntregado(
   id: EncargosInterface["_id"]
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const encargos = database.collection<EncargosInterface>("encargos");
-
   return (
     await encargos.updateOne(
       { _id: new ObjectId(id) },
@@ -43,7 +43,7 @@ export async function setEntregado(
     )
   ).acknowledged;
 }
-
+// actualizamos el valor checked a true
 export async function setChecked(
   id: EncargosInterface["_id"],
   nDia: EncargosInterface["dias"]
