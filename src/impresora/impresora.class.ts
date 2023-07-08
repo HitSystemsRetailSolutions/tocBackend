@@ -360,7 +360,7 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    let detalles = "";
+    let detalles = await this.precioUnitario(arrayCompra);
     let pagoTarjeta = "";
     let pagoTkrs = "";
     let detalleClienteVip = "";
@@ -487,15 +487,8 @@ export class Impresora {
       detalleDejaCuenta = "Pago recibido: " + info.dejaCuenta;
     }
 
-    let str1 = "          ";
-    let str2 = "                 ";
-    let str3 = "              ";
-    let base = "";
-    let valorIva = "";
-    let importe = "";
-    let detalleIva4 = "";
-    let detalleIva10 = "";
-    let detalleIva21 = "";
+    const detallesIva = await this.getDetallesIva(tiposIva);
+
     let detalleIva = "";
     let detalleIva0 = "";
     let detalleIva5 = "";
@@ -561,7 +554,11 @@ export class Impresora {
         importe;
     }
     detalleIva =
-      detalleIva0 + detalleIva4 + detalleIva5 + detalleIva10 + detalleIva21;
+      detallesIva.detalleIva0 +
+      detallesIva.detalleIva4 +
+      detallesIva.detalleIva5 +
+      detallesIva.detalleIva10 +
+      detallesIva.detalleIva21;
     let infoConsumoPersonal = "";
     if (tipoPago == "CONSUMO_PERSONAL") {
       infoConsumoPersonal = "---------------- Dte. 100% --------------";
@@ -644,7 +641,172 @@ export class Impresora {
         .close().buffer._buffer
     );
   }
+  async getDetallesIva(tiposIva) {
+    let str1 = "          ";
+    let str2 = "                 ";
+    let str3 = "              ";
+    let base = "";
+    let valorIva = "";
+    let importe = "";
+    const detalle = {
+      detalleIva4: "",
+      detalleIva10: "",
+      detalleIva21: "",
+      detalleIva0: "",
+      detalleIva5: "",
+    };
+    if (tiposIva.importe1 > 0) {
+      base = tiposIva.base1.toFixed(2) + " €";
+      valorIva = "4%: " + tiposIva.valorIva1.toFixed(2) + " €";
+      importe = tiposIva.importe1.toFixed(2) + " €\n";
+      detalle.detalleIva4 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe2 > 0) {
+      base = tiposIva.base2.toFixed(2) + " €";
+      valorIva = "10%: " + tiposIva.valorIva2.toFixed(2) + " €";
+      importe = tiposIva.importe2.toFixed(2) + " €\n";
+      detalle.detalleIva10 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe3 > 0) {
+      base = tiposIva.base3.toFixed(2) + " €";
+      valorIva = "21%: " + tiposIva.valorIva3.toFixed(2) + " €";
+      importe = tiposIva.importe3.toFixed(2) + " €\n";
+      detalle.detalleIva21 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe4 > 0) {
+      base = tiposIva.base4.toFixed(2) + " €";
+      valorIva = "0%: " + tiposIva.valorIva4.toFixed(2) + " €";
+      importe = tiposIva.importe4.toFixed(2) + " €\n";
+      detalle.detalleIva0 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe5 > 0) {
+      base = tiposIva.base5.toFixed(2) + " €";
+      valorIva = "5%: " + tiposIva.valorIva5.toFixed(2) + " €";
+      importe = tiposIva.importe5.toFixed(2) + " €\n";
+      detalle.detalleIva5 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
 
+    return detalle;
+  }
+  async precioUnitario(arrayCompra) {
+    let detalles = "";
+    for (let i = 0; i < arrayCompra.length; i++) {
+      if (
+        (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
+        "Si"
+      ) {
+        arrayCompra[i]["subtotal"] = Number(
+          (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
+        );
+      }
+      if (arrayCompra[i].promocion) {
+        let nombrePrincipal = (
+          await articulosInstance.getInfoArticulo(
+            arrayCompra[i].promocion.idArticuloPrincipal
+          )
+        ).nombre;
+        nombrePrincipal = "Oferta " + nombrePrincipal;
+        while (nombrePrincipal.length < 20) {
+          nombrePrincipal += " ";
+        }
+        detalles += `${
+          arrayCompra[i].unidades *
+          arrayCompra[i].promocion.cantidadArticuloPrincipal
+        }     ${nombrePrincipal.slice(0, 20)}       ${arrayCompra[
+          i
+        ].subtotal.toFixed(2)}\n`;
+        detalles += `     >     ${
+          nombrePrincipal.slice(0, 20) +
+          "(x" +
+          arrayCompra[i].promocion.cantidadArticuloPrincipal +
+          ")"
+        } ${arrayCompra[i].promocion.precioRealArticuloPrincipal.toFixed(2)}\n`;
+        if (arrayCompra[i].promocion.cantidadArticuloSecundario > 0) {
+          let nombreSecundario = (
+            await articulosInstance.getInfoArticulo(
+              arrayCompra[i].promocion.idArticuloSecundario
+            )
+          ).nombre;
+          nombreSecundario = "Oferta " + nombreSecundario;
+          while (nombreSecundario.length < 20) {
+            nombreSecundario += " ";
+          }
+          /*detalles += `${
+            arrayCompra[i].unidades *
+            arrayCompra[i].promocion.cantidadArticuloSecundario
+          }     ${nombreSecundario.slice(0, 20)}       ${arrayCompra[
+            i
+          ].promocion.precioRealArticuloSecundario.toFixed(2)}\n`;*/
+          detalles += `     >     ${
+            nombreSecundario.slice(0, 20) +
+            "(x" +
+            arrayCompra[i].promocion.cantidadArticuloSecundario +
+            ")"
+          } ${arrayCompra[i].promocion.precioRealArticuloSecundario.toFixed(
+            2
+          )}\n`;
+        }
+      } else if (
+        arrayCompra[i].arraySuplementos &&
+        arrayCompra[i].arraySuplementos.length > 0
+      ) {
+        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
+          i
+        ].nombre.slice(0, 20)} +      \n`;
+        for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
+          if (j == arrayCompra[i].arraySuplementos.length - 1) {
+            detalles += `       ${arrayCompra[i].arraySuplementos[j].nombre
+              .slice(0, 20)
+              .padEnd(20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+          } else {
+            detalles += `       ${arrayCompra[i].arraySuplementos[
+              j
+            ].nombre.slice(0, 20)} +      \n`;
+          }
+        }
+      } else {
+        if (arrayCompra[i].nombre.length < 20) {
+          while (arrayCompra[i].nombre.length < 20) {
+            arrayCompra[i].nombre += " ";
+          }
+        }
+        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
+          i
+        ].nombre.slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+      }
+    }
+    return detalles;
+  }
   /* Eze 4.0 */
   async imprimirSalida(movimiento: MovimientosInterface) {
     try {
@@ -1339,6 +1501,85 @@ export class Impresora {
         return { error: true, info: "Error en CATCH imprimirEntregas() 1" };
       });
   }
+  async imprimirEncargo(encargo) {
+    const parametros = await parametrosInstance.getParametros();
+    const trabajador: TrabajadoresInterface =
+      await trabajadoresInstance.getTrabajadorById(encargo.cesta.idTrabajador);
+
+    const cabecera = parametros.header;
+    const moment = require("moment-timezone");
+    const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
+
+    let detalles = await this.precioUnitario(encargo.cesta.lista);
+
+    let detalleImporte = "";
+    let importe = "";
+    if (encargo.dejaCuenta == 0) {
+      importe = "TOTAL:" + encargo.total.toFixed(2) + " €";
+    } else {
+      detalleImporte = `IMPORT TOTAL: ${encargo.total.toFixed(
+        2
+      )} €\nIMPORT PAGAT: ${encargo.dejaCuenta.toFixed(2)} €`;
+      importe =
+        "IMPORT RESTANT:" +
+        (encargo.total - encargo.dejaCuenta).toFixed(2) +
+        " €";
+    }
+    const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
+    let detalleIva = "";
+    detalleIva =
+      detallesIva.detalleIva0 +
+      detallesIva.detalleIva4 +
+      detallesIva.detalleIva5 +
+      detallesIva.detalleIva10 +
+      detallesIva.detalleIva21;
+
+    try {
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
+      this.enviarMQTT(
+        printer
+          .setCharacterCodeTable(19)
+          .encode("CP858")
+          .font("a")
+          .style("b")
+          .align("CT")
+          .size(1, 1)
+          .text("ENTREGA")
+          .size(0, 0)
+          .align("LT")
+          .text(cabecera)
+          .text(
+            `Data: ${fecha.format("d")} ${fecha.format("DD-MM-YYYY HH:mm")}`
+          )
+          .text("Ates per: " + encargo.nombreTrabajador)
+          .text("Client: " + encargo.nombreCliente)
+          .text("Data d'entrega: " + encargo.fecha)
+          .control("LF")
+          .text("Quantitat        Article           Import (€)")
+          .text("----------------------------------------------")
+          .align("LT")
+          .text(detalles)
+          .text("----------------------------------------------")
+          .text(detalleImporte)
+          .size(1, 1)
+          .text(importe)
+          .size(0, 0)
+          .align("CT")
+          .text("Base IVA         IVA         IMPORT")
+          .text(detalleIva)
+          .text("-- ES COPIA --")
+          .control("LF")
+          .text("ID: " + random() + " - " + random())
+          .cut()
+          .close().buffer._buffer
+      );
+
+      return { error: false, info: "OK" };
+    } catch (err) {
+      mqttInstance.loggerMQTT(err);
+      return { error: true, info: "Error en CATCH imprimirEntregas() 2" };
+    }
   async imprimirIntervaloDeuda(fechaInicial, fechaFinal) {
     const unDiaEnMilisegundos = 86400000;
     const tmpInicial = new Date(fechaInicial).getTime();

@@ -211,12 +211,15 @@ export class Encargos {
     // False -> Ha habido algún error al insertar el encargo.
     encargo.timestamp = timestamp;
     encargo.recogido = false;
+    await impresoraInstance.imprimirEncargo(encargo);
+
     // insertamos las ids insertadas en la tabla utilizada a los prodctos
     for (let i = 0; i < encargo.productos.length; i++) {
       encargo.productos[i].idGraella =
         data.ids[encargo.productos.length - (i + 1)].id;
     }
     // creamos un encargo en mongodb
+
     return schEncargos
       .setEncargo(encargo)
       .then((ok: boolean) => {
