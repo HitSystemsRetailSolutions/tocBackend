@@ -307,7 +307,7 @@ export class Impresora {
   private enviarMQTT(encodedData) {
     // conectamos con el cliente
     var client =
-      // mqtt.connect(process.env.MQTT_URL) ||
+      mqtt.connect(process.env.MQTT_URL) ||
       mqtt.connect("mqtt://127.0.0.1:1883", {
         username: "ImpresoraMQTT",
       });
@@ -321,13 +321,13 @@ export class Impresora {
   private enviarMQTTCajon(encodedData) {
     // conectamos con el cliente
     var client =
-      // mqtt.connect(process.env.MQTT_URL) ||
+      mqtt.connect(process.env.MQTT_URL) ||
       mqtt.connect("mqtt://127.0.0.1:1883", {
         username: "ImpresoraMQTT",
       });
     // cuando se conecta enviamos los datos
     client.on("connect", function () {
-      let buff = Buffer.from(encodedData, "utf8");
+      let buff = Buffer.from(encodedData, "hex");
       client.publish("hit.hardware/cajon", buff);
     });
   }
@@ -641,6 +641,7 @@ export class Impresora {
         .control("LF")
         .control("LF")
         .control("LF")
+        .cut("PAPER_FULL_CUT")
         .close().buffer._buffer
     );
   }
