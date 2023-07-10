@@ -36,17 +36,18 @@ export class MovimientosClase {
   getMovimientosIntervalo = (inicioTime: number, finalTime: number) =>
     schMovimientos.getMovimientosIntervalo(inicioTime, finalTime);
 
-  /* Eze 4.0 */
+  /* Uri */
   public async nuevoMovimiento(
     valor: MovimientosInterface["valor"],
     concepto: MovimientosInterface["concepto"],
     tipo: MovimientosInterface["tipo"],
     idTicket: MovimientosInterface["idTicket"],
-    idTrabajador: MovimientosInterface["idTrabajador"]
+    idTrabajador: MovimientosInterface["idTrabajador"],
+    ExtraData: MovimientosInterface["ExtraData"] = []
   ) {
     let codigoBarras = "";
 
-    if (concepto === "Entrega Diària" || concepto ===  "Entrada") {
+    if (concepto === "Entrega Diària" || concepto === "Entrada") {
       codigoBarras = await this.generarCodigoBarrasSalida();
       codigoBarras = String(Ean13Utils.generate(codigoBarras));
     }
@@ -60,6 +61,7 @@ export class MovimientosClase {
       idTrabajador,
       tipo,
       valor,
+      ExtraData,
     };
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
@@ -79,7 +81,8 @@ export class MovimientosClase {
     concepto: MovimientosInterface["concepto"],
     tipo: MovimientosInterface["tipo"],
     idTicket: MovimientosInterface["idTicket"],
-    idTrabajador: MovimientosInterface["idTrabajador"]
+    idTrabajador: MovimientosInterface["idTrabajador"],
+    ExtraData: MovimientosInterface["ExtraData"] = []
   ) {
     let codigoBarras = "";
 
@@ -92,6 +95,7 @@ export class MovimientosClase {
       idTrabajador,
       tipo,
       valor,
+      ExtraData,
     };
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
@@ -197,6 +201,17 @@ export class MovimientosClase {
     return null;
   }
 
+    /* Uri */
+    public async getExtraData(ticket) {
+      const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
+        ticket
+      );
+      if (arrayMovimientos?.length > 0) {
+        return arrayMovimientos[0].ExtraData;
+      }
+      return null;
+    }
+
   /* Eze 4.0 */
   public calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
     if (superTicket.consumoPersonal) return "CONSUMO_PERSONAL";
@@ -206,7 +221,6 @@ export class MovimientosClase {
         if (superTicket.movimientos[0].valor < 0) {
           return "DEVUELTO";
         } else {
-          
           return "TARJETA";
         }
       } else if (superTicket.movimientos[0].tipo === "TKRS_SIN_EXCESO") {
@@ -215,7 +229,7 @@ export class MovimientosClase {
         else return "TKRS";
       } else if (superTicket.movimientos[0].tipo === "DEUDA") {
         return "DEUDA";
-      }else if (superTicket.movimientos[0].tipo === "SALIDA") {
+      } else if (superTicket.movimientos[0].tipo === "SALIDA") {
         return "DEUDA";
       } else {
         throw Error("Forma de pago desconocida");

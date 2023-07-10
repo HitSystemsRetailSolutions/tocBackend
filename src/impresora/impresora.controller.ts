@@ -2,6 +2,7 @@ import { Controller, Post, Body } from "@nestjs/common";
 import { ObjectId } from "mongodb";
 import { logger } from "../logger";
 import { impresoraInstance } from "./impresora.class";
+import { movimientosInstance } from "src/movimientos/movimientos.clase";
 
 @Controller("impresora")
 export class ImpresoraController {
@@ -18,6 +19,26 @@ export class ImpresoraController {
       return false;
     }
   }
+  
+  /* Uri */
+
+  @Post("imprimirTicketPaytef")
+  async imprimirTicketPaytef(@Body() { idTicket }) {
+    try {
+      if (idTicket) {
+        let extraDataMovimiento = await movimientosInstance.getExtraData(idTicket);
+        if(extraDataMovimiento == null)throw Error("Faltan datos en impresora/imprimirTicket");
+        await impresoraInstance.imprimirTicketPaytef(extraDataMovimiento,"TITULAR");
+        await impresoraInstance.imprimirTicketPaytef(extraDataMovimiento,"ESTABLECIMIENTO");
+        return true;
+      }
+      throw Error("Faltan datos en impresora/imprimirTicket");
+    } catch (err) {
+      logger.Error(139, err);
+      return false;
+    }
+  }
+
 
   @Post("abrirCajon")
   abrirCajon() {

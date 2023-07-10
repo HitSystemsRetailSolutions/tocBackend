@@ -97,8 +97,7 @@ export class Impresora {
   }
 
   async saludarCliente() {
-    let txt =
-      "Bon Dia!            Caixa oberta        ";
+    let txt = "Bon Dia!            Caixa oberta        ";
     mqttInstance.enviarVisor(txt);
   }
 
@@ -300,7 +299,10 @@ export class Impresora {
     }
     //const preuUnitari =
     for (let i = 0; i < arrayCompra.length; i++) {
-      if ((await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si") {
+      if (
+        (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
+        "Si"
+      ) {
         arrayCompra[i]["subtotal"] = Number(
           (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
         );
@@ -632,7 +634,7 @@ export class Impresora {
         .text("Concepto")
         .size(1, 1)
         .text(movimiento.concepto);
-        
+
       if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
         buffer = buffer.barcode(
           movimiento.codigoBarras.slice(0, 12),
@@ -1158,14 +1160,14 @@ export class Impresora {
 
   async mostrarVisor(data) {
     let eur = "E";
-  
+
     let lengthTotal = "";
     let datosExtra = "";
     if (data.total !== undefined) {
       lengthTotal = data.total.toString();
-      let prods = "Productes"
-      if (data.numProductos > 99) prods = "Prods."
-      const numArticle = prods+": " + data.numProductos;
+      let prods = "Productes";
+      if (data.numProductos > 99) prods = "Prods.";
+      const numArticle = prods + ": " + data.numProductos;
       const total = data.total + eur;
       const size = 20 - (numArticle.length + total.length);
       const espacios = [
@@ -1208,7 +1210,7 @@ export class Impresora {
       data.texto = data.texto.substring(0, maxNombreLength) + "...";
     }
     data.texto += " " + data.precio + eur;
-  
+
     let string = `${datosExtra}${data.texto}                                               `;
     let lines = 2;
     string = string.padEnd(lines * 20, " ");
@@ -1218,7 +1220,55 @@ export class Impresora {
     }
     mqttInstance.enviarVisor(output);
   }
-  
+
+  async imprimirTicketPaytef(data, copia) {
+    const params = await parametrosInstance.getParametros();
+    const fecha = `${data.timestamp.day}/${data.timestamp.month}/${data.timestamp.year} - ${data.timestamp.hour}:${data.timestamp.minute}`;
+    const device = new escpos.Network();
+    const printer = new escpos.Printer(device);
+    await this.enviarMQTT(
+      printer
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .align("CT")
+        .size(2, 2)
+        .text(data.operationTypeName)
+        .align("LT")
+        .size(0, 0)
+        .text(data.commerceText)
+        .text("")
+        .text("HCP: " + data.bankName)
+        .text("Aplicación: " + data.cardInformation.emvApplicationID)
+        .text("")
+        .text(data.cardInformation.emvApplicationLabel)
+        .text("Entidad Bancaria: " + data.issuerNameAndCountry)
+        .text("Tarjeta: " + data.cardInformation.hiddenCardNumber)
+        .text("")
+        .text("Fecha: " + fecha)
+        .text("Nº Operación: " + data.paytefOperationNumber)
+        .text("Autorización: " + data.authorisationCode)
+        .text("")
+        .size(1, 1)
+        .text("Importe: " + data.amountWithSign + "€")
+        .text("")
+        .size(0, 0)
+        .text("Operación " + data.cardInformation.dataEntryLetter)
+        .text(`FIRMA ${data.needsSignature == false ? "NO " : ""}NECESARIA`)
+        .text("------")
+        .text("")
+        .text("")
+        .text("")
+        .text("")
+        .text("------")
+        .text(`COPIA PARA EL ${copia}`)
+        .text("")
+        .text("")
+        .cut()
+        .close().buffer._buffer
+    );
+  }
 
   async imprimirEntregas() {
     const params = await parametrosInstance.getParametros();

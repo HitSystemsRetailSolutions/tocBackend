@@ -8,6 +8,7 @@ import { CancelInterface } from "./paytef.interface";
 import { io } from "../sockets.gateway";
 import { logger } from "../logger";
 import * as schTickets from "../tickets/tickets.mongodb";
+import { impresoraInstance } from "src/impresora/impresora.class";
 let intentosBuclePago = 0;
 let intentosBucleBucle = 0;
 
@@ -97,7 +98,8 @@ class PaytefClass {
                     "Targeta",
                     "TARJETA",
                     idTicket,
-                    idTrabajador
+                    idTrabajador,
+                    respuesta.data.result.result
                   );
                 } else {
                   io.emit("consultaPaytefRefund", {
@@ -132,7 +134,8 @@ class PaytefClass {
                     "Targeta",
                     "TARJETA",
                     idTicket + 1,
-                    idTrabajador
+                    idTrabajador,
+                    respuesta.data.result.result
                   );
                 } else {
                   io.emit("consultaPaytefRefund", {
@@ -168,7 +171,10 @@ class PaytefClass {
       }
     } catch (e) {
       logger.Error(e);
-      console.error("error de conexión (pago ya enviado) / ", intentosBucleBucle);
+      console.error(
+        "error de conexión (pago ya enviado) / ",
+        intentosBucleBucle
+      );
       if (intentosBucleBucle >= 0) {
         intentosBucleBucle = 0;
         io.emit("consultaPaytefRefund", {
