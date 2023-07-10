@@ -1,4 +1,4 @@
-import { CestasInterface } from "src/cestas/cestas.interface";
+import { CestasInterface } from "../cestas/cestas.interface";
 
 type Dias = {
   dia: string;
@@ -8,6 +8,7 @@ type Dias = {
 
 type Productos = {
   id: number;
+  idGraella: string;
   nombre: string;
   comentario: string;
 };
@@ -29,12 +30,12 @@ export enum Periodo {
 }
 
 export interface EncargosInterface {
-  _id: string;
+  _id: string | undefined;
   nombreCliente: string;
   amPm: string | null;
   dejaACuenta: number;
   dias: Dias[];
-  fecha: string | null;
+  fecha: string;
   hora: string | null;
   idCliente: string;
   opcionRecogida: OpcionRecogida;
