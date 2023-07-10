@@ -251,21 +251,10 @@ export class Impresora {
       mqtt.connect("mqtt://127.0.0.1:1883", {
         username: "ImpresoraMQTT",
       });
+
     client.on("connect", function () {
       let buff = Buffer.from(encodedData, "hex");
       client.publish("hit.hardware/printer", buff);
-    }
-  private enviarMQTTCajon(encodedData) {
-    // conectamos con el cliente
-    var client =
-      mqtt.connect(process.env.MQTT_URL) ||
-      mqtt.connect("mqtt://127.0.0.1:1883", {
-        username: "ImpresoraMQTT",
-      });
-    // cuando se conecta enviamos los datos
-    client.on("connect", function () {
-      let buff = Buffer.from(encodedData, "hex");
-      client.publish("hit.hardware/cajon", buff);
     });
   }
   private async _venta(info, recibo = null) {
@@ -292,7 +281,7 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    let detalles = "";
+    let detalles = await this.precioUnitario(arrayCompra);
     let pagoTarjeta = "";
     let pagoTkrs = "";
     let detalleClienteVip = "";
@@ -333,19 +322,16 @@ export class Impresora {
       detalleDejaCuenta = "Pago recibido: " + info.dejaCuenta;
     }
 
-    let str1 = "          ";
-    let str2 = "                 ";
-    let str3 = "              ";
-    let base = "";
-    let valorIva = "";
-    let importe = "";
-    let detalleIva4 = "";
-    let detalleIva10 = "";
-    let detalleIva21 = "";
+    const detallesIva = await this.getDetallesIva(tiposIva);
+
     let detalleIva = "";
 
     detalleIva =
-      detalleIva0 + detalleIva4 + detalleIva5 + detalleIva10 + detalleIva21;
+      detallesIva.detalleIva0 +
+      detallesIva.detalleIva4 +
+      detallesIva.detalleIva5 +
+      detallesIva.detalleIva10 +
+      detallesIva.detalleIva21;
     let infoConsumoPersonal = "";
     if (tipoPago == "CONSUMO_PERSONAL") {
       infoConsumoPersonal = "---------------- Dte. 100% --------------";
@@ -424,7 +410,172 @@ export class Impresora {
         .close().buffer._buffer
     );
   }
+  async getDetallesIva(tiposIva) {
+    let str1 = "          ";
+    let str2 = "                 ";
+    let str3 = "              ";
+    let base = "";
+    let valorIva = "";
+    let importe = "";
+    const detalle = {
+      detalleIva4: "",
+      detalleIva10: "",
+      detalleIva21: "",
+      detalleIva0: "",
+      detalleIva5: "",
+    };
+    if (tiposIva.importe1 > 0) {
+      base = tiposIva.base1.toFixed(2) + " €";
+      valorIva = "4%: " + tiposIva.valorIva1.toFixed(2) + " €";
+      importe = tiposIva.importe1.toFixed(2) + " €\n";
+      detalle.detalleIva4 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe2 > 0) {
+      base = tiposIva.base2.toFixed(2) + " €";
+      valorIva = "10%: " + tiposIva.valorIva2.toFixed(2) + " €";
+      importe = tiposIva.importe2.toFixed(2) + " €\n";
+      detalle.detalleIva10 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe3 > 0) {
+      base = tiposIva.base3.toFixed(2) + " €";
+      valorIva = "21%: " + tiposIva.valorIva3.toFixed(2) + " €";
+      importe = tiposIva.importe3.toFixed(2) + " €\n";
+      detalle.detalleIva21 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe4 > 0) {
+      base = tiposIva.base4.toFixed(2) + " €";
+      valorIva = "0%: " + tiposIva.valorIva4.toFixed(2) + " €";
+      importe = tiposIva.importe4.toFixed(2) + " €\n";
+      detalle.detalleIva0 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe5 > 0) {
+      base = tiposIva.base5.toFixed(2) + " €";
+      valorIva = "5%: " + tiposIva.valorIva5.toFixed(2) + " €";
+      importe = tiposIva.importe5.toFixed(2) + " €\n";
+      detalle.detalleIva5 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
 
+    return detalle;
+  }
+  async precioUnitario(arrayCompra) {
+    let detalles = "";
+    for (let i = 0; i < arrayCompra.length; i++) {
+      if (
+        (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
+        "Si"
+      ) {
+        arrayCompra[i]["subtotal"] = Number(
+          (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
+        );
+      }
+      if (arrayCompra[i].promocion) {
+        let nombrePrincipal = (
+          await articulosInstance.getInfoArticulo(
+            arrayCompra[i].promocion.idArticuloPrincipal
+          )
+        ).nombre;
+        nombrePrincipal = "Oferta " + nombrePrincipal;
+        while (nombrePrincipal.length < 20) {
+          nombrePrincipal += " ";
+        }
+        detalles += `${
+          arrayCompra[i].unidades *
+          arrayCompra[i].promocion.cantidadArticuloPrincipal
+        }     ${nombrePrincipal.slice(0, 20)}       ${arrayCompra[
+          i
+        ].subtotal.toFixed(2)}\n`;
+        detalles += `     >     ${
+          nombrePrincipal.slice(0, 20) +
+          "(x" +
+          arrayCompra[i].promocion.cantidadArticuloPrincipal +
+          ")"
+        } ${arrayCompra[i].promocion.precioRealArticuloPrincipal.toFixed(2)}\n`;
+        if (arrayCompra[i].promocion.cantidadArticuloSecundario > 0) {
+          let nombreSecundario = (
+            await articulosInstance.getInfoArticulo(
+              arrayCompra[i].promocion.idArticuloSecundario
+            )
+          ).nombre;
+          nombreSecundario = "Oferta " + nombreSecundario;
+          while (nombreSecundario.length < 20) {
+            nombreSecundario += " ";
+          }
+          /*detalles += `${
+            arrayCompra[i].unidades *
+            arrayCompra[i].promocion.cantidadArticuloSecundario
+          }     ${nombreSecundario.slice(0, 20)}       ${arrayCompra[
+            i
+          ].promocion.precioRealArticuloSecundario.toFixed(2)}\n`;*/
+          detalles += `     >     ${
+            nombreSecundario.slice(0, 20) +
+            "(x" +
+            arrayCompra[i].promocion.cantidadArticuloSecundario +
+            ")"
+          } ${arrayCompra[i].promocion.precioRealArticuloSecundario.toFixed(
+            2
+          )}\n`;
+        }
+      } else if (
+        arrayCompra[i].arraySuplementos &&
+        arrayCompra[i].arraySuplementos.length > 0
+      ) {
+        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
+          i
+        ].nombre.slice(0, 20)} +      \n`;
+        for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
+          if (j == arrayCompra[i].arraySuplementos.length - 1) {
+            detalles += `       ${arrayCompra[i].arraySuplementos[j].nombre
+              .slice(0, 20)
+              .padEnd(20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+          } else {
+            detalles += `       ${arrayCompra[i].arraySuplementos[
+              j
+            ].nombre.slice(0, 20)} +      \n`;
+          }
+        }
+      } else {
+        if (arrayCompra[i].nombre.length < 20) {
+          while (arrayCompra[i].nombre.length < 20) {
+            arrayCompra[i].nombre += " ";
+          }
+        }
+        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
+          i
+        ].nombre.slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+      }
+    }
+    return detalles;
+  }
   /* Eze 4.0 */
   async imprimirSalida(movimiento: MovimientosInterface) {
     try {
@@ -1199,57 +1350,6 @@ export class Impresora {
       mqttInstance.loggerMQTT(err);
       return { error: true, info: "Error en CATCH imprimirEntregas() 2" };
     }
-  }
-  async imprimirIntervaloDeuda(fechaInicial, fechaFinal) {
-    const unDiaEnMilisegundos = 86400000;
-    const tmpInicial = new Date(fechaInicial).getTime();
-    const tmpFinal = new Date(fechaFinal).getTime() + unDiaEnMilisegundos;
-    // buscamos deudas con pagado=false des del intervalo que ha llegado a la funcion
-    const deudas = await schDeudas.getIntervaloDeuda(tmpInicial, tmpFinal);
-
-    if (deudas.length == 0)
-      return { error: true, msg: "No se encontraron deudas en ese intervalo" };
-    let string = "";
-
-    // Imprimir las deudas por orden de fecha
-    await deudas.forEach((deuda) => {
-      const date = new Date(deuda.timestamp);
-      const options = { hour12: false };
-      const fecha = date.toLocaleDateString();
-      const hora = date.toLocaleTimeString(undefined, options);
-
-      string += `\n${fecha} ${hora}`;
-      string += `\n - cliente: ${deuda.nombreCliente}`;
-      string += `\n - total: ${deuda.total} EUR`;
-      string += `\n - productos:`;
-      const clientes = deuda.cesta.lista;
-      deuda.cesta.lista.forEach((producto) => {
-        const nombreProducto = producto.nombre.substring(0, 32);
-        const suplementos = producto.arraySuplementos || [];
-        const productoConSuplementos = ` ${suplementos
-          .map((suplemento) => `\n    ${suplemento.nombre}`)
-          .join(", ")}`;
-        const unidades = producto.unidades;
-        string += `\n  -> ${producto.nombre}: ${unidades}u`;
-        string += `${productoConSuplementos}\n`;
-      });
-    });
-    const device = new escpos.Network();
-    const printer = new escpos.Printer(device);
-    // enviamos el string a la impresora por mqtt
-    this.enviarMQTT(
-      printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .size(0, 0)
-        .align("LT")
-        .text(string)
-        .cut("PAPER_FULL_CUT")
-        .close().buffer._buffer
-    );
-    return { error: false, msg: "Good work bro" };
   }
 }
 export const impresoraInstance = new Impresora();
