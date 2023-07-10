@@ -17,6 +17,8 @@ import { CajaSincro } from "../caja/caja.interface";
 import { logger } from "../logger";
 import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import { buffer } from "stream/consumers";
+import * as schDeudas from "../deudas/deudas.mongodb";
+import { conexion } from "src/conexion/mongodb";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -103,6 +105,63 @@ export class Impresora {
 
   /* Eze 4.0 */
   async imprimirTicket(idTicket: number) {
+    // recoge el ticket por la id
+    const ticket = await ticketsInstance.getTicketById(idTicket);
+    const parametros = await parametrosInstance.getParametros();
+    
+    const trabajador: TrabajadoresInterface =
+      await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
+    // Preparamos el objeto que vamos a mandar a la impresora
+    let sendObject = null;
+    // Si el ticket existe y el trabajador tambien
+    if (ticket && trabajador) {
+      // Si el ticket tiene cliente imprimimos los datos del cliente tambien
+      if (ticket.idCliente && ticket.idCliente != "") {
+        // recogemos los datos del cliente
+        let infoCliente: ClientesInterface = null;
+        infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
+        const puntos = await clienteInstance.getPuntosCliente(ticket.idCliente);
+        // preparamos los parametros que vamos a enviar a la impresora
+        sendObject = {
+          numFactura: ticket._id,
+          timestamp: ticket.timestamp,
+          arrayCompra: ticket.cesta.lista,
+          total: ticket.total,
+          visa: await ticketsInstance.getFormaPago(ticket),
+          tiposIva: ticket.cesta.detalleIva,
+          cabecera: parametros.header,
+          pie: parametros.footer,
+          nombreTrabajador: trabajador.nombreCorto,
+          infoClienteVip: null, // Mirar bien para terminar todo
+          infoCliente: {
+            nombre: infoCliente.nombre,
+            puntos: puntos,
+          },
+          dejaCuenta: ticket.dejaCuenta,
+        };
+      } else {
+        // si no tenemos cliente preparamos el objeto sin los datos del cliente
+        sendObject = {
+          numFactura: ticket._id,
+          timestamp: ticket.timestamp,
+          arrayCompra: ticket.cesta.lista,
+          total: ticket.total,
+          visa: await ticketsInstance.getFormaPago(ticket),
+          tiposIva: ticket.cesta.detalleIva,
+          cabecera: parametros.header,
+          pie: parametros.footer,
+          nombreTrabajador: trabajador.nombreCorto,
+          infoClienteVip: null, // Mirar bien para terminar todo
+          infoCliente: null,
+          dejaCuenta: ticket.dejaCuenta,
+        };
+      }
+      // enviamos el objeto
+      await this._venta(sendObject);
+    }
+  }
+
+  async imprimirFirma(idTicket: number) {
     const ticket = await ticketsInstance.getTicketById(idTicket);
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
@@ -126,13 +185,13 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          impresora: parametros.tipoImpresora,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: {
             nombre: infoCliente.nombre,
             puntos: puntos,
           },
           dejaCuenta: ticket.dejaCuenta,
+          firma: true
         };
       } else {
         sendObject = {
@@ -145,15 +204,16 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          impresora: parametros.tipoImpresora,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
           dejaCuenta: ticket.dejaCuenta,
+          firma: true
         };
       }
       await this._venta(sendObject);
     }
   }
+
   /* Eze 4.0 */
   async imprimirDevolucion(idDevolucion: ObjectId) {
     try {
@@ -177,7 +237,6 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          impresora: parametros.tipoImpresora,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
         };
@@ -189,7 +248,7 @@ export class Impresora {
     }
   }
   public async imprimirListaEncargos(lista: string) {
-    const device = new escpos.Network();
+    const device = new escpos.Network('localhost');
     const printer = new escpos.Printer(device);
     this.enviarMQTT(
       printer
@@ -207,7 +266,7 @@ export class Impresora {
   private async imprimirRecibo(recibo: string) {
     mqttInstance.loggerMQTT("imprimir recibo");
     try {
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       this.enviarMQTT(
         printer
@@ -226,7 +285,7 @@ export class Impresora {
   }
   public async testMqtt(txt: string) {
     try {
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       this.enviarMQTT(
         printer
@@ -244,20 +303,38 @@ export class Impresora {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
   }
-
+  // recovimos los datos de la impresion
   private enviarMQTT(encodedData) {
+    // conectamos con el cliente
     var client =
-      mqtt.connect(process.env.MQTT_URL) ||
+      // mqtt.connect(process.env.MQTT_URL) ||
       mqtt.connect("mqtt://127.0.0.1:1883", {
         username: "ImpresoraMQTT",
       });
+    // cuando se conecta enviamos los datos
 
     client.on("connect", function () {
-      let buff = Buffer.from(encodedData, "hex");
+      let buff = Buffer.from(encodedData, "utf8");
       client.publish("hit.hardware/printer", buff);
     });
   }
+
+  private enviarMQTTCajon(encodedData) {
+    // conectamos con el cliente
+    var client =
+      // mqtt.connect(process.env.MQTT_URL) ||
+      mqtt.connect("mqtt://127.0.0.1:1883", {
+        username: "ImpresoraMQTT",
+      });
+    // cuando se conecta enviamos los datos
+    client.on("connect", function () {
+      let buff = Buffer.from(encodedData, "utf8");
+      client.publish("hit.hardware/cajon", buff);
+    });
+  }
+
   private async _venta(info, recibo = null) {
+    // recojemos datos de los parametros
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
     const total =
@@ -271,11 +348,14 @@ export class Impresora {
     //   mqttInstance.loggerMQTT(tipoPago)
     const tiposIva = info.tiposIva;
     const cabecera = info.cabecera;
+    const firmaText = !info.firma ? "" : "\n\n\n\n\n";
+    const copiaText = !info.firma ? "-- ES COPIA --" : "-- FIRMA CLIENTE --";
     const pie = info.pie;
     const nombreDependienta = info.nombreTrabajador;
     const tipoImpresora = info.impresora;
     const infoClienteVip = info.infoClienteVip;
     const infoCliente = info.infoCliente;
+
     let strRecibo = "";
     if (recibo != null && recibo != undefined) {
       strRecibo = recibo;
@@ -292,17 +372,103 @@ export class Impresora {
     if (infoClienteVip && infoClienteVip.esVip) {
       detalleClienteVip = `Nom: ${infoClienteVip.nombre}\nNIF: ${infoClienteVip.nif}\nCP: ${infoClienteVip.cp}\nCiutat: ${infoClienteVip.ciudad}\nAdr: ${infoClienteVip.direccion}\n`;
     }
-
+    // recojemos datos del cliente si nos los han mandado
     if (infoCliente != null) {
       detalleNombreCliente = infoCliente.nombre;
       detallePuntosCliente = "PUNTOS: " + infoCliente.puntos;
     }
     //const preuUnitari =
-
+    // recojemos los productos del ticket
+    const preuUnitari = (await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si";
+    for (let i = 0; i < arrayCompra.length; i++) {
+      if (preuUnitari) {
+        arrayCompra[i]["preuU"] = Number(
+          (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
+        );
+      }
+      if (arrayCompra[i].promocion) {
+        let nombrePrincipal = (
+          await articulosInstance.getInfoArticulo(
+            arrayCompra[i].promocion.idArticuloPrincipal
+          )
+        ).nombre;
+        nombrePrincipal = "Oferta " + nombrePrincipal;
+        while (nombrePrincipal.length < 20) {
+          nombrePrincipal += " ";
+        }
+        detalles += `${
+          arrayCompra[i].unidades *
+          arrayCompra[i].promocion.cantidadArticuloPrincipal
+        }     ${nombrePrincipal.slice(0, 20)}${preuUnitari ? "     " +arrayCompra[i]["preuU"] :""}       ${arrayCompra[
+          i
+        ].subtotal.toFixed(2)}\n`;
+        detalles += `     >     ${
+          nombrePrincipal.slice(0, 20) +
+          "(x" +
+          arrayCompra[i].promocion.cantidadArticuloPrincipal +
+          ")"
+        } ${arrayCompra[i].promocion.precioRealArticuloPrincipal.toFixed(2)}\n`;
+        if (arrayCompra[i].promocion.cantidadArticuloSecundario > 0) {
+          let nombreSecundario = (
+            await articulosInstance.getInfoArticulo(
+              arrayCompra[i].promocion.idArticuloSecundario
+            )
+          ).nombre;
+          nombreSecundario = "Oferta " + nombreSecundario;
+          while (nombreSecundario.length < 20) {
+            nombreSecundario += " ";
+          }
+          /*detalles += `${
+            arrayCompra[i].unidades *
+            arrayCompra[i].promocion.cantidadArticuloSecundario
+          }     ${nombreSecundario.slice(0, 20)}       ${arrayCompra[
+            i
+          ].promocion.precioRealArticuloSecundario.toFixed(2)}\n`;*/
+          detalles += `     >     ${
+            nombreSecundario.slice(0, 20) +
+            "(x" +
+            arrayCompra[i].promocion.cantidadArticuloSecundario +
+            ")"
+          } ${arrayCompra[i].promocion.precioRealArticuloSecundario.toFixed(
+            2
+          )}\n`;
+        }
+      } else if (
+        arrayCompra[i].arraySuplementos &&
+        arrayCompra[i].arraySuplementos.length > 0
+      ) {
+        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
+          i
+        ].nombre.slice(0, 20)} +      \n`;
+        for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
+          if (j == arrayCompra[i].arraySuplementos.length - 1) {
+            detalles += `       ${arrayCompra[i].arraySuplementos[
+              j
+            ].nombre.slice(0, 20)}${preuUnitari ? "     " +arrayCompra[i]["preuU"] :""}         ${arrayCompra[i].subtotal.toFixed(
+              2
+            )}\n`;
+          } else {
+            detalles += `       ${arrayCompra[i].arraySuplementos[
+              j
+            ].nombre.slice(0, 20)} +      \n`;
+          }
+        }
+      } else {
+        if (arrayCompra[i].nombre.length < 20) {
+          while (arrayCompra[i].nombre.length < 20) {
+            arrayCompra[i].nombre += " ";
+          }
+        }
+        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
+          i
+        ].nombre.slice(0, 20)}${preuUnitari ? "     " +arrayCompra[i]["preuU"] :""}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+      }
+    }
+    // recogemos fechas
     const moment = require("moment-timezone");
     const fecha = new Date(info.timestamp);
     //const offset = fecha.getTimezoneOffset() * 60000; // Obtener el desplazamiento de la zona horaria en minutos y convertirlo a milisegundos
-
+    // recojemos el tipo de pago
     const fechaEspaña = moment(info.timestamp).tz("Europe/Madrid");
     if (tipoPago == "TARJETA") {
       pagoTarjeta = "----------- PAGADO CON TARJETA ---------\n";
@@ -325,7 +491,69 @@ export class Impresora {
     const detallesIva = await this.getDetallesIva(tiposIva);
 
     let detalleIva = "";
-
+    let detalleIva0 = "";
+    let detalleIva5 = "";
+    // IVA
+    if (tiposIva.importe1 > 0) {
+      base = tiposIva.base1.toFixed(2) + " €";
+      valorIva = "4%: " + tiposIva.valorIva1.toFixed(2) + " €";
+      importe = tiposIva.importe1.toFixed(2) + " €\n";
+      detalleIva4 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe2 > 0) {
+      base = tiposIva.base2.toFixed(2) + " €";
+      valorIva = "10%: " + tiposIva.valorIva2.toFixed(2) + " €";
+      importe = tiposIva.importe2.toFixed(2) + " €\n";
+      detalleIva10 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe3 > 0) {
+      base = tiposIva.base3.toFixed(2) + " €";
+      valorIva = "21%: " + tiposIva.valorIva3.toFixed(2) + " €";
+      importe = tiposIva.importe3.toFixed(2) + " €\n";
+      detalleIva21 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe4 > 0) {
+      base = tiposIva.base4.toFixed(2) + " €";
+      valorIva = "0%: " + tiposIva.valorIva4.toFixed(2) + " €";
+      importe = tiposIva.importe4.toFixed(2) + " €\n";
+      detalleIva0 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe5 > 0) {
+      base = tiposIva.base5.toFixed(2) + " €";
+      valorIva = "5%: " + tiposIva.valorIva5.toFixed(2) + " €";
+      importe = tiposIva.importe5.toFixed(2) + " €\n";
+      detalleIva5 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
     detalleIva =
       detallesIva.detalleIva0 +
       detallesIva.detalleIva4 +
@@ -352,17 +580,21 @@ export class Impresora {
     }-${fecha.getFullYear()}  ${
       (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
     }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
-
-    const device = new escpos.Network();
+    // declaramos el dispositivo y la impresora escpos
+    const device = new escpos.Network('localhost');
     const printer = new escpos.Printer(device);
+    const database = (await conexion).db("tocgame");
+    const coleccion = database.collection("parametros");
+    const preuU = (await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si";
+    
+    // lo mandamos a la funcion enviarMQTT que se supone que imprime
     this.enviarMQTT(
       printer
-
         .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .size(0, 0)
+        .encode("cp858")
+        .font("A")
+        // .style("b")
+        // .size(0, 0)
         .text(cabecera)
         .text(
           `Data: ${diasSemana[fechaEspaña.format("d")]} ${fechaEspaña.format(
@@ -377,7 +609,7 @@ export class Impresora {
         .control("LF")
         .control("LF")
         .control("LF")
-        .text("Quantitat      Article        Import (€)")
+        .text(`Quantitat      Article   ${preuU ? '  Preu U.' : ""}     Import (€)`)
         .text("-----------------------------------------")
         .align("LT")
         .text(detalles)
@@ -399,14 +631,14 @@ export class Impresora {
         .align("CT")
         .text("Base IVA         IVA         IMPORT")
         .text(detalleIva)
-        .text("-- ES COPIA --")
+        .text(copiaText)
+        .text(firmaText)
         .control("LF")
         .text("ID: " + random() + " - " + random())
         .text(pie)
         .control("LF")
         .control("LF")
         .control("LF")
-        .cut("PAPER_FULL_CUT")
         .close().buffer._buffer
     );
   }
@@ -585,7 +817,7 @@ export class Impresora {
       const trabajador = await trabajadoresInstance.getTrabajadorById(
         movimiento.idTrabajador
       );
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       let buffer = printer
         .setCharacterCodeTable(19)
@@ -630,7 +862,7 @@ export class Impresora {
       const trabajador = await trabajadoresInstance.getTrabajadorById(
         movimiento.idTrabajador
       );
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       let buffer = printer
         .setCharacterCodeTable(19)
@@ -688,7 +920,7 @@ export class Impresora {
       //         stopBit: 2
       //     });
       // }
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       this.enviarMQTT(
         printer
@@ -771,7 +1003,7 @@ export class Impresora {
 
     const mesInicial = fechaInicio.getMonth() + 1;
     const mesFinal = fechaFinal.getMonth() + 1;
-    const device = new escpos.Network();
+    const device = new escpos.Network('localhost');
     const printer = new escpos.Printer(device);
     this.enviarMQTT(
       printer
@@ -996,7 +1228,7 @@ export class Impresora {
         `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
 
       permisosImpresora();
-      const device = new escpos.Network();
+      const device = new escpos.Network('localhost');
       const printer = new escpos.Printer(device);
       const diasSemana = [
         "Diumenge",
@@ -1168,9 +1400,9 @@ export class Impresora {
   }
 
   async abrirCajon() {
-    const device = new escpos.Network();
+    const device = new escpos.Network('localhost');
     const printer = new escpos.Printer(device);
-    this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer);
+    this.enviarMQTTCajon(printer.cashdraw(2).close().buffer._buffer);
   }
 
   async mostrarVisor(data) {
@@ -1245,7 +1477,7 @@ export class Impresora {
       })
       .then(async (res: any) => {
         try {
-          const device = new escpos.Network();
+          const device = new escpos.Network('localhost');
           const printer = new escpos.Printer(device);
           this.enviarMQTT(
             printer
@@ -1270,7 +1502,6 @@ export class Impresora {
         return { error: true, info: "Error en CATCH imprimirEntregas() 1" };
       });
   }
-
   async imprimirEncargo(encargo) {
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
@@ -1350,6 +1581,57 @@ export class Impresora {
       mqttInstance.loggerMQTT(err);
       return { error: true, info: "Error en CATCH imprimirEntregas() 2" };
     }
+  }
+  async imprimirIntervaloDeuda(fechaInicial, fechaFinal) {
+    const unDiaEnMilisegundos = 86400000;
+    const tmpInicial = new Date(fechaInicial).getTime();
+    const tmpFinal = new Date(fechaFinal).getTime() + unDiaEnMilisegundos;
+    // buscamos deudas con pagado=false des del intervalo que ha llegado a la funcion
+    const deudas = await schDeudas.getIntervaloDeuda(tmpInicial, tmpFinal);
+
+    if (deudas.length == 0)
+      return { error: true, msg: "No se encontraron deudas en ese intervalo" };
+    let string = "";
+
+    // Imprimir las deudas por orden de fecha
+    await deudas.forEach((deuda) => {
+      const date = new Date(deuda.timestamp);
+      const options = { hour12: false };
+      const fecha = date.toLocaleDateString();
+      const hora = date.toLocaleTimeString(undefined, options);
+
+      string += `\n${fecha} ${hora}`;
+      string += `\n - cliente: ${deuda.nombreCliente}`;
+      string += `\n - total: ${deuda.total} EUR`;
+      string += `\n - productos:`;
+      const clientes = deuda.cesta.lista;
+      deuda.cesta.lista.forEach((producto) => {
+        const nombreProducto = producto.nombre.substring(0, 32);
+        const suplementos = producto.arraySuplementos || [];
+        const productoConSuplementos = ` ${suplementos
+          .map((suplemento) => `\n    ${suplemento.nombre}`)
+          .join(", ")}`;
+        const unidades = producto.unidades;
+        string += `\n  -> ${producto.nombre}: ${unidades}u`;
+        string += `${productoConSuplementos}\n`;
+      });
+    });
+    const device = new escpos.Network();
+    const printer = new escpos.Printer(device);
+    // enviamos el string a la impresora por mqtt
+    this.enviarMQTT(
+      printer
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .size(0, 0)
+        .align("LT")
+        .text(string)
+        .cut("PAPER_FULL_CUT")
+        .close().buffer._buffer
+    );
+    return { error: false, msg: "Good work bro" };
   }
 }
 export const impresoraInstance = new Impresora();
