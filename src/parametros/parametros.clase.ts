@@ -32,6 +32,7 @@ export class ParametrosClase {
       params.database.length > 0 &&
       params.nombreEmpresa.length > 0 &&
       params.nombreTienda.length > 0 &&
+      params.tipoImpresora.length > 0 &&
       params.tipoDatafono.length > 0
     ) {
       return true;
@@ -54,8 +55,20 @@ export class ParametrosClase {
     await schParametros.setUltimoTicket(idTicket);
 
   /* Eze 4.0 */
+  setVidAndPid = async (vid: string, pid: string): Promise<boolean> =>
+    await schParametros.setVidAndPid(vid, pid);
+
+  /* Eze 4.0 */
+  setTipoImpresora = async (
+    tipo: ParametrosInterface["tipoImpresora"]
+  ): Promise<boolean> => await schParametros.setTipoImpresora(tipo);
+
+  /* Eze 4.0 */
   setPropiedad = async (claveValor: any) =>
     await schParametros.actualizarPropiedad(claveValor);
+
+  setTipoVisor = async (tipo: ParametrosInterface["visor"]): Promise<boolean> =>
+    await schParametros.setVisor(tipo);
 
   /* Eze 4.0 */
   setIpPaytef = async (ip: string): Promise<boolean> =>
@@ -65,7 +78,7 @@ export class ParametrosClase {
   set3G = async (): Promise<boolean> => 
     await schParametros.set3G();
 
-  /* Yasai :D */
+  /* Eze 4.0 */
   generarObjetoParametros(): ParametrosInterface {
     return {
       _id: "PARAMETROS",
@@ -73,12 +86,19 @@ export class ParametrosClase {
       codigoTienda: 0,
       database: "",
       nombreEmpresa: "",
-      tarifaMesa: "",
       nombreTienda: "",
+      tipoImpresora: "USB",
       tipoDatafono: "PAYTEF",
+      impresoraCafeteria: "NO",
+      clearOneCliente: 0,
+      clearOneTienda: 0,
+      clearOneTpv: 0,
+      botonesConPrecios: "No",
+      prohibirBuscarArticulos: "No",
       ultimoTicket: -1,
       header: "",
       footer: "",
+      impresoraUsbInfo: { vid: "", pid: "" },
       token: undefined,
     };
   }

@@ -139,8 +139,7 @@ export class CestaClase {
           e.gramos,
           id,
           e.unidades,
-          e.arraySuplementos,
-          ""
+          e.arraySuplementos
         );
       }
       return id;
@@ -155,8 +154,7 @@ export class CestaClase {
         e.gramos,
         cesta,
         e.unidades,
-        e.arraySuplementos,
-        ""
+        e.arraySuplementos
       );
     }
     return true;
@@ -295,20 +293,17 @@ export class CestaClase {
     return unaCesta;
   }
 
-  /* ??? ??? => la información del artículo "articulo" debe estar masticada (tarifas especiales) */
-  /* Yasai :D */
+  /* Eze 4.0 => la información del artículo "articulo" debe estar masticada (tarifas especiales) */
   async insertarArticulo(
     articulo: ArticulosInterface,
     unidades: number,
     idCesta: CestasInterface["_id"],
     arraySuplementos: ItemLista["arraySuplementos"], // Los suplentos no deben tener tarifa especial para simplificar.
-    gramos: ItemLista["gramos"],
-    nombre = ""
+    gramos: ItemLista["gramos"]
   ): Promise<CestasInterface> {
-    // recojemos la cesta
     let cesta = await this.getCestaById(idCesta);
     let articuloNuevo = true;
-    // si es una promocion lo gestionamos de otra forma
+
     if (
       !(await nuevaInstancePromociones.gestionarPromociones(
         cesta,
@@ -316,18 +311,14 @@ export class CestaClase {
         unidades
       ))
     ) {
-      // recojemos los datos del articulo
       let infoArticulo = await articulosInstance.getInfoArticulo(articulo._id);
-      // recorremos la cesta 
+
       for (let i = 0; i < cesta.lista.length; i++) {
-        // si el articulo ya esta en la cesta
         if (
           cesta.lista[i].idArticulo === articulo._id &&
           cesta.lista[i].gramos == null &&
           !cesta.lista[i].regalo &&
-          cesta.lista[i].promocion == null &&
-          // aqui basicamente compruebo de que si el articulo es especial y tiene un nombre diferente que no se sume
-          (cesta.lista[i].nombre == nombre || nombre.length == 0)
+          cesta.lista[i].promocion == null
         ) {
           if (
             arraySuplementos &&
@@ -373,7 +364,6 @@ export class CestaClase {
             articuloNuevo = false;
             break;
           }
-
         }
       }
 
@@ -411,20 +401,17 @@ export class CestaClase {
     throw Error("Error updateCesta() - cesta.clase.ts");
   }
 
-  /* Yasai :D */
+  /* Eze 4.0 */
   async clickTeclaArticulo(
     idArticulo: ArticulosInterface["_id"],
     gramos: ItemLista["gramos"],
     idCesta: CestasInterface["_id"],
     unidades: number,
-    arraySuplementos: ItemLista["arraySuplementos"],
-    nombre: string
+    arraySuplementos: ItemLista["arraySuplementos"]
   ) {
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
       const cesta = await cestasInstance.getCestaById(idCesta);
-
-      articulo.nombre = nombre.length > 0 ? nombre : articulo.nombre;
 
       if (cesta.idCliente) {
         articulo = await articulosInstance.getPrecioConTarifa(
@@ -440,8 +427,7 @@ export class CestaClase {
           gramos / 1000,
           idCesta,
           arraySuplementos,
-          gramos,
-          nombre
+          gramos
         );
 
       // Modo por unidad
@@ -450,8 +436,7 @@ export class CestaClase {
         unidades,
         idCesta,
         arraySuplementos,
-        null,
-        nombre
+        null
       );
     }
     throw Error(

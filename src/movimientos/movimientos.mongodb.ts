@@ -27,15 +27,6 @@ export async function nuevoMovimiento(
   return (await movimientos.insertOne(data)).acknowledged;
 }
 
-export async function existeMovimiento(
-  idTicket: MovimientosInterface["idTicket"],
-  valor: MovimientosInterface["valor"]
-): Promise<boolean> {
-  const database = (await conexion).db("tocgame");
-  const movimientos = database.collection<MovimientosInterface>("movimientos");
-  return !!(await movimientos.findOne({ idTicket, valor }));
-}
-
 /* Eze 4.0 */
 export async function getUltimoCodigoBarras(): Promise<
   CuentaCodigoBarras["ultimo"]

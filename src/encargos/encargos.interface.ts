@@ -8,7 +8,6 @@ type Dias = {
 
 type Productos = {
   id: number;
-  idGraella: string;
   nombre: string;
   comentario: string;
 };
