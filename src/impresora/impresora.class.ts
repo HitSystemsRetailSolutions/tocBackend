@@ -250,55 +250,30 @@ export class Impresora {
   public async imprimirListaEncargos(lista: string) {
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
-    this.enviarMQTT(
-      printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .size(0, 0)
-        .align("LT")
-        .text(lista)
-        .cut("PAPER_FULL_CUT")
-        .close().buffer._buffer
-    );
-  }
-  private async imprimirRecibo(recibo: string) {
-    mqttInstance.loggerMQTT("imprimir recibo");
-    try {
-      const device = new escpos.Network("localhost");
-      const printer = new escpos.Printer(device);
-      this.enviarMQTT(
-        printer
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .size(0, 0)
-          .text(recibo)
-          .cut("PAPER_FULL_CUT")
-          .close().buffer._buffer
-      );
-    } catch (err) {
-      mqttInstance.loggerMQTT("Error impresora: " + err);
-    }
+    this.enviarMQTT([
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "encode", payload: "CP858" },
+      { tipo: "font", payload: "a" },
+      { tipo: "style", payload: "b" },
+      { tipo: "size", payload: [0, 0] },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: lista },
+      { tipo: "cut", payload: "PAPER_FULL_CUT" },
+    ]);
   }
   public async testMqtt(txt: string) {
     try {
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
-      this.enviarMQTT(
-        printer
-
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .size(0, 0)
-          .text(txt)
-          .cut("PAPER_FULL_CUT")
-          .close().buffer._buffer
-      );
+      this.enviarMQTT([
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: txt },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ]);
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
@@ -313,14 +288,7 @@ export class Impresora {
       });
     // cuando se conecta enviamos los datos
     client.on("connect", function () {
-      let buff = Buffer.from(encodedData, "utf8");
-      client.publish("hit.hardware/printer", buff);
-    });
-  }
-
-  private enviarMQTTNuevo(imprimirArray) {
-    axios.post("http://localhost:42069/imprimir", {imprimirArray}).catch(err => {
-      console.log(err);
+      client.publish("hit.hardware/printer", JSON.stringify(encodedData));
     });
   }
 
@@ -659,7 +627,7 @@ export class Impresora {
       { tipo: "cut", payload: "PAPER_FULL_CUT" },
     ];
 
-    this.enviarMQTTNuevo(arrayImprimir);
+    this.enviarMQTT(arrayImprimir);
 
     // this.enviarMQTT(
     //   printer
@@ -730,6 +698,27 @@ export class Impresora {
       );
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
+      let arrayImpr = [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: parametros.nombreTienda },
+        { tipo: "text", payload: fechaStr.format("DD-MM-YYYY HH:mm") },
+        { tipo: "text", payload: "Dependienta: " + trabajador.nombre },
+        {
+          tipo: "text",
+          payload: "Retirada efectivo: " + movimiento.valor + "€",
+        },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.valor + "€" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Concepto" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.concepto },
+      ];
       let buffer = printer
         .setCharacterCodeTable(19)
         .encode("CP858")
@@ -749,16 +738,18 @@ export class Impresora {
         .text(movimiento.concepto);
 
       if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
-        buffer = buffer.barcode(
-          movimiento.codigoBarras.slice(0, 12),
-          "EAN13",
-          4
-        );
+        arrayImpr.push({
+          tipo: "barcode",
+          payload: [movimiento.codigoBarras.slice(0, 12), "EAN13", 4],
+        });
+        buffer.barcode(movimiento.codigoBarras.slice(0, 12), "EAN13", 4);
       }
 
-      buffer = buffer.text("").text("").text("").cut().close().buffer._buffer;
+      arrayImpr.push({ tipo: "text", payload: "\n\n\n" });
 
-      this.enviarMQTT(buffer);
+      // buffer = buffer.text("").text("").text("").cut().buffer._buffer;
+
+      this.enviarMQTT(arrayImpr);
     } catch (err) {
       logger.Error(146, err);
     }

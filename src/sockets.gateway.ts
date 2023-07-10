@@ -4,7 +4,10 @@ import { cajaInstance } from "./caja/caja.clase";
 import { cestasInstance } from "./cestas/cestas.clase";
 import { logger } from "./logger";
 import { movimientosInstance } from "./movimientos/movimientos.clase";
-import { ParametrosClase, parametrosInstance } from "./parametros/parametros.clase";
+import {
+  ParametrosClase,
+  parametrosInstance,
+} from "./parametros/parametros.clase";
 import { paytefInstance } from "./paytef/paytef.class";
 import { nuevaInstancePromociones } from "./promociones/promociones.clase";
 import { tecladoInstance } from "./teclado/teclado.clase";
@@ -39,11 +42,12 @@ io.on("connection", (socket) => {
     }
   });
 
+  /* Yasai :D */
   socket.on("toggle3g", async ({ idTrabajador, idTicket }) => {
     try {
       if (idTrabajador && idTicket) {
         const ticket = await ticketsInstance.getTicketById(idTicket);
-        if(!ticket) throw Error("Ticket no encontrado");
+        if (!ticket) throw Error("Ticket no encontrado");
         toggle3G(idTicket, ticket.datafono3G);
       }
       throw Error("Faltan datos {idTrabajador} controller");
@@ -75,19 +79,18 @@ io.on("connection", (socket) => {
       logger.Error(36, err);
     }
   });
- 
 
-    /* Uri */
-    socket.on("cargarConfigurador", async (data) => {
-      try {
-        socket.emit(
-          "cargarConfigurador",
-          await parametrosController.getPropiedad()
-        );
-      } catch (err) {
-        logger.Error(36, err);
-      }
-    });
+  /* Uri */
+  socket.on("cargarConfigurador", async (data) => {
+    try {
+      socket.emit(
+        "cargarConfigurador",
+        await parametrosController.getPropiedad()
+      );
+    } catch (err) {
+      logger.Error(36, err);
+    }
+  });
 
   /* Eze 4.0 */
   socket.on("cargarCestas", async (data) => {
