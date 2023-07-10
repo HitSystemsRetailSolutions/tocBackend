@@ -112,13 +112,15 @@ export class Impresora {
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
     // Preparamos el objeto que vamos a mandar a la impresora
-    let sendObject:Object;
+    let sendObject: Object;
     // Si el ticket existe y el trabajador tambien
     if (ticket && trabajador) {
       // Si el ticket tiene cliente imprimimos los datos del cliente tambien
       if (ticket.idCliente && ticket.idCliente != "") {
         // recogemos los datos del cliente
-        let infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
+        let infoCliente = await clienteInstance.getClienteById(
+          ticket.idCliente
+        );
         const puntos = await clienteInstance.getPuntosCliente(ticket.idCliente);
         // preparamos los parametros que vamos a enviar a la impresora
         sendObject = {
@@ -249,35 +251,31 @@ export class Impresora {
   public async imprimirListaEncargos(lista: string) {
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
-    this.enviarMQTT(
-      printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .size(0, 0)
-        .align("LT")
-        .text(lista)
-        .cut("PAPER_FULL_CUT")
-        .close().buffer._buffer
-    );
+    this.enviarMQTT([
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "encode", payload: "CP858" },
+      { tipo: "font", payload: "a" },
+      { tipo: "style", payload: "b" },
+      { tipo: "size", payload: [0, 0] },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: lista },
+      { tipo: "cut", payload: "PAPER_FULL_CUT" },
+    ]);
   }
   private async imprimirRecibo(recibo: string) {
     mqttInstance.loggerMQTT("imprimir recibo");
     try {
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
-      this.enviarMQTT(
-        printer
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .size(0, 0)
-          .text(recibo)
-          .cut("PAPER_FULL_CUT")
-          .close().buffer._buffer
-      );
+      this.enviarMQTT([
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: recibo },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ]);
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
@@ -286,18 +284,15 @@ export class Impresora {
     try {
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
-      this.enviarMQTT(
-        printer
-
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .size(0, 0)
-          .text(txt)
-          .cut("PAPER_FULL_CUT")
-          .close().buffer._buffer
-      );
+      this.enviarMQTT([
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: txt },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ]);
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
@@ -312,8 +307,7 @@ export class Impresora {
       });
     // cuando se conecta enviamos los datos
     client.on("connect", function () {
-      let buff = Buffer.from(encodedData, "hex");
-      client.publish("hit.hardware/printer", buff);
+      client.publish("hit.hardware/printer", JSON.stringify(encodedData));
     });
   }
 
@@ -436,64 +430,68 @@ export class Impresora {
     const preuU =
       (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
       "Si";
-
+    const arrayImprimir = [
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "encode", payload: "cp858" },
+      { tipo: "font", payload: "A" },
+      { tipo: "text", payload: cabecera },
+      {
+        tipo: "text",
+        payload: `Data: ${
+          diasSemana[fechaEspaña.format("d")]
+        } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+      },
+      { tipo: "text", payload: "Factura simplificada N: " + numFactura },
+      { tipo: "text", payload: "Ates per: " + nombreDependienta },
+      { tipo: "text", payload: detalleClienteVip },
+      { tipo: "text", payload: detalleNombreCliente },
+      { tipo: "text", payload: detallePuntosCliente },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      {
+        tipo: "text",
+        payload: `Quantitat      Article   ${
+          preuU ? "  Preu U." : ""
+        }     Import (€)`,
+      },
+      { tipo: "text", payload: "-----------------------------------------" },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: detalles },
+      { tipo: "align", payload: "CT" },
+      { tipo: "text", payload: pagoTarjeta },
+      { tipo: "text", payload: pagoTkrs },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: infoConsumoPersonal },
+      { tipo: "align", payload: "CT" },
+      {
+        tipo: "text",
+        payload: "----------------------------------------------",
+      },
+      { tipo: "align", payload: "LT" },
+      { tipo: "size", payload: [1, 1] },
+      { tipo: "text", payload: pagoDevolucion },
+      { tipo: "text", payload: detalleEncargo },
+      { tipo: "text", payload: detalleDejaCuenta },
+      { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "size", payload: [0, 0] },
+      { tipo: "align", payload: "CT" },
+      { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+      { tipo: "text", payload: detalleIva },
+      { tipo: "text", payload: copiaText },
+      { tipo: "text", payload: firmaText },
+      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: "ID: " + random() + " - " + random() },
+      { tipo: "text", payload: pie },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "cut", payload: "PAPER_FULL_CUT" },
+    ];
     // lo mandamos a la funcion enviarMQTT que se supone que imprime
-    this.enviarMQTT(
-      printer
-        .setCharacterCodeTable(19)
-        .encode("cp858")
-        .font("A")
-        // .style("b")
-        // .size(0, 0)
-        .text(cabecera)
-        .text(
-          `Data: ${diasSemana[fechaEspaña.format("d")]} ${fechaEspaña.format(
-            "DD-MM-YYYY HH:mm"
-          )}`
-        )
-        .text("Factura simplificada N: " + numFactura)
-        .text("Ates per: " + nombreDependienta)
-        .text(detalleClienteVip)
-        .text(detalleNombreCliente)
-        .text(detallePuntosCliente)
-        .control("LF")
-        .control("LF")
-        .control("LF")
-        .text(
-          `Quantitat      Article   ${preuU ? "  Preu U." : ""}     Import (€)`
-        )
-        .text("-----------------------------------------")
-        .align("LT")
-        .text(detalles)
-        .align("CT")
-        .text(pagoTarjeta)
-        .text(pagoTkrs)
-        .align("LT")
-        .text(infoConsumoPersonal)
-        .align("CT")
-        .text("----------------------------------------------")
-        .align("LT")
-        .size(1, 1)
-        .text(pagoDevolucion)
-        .text(detalleEncargo)
-        .text(detalleDejaCuenta)
-        .text("TOTAL: " + total.toFixed(2) + " €")
-        .control("LF")
-        .size(0, 0)
-        .align("CT")
-        .text("Base IVA         IVA         IMPORT")
-        .text(detalleIva)
-        .text(copiaText)
-        .text(firmaText)
-        .control("LF")
-        .text("ID: " + random() + " - " + random())
-        .text(pie)
-        .control("LF")
-        .control("LF")
-        .control("LF")
-        .cut("PAPER_FULL_CUT")
-        .close().buffer._buffer
-    );
+    this.enviarMQTT(arrayImprimir);
   }
   async getDetallesIva(tiposIva) {
     let str1 = "          ";
@@ -678,33 +676,42 @@ export class Impresora {
       );
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
-      let buffer = printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .align("CT")
-        .size(0, 0)
-        .text(parametros.nombreTienda)
-        .text(fechaStr.format("DD-MM-YYYY HH:mm"))
-        .text("Dependienta: " + trabajador.nombre)
-        .text("Retirada efectivo: " + movimiento.valor + "€")
-        .size(1, 1)
-        .text(movimiento.valor + "€")
-        .size(0, 0)
-        .text("Concepto")
-        .size(1, 1)
-        .text(movimiento.concepto);
+      let buffer = [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: parametros.nombreTienda },
+        { tipo: "text", payload: fechaStr.format("DD-MM-YYYY HH:mm") },
+        { tipo: "text", payload: "Dependienta: " + trabajador.nombre },
+        {
+          tipo: "text",
+          payload: "Retirada efectivo: " + movimiento.valor + "€",
+        },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.valor + "€" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Concepto" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.concepto },
+      ];
 
       if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
-        buffer = buffer.barcode(
-          movimiento.codigoBarras.slice(0, 12),
-          "EAN13",
-          4
-        );
+        buffer.push({
+          tipo: "barcode",
+          payload: [movimiento.codigoBarras.slice(0, 12), "EAN13", 4],
+        });
       }
-
-      buffer = buffer.text("").text("").text("").cut().close().buffer._buffer;
+      buffer.push({
+        tipo: "text",
+        payload: "\n\n\n",
+      });
+      buffer.push({
+        tipo: "cut",
+        payload: "PAPER_FULL_CUT",
+      });
 
       this.enviarMQTT(buffer);
     } catch (err) {
@@ -723,32 +730,42 @@ export class Impresora {
       );
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
-      let buffer = printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .align("CT")
-        .size(0, 0)
-        .text(parametros.nombreTienda)
-        .text(fechaStr.format("DD-MM-YYYY HH:mm"))
-        .text("Dependienta: " + trabajador.nombre)
-        .text("Ingreso efectivo: " + movimiento.valor + "€")
-        .size(1, 1)
-        .text(movimiento.valor + "€")
-        .size(0, 0)
-        .text("Concepto")
-        .size(1, 1)
-        .text(movimiento.concepto);
+      let buffer = [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: parametros.nombreTienda },
+        { tipo: "text", payload: fechaStr.format("DD-MM-YYYY HH:mm") },
+        { tipo: "text", payload: "Dependienta: " + trabajador.nombre },
+        {
+          tipo: "text",
+          payload: "Ingreso efectivo: " + movimiento.valor + "€",
+        },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.valor + "€" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Concepto" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.concepto },
+      ];
 
       if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
-        buffer = buffer.barcode(
-          movimiento.codigoBarras.slice(0, 12),
-          "EAN13",
-          4
-        );
+        buffer.push({
+          tipo: "barcode",
+          payload: [movimiento.codigoBarras.slice(0, 12), "EAN13", 4],
+        });
       }
-      buffer = buffer.text("").text("").text("").cut().close().buffer._buffer;
+      buffer.push({
+        tipo: "text",
+        payload: "\n\n\n",
+      });
+      buffer.push({
+        tipo: "cut",
+        payload: "PAPER_FULL_CUT",
+      });
       this.enviarMQTT(buffer);
     } catch (err) {
       console.log(err);
@@ -780,19 +797,16 @@ export class Impresora {
       //     });
       // }
       const device = new escpos.Network("localhost");
-      const printer = new escpos.Printer(device);
-      this.enviarMQTT(
-        printer
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .align("CT")
-          .size(1, 1)
-          .text("HOLA HOLA")
-          .cut()
-          .close().buffer._buffer
-      );
+      this.enviarMQTT([
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: "HOLA HOLA" },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ]);
     } catch (err) {
       mqttInstance.loggerMQTT(err);
     }
@@ -864,165 +878,215 @@ export class Impresora {
     const mesFinal = fechaFinal.getMonth() + 1;
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
-    this.enviarMQTT(
-      printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .align("CT")
-        .size(1, 1)
-        .text("BOTIGA : " + parametros.nombreTienda)
-        .size(0, 0)
-        .text("Resum caixa")
-        .text("")
-        .align("LT")
-        .text("Resp. apertura   : " + trabajadorApertura.nombre)
-        .text("Resp. cierre   : " + trabajadorCierre.nombre)
-        .text(
-          `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
-            (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
-          }:${
-            (fechaInicio.getMinutes() < 10 ? "0" : "") +
-            fechaInicio.getMinutes()
-          }`
-        )
-        .text(
-          `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
-            (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
-          }:${
-            (fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()
-          }`
-        )
-        .text("")
-        .size(0, 1)
-        .text("Calaix fet       :      " + caja.calaixFetZ.toFixed(2))
-        .text("Descuadre        :      " + caja.descuadre.toFixed(2))
-        .text("Clients atesos   :      " + caja.nClientes)
-        .text("Recaudat         :      " + caja.recaudado.toFixed(2))
-        .text("Datafon 3g       :      " + caja.totalDatafono3G)
-        .text("Canvi inicial    :      " + caja.totalApertura.toFixed(2))
-        .text("Canvi final      :      " + caja.totalCierre.toFixed(2))
-        .text("")
-        .size(0, 0)
-        .text("Moviments de caixa")
-        .text("")
-        .text("")
-        .text(textoMovimientos)
-        .text("")
-        .text("")
-        .text("")
-        .text(
+    this.enviarMQTT([
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "encode", payload: "CP858" },
+      { tipo: "font", payload: "a" },
+      { tipo: "style", payload: "b" },
+      { tipo: "align", payload: "CT" },
+      { tipo: "size", payload: [1, 1] },
+      { tipo: "text", payload: "BOTIGA : " + parametros.nombreTienda },
+      { tipo: "size", payload: [0, 0] },
+      { tipo: "text", payload: "Resum caixa" },
+      { tipo: "text", payload: "" },
+      { tipo: "align", payload: "LT" },
+      {
+        tipo: "text",
+        payload: "Resp. apertura   : " + trabajadorApertura.nombre,
+      },
+      { tipo: "text", payload: "Resp. cierre   : " + trabajadorCierre.nombre },
+      {
+        tipo: "text",
+        payload: `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
+          (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
+        }:${
+          (fechaInicio.getMinutes() < 10 ? "0" : "") + fechaInicio.getMinutes()
+        }`,
+      },
+      {
+        tipo: "text",
+        payload: `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
+          (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
+        }:${
+          (fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()
+        }`,
+      },
+      { tipo: "text", payload: "" },
+      { tipo: "size", payload: [0, 1] },
+      {
+        tipo: "text",
+        payload: "Calaix fet       :      " + caja.calaixFetZ.toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
+      },
+      { tipo: "text", payload: "Clients atesos   :      " + caja.nClientes },
+      {
+        tipo: "text",
+        payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload: "Datafon 3g       :      " + caja.totalDatafono3G,
+      },
+      {
+        tipo: "text",
+        payload: "Canvi inicial    :      " + caja.totalApertura.toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
+      },
+      { tipo: "text", payload: "" },
+      { tipo: "size", payload: [0, 0] },
+      { tipo: "text", payload: "Moviments de caixa" },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: textoMovimientos },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "" },
+      {
+        tipo: "text",
+        payload:
           "       0.01 --> " +
-            caja.detalleApertura[0]["valor"].toFixed(2) +
-            "      " +
-            "0.01 --> " +
-            caja.detalleCierre[0]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[0]["valor"].toFixed(2) +
+          "      " +
+          "0.01 --> " +
+          caja.detalleCierre[0]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       0.02 --> " +
-            caja.detalleApertura[1]["valor"].toFixed(2) +
-            "      " +
-            "0.02 --> " +
-            caja.detalleCierre[1]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[1]["valor"].toFixed(2) +
+          "      " +
+          "0.02 --> " +
+          caja.detalleCierre[1]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       0.05 --> " +
-            caja.detalleApertura[2]["valor"].toFixed(2) +
-            "      " +
-            "0.05 --> " +
-            caja.detalleCierre[2]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[2]["valor"].toFixed(2) +
+          "      " +
+          "0.05 --> " +
+          caja.detalleCierre[2]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       0.10 --> " +
-            caja.detalleApertura[3]["valor"].toFixed(2) +
-            "      " +
-            "0.10 --> " +
-            caja.detalleCierre[3]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[3]["valor"].toFixed(2) +
+          "      " +
+          "0.10 --> " +
+          caja.detalleCierre[3]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       0.20 --> " +
-            caja.detalleApertura[4]["valor"].toFixed(2) +
-            "      " +
-            "0.20 --> " +
-            caja.detalleCierre[4]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[4]["valor"].toFixed(2) +
+          "      " +
+          "0.20 --> " +
+          caja.detalleCierre[4]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       0.50 --> " +
-            caja.detalleApertura[5]["valor"].toFixed(2) +
-            "      " +
-            "0.50 --> " +
-            caja.detalleCierre[5]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[5]["valor"].toFixed(2) +
+          "      " +
+          "0.50 --> " +
+          caja.detalleCierre[5]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       1.00 --> " +
-            caja.detalleApertura[6]["valor"].toFixed(2) +
-            "      " +
-            "1.00 --> " +
-            caja.detalleCierre[6]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[6]["valor"].toFixed(2) +
+          "      " +
+          "1.00 --> " +
+          caja.detalleCierre[6]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       2.00 --> " +
-            caja.detalleApertura[7]["valor"].toFixed(2) +
-            "      " +
-            "2.00 --> " +
-            caja.detalleCierre[7]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[7]["valor"].toFixed(2) +
+          "      " +
+          "2.00 --> " +
+          caja.detalleCierre[7]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       5.00 --> " +
-            caja.detalleApertura[8]["valor"].toFixed(2) +
-            "      " +
-            "5.00 --> " +
-            caja.detalleCierre[8]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[8]["valor"].toFixed(2) +
+          "      " +
+          "5.00 --> " +
+          caja.detalleCierre[8]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       10.00 --> " +
-            caja.detalleApertura[9]["valor"].toFixed(2) +
-            "     " +
-            "10.00 --> " +
-            caja.detalleCierre[9]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[9]["valor"].toFixed(2) +
+          "     " +
+          "10.00 --> " +
+          caja.detalleCierre[9]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       20.00 --> " +
-            caja.detalleApertura[10]["valor"].toFixed(2) +
-            "    " +
-            "20.00 --> " +
-            caja.detalleCierre[10]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[10]["valor"].toFixed(2) +
+          "    " +
+          "20.00 --> " +
+          caja.detalleCierre[10]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       50.00 --> " +
-            caja.detalleApertura[11]["valor"].toFixed(2) +
-            "    " +
-            "50.00 --> " +
-            caja.detalleCierre[11]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[11]["valor"].toFixed(2) +
+          "    " +
+          "50.00 --> " +
+          caja.detalleCierre[11]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       100.00 --> " +
-            caja.detalleApertura[12]["valor"].toFixed(2) +
-            "   " +
-            "100.00 --> " +
-            caja.detalleCierre[12]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[12]["valor"].toFixed(2) +
+          "   " +
+          "100.00 --> " +
+          caja.detalleCierre[12]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       200.00 --> " +
-            caja.detalleApertura[13]["valor"].toFixed(2) +
-            "   " +
-            "200.00 --> " +
-            caja.detalleCierre[13]["valor"].toFixed(2)
-        )
-        .text(
+          caja.detalleApertura[13]["valor"].toFixed(2) +
+          "   " +
+          "200.00 --> " +
+          caja.detalleCierre[13]["valor"].toFixed(2),
+      },
+      {
+        tipo: "text",
+        payload:
           "       500.00 --> " +
-            caja.detalleApertura[14]["valor"].toFixed(2) +
-            "   " +
-            "500.00 --> " +
-            caja.detalleCierre[14]["valor"].toFixed(2)
-        )
-        .text("")
-        .text("")
-        .text("")
-        .cut()
-        .close().buffer._buffer
-    );
+          caja.detalleApertura[14]["valor"].toFixed(2) +
+          "   " +
+          "500.00 --> " +
+          caja.detalleCierre[14]["valor"].toFixed(2),
+      },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "" },
+      { tipo: "cut", payload: "PAPER_FULL_CUT" },
+    ]);
   }
   /* Eze 4.0 */
   async imprimirCajaAsync(caja: CajaSincro) {
@@ -1098,160 +1162,214 @@ export class Impresora {
         "Divendres",
         "Dissabte",
       ];
-      this.enviarMQTT(
-        printer
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .align("CT")
-          .size(1, 1)
-          .text("BOTIGA : " + parametros.nombreTienda)
-          .size(0, 0)
-          .text("Resum caixa")
-          .text("")
-          .align("LT")
-          .text("Resp. apertura   : " + trabajadorApertura.nombre)
-          .text("Resp. cierre   : " + trabajadorCierre.nombre)
-          .text(
-            `Inici: ${diasSemana[fechaInicio.format("d")]} ${fechaInicio.format(
-              "DD-MM-YYYY HH:mm"
-            )}`
-          )
-          .text(
-            `Final: ${diasSemana[fechaFinal.format("d")]} ${fechaFinal.format(
-              "DD-MM-YYYY HH:mm"
-            )}`
-          )
-          .text("")
-          .size(0, 1)
-          .text("Calaix fet       :      " + caja.calaixFetZ.toFixed(2))
-          .text("Descuadre        :      " + caja.descuadre.toFixed(2))
-          .text("Clients atesos   :      " + caja.nClientes)
-          .text("Recaudat         :      " + caja.recaudado.toFixed(2))
-          .text("Datafon 3g       :      " + caja.totalDatafono3G)
-          .text("Canvi inicial    :      " + caja.totalApertura.toFixed(2))
-          .text("Canvi final      :      " + caja.totalCierre.toFixed(2))
-          .text("")
-          .size(0, 0)
-          .text("Moviments de caixa")
-          .text("")
-          .text("")
-          .text(textoMovimientos)
-          .text("")
-          .text("")
-          .text("")
-          .text(
+      this.enviarMQTT([
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: "BOTIGA : " + parametros.nombreTienda },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Resum caixa" },
+        { tipo: "text", payload: "" },
+        { tipo: "align", payload: "LT" },
+        {
+          tipo: "text",
+          payload: "Resp. apertura   : " + trabajadorApertura.nombre,
+        },
+        {
+          tipo: "text",
+          payload: "Resp. cierre   : " + trabajadorCierre.nombre,
+        },
+        {
+          tipo: "text",
+          payload: `Inici: ${
+            diasSemana[fechaInicio.format("d")]
+          } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
+        },
+        {
+          tipo: "text",
+          payload: `Final: ${
+            diasSemana[fechaFinal.format("d")]
+          } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "size", payload: [0, 1] },
+        {
+          tipo: "text",
+          payload: "Calaix fet       :      " + caja.calaixFetZ.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
+        },
+        { tipo: "text", payload: "Clients atesos   :      " + caja.nClientes },
+        {
+          tipo: "text",
+          payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "Datafon 3g       :      " + caja.totalDatafono3G,
+        },
+        {
+          tipo: "text",
+          payload: "Canvi inicial    :      " + caja.totalApertura.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Moviments de caixa" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: textoMovimientos },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        {
+          tipo: "text",
+          payload:
             "       0.01 --> " +
-              caja.detalleApertura[0]["valor"].toFixed(2) +
-              "      " +
-              "0.01 --> " +
-              caja.detalleCierre[0]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[0]["valor"].toFixed(2) +
+            "      " +
+            "0.01 --> " +
+            caja.detalleCierre[0]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       0.02 --> " +
-              caja.detalleApertura[1]["valor"].toFixed(2) +
-              "      " +
-              "0.02 --> " +
-              caja.detalleCierre[1]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[1]["valor"].toFixed(2) +
+            "      " +
+            "0.02 --> " +
+            caja.detalleCierre[1]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       0.05 --> " +
-              caja.detalleApertura[2]["valor"].toFixed(2) +
-              "      " +
-              "0.05 --> " +
-              caja.detalleCierre[2]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[2]["valor"].toFixed(2) +
+            "      " +
+            "0.05 --> " +
+            caja.detalleCierre[2]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       0.10 --> " +
-              caja.detalleApertura[3]["valor"].toFixed(2) +
-              "      " +
-              "0.10 --> " +
-              caja.detalleCierre[3]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[3]["valor"].toFixed(2) +
+            "      " +
+            "0.10 --> " +
+            caja.detalleCierre[3]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       0.20 --> " +
-              caja.detalleApertura[4]["valor"].toFixed(2) +
-              "      " +
-              "0.20 --> " +
-              caja.detalleCierre[4]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[4]["valor"].toFixed(2) +
+            "      " +
+            "0.20 --> " +
+            caja.detalleCierre[4]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       0.50 --> " +
-              caja.detalleApertura[5]["valor"].toFixed(2) +
-              "      " +
-              "0.50 --> " +
-              caja.detalleCierre[5]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[5]["valor"].toFixed(2) +
+            "      " +
+            "0.50 --> " +
+            caja.detalleCierre[5]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       1.00 --> " +
-              caja.detalleApertura[6]["valor"].toFixed(2) +
-              "      " +
-              "1.00 --> " +
-              caja.detalleCierre[6]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[6]["valor"].toFixed(2) +
+            "      " +
+            "1.00 --> " +
+            caja.detalleCierre[6]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       2.00 --> " +
-              caja.detalleApertura[7]["valor"].toFixed(2) +
-              "      " +
-              "2.00 --> " +
-              caja.detalleCierre[7]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[7]["valor"].toFixed(2) +
+            "      " +
+            "2.00 --> " +
+            caja.detalleCierre[7]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       5.00 --> " +
-              caja.detalleApertura[8]["valor"].toFixed(2) +
-              "      " +
-              "5.00 --> " +
-              caja.detalleCierre[8]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[8]["valor"].toFixed(2) +
+            "      " +
+            "5.00 --> " +
+            caja.detalleCierre[8]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       10.00 --> " +
-              caja.detalleApertura[9]["valor"].toFixed(2) +
-              "     " +
-              "10.00 --> " +
-              caja.detalleCierre[9]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[9]["valor"].toFixed(2) +
+            "     " +
+            "10.00 --> " +
+            caja.detalleCierre[9]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       20.00 --> " +
-              caja.detalleApertura[10]["valor"].toFixed(2) +
-              "    " +
-              "20.00 --> " +
-              caja.detalleCierre[10]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[10]["valor"].toFixed(2) +
+            "    " +
+            "20.00 --> " +
+            caja.detalleCierre[10]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       50.00 --> " +
-              caja.detalleApertura[11]["valor"].toFixed(2) +
-              "    " +
-              "50.00 --> " +
-              caja.detalleCierre[11]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[11]["valor"].toFixed(2) +
+            "    " +
+            "50.00 --> " +
+            caja.detalleCierre[11]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       100.00 --> " +
-              caja.detalleApertura[12]["valor"].toFixed(2) +
-              "   " +
-              "100.00 --> " +
-              caja.detalleCierre[12]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[12]["valor"].toFixed(2) +
+            "   " +
+            "100.00 --> " +
+            caja.detalleCierre[12]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       200.00 --> " +
-              caja.detalleApertura[13]["valor"].toFixed(2) +
-              "   " +
-              "200.00 --> " +
-              caja.detalleCierre[13]["valor"].toFixed(2)
-          )
-          .text(
+            caja.detalleApertura[13]["valor"].toFixed(2) +
+            "   " +
+            "200.00 --> " +
+            caja.detalleCierre[13]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
             "       500.00 --> " +
-              caja.detalleApertura[14]["valor"].toFixed(2) +
-              "   " +
-              "500.00 --> " +
-              caja.detalleCierre[14]["valor"].toFixed(2)
-          )
-          .text("")
-          .text("")
-          .text("")
-          .cut()
-          .close().buffer._buffer
-      );
+            caja.detalleApertura[14]["valor"].toFixed(2) +
+            "   " +
+            "500.00 --> " +
+            caja.detalleCierre[14]["valor"].toFixed(2),
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ]);
     } catch (err) {
       console.log(err);
       logger.Error(145, err);
@@ -1332,48 +1450,61 @@ export class Impresora {
     const fecha = `${data.timestamp.day}/${data.timestamp.month}/${data.timestamp.year} - ${data.timestamp.hour}:${data.timestamp.minute}`;
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
-    await this.enviarMQTT(
-      printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .align("CT")
-        .size(2, 2)
-        .text(data.operationTypeName)
-        .align("LT")
-        .size(0, 0)
-        .text(data.commerceText)
-        .text("")
-        .text("HCP: " + data.bankName)
-        .text("Aplicación: " + data.cardInformation.emvApplicationID)
-        .text("")
-        .text(data.cardInformation.emvApplicationLabel)
-        .text("Entidad Bancaria: " + data.issuerNameAndCountry)
-        .text("Tarjeta: " + data.cardInformation.hiddenCardNumber)
-        .text("")
-        .text("Fecha: " + fecha)
-        .text("Nº Operación: " + data.paytefOperationNumber)
-        .text("Autorización: " + data.authorisationCode)
-        .text("")
-        .size(1, 1)
-        .text("Importe: " + data.amountWithSign + "€")
-        .text("")
-        .size(0, 0)
-        .text("Operación " + data.cardInformation.dataEntryLetter)
-        .text(`FIRMA ${data.needsSignature == false ? "NO " : ""}NECESARIA`)
-        .text("------")
-        .text("")
-        .text("")
-        .text("")
-        .text("")
-        .text("------")
-        .text(`COPIA PARA EL ${copia}`)
-        .text("")
-        .text("")
-        .cut()
-        .close().buffer._buffer
-    );
+    await this.enviarMQTT([
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "encode", payload: "CP858" },
+      { tipo: "font", payload: "a" },
+      { tipo: "style", payload: "b" },
+      { tipo: "align", payload: "CT" },
+      { tipo: "size", payload: [2, 2] },
+      { tipo: "text", payload: data.operationTypeName },
+      { tipo: "align", payload: "LT" },
+      { tipo: "size", payload: [0, 0] },
+      { tipo: "text", payload: data.commerceText },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "HCP: " + data.bankName },
+      {
+        tipo: "text",
+        payload: "Aplicación: " + data.cardInformation.emvApplicationID,
+      },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: data.cardInformation.emvApplicationLabel },
+      {
+        tipo: "text",
+        payload: "Entidad Bancaria: " + data.issuerNameAndCountry,
+      },
+      {
+        tipo: "text",
+        payload: "Tarjeta: " + data.cardInformation.hiddenCardNumber,
+      },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "Fecha: " + fecha },
+      { tipo: "text", payload: "Nº Operación: " + data.paytefOperationNumber },
+      { tipo: "text", payload: "Autorización: " + data.authorisationCode },
+      { tipo: "text", payload: "" },
+      { tipo: "size", payload: [1, 1] },
+      { tipo: "text", payload: "Importe: " + data.amountWithSign + "€" },
+      { tipo: "text", payload: "" },
+      { tipo: "size", payload: [0, 0] },
+      {
+        tipo: "text",
+        payload: "Operación " + data.cardInformation.dataEntryLetter,
+      },
+      {
+        tipo: "text",
+        payload: `FIRMA ${data.needsSignature == false ? "NO " : ""}NECESARIA`,
+      },
+      { tipo: "text", payload: "------" },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "------" },
+      { tipo: "text", payload: `COPIA PARA EL ${copia}` },
+      { tipo: "text", payload: "" },
+      { tipo: "text", payload: "" },
+      { tipo: "cut", payload: "PAPER_FULL_CUT" },
+    ]);
   }
 
   async imprimirEntregas() {
@@ -1387,18 +1518,16 @@ export class Impresora {
         try {
           const device = new escpos.Network("localhost");
           const printer = new escpos.Printer(device);
-          this.enviarMQTT(
-            printer
-              .setCharacterCodeTable(19)
-              .encode("CP858")
-              .font("a")
-              .style("b")
-              .align("CT")
-              .size(0, 0)
-              .text(res.data.info)
-              .cut()
-              .close().buffer._buffer
-          );
+          this.enviarMQTT([
+            { tipo: "setCharacterCodeTable", payload: 19 },
+            { tipo: "encode", payload: "CP858" },
+            { tipo: "font", payload: "a" },
+            { tipo: "style", payload: "b" },
+            { tipo: "align", payload: "CT" },
+            { tipo: "size", payload: [0, 0] },
+            { tipo: "text", payload: res.data.info },
+            { tipo: "cut", payload: "PAPER_FULL_CUT" },
+          ]);
           return { error: false, info: "OK" };
         } catch (err) {
           mqttInstance.loggerMQTT(err);
@@ -1447,18 +1576,16 @@ export class Impresora {
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
     // enviamos el string a la impresora por mqtt
-    this.enviarMQTT(
-      printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .size(0, 0)
-        .align("LT")
-        .text(string)
-        .cut("PAPER_FULL_CUT")
-        .close().buffer._buffer
-    );
+    this.enviarMQTT([
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "encode", payload: "CP858" },
+      { tipo: "font", payload: "a" },
+      { tipo: "style", payload: "b" },
+      { tipo: "size", payload: [0, 0] },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: string },
+      { tipo: "cut", payload: "PAPER_FULL_CUT" },
+    ]);
     return { error: false, msg: "Good work bro" };
   }
 
@@ -1498,43 +1625,53 @@ export class Impresora {
     try {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
-      this.enviarMQTT(
-        printer
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .align("CT")
-          .size(1, 1)
-          .text("ENTREGA")
-          .size(0, 0)
-          .align("LT")
-          .text(cabecera)
-          .text(
-            `Data: ${fecha.format("d")} ${fecha.format("DD-MM-YYYY HH:mm")}`
-          )
-          .text("Ates per: " + encargo.nombreTrabajador)
-          .text("Client: " + encargo.nombreCliente)
-          .text("Data d'entrega: " + encargo.fecha)
-          .control("LF")
-          .text("Quantitat        Article           Import (€)")
-          .text("----------------------------------------------")
-          .align("LT")
-          .text(detalles)
-          .text("----------------------------------------------")
-          .text(detalleImporte)
-          .size(1, 1)
-          .text(importe)
-          .size(0, 0)
-          .align("CT")
-          .text("Base IVA         IVA         IMPORT")
-          .text(detalleIva)
-          .text("-- ES COPIA --")
-          .control("LF")
-          .text("ID: " + random() + " - " + random())
-          .cut()
-          .close().buffer._buffer
-      );
+      this.enviarMQTT([
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: "ENTREGA" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: cabecera },
+        {
+          tipo: "text",
+          payload: `Data: ${fecha.format("d")} ${fecha.format(
+            "DD-MM-YYYY HH:mm"
+          )}`,
+        },
+        { tipo: "text", payload: "Ates per: " + encargo.nombreTrabajador },
+        { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+        { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
+        { tipo: "control", payload: "LF" },
+        {
+          tipo: "text",
+          payload: "Quantitat        Article           Import (€)",
+        },
+        {
+          tipo: "text",
+          payload: "----------------------------------------------",
+        },
+        { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: detalles },
+        {
+          tipo: "text",
+          payload: "----------------------------------------------",
+        },
+        { tipo: "text", payload: detalleImporte },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: importe },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "align", payload: "CT" },
+        { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+        { tipo: "text", payload: detalleIva },
+        { tipo: "text", payload: "-- ES COPIA --" },
+        { tipo: "control", payload: "LF" },
+        { tipo: "text", payload: "ID: " + random() + " - " + random() },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ]);
 
       return { error: false, info: "OK" };
     } catch (err) {
