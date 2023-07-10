@@ -376,7 +376,6 @@ export class Impresora {
       detallePuntosCliente = "PUNTOS: " + infoCliente.puntos;
     }
 
-    // recogemos fechas
     const moment = require("moment-timezone");
     const fecha = new Date(info.timestamp);
     //const offset = fecha.getTimezoneOffset() * 60000; // Obtener el desplazamiento de la zona horaria en minutos y convertirlo a milisegundos
@@ -1326,6 +1325,55 @@ export class Impresora {
       output += string.substring(i * 20, (i + 1) * 20) + "";
     }
     mqttInstance.enviarVisor(output);
+  }
+
+  async imprimirTicketPaytef(data, copia) {
+    const params = await parametrosInstance.getParametros();
+    const fecha = `${data.timestamp.day}/${data.timestamp.month}/${data.timestamp.year} - ${data.timestamp.hour}:${data.timestamp.minute}`;
+    const device = new escpos.Network();
+    const printer = new escpos.Printer(device);
+    await this.enviarMQTT(
+      printer
+        .setCharacterCodeTable(19)
+        .encode("CP858")
+        .font("a")
+        .style("b")
+        .align("CT")
+        .size(2, 2)
+        .text(data.operationTypeName)
+        .align("LT")
+        .size(0, 0)
+        .text(data.commerceText)
+        .text("")
+        .text("HCP: " + data.bankName)
+        .text("Aplicación: " + data.cardInformation.emvApplicationID)
+        .text("")
+        .text(data.cardInformation.emvApplicationLabel)
+        .text("Entidad Bancaria: " + data.issuerNameAndCountry)
+        .text("Tarjeta: " + data.cardInformation.hiddenCardNumber)
+        .text("")
+        .text("Fecha: " + fecha)
+        .text("Nº Operación: " + data.paytefOperationNumber)
+        .text("Autorización: " + data.authorisationCode)
+        .text("")
+        .size(1, 1)
+        .text("Importe: " + data.amountWithSign + "€")
+        .text("")
+        .size(0, 0)
+        .text("Operación " + data.cardInformation.dataEntryLetter)
+        .text(`FIRMA ${data.needsSignature == false ? "NO " : ""}NECESARIA`)
+        .text("------")
+        .text("")
+        .text("")
+        .text("")
+        .text("")
+        .text("------")
+        .text(`COPIA PARA EL ${copia}`)
+        .text("")
+        .text("")
+        .cut()
+        .close().buffer._buffer
+    );
   }
 
   async imprimirEntregas() {

@@ -7,6 +7,7 @@ export interface MovimientosInterface {
   codigoBarras: string;
   idTicket: number;
   enviado: boolean;
+  ExtraData: object;
 }
 
 export type TiposMovientos =
