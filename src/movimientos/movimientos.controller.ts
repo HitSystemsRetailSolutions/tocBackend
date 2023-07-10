@@ -9,7 +9,7 @@ import axios from "axios";
 export class MovimientosController {
   /* Eze 4.0 */
   @Post("nuevoMovimiento") // Solo para entradas o salidas manuales (idTicket = null)
-  async nuevoMovimiento(@Body() { cantidad, concepto, idTrabajador, tipo }) {
+  nuevoMovimiento(@Body() { cantidad, concepto, idTrabajador, tipo }) {
     try {
       if (
         cantidad != undefined &&

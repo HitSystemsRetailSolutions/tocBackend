@@ -1,7 +1,6 @@
 import { Body, Controller, Post } from "@nestjs/common";
 import { logger } from "../logger";
 import { encargosInstance } from "./encargos.clase";
-import axios from "axios";
 
 @Controller("encargos")
 export class EncargosController {
@@ -28,19 +27,15 @@ export class EncargosController {
       return null;
     }
   }
-  @Post("anularEncargo")
-  async anularEncargo(@Body() data) {
+  @Post("setEntregado")
+  async setEntregado(@Body() data) {
     try {
       if (!data.id)
         return {
           error: true,
           msg: "Faltan datos.",
         };
-
-      const anularEncargoSantaAna = await encargosInstance.anularTicket(data.id);
-      if (anularEncargoSantaAna) return encargosInstance.setEntregado(data.id);
-
-      return false;
+      return encargosInstance.setEntregado(data.id);
     } catch (err) {
       logger.Error(50, err);
       return null;
@@ -56,7 +51,8 @@ export class EncargosController {
           msg: "Faltan datos.",
         };
 
-      return encargosInstance.ordenarImpresion(data.orden, data.array);
+
+      return encargosInstance.ordenarImpresion(data.orden,data.array);
     } catch (err) {
       logger.Error(50, err);
       return null;

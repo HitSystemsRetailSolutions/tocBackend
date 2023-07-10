@@ -42,14 +42,3 @@ export async function setPagado(
     )
   ).acknowledged;
 }
-
-export async function getIntervaloDeuda(
-  fechaInicial: DeudasInterface["timestamp"],
-  fechaFinal: DeudasInterface["timestamp"]
-): Promise<DeudasInterface[]> {
-  const database = (await conexion).db("tocgame");
-  const deudas = database.collection<DeudasInterface>("deudas");
-  return await deudas
-    .find({ timestamp: { $lte: fechaFinal, $gte: fechaInicial }, pagado: false })
-    .toArray();
-}
