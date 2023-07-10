@@ -37,6 +37,14 @@ export class MovimientosClase {
     schMovimientos.getMovimientosIntervalo(inicioTime, finalTime);
 
   /* Uri */
+  /* Yasai :D */
+  public async existeMovimiento(
+    idTicket: MovimientosInterface["idTicket"],
+    valor: MovimientosInterface["valor"]
+  ): Promise<boolean> {
+    return await schMovimientos.existeMovimiento(idTicket, valor);
+  }
+
   public async nuevoMovimiento(
     valor: MovimientosInterface["valor"],
     concepto: MovimientosInterface["concepto"],
@@ -63,6 +71,8 @@ export class MovimientosClase {
       valor,
       ExtraData,
     };
+
+    if(await schMovimientos.existeMovimiento(idTicket, valor)) return false;
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrega Diària") {
