@@ -79,20 +79,18 @@ export class ClientesController {
   async actualizarCliente(
     @Body()
     {
-      idCliente,
+      idCliente = "",
       nombre,
-      telefono,
-      email,
-      direccion,
-      tarjetaCliente,
-      nif,
-      descuento,
+      telefono = "",
+      email = "",
+      direccion = "",
+      tarjetaCliente = "",
+      nif = "",
+      descuento = 0,
     }
   ) {
     try {
-      if (
-        !( idCliente && nombre && telefono && email && direccion && tarjetaCliente && nif && descuento )
-      ) {
+      if (!nombre) {
         throw Error("Error, faltan datos en actualizarCliente() controller");
       }
       const cliente = {
@@ -120,7 +118,7 @@ export class ClientesController {
           return false;
         });
 
-      await clientes.findOneAndUpdate({id : idCliente}, {$set: cliente});
+      await clientes.findOneAndUpdate({ id: idCliente }, { $set: cliente });
 
       await axios.post("clientes/updateCliente", {
         idCliente,
@@ -133,22 +131,12 @@ export class ClientesController {
     }
   }
 
-
   @Post("crearNuevoCliente")
   async crearNuevoCliente(
     @Body()
-    {
-      nombre,
-      telefono,
-      email,
-      direccion,
-      tarjetaCliente,
-      nif,
-      descuento,
-    }
+    { nombre, telefono, email, direccion, tarjetaCliente, nif, descuento }
   ) {
     try {
-
       const parametros = await parametrosInstance.getParametros();
 
       if (nombre && tarjetaCliente) {
@@ -165,7 +153,7 @@ export class ClientesController {
             idTarjetaCliente: tarjetaCliente,
           };
           await axios
-            .post("clientes/crearNuevoCliente", hola )
+            .post("clientes/crearNuevoCliente", hola)
             .then((res) => {
               return !!res.data;
             })
