@@ -251,31 +251,43 @@ export class Impresora {
   public async imprimirListaEncargos(lista: string) {
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
-    this.enviarMQTT([
-      { tipo: "setCharacterCodeTable", payload: 19 },
-      { tipo: "encode", payload: "CP858" },
-      { tipo: "font", payload: "a" },
-      { tipo: "style", payload: "b" },
-      { tipo: "size", payload: [0, 0] },
-      { tipo: "align", payload: "LT" },
-      { tipo: "text", payload: lista },
-      { tipo: "cut", payload: "PAPER_FULL_CUT" },
-    ]);
+    const options = {
+      imprimirLogo: false,
+    };
+    this.enviarMQTT(
+      [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: lista },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ],
+      options
+    );
   }
   private async imprimirRecibo(recibo: string) {
     mqttInstance.loggerMQTT("imprimir recibo");
     try {
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
-      this.enviarMQTT([
-        { tipo: "setCharacterCodeTable", payload: 19 },
-        { tipo: "encode", payload: "CP858" },
-        { tipo: "font", payload: "a" },
-        { tipo: "style", payload: "b" },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "text", payload: recibo },
-        { tipo: "cut", payload: "PAPER_FULL_CUT" },
-      ]);
+      const options = {
+        imprimirLogo: false,
+      };
+      this.enviarMQTT(
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: recibo },
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
+      );
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
@@ -284,30 +296,40 @@ export class Impresora {
     try {
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
-      this.enviarMQTT([
-        { tipo: "setCharacterCodeTable", payload: 19 },
-        { tipo: "encode", payload: "CP858" },
-        { tipo: "font", payload: "a" },
-        { tipo: "style", payload: "b" },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "text", payload: txt },
-        { tipo: "cut", payload: "PAPER_FULL_CUT" },
-      ]);
+      const options = {
+        imprimirLogo: false,
+      };
+      this.enviarMQTT(
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: txt },
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
+      );
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
   }
   // recovimos los datos de la impresion
-  private enviarMQTT(encodedData) {
+  private enviarMQTT(encodedData, options) {
     // conectamos con el cliente
     var client =
       mqtt.connect(process.env.MQTT_URL) ||
       mqtt.connect("mqtt://127.0.0.1:1883", {
         username: "ImpresoraMQTT",
       });
+    const enviar = {
+      arrayImprimir: encodedData,
+      options: options,
+    };
     // cuando se conecta enviamos los datos
     client.on("connect", function () {
-      client.publish("hit.hardware/printer", JSON.stringify(encodedData));
+      client.publish("hit.hardware/printer", JSON.stringify(enviar));
     });
   }
 
@@ -490,8 +512,11 @@ export class Impresora {
       { tipo: "control", payload: "LF" },
       { tipo: "cut", payload: "PAPER_FULL_CUT" },
     ];
+    const options = {
+      imprimirLogo: true,
+    };
     // lo mandamos a la funcion enviarMQTT que se supone que imprime
-    this.enviarMQTT(arrayImprimir);
+    this.enviarMQTT(arrayImprimir, options);
   }
   async getDetallesIva(tiposIva) {
     let str1 = "          ";
@@ -713,7 +738,11 @@ export class Impresora {
         payload: "PAPER_FULL_CUT",
       });
 
-      this.enviarMQTT(buffer);
+      const options = {
+        imprimirLogo: false,
+      };
+
+      this.enviarMQTT(buffer, options);
     } catch (err) {
       logger.Error(146, err);
     }
@@ -766,7 +795,11 @@ export class Impresora {
         tipo: "cut",
         payload: "PAPER_FULL_CUT",
       });
-      this.enviarMQTT(buffer);
+
+      const options = {
+        imprimirLogo: false,
+      };
+      this.enviarMQTT(buffer, options);
     } catch (err) {
       console.log(err);
       mqttInstance.loggerMQTT(err);
@@ -797,16 +830,22 @@ export class Impresora {
       //     });
       // }
       const device = new escpos.Network("localhost");
-      this.enviarMQTT([
-        { tipo: "setCharacterCodeTable", payload: 19 },
-        { tipo: "encode", payload: "CP858" },
-        { tipo: "font", payload: "a" },
-        { tipo: "style", payload: "b" },
-        { tipo: "align", payload: "CT" },
-        { tipo: "size", payload: [1, 1] },
-        { tipo: "text", payload: "HOLA HOLA" },
-        { tipo: "cut", payload: "PAPER_FULL_CUT" },
-      ]);
+      const options = {
+        imprimirLogo: false,
+      };
+      this.enviarMQTT(
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "HOLA HOLA" },
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
+      );
     } catch (err) {
       mqttInstance.loggerMQTT(err);
     }
@@ -878,291 +917,11 @@ export class Impresora {
     const mesFinal = fechaFinal.getMonth() + 1;
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
-    this.enviarMQTT([
-      { tipo: "setCharacterCodeTable", payload: 19 },
-      { tipo: "encode", payload: "CP858" },
-      { tipo: "font", payload: "a" },
-      { tipo: "style", payload: "b" },
-      { tipo: "align", payload: "CT" },
-      { tipo: "size", payload: [1, 1] },
-      { tipo: "text", payload: "BOTIGA : " + parametros.nombreTienda },
-      { tipo: "size", payload: [0, 0] },
-      { tipo: "text", payload: "Resum caixa" },
-      { tipo: "text", payload: "" },
-      { tipo: "align", payload: "LT" },
-      {
-        tipo: "text",
-        payload: "Resp. apertura   : " + trabajadorApertura.nombre,
-      },
-      { tipo: "text", payload: "Resp. cierre   : " + trabajadorCierre.nombre },
-      {
-        tipo: "text",
-        payload: `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
-          (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
-        }:${
-          (fechaInicio.getMinutes() < 10 ? "0" : "") + fechaInicio.getMinutes()
-        }`,
-      },
-      {
-        tipo: "text",
-        payload: `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
-          (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
-        }:${
-          (fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()
-        }`,
-      },
-      { tipo: "text", payload: "" },
-      { tipo: "size", payload: [0, 1] },
-      {
-        tipo: "text",
-        payload: "Calaix fet       :      " + caja.calaixFetZ.toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
-      },
-      { tipo: "text", payload: "Clients atesos   :      " + caja.nClientes },
-      {
-        tipo: "text",
-        payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload: "Datafon 3g       :      " + caja.totalDatafono3G,
-      },
-      {
-        tipo: "text",
-        payload: "Canvi inicial    :      " + caja.totalApertura.toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
-      },
-      { tipo: "text", payload: "" },
-      { tipo: "size", payload: [0, 0] },
-      { tipo: "text", payload: "Moviments de caixa" },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: textoMovimientos },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "" },
-      {
-        tipo: "text",
-        payload:
-          "       0.01 --> " +
-          caja.detalleApertura[0]["valor"].toFixed(2) +
-          "      " +
-          "0.01 --> " +
-          caja.detalleCierre[0]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       0.02 --> " +
-          caja.detalleApertura[1]["valor"].toFixed(2) +
-          "      " +
-          "0.02 --> " +
-          caja.detalleCierre[1]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       0.05 --> " +
-          caja.detalleApertura[2]["valor"].toFixed(2) +
-          "      " +
-          "0.05 --> " +
-          caja.detalleCierre[2]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       0.10 --> " +
-          caja.detalleApertura[3]["valor"].toFixed(2) +
-          "      " +
-          "0.10 --> " +
-          caja.detalleCierre[3]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       0.20 --> " +
-          caja.detalleApertura[4]["valor"].toFixed(2) +
-          "      " +
-          "0.20 --> " +
-          caja.detalleCierre[4]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       0.50 --> " +
-          caja.detalleApertura[5]["valor"].toFixed(2) +
-          "      " +
-          "0.50 --> " +
-          caja.detalleCierre[5]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       1.00 --> " +
-          caja.detalleApertura[6]["valor"].toFixed(2) +
-          "      " +
-          "1.00 --> " +
-          caja.detalleCierre[6]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       2.00 --> " +
-          caja.detalleApertura[7]["valor"].toFixed(2) +
-          "      " +
-          "2.00 --> " +
-          caja.detalleCierre[7]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       5.00 --> " +
-          caja.detalleApertura[8]["valor"].toFixed(2) +
-          "      " +
-          "5.00 --> " +
-          caja.detalleCierre[8]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       10.00 --> " +
-          caja.detalleApertura[9]["valor"].toFixed(2) +
-          "     " +
-          "10.00 --> " +
-          caja.detalleCierre[9]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       20.00 --> " +
-          caja.detalleApertura[10]["valor"].toFixed(2) +
-          "    " +
-          "20.00 --> " +
-          caja.detalleCierre[10]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       50.00 --> " +
-          caja.detalleApertura[11]["valor"].toFixed(2) +
-          "    " +
-          "50.00 --> " +
-          caja.detalleCierre[11]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       100.00 --> " +
-          caja.detalleApertura[12]["valor"].toFixed(2) +
-          "   " +
-          "100.00 --> " +
-          caja.detalleCierre[12]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       200.00 --> " +
-          caja.detalleApertura[13]["valor"].toFixed(2) +
-          "   " +
-          "200.00 --> " +
-          caja.detalleCierre[13]["valor"].toFixed(2),
-      },
-      {
-        tipo: "text",
-        payload:
-          "       500.00 --> " +
-          caja.detalleApertura[14]["valor"].toFixed(2) +
-          "   " +
-          "500.00 --> " +
-          caja.detalleCierre[14]["valor"].toFixed(2),
-      },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "" },
-      { tipo: "cut", payload: "PAPER_FULL_CUT" },
-    ]);
-  }
-  /* Eze 4.0 */
-  async imprimirCajaAsync(caja: CajaSincro) {
-    try {
-      const moment = require("moment-timezone");
-      const fechaInicio = moment(caja.inicioTime).tz("Europe/Madrid");
-      const fechaFinal = moment(caja.finalTime).tz("Europe/Madrid");
-      const arrayMovimientos =
-        await movimientosInstance.getMovimientosIntervalo(
-          caja.inicioTime,
-          caja.finalTime
-        );
-      const parametros = await parametrosInstance.getParametros();
-      const trabajadorApertura = await trabajadoresInstance.getTrabajadorById(
-        caja.idDependientaApertura
-      );
-      const trabajadorCierre = await trabajadoresInstance.getTrabajadorById(
-        caja.idDependientaCierre
-      );
-      let sumaTarjetas = 0;
-      let textoMovimientos = "";
-
-      for (let i = 0; i < arrayMovimientos.length; i++) {
-        const auxFecha = new Date(arrayMovimientos[i]._id);
-        switch (arrayMovimientos[i].tipo) {
-          case "TARJETA":
-            sumaTarjetas += arrayMovimientos[i].valor;
-            break;
-          case "TKRS_CON_EXCESO":
-            break;
-          case "TKRS_SIN_EXCESO":
-            break;
-          case "DEUDA":
-            break;
-          case "SALIDA":
-            textoMovimientos += `Salida:\n           Cantidad: -${arrayMovimientos[
-              i
-            ].valor.toFixed(
-              2
-            )}\n           Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()}  ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n           Concepto: ${
-              arrayMovimientos[i].concepto
-            }\n`;
-            break;
-          case "ENTRADA_DINERO":
-            textoMovimientos += `Entrada:\n            Cantidad: +${arrayMovimientos[
-              i
-            ].valor.toFixed(
-              2
-            )}\n            Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()}  ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n            Concepto: ${
-              arrayMovimientos[i].concepto
-            }\n`;
-            break;
-          case "DATAFONO_3G":
-            sumaTarjetas += arrayMovimientos[i].valor;
-            break;
-        }
-      }
-
-      textoMovimientos =
-        `\n` +
-        textoMovimientos +
-        `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
-
-      permisosImpresora();
-      const device = new escpos.Network("localhost");
-      const printer = new escpos.Printer(device);
-      const diasSemana = [
-        "Diumenge",
-        "Dilluns",
-        "Dimarts",
-        "Dimecres",
-        "Dijous",
-        "Divendres",
-        "Dissabte",
-      ];
-      this.enviarMQTT([
+    const options = {
+      imprimirLogo: true,
+    };
+    this.enviarMQTT(
+      [
         { tipo: "setCharacterCodeTable", payload: 19 },
         { tipo: "encode", payload: "CP858" },
         { tipo: "font", payload: "a" },
@@ -1184,15 +943,20 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: `Inici: ${
-            diasSemana[fechaInicio.format("d")]
-          } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
+          payload: `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
+            (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
+          }:${
+            (fechaInicio.getMinutes() < 10 ? "0" : "") +
+            fechaInicio.getMinutes()
+          }`,
         },
         {
           tipo: "text",
-          payload: `Final: ${
-            diasSemana[fechaFinal.format("d")]
-          } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
+          payload: `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
+            (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
+          }:${
+            (fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()
+          }`,
         },
         { tipo: "text", payload: "" },
         { tipo: "size", payload: [0, 1] },
@@ -1369,7 +1133,300 @@ export class Impresora {
         { tipo: "text", payload: "" },
         { tipo: "text", payload: "" },
         { tipo: "cut", payload: "PAPER_FULL_CUT" },
-      ]);
+      ],
+      options
+    );
+  }
+  /* Eze 4.0 */
+  async imprimirCajaAsync(caja: CajaSincro) {
+    try {
+      const moment = require("moment-timezone");
+      const fechaInicio = moment(caja.inicioTime).tz("Europe/Madrid");
+      const fechaFinal = moment(caja.finalTime).tz("Europe/Madrid");
+      const arrayMovimientos =
+        await movimientosInstance.getMovimientosIntervalo(
+          caja.inicioTime,
+          caja.finalTime
+        );
+      const parametros = await parametrosInstance.getParametros();
+      const trabajadorApertura = await trabajadoresInstance.getTrabajadorById(
+        caja.idDependientaApertura
+      );
+      const trabajadorCierre = await trabajadoresInstance.getTrabajadorById(
+        caja.idDependientaCierre
+      );
+      let sumaTarjetas = 0;
+      let textoMovimientos = "";
+
+      for (let i = 0; i < arrayMovimientos.length; i++) {
+        const auxFecha = new Date(arrayMovimientos[i]._id);
+        switch (arrayMovimientos[i].tipo) {
+          case "TARJETA":
+            sumaTarjetas += arrayMovimientos[i].valor;
+            break;
+          case "TKRS_CON_EXCESO":
+            break;
+          case "TKRS_SIN_EXCESO":
+            break;
+          case "DEUDA":
+            break;
+          case "SALIDA":
+            textoMovimientos += `Salida:\n           Cantidad: -${arrayMovimientos[
+              i
+            ].valor.toFixed(
+              2
+            )}\n           Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()}  ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n           Concepto: ${
+              arrayMovimientos[i].concepto
+            }\n`;
+            break;
+          case "ENTRADA_DINERO":
+            textoMovimientos += `Entrada:\n            Cantidad: +${arrayMovimientos[
+              i
+            ].valor.toFixed(
+              2
+            )}\n            Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()}  ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n            Concepto: ${
+              arrayMovimientos[i].concepto
+            }\n`;
+            break;
+          case "DATAFONO_3G":
+            sumaTarjetas += arrayMovimientos[i].valor;
+            break;
+        }
+      }
+
+      textoMovimientos =
+        `\n` +
+        textoMovimientos +
+        `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
+
+      permisosImpresora();
+      const device = new escpos.Network("localhost");
+      const printer = new escpos.Printer(device);
+      const diasSemana = [
+        "Diumenge",
+        "Dilluns",
+        "Dimarts",
+        "Dimecres",
+        "Dijous",
+        "Divendres",
+        "Dissabte",
+      ];
+
+      const options = { imprimirLogo: true };
+      this.enviarMQTT(
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "BOTIGA : " + parametros.nombreTienda },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: "Resum caixa" },
+          { tipo: "text", payload: "" },
+          { tipo: "align", payload: "LT" },
+          {
+            tipo: "text",
+            payload: "Resp. apertura   : " + trabajadorApertura.nombre,
+          },
+          {
+            tipo: "text",
+            payload: "Resp. cierre   : " + trabajadorCierre.nombre,
+          },
+          {
+            tipo: "text",
+            payload: `Inici: ${
+              diasSemana[fechaInicio.format("d")]
+            } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
+          },
+          {
+            tipo: "text",
+            payload: `Final: ${
+              diasSemana[fechaFinal.format("d")]
+            } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
+          },
+          { tipo: "text", payload: "" },
+          { tipo: "size", payload: [0, 1] },
+          {
+            tipo: "text",
+            payload: "Calaix fet       :      " + caja.calaixFetZ.toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload: "Clients atesos   :      " + caja.nClientes,
+          },
+          {
+            tipo: "text",
+            payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload: "Datafon 3g       :      " + caja.totalDatafono3G,
+          },
+          {
+            tipo: "text",
+            payload: "Canvi inicial    :      " + caja.totalApertura.toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
+          },
+          { tipo: "text", payload: "" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: "Moviments de caixa" },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: textoMovimientos },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "" },
+          {
+            tipo: "text",
+            payload:
+              "       0.01 --> " +
+              caja.detalleApertura[0]["valor"].toFixed(2) +
+              "      " +
+              "0.01 --> " +
+              caja.detalleCierre[0]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       0.02 --> " +
+              caja.detalleApertura[1]["valor"].toFixed(2) +
+              "      " +
+              "0.02 --> " +
+              caja.detalleCierre[1]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       0.05 --> " +
+              caja.detalleApertura[2]["valor"].toFixed(2) +
+              "      " +
+              "0.05 --> " +
+              caja.detalleCierre[2]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       0.10 --> " +
+              caja.detalleApertura[3]["valor"].toFixed(2) +
+              "      " +
+              "0.10 --> " +
+              caja.detalleCierre[3]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       0.20 --> " +
+              caja.detalleApertura[4]["valor"].toFixed(2) +
+              "      " +
+              "0.20 --> " +
+              caja.detalleCierre[4]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       0.50 --> " +
+              caja.detalleApertura[5]["valor"].toFixed(2) +
+              "      " +
+              "0.50 --> " +
+              caja.detalleCierre[5]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       1.00 --> " +
+              caja.detalleApertura[6]["valor"].toFixed(2) +
+              "      " +
+              "1.00 --> " +
+              caja.detalleCierre[6]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       2.00 --> " +
+              caja.detalleApertura[7]["valor"].toFixed(2) +
+              "      " +
+              "2.00 --> " +
+              caja.detalleCierre[7]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       5.00 --> " +
+              caja.detalleApertura[8]["valor"].toFixed(2) +
+              "      " +
+              "5.00 --> " +
+              caja.detalleCierre[8]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       10.00 --> " +
+              caja.detalleApertura[9]["valor"].toFixed(2) +
+              "     " +
+              "10.00 --> " +
+              caja.detalleCierre[9]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       20.00 --> " +
+              caja.detalleApertura[10]["valor"].toFixed(2) +
+              "    " +
+              "20.00 --> " +
+              caja.detalleCierre[10]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       50.00 --> " +
+              caja.detalleApertura[11]["valor"].toFixed(2) +
+              "    " +
+              "50.00 --> " +
+              caja.detalleCierre[11]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       100.00 --> " +
+              caja.detalleApertura[12]["valor"].toFixed(2) +
+              "   " +
+              "100.00 --> " +
+              caja.detalleCierre[12]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       200.00 --> " +
+              caja.detalleApertura[13]["valor"].toFixed(2) +
+              "   " +
+              "200.00 --> " +
+              caja.detalleCierre[13]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       500.00 --> " +
+              caja.detalleApertura[14]["valor"].toFixed(2) +
+              "   " +
+              "500.00 --> " +
+              caja.detalleCierre[14]["valor"].toFixed(2),
+          },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "" },
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
+      );
     } catch (err) {
       console.log(err);
       logger.Error(145, err);
@@ -1377,9 +1434,9 @@ export class Impresora {
   }
 
   async abrirCajon() {
-    const device = new escpos.Network("localhost");
-    const printer = new escpos.Printer(device);
-    this.enviarMQTTCajon(printer.cashdraw(2).close().buffer._buffer);
+    const arrayImprimir = [{ tipo: "cashdraw", payload: 2 }];
+    const options = { imprimirlogo: false };
+    this.enviarMQTT(arrayImprimir, options);
   }
 
   async mostrarVisor(data) {
@@ -1450,61 +1507,70 @@ export class Impresora {
     const fecha = `${data.timestamp.day}/${data.timestamp.month}/${data.timestamp.year} - ${data.timestamp.hour}:${data.timestamp.minute}`;
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
-    await this.enviarMQTT([
-      { tipo: "setCharacterCodeTable", payload: 19 },
-      { tipo: "encode", payload: "CP858" },
-      { tipo: "font", payload: "a" },
-      { tipo: "style", payload: "b" },
-      { tipo: "align", payload: "CT" },
-      { tipo: "size", payload: [2, 2] },
-      { tipo: "text", payload: data.operationTypeName },
-      { tipo: "align", payload: "LT" },
-      { tipo: "size", payload: [0, 0] },
-      { tipo: "text", payload: data.commerceText },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "HCP: " + data.bankName },
-      {
-        tipo: "text",
-        payload: "Aplicación: " + data.cardInformation.emvApplicationID,
-      },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: data.cardInformation.emvApplicationLabel },
-      {
-        tipo: "text",
-        payload: "Entidad Bancaria: " + data.issuerNameAndCountry,
-      },
-      {
-        tipo: "text",
-        payload: "Tarjeta: " + data.cardInformation.hiddenCardNumber,
-      },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "Fecha: " + fecha },
-      { tipo: "text", payload: "Nº Operación: " + data.paytefOperationNumber },
-      { tipo: "text", payload: "Autorización: " + data.authorisationCode },
-      { tipo: "text", payload: "" },
-      { tipo: "size", payload: [1, 1] },
-      { tipo: "text", payload: "Importe: " + data.amountWithSign + "€" },
-      { tipo: "text", payload: "" },
-      { tipo: "size", payload: [0, 0] },
-      {
-        tipo: "text",
-        payload: "Operación " + data.cardInformation.dataEntryLetter,
-      },
-      {
-        tipo: "text",
-        payload: `FIRMA ${data.needsSignature == false ? "NO " : ""}NECESARIA`,
-      },
-      { tipo: "text", payload: "------" },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "------" },
-      { tipo: "text", payload: `COPIA PARA EL ${copia}` },
-      { tipo: "text", payload: "" },
-      { tipo: "text", payload: "" },
-      { tipo: "cut", payload: "PAPER_FULL_CUT" },
-    ]);
+    const options = { imprimirLogo: true };
+    await this.enviarMQTT(
+      [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [2, 2] },
+        { tipo: "text", payload: data.operationTypeName },
+        { tipo: "align", payload: "LT" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: data.commerceText },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "HCP: " + data.bankName },
+        {
+          tipo: "text",
+          payload: "Aplicación: " + data.cardInformation.emvApplicationID,
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: data.cardInformation.emvApplicationLabel },
+        {
+          tipo: "text",
+          payload: "Entidad Bancaria: " + data.issuerNameAndCountry,
+        },
+        {
+          tipo: "text",
+          payload: "Tarjeta: " + data.cardInformation.hiddenCardNumber,
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "Fecha: " + fecha },
+        {
+          tipo: "text",
+          payload: "Nº Operación: " + data.paytefOperationNumber,
+        },
+        { tipo: "text", payload: "Autorización: " + data.authorisationCode },
+        { tipo: "text", payload: "" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: "Importe: " + data.amountWithSign + "€" },
+        { tipo: "text", payload: "" },
+        { tipo: "size", payload: [0, 0] },
+        {
+          tipo: "text",
+          payload: "Operación " + data.cardInformation.dataEntryLetter,
+        },
+        {
+          tipo: "text",
+          payload: `FIRMA ${
+            data.needsSignature == false ? "NO " : ""
+          }NECESARIA`,
+        },
+        { tipo: "text", payload: "------" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "------" },
+        { tipo: "text", payload: `COPIA PARA EL ${copia}` },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ],
+      options
+    );
   }
 
   async imprimirEntregas() {
@@ -1518,16 +1584,21 @@ export class Impresora {
         try {
           const device = new escpos.Network("localhost");
           const printer = new escpos.Printer(device);
-          this.enviarMQTT([
-            { tipo: "setCharacterCodeTable", payload: 19 },
-            { tipo: "encode", payload: "CP858" },
-            { tipo: "font", payload: "a" },
-            { tipo: "style", payload: "b" },
-            { tipo: "align", payload: "CT" },
-            { tipo: "size", payload: [0, 0] },
-            { tipo: "text", payload: res.data.info },
-            { tipo: "cut", payload: "PAPER_FULL_CUT" },
-          ]);
+          const options = { imprimirLogo: true };
+
+          this.enviarMQTT(
+            [
+              { tipo: "setCharacterCodeTable", payload: 19 },
+              { tipo: "encode", payload: "CP858" },
+              { tipo: "font", payload: "a" },
+              { tipo: "style", payload: "b" },
+              { tipo: "align", payload: "CT" },
+              { tipo: "size", payload: [0, 0] },
+              { tipo: "text", payload: res.data.info },
+              { tipo: "cut", payload: "PAPER_FULL_CUT" },
+            ],
+            options
+          );
           return { error: false, info: "OK" };
         } catch (err) {
           mqttInstance.loggerMQTT(err);
@@ -1576,16 +1647,20 @@ export class Impresora {
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
     // enviamos el string a la impresora por mqtt
-    this.enviarMQTT([
-      { tipo: "setCharacterCodeTable", payload: 19 },
-      { tipo: "encode", payload: "CP858" },
-      { tipo: "font", payload: "a" },
-      { tipo: "style", payload: "b" },
-      { tipo: "size", payload: [0, 0] },
-      { tipo: "align", payload: "LT" },
-      { tipo: "text", payload: string },
-      { tipo: "cut", payload: "PAPER_FULL_CUT" },
-    ]);
+    const options = { imprimirLogo: true };
+    this.enviarMQTT(
+      [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: string },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ],
+      options
+    );
     return { error: false, msg: "Good work bro" };
   }
 
@@ -1625,53 +1700,58 @@ export class Impresora {
     try {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
-      this.enviarMQTT([
-        { tipo: "setCharacterCodeTable", payload: 19 },
-        { tipo: "encode", payload: "CP858" },
-        { tipo: "font", payload: "a" },
-        { tipo: "style", payload: "b" },
-        { tipo: "align", payload: "CT" },
-        { tipo: "size", payload: [1, 1] },
-        { tipo: "text", payload: "ENTREGA" },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "align", payload: "LT" },
-        { tipo: "text", payload: cabecera },
-        {
-          tipo: "text",
-          payload: `Data: ${fecha.format("d")} ${fecha.format(
-            "DD-MM-YYYY HH:mm"
-          )}`,
-        },
-        { tipo: "text", payload: "Ates per: " + encargo.nombreTrabajador },
-        { tipo: "text", payload: "Client: " + encargo.nombreCliente },
-        { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
-        { tipo: "control", payload: "LF" },
-        {
-          tipo: "text",
-          payload: "Quantitat        Article           Import (€)",
-        },
-        {
-          tipo: "text",
-          payload: "----------------------------------------------",
-        },
-        { tipo: "align", payload: "LT" },
-        { tipo: "text", payload: detalles },
-        {
-          tipo: "text",
-          payload: "----------------------------------------------",
-        },
-        { tipo: "text", payload: detalleImporte },
-        { tipo: "size", payload: [1, 1] },
-        { tipo: "text", payload: importe },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "align", payload: "CT" },
-        { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
-        { tipo: "text", payload: detalleIva },
-        { tipo: "text", payload: "-- ES COPIA --" },
-        { tipo: "control", payload: "LF" },
-        { tipo: "text", payload: "ID: " + random() + " - " + random() },
-        { tipo: "cut", payload: "PAPER_FULL_CUT" },
-      ]);
+      const options = { imprimirLogo: true };
+
+      this.enviarMQTT(
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "ENTREGA" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: cabecera },
+          {
+            tipo: "text",
+            payload: `Data: ${fecha.format("d")} ${fecha.format(
+              "DD-MM-YYYY HH:mm"
+            )}`,
+          },
+          { tipo: "text", payload: "Ates per: " + encargo.nombreTrabajador },
+          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
+          { tipo: "control", payload: "LF" },
+          {
+            tipo: "text",
+            payload: "Quantitat        Article           Import (€)",
+          },
+          {
+            tipo: "text",
+            payload: "----------------------------------------------",
+          },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: detalles },
+          {
+            tipo: "text",
+            payload: "----------------------------------------------",
+          },
+          { tipo: "text", payload: detalleImporte },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: importe },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "CT" },
+          { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+          { tipo: "text", payload: detalleIva },
+          { tipo: "text", payload: "-- ES COPIA --" },
+          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: "ID: " + random() + " - " + random() },
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
+      );
 
       return { error: false, info: "OK" };
     } catch (err) {

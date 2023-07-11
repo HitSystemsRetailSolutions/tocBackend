@@ -54,12 +54,10 @@ export class MovimientosClase {
     ExtraData: MovimientosInterface["ExtraData"] = []
   ) {
     let codigoBarras = "";
-
     if (concepto === "Entrega Diària" || concepto === "Entrada") {
       codigoBarras = await this.generarCodigoBarrasSalida();
       codigoBarras = String(Ean13Utils.generate(codigoBarras));
     }
-
     const nuevoMovimiento: MovimientosInterface = {
       _id: Date.now(),
       codigoBarras,
@@ -71,9 +69,7 @@ export class MovimientosClase {
       valor,
       ExtraData,
     };
-
-    if(await schMovimientos.existeMovimiento(idTicket, valor)) return false;
-
+    if (await schMovimientos.existeMovimiento(idTicket, valor)) return false;
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrega Diària") {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
@@ -211,16 +207,16 @@ export class MovimientosClase {
     return null;
   }
 
-    /* Uri */
-    public async getExtraData(ticket) {
-      const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
-        ticket
-      );
-      if (arrayMovimientos?.length > 0) {
-        return arrayMovimientos[0].ExtraData;
-      }
-      return null;
+  /* Uri */
+  public async getExtraData(ticket) {
+    const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
+      ticket
+    );
+    if (arrayMovimientos?.length > 0) {
+      return arrayMovimientos[0].ExtraData;
     }
+    return null;
+  }
 
   /* Eze 4.0 */
   public calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
