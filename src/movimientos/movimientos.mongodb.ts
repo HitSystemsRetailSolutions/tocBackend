@@ -30,10 +30,12 @@ export async function nuevoMovimiento(
 export async function existeMovimiento(
   idTicket: MovimientosInterface["idTicket"],
   valor: MovimientosInterface["valor"]
-): Promise<boolean> {
+): Promise<any> {
   const database = (await conexion).db("tocgame");
   const movimientos = database.collection<MovimientosInterface>("movimientos");
-  return !!(await movimientos.findOne({ idTicket, valor }));
+  const result = await movimientos.findOne({ idTicket });
+  if (!!result && result?.valor === valor) return true;
+  return false;
 }
 
 /* Eze 4.0 */
@@ -82,13 +84,11 @@ export async function getMovimientoMasAntiguo(): Promise<MovimientosInterface> {
 
 /* Uri */
 export async function getMovimientoTarjetaMasAntiguo(
-  idTicket:MovimientosInterface
+  idTicket: MovimientosInterface
 ): Promise<MovimientosInterface> {
   const database = (await conexion).db("tocgame");
   const movimientos = database.collection<MovimientosInterface>("movimientos");
-  return await movimientos.findOne(
-    { idTicket: 152 }
-  );
+  return await movimientos.findOne({ idTicket: 152 });
 }
 
 /* Eze 4.0 */
