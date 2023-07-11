@@ -476,7 +476,7 @@ export class Impresora {
         tipo: "text",
         payload: `Quantitat      Article   ${
           preuU ? "  Preu U." : ""
-        }     Import (€)`,
+        }   Import (€)`,
       },
       { tipo: "text", payload: "-----------------------------------------" },
       { tipo: "align", payload: "LT" },
@@ -1726,7 +1726,7 @@ export class Impresora {
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
-            payload: "Quantitat        Article           Import (€)",
+            payload: "Quantitat        Article        Import (€)",
           },
           {
             tipo: "text",
