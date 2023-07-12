@@ -72,9 +72,10 @@ export class TicketsClase {
 
   /* Eze 4.0 */
   async insertarTicket(ticket: TicketsInterface): Promise<boolean> {
+    // miramos que la lista tenga elementos
     if (ticket.cesta.lista.length == 0)
       throw Error("Error al insertar ticket: la lista está vacía");
-
+    // calculamos el dinero que se descuenta
     let cantidadRegalada = 0;
 
     for (let i = 0; i < ticket.cesta.lista.length; i++) {
@@ -87,7 +88,7 @@ export class TicketsClase {
           ).precioConIva * ticket.cesta.lista[i].unidades;
       }
     }
-
+    // si tenemos que descontar dinero lo hacemos
     if (cantidadRegalada > 0) {
       const resDescuento = await axios.post("clientes/descontarPuntos", {
         idCliente: ticket.cesta.idCliente,
@@ -98,6 +99,7 @@ export class TicketsClase {
 
       throw Error("No se han podido descontar los puntos");
     }
+    // si no tenemos que descontar dinero, simplemente insertamos el ticket
     return await schTickets.nuevoTicket(ticket);
   }
 

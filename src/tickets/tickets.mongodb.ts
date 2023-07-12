@@ -4,6 +4,7 @@ import { UtilesModule } from "../utiles/utiles.module";
 import { ticketsInstance } from "./tickets.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { logger } from "../logger";
+import axios from "axios";
 
 /* Eze v23 */
 export async function limpiezaTickets(): Promise<boolean> {
@@ -34,7 +35,7 @@ export async function getTicketsIntervalo(
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
   const defTickets = await tickets
-    .find({ timestamp: {  $gte: inicioTime } })
+    .find({ timestamp: { $gte: inicioTime } })
     .toArray();
   return defTickets.filter((ticket) => ticket.timestamp <= finalTime);
 }
@@ -140,8 +141,10 @@ export async function getUltimoTicket(): Promise<TicketsInterface> {
 
 /* Eze v23 */
 export async function nuevoTicket(ticket: TicketsInterface): Promise<boolean> {
+  // conexion con mongo
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
+  // insertar ticket
   return (await tickets.insertOne(ticket)).acknowledged;
 }
 
@@ -182,16 +185,18 @@ export async function actualizarTotalArticulo(existTicketId, total, sum) {
 export async function toggle3G(existTicketId, oldValue = false) {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
-  return (
-    await tickets.updateOne(
-      { _id: existTicketId },
-      {
-        $set: {
-          datafono3G: !oldValue,
-        },
-      }
-    )
-  ).acknowledged;
+  const result = await tickets.updateOne(
+    { _id: existTicketId },
+    {
+      $set: {
+        datafono3G: !oldValue,
+      },
+    }
+  );
+  const ticket = await tickets.findOne({ _id: existTicketId });
+
+  const santaAnaResult = await axios.post("/tickets/enviarTicket", { ticket });
+  return result.acknowledged;
 }
 
 /* Eze v23 */
