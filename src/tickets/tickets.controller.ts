@@ -18,6 +18,7 @@ import { deudasInstance } from "src/deudas/deudas.clase";
 import { timestamp } from "rxjs";
 import { mqttInstance } from "src/mqtt";
 import axios from "axios";
+import { clienteInstance } from "src/clientes/clientes.clase";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */

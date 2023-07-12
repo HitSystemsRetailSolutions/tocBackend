@@ -10,6 +10,8 @@ import { articulosInstance } from "../articulos/articulos.clase";
 import * as schMovimientos from "../movimientos/movimientos.mongodb";
 import { paytefInstance } from "../paytef/paytef.class";
 import { cajaInstance } from "../caja/caja.clase";
+import { ClientesInterface } from "src/clientes/clientes.interface";
+import { clienteInstance } from "src/clientes/clientes.clase";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -144,6 +146,14 @@ export class TicketsClase {
     datafono3G: TicketsInterface["datafono3G"],
     dejaCuenta?: TicketsInterface["dejaCuenta"]
   ): Promise<TicketsInterface> {
+    const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+    if (cliente && cliente.descuento) {
+      cesta.lista.forEach((art, index) => {
+        cesta.lista[index].subtotal =
+          art.subtotal - art.subtotal * (cliente.descuento / 100);
+      });
+    }
+
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),
