@@ -6,16 +6,15 @@ const client = mqtt.connect("mqtt://localhost:1883");
 
 client.on("connect", async () => {
   const parametros = await parametrosController.getParametros();
-  for (let i = 1; i < 5; i++) {
-    client.subscribe(`hit.software/imagen/${parametros.licencia}/${i}`);
-  }
+  client.subscribe(`hit.software/imagen/${parametros.licencia}/trabajador`);
+  client.subscribe(`hit.software/imagen/${parametros.licencia}/cliente`);
 });
 
 client.on("message", (topic, message) => {
   if (topic.includes("hit.software/imagen")) {
     const mensaje = Buffer.from(message, "binary").toString("utf-8");
-    const pantalla = topic.split("/")[3];
-    io.emit(`ponerImagen_${pantalla}`, JSON.parse(mensaje));
+    const objetivo = topic.split("/")[3];
+    io.emit(`ponerImagen_${objetivo}`, JSON.parse(mensaje));
   }
 });
 
@@ -26,7 +25,7 @@ export class CargarImagenController {
     const parametros = await parametrosController.getParametros();
     if (license != parametros.licencia) return false;
 
-    io.emit("ponerImagen", datos);
+    io.emit("ponerImagen_trabajador", datos);
     return true;
   }
 }
