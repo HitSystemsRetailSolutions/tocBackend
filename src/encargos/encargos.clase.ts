@@ -236,7 +236,7 @@ export class Encargos {
     let encargoGraella = {
       ids: idGraellas,
       bbdd: parametros.database,
-      tmp: encargo.timestamp,
+      fecha: encargo.fecha,
     };
 //  se envia el encargo a bbdd para actualizar el registro
     const { data }: any = await axios.post(
@@ -283,7 +283,7 @@ export class Encargos {
       let encargoGraella = {
         ids: idGraellas,
         bbdd: parametros.database,
-        tmp: encargo.timestamp,
+        fecha: encargo.fecha,
       };
       // borrara el registro del encargo en la bbdd
       const { data }: any = await axios.post(
