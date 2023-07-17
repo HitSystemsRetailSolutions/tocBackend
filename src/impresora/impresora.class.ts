@@ -667,8 +667,8 @@ export class Impresora {
             detalles += `       ${arrayCompra[i].arraySuplementos[
               j
             ].nombre.slice(0, 20)}${
-              preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
-            }         ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+              preuUnitari ? "    " + arrayCompra[i]["preuU"] : ""
+            }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
           } else {
             detalles += `       ${arrayCompra[i].arraySuplementos[
               j
@@ -1726,7 +1726,7 @@ export class Impresora {
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
-            payload: "Quantitat        Article        Import (€)",
+            payload: "        Quantitat         Article   Import (€)",
           },
           {
             tipo: "text",
@@ -1748,6 +1748,10 @@ export class Impresora {
           { tipo: "text", payload: "-- ES COPIA --" },
           { tipo: "control", payload: "LF" },
           { tipo: "text", payload: "ID: " + random() + " - " + random() },
+          {
+            tipo: "barcode",
+            payload: [encargo.codigoBarras.slice(0, 12), "EAN13", 4],
+          },
           { tipo: "cut", payload: "PAPER_FULL_CUT" },
         ],
         options

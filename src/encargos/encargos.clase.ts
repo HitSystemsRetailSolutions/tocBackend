@@ -11,6 +11,7 @@ import {
 } from "./encargos.interface";
 import * as schEncargos from "./encargos.mongodb";
 import { impresoraInstance } from "../impresora/impresora.class";
+import { movimientosInstance } from "src/movimientos/movimientos.clase";
 
 export class Encargos {
   async getEncargos() {
@@ -189,34 +190,35 @@ export class Encargos {
       recogido: false,
     };
     // Mandamos el encargo al SantaAna
-    const { data }: any = await axios.post(
-      "encargos/setEncargo",
-      encargo_santAna
-    );
-    // Si data no existe (null, undefined, etc...) o error = true devolvemos false
-    if (!data || data.error) {
-      // He puesto el 143 pero no se cual habría que poner, no se cual es el sistema que seguís
-      logger.Error(
-        143,
-        "Error: no se ha podido crear el encargo en el SantaAna"
-      );
-      return {
-        error: true,
-        msg: data.msg,
-      };
-    }
+    // const { data }: any = await axios.post(
+    //   "encargos/setEncargo",
+    //   encargo_santAna
+    // );
+    // // Si data no existe (null, undefined, etc...) o error = true devolvemos false
+    // if (!data || data.error) {
+    //   // He puesto el 143 pero no se cual habría que poner, no se cual es el sistema que seguís
+    //   logger.Error(
+    //     143,
+    //     "Error: no se ha podido crear el encargo en el SantaAna"
+    //   );
+    //   return {
+    //     error: true,
+    //     msg: data.msg,
+    //   };
+    // }
     // Si existe, llamámos a la función de setEncargo
     // que devuelve un boolean.
     // True -> Se han insertado correctamente el encargo.
     // False -> Ha habido algún error al insertar el encargo.
     encargo.timestamp = timestamp;
     encargo.recogido = false;
+    encargo.codigoBarras= await movimientosInstance.generarCodigoBarrasSalida();
     await impresoraInstance.imprimirEncargo(encargo);
     // insertamos las ids insertadas en la tabla utilizada a los prodctos
-    for (let i = 0; i < encargo.productos.length; i++) {
-      encargo.productos[i].idGraella =
-        data.ids[encargo.productos.length - (i + 1)].id;
-    }
+    // for (let i = 0; i < encargo.productos.length; i++) {
+    //   encargo.productos[i].idGraella =
+    //     data.ids[encargo.productos.length - (i + 1)].id;
+    // }
     // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
@@ -294,6 +296,8 @@ export class Encargos {
     }
     return false;
   };
+  getEncargoByNumber = async (idTarjeta: string): Promise<EncargosInterface> =>
+    await schEncargos.getEncargoByNumber(idTarjeta);
   private async generateId(
     formatDate: string,
     idTrabajador: string,

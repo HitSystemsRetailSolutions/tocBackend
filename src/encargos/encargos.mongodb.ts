@@ -62,3 +62,11 @@ export async function setChecked(
     )
   ).acknowledged;
 }
+
+export async function getEncargoByNumber(
+  codigoBarras
+): Promise<EncargosInterface> {
+  const database = (await conexion).db("tocgame");
+  const clientes = database.collection<EncargosInterface>("encargos");
+  return await clientes.findOne({ tarjetaCliente: codigoBarras });
+}
