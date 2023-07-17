@@ -38,9 +38,11 @@ class Mqtt {
           archivosInstance.insertarArchivo("logo", extension, logo.toString());
 
           client.publish("hit.hardware/logo", JSON.stringify({ logo }));
+          return true;
         })
         .catch((err) => {
           this.loggerMQTT(err.message);
+          return false;
         });
       return;
     }
