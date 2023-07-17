@@ -371,7 +371,7 @@ export class Impresora {
     const infoCliente = info.infoCliente;
 
     let strRecibo = "";
-    if (recibo != null && recibo != undefined) {
+    if (recibo) {
       strRecibo = recibo;
     }
 
@@ -514,6 +514,8 @@ export class Impresora {
     ];
     const options = {
       imprimirLogo: true,
+      tipo: "venta",
+      lExtra: arrayCompra.length,
     };
     // lo mandamos a la funcion enviarMQTT que se supone que imprime
     this.enviarMQTT(arrayImprimir, options);
@@ -740,6 +742,7 @@ export class Impresora {
 
       const options = {
         imprimirLogo: false,
+        tipo: "salida",
       };
 
       this.enviarMQTT(buffer, options);
@@ -798,6 +801,7 @@ export class Impresora {
 
       const options = {
         imprimirLogo: false,
+        tipo: "entrada",
       };
       this.enviarMQTT(buffer, options);
     } catch (err) {
@@ -807,29 +811,8 @@ export class Impresora {
   }
 
   async imprimirTest() {
-    const parametros = parametrosInstance.getParametros();
     try {
       permisosImpresora();
-      // if(parametros.tipoImpresora === 'USB')
-      // {
-      //     const arrayDevices = escpos.USB.findPrinter();
-      //     if (arrayDevices.length > 0) {
-      //         /* Solo puede haber un dispositivo USB */
-      //         const dispositivoUnico = arrayDevices[0];
-      //         var device = new escpos.USB(dispositivoUnico); //USB
-      //     } else if (arrayDevices.length == 0) {
-      //         throw 'Error, no hay ningún dispositivo USB conectado';
-      //     } else {
-      //         throw 'Error, hay más de un dispositivo USB conectado';
-      //     }
-      // }
-      // else if(parametros.tipoImpresora === 'SERIE') {
-      //     var device = new escpos.Serial('/dev/ttyS0', {
-      //         baudRate: 115000,
-      //         stopBit: 2
-      //     });
-      // }
-      const device = new escpos.Network("localhost");
       const options = {
         imprimirLogo: false,
       };
@@ -919,6 +902,7 @@ export class Impresora {
     const printer = new escpos.Printer(device);
     const options = {
       imprimirLogo: true,
+      tipo: "cierreCaja",
     };
     this.enviarMQTT(
       [
@@ -1200,8 +1184,6 @@ export class Impresora {
         `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
 
       permisosImpresora();
-      const device = new escpos.Network("localhost");
-      const printer = new escpos.Printer(device);
       const diasSemana = [
         "Diumenge",
         "Dilluns",
@@ -1212,7 +1194,7 @@ export class Impresora {
         "Dissabte",
       ];
 
-      const options = { imprimirLogo: true };
+      const options = { imprimirLogo: true, tipo: "cierreCaja" };
       this.enviarMQTT(
         [
           { tipo: "setCharacterCodeTable", payload: 19 },
