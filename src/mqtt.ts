@@ -15,6 +15,10 @@ class Mqtt {
   public enviarImpresora(txt: string) {
     client.publish("hit.hardware/printer", txt);
   }
+
+  public resetPapel() {
+    client.publish("hit.hardware/resetPaper");
+  }
 }
 
 export const mqttInstance = new Mqtt();

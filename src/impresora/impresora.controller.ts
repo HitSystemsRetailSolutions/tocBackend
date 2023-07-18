@@ -22,6 +22,17 @@ export class ImpresoraController {
     }
   }
 
+  /* Yasai :D */
+  @Post("reiniciarPapel")
+  reiniciarPapel() {
+    try {
+      mqttInstance.resetPapel();
+      return true;
+    } catch (err) {
+      logger.Error(139, err);
+      return false;
+    }
+  }
   /* Uri */
 
   @Post("imprimirTicketPaytef")
