@@ -253,6 +253,7 @@ export class Impresora {
     const printer = new escpos.Printer(device);
     const options = {
       imprimirLogo: false,
+      tipo: "encargo",
     };
     this.enviarMQTT(
       [
@@ -268,30 +269,30 @@ export class Impresora {
       options
     );
   }
-  private async imprimirRecibo(recibo: string) {
-    mqttInstance.loggerMQTT("imprimir recibo");
-    try {
-      const device = new escpos.Network("localhost");
-      const printer = new escpos.Printer(device);
-      const options = {
-        imprimirLogo: false,
-      };
-      this.enviarMQTT(
-        [
-          { tipo: "setCharacterCodeTable", payload: 19 },
-          { tipo: "encode", payload: "CP858" },
-          { tipo: "font", payload: "a" },
-          { tipo: "style", payload: "b" },
-          { tipo: "size", payload: [0, 0] },
-          { tipo: "text", payload: recibo },
-          { tipo: "cut", payload: "PAPER_FULL_CUT" },
-        ],
-        options
-      );
-    } catch (err) {
-      mqttInstance.loggerMQTT("Error impresora: " + err);
-    }
-  }
+  // private async imprimirRecibo(recibo: string) {
+  //   mqttInstance.loggerMQTT("imprimir recibo");
+  //   try {
+  //     const device = new escpos.Network("localhost");
+  //     const printer = new escpos.Printer(device);
+  //     const options = {
+  //       imprimirLogo: false,
+  //     };
+  //     this.enviarMQTT(
+  //       [
+  //         { tipo: "setCharacterCodeTable", payload: 19 },
+  //         { tipo: "encode", payload: "CP858" },
+  //         { tipo: "font", payload: "a" },
+  //         { tipo: "style", payload: "b" },
+  //         { tipo: "size", payload: [0, 0] },
+  //         { tipo: "text", payload: recibo },
+  //         { tipo: "cut", payload: "PAPER_FULL_CUT" },
+  //       ],
+  //       options
+  //     );
+  //   } catch (err) {
+  //     mqttInstance.loggerMQTT("Error impresora: " + err);
+  //   }
+  // }
   public async testMqtt(txt: string) {
     try {
       const device = new escpos.Network("localhost");
@@ -330,20 +331,6 @@ export class Impresora {
     // cuando se conecta enviamos los datos
     client.on("connect", function () {
       client.publish("hit.hardware/printer", JSON.stringify(enviar));
-    });
-  }
-
-  private enviarMQTTCajon(encodedData) {
-    // conectamos con el cliente
-    var client =
-      mqtt.connect(process.env.MQTT_URL) ||
-      mqtt.connect("mqtt://127.0.0.1:1883", {
-        username: "ImpresoraMQTT",
-      });
-    // cuando se conecta enviamos los datos
-    client.on("connect", function () {
-      let buff = Buffer.from(encodedData, "utf8");
-      client.publish("hit.hardware/cajon", buff);
     });
   }
 
@@ -1564,8 +1551,6 @@ export class Impresora {
       })
       .then(async (res: any) => {
         try {
-          const device = new escpos.Network("localhost");
-          const printer = new escpos.Printer(device);
           const options = { imprimirLogo: true };
 
           this.enviarMQTT(
@@ -1626,8 +1611,6 @@ export class Impresora {
         string += `${productoConSuplementos}\n`;
       });
     });
-    const device = new escpos.Network();
-    const printer = new escpos.Printer(device);
     // enviamos el string a la impresora por mqtt
     const options = { imprimirLogo: true };
     this.enviarMQTT(
@@ -1680,9 +1663,11 @@ export class Impresora {
       detallesIva.detalleIva21;
 
     try {
-      const device = new escpos.Network();
-      const printer = new escpos.Printer(device);
-      const options = { imprimirLogo: true };
+      const options = {
+        imprimirLogo: true,
+        tipo: "encargo",
+        lExtra: encargo.cesta.lista.length,
+      };
 
       this.enviarMQTT(
         [
