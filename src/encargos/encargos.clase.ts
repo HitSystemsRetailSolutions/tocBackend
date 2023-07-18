@@ -19,33 +19,6 @@ export class Encargos {
   }
   setEntregado = async (id) => {
 
-    // cuando pidan que encargos de cada cierto dia de la semana se pueda escoger mas de un dia, codigo medio hecho
-    // de momento solo se puede escoger un dia de la semana
-    // const encargo = await this.getEncargoById(id);
-    // if (encargo.opcionRecogida == 3) {
-    //   for (let i = 0; i < encargo.dias.length; i++) {
-    //     if (encargo.dias[i].checked && encargo.dias.length - 1 == i) {
-    //       encargo.dias[i].checked = false;
-    //       return schEncargos
-    //         .setChecked(id, encargo.dias)
-    //         .then((ok: boolean) => {
-    //           if (!ok)
-    //             return schEncargos.setEntregado(id).then((ok: boolean) => {
-    //               if (!ok) return false;
-    //               return true;
-    //             });
-    //         });
-    //     } else if (encargo.dias[i].checked) {
-    //       encargo.dias[i].checked = false;
-    //       return schEncargos
-    //         .setChecked(id, encargo.dias)
-    //         .then((ok: boolean) => {
-    //           if (!ok) return false;
-    //           return true;
-    //         });
-    //     }
-    //   }
-    // }
     return schEncargos
       .setEntregado(id)
       .then((ok: boolean) => {
@@ -190,35 +163,37 @@ export class Encargos {
       recogido: false,
     };
     // Mandamos el encargo al SantaAna
-    // const { data }: any = await axios.post(
-    //   "encargos/setEncargo",
-    //   encargo_santAna
-    // );
-    // // Si data no existe (null, undefined, etc...) o error = true devolvemos false
-    // if (!data || data.error) {
-    //   // He puesto el 143 pero no se cual habría que poner, no se cual es el sistema que seguís
-    //   logger.Error(
-    //     143,
-    //     "Error: no se ha podido crear el encargo en el SantaAna"
-    //   );
-    //   return {
-    //     error: true,
-    //     msg: data.msg,
-    //   };
-    // }
+    const { data }: any = await axios.post(
+      "encargos/setEncargo",
+      encargo_santAna
+    );
+    // Si data no existe (null, undefined, etc...) o error = true devolvemos false
+    if (!data || data.error) {
+      // He puesto el 143 pero no se cual habría que poner, no se cual es el sistema que seguís
+      logger.Error(
+        143,
+        "Error: no se ha podido crear el encargo en el SantaAna"
+      );
+      return {
+        error: true,
+        msg: data.msg,
+      };
+    }
     // Si existe, llamámos a la función de setEncargo
     // que devuelve un boolean.
     // True -> Se han insertado correctamente el encargo.
     // False -> Ha habido algún error al insertar el encargo.
     encargo.timestamp = timestamp;
     encargo.recogido = false;
-    encargo.codigoBarras= await movimientosInstance.generarCodigoBarrasSalida();
+    encargo.codigoBarras =
+      await movimientosInstance.generarCodigoBarrasSalida();
+    encargo.codigoBarras = await calculoEAN13(encargo.codigoBarras);
     await impresoraInstance.imprimirEncargo(encargo);
     // insertamos las ids insertadas en la tabla utilizada a los prodctos
-    // for (let i = 0; i < encargo.productos.length; i++) {
-    //   encargo.productos[i].idGraella =
-    //     data.ids[encargo.productos.length - (i + 1)].id;
-    // }
+    for (let i = 0; i < encargo.productos.length; i++) {
+      encargo.productos[i].idGraella =
+        data.ids[encargo.productos.length - (i + 1)].id;
+    }
     // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
@@ -240,7 +215,7 @@ export class Encargos {
       bbdd: parametros.database,
       fecha: encargo.fecha,
     };
-//  se envia el encargo a bbdd para actualizar el registro
+    //  se envia el encargo a bbdd para actualizar el registro
     const { data }: any = await axios.post(
       "encargos/updateEncargoGraella",
       encargoGraella
@@ -272,7 +247,7 @@ export class Encargos {
 
     return false;
   };
-// anula el ticket 
+  // anula el ticket
   anularTicket = async (idEncargo) => {
     const encargo = await this.getEncargoById(idEncargo);
     const parametros = await parametrosInstance.getParametros();
@@ -335,5 +310,23 @@ export class Encargos {
     }, new Array(7).fill(0));
   }
 }
+
+function calculoEAN13(codigo: any): any {
+  var codigoBarras = codigo;
+ var digitos = codigoBarras.split("").map(Number); // Convertir cadena en un arreglo de números
+
+// Calcular el dígito de control
+var suma = 0;
+for (var i = 0; i < digitos.length; i++) {
+  suma += digitos[i] * (i % 2 === 0 ? 1 : 3);
+}
+var digitoControl = (10 - (suma % 10)) % 10;
+
+// Agregar el dígito de control al código de barras
+var codigoBarrasEAN13 = codigoBarras + digitoControl;
+  // Devolvemos el resultado
+  return codigoBarrasEAN13;
+}
+
 const encargosInstance = new Encargos();
 export { encargosInstance };

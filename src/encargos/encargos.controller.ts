@@ -73,9 +73,9 @@ export class EncargosController {
     }
   }
   @Post("getEncargoByNumber")
-  async getEncargoByNumber(@Body() { codigoBarras }) {
+  async getEncargoByNumber(@Body() { idEncargo }) {
     try {
-      if (codigoBarras) return await encargosInstance.getEncargoByNumber(codigoBarras);
+      if (idEncargo) return await encargosInstance.getEncargoByNumber(idEncargo);
       throw Error("Error, faltan datos en getEncargoByNumber");
     } catch (err) {
       logger.Error(66, err);

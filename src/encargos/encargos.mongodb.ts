@@ -68,5 +68,5 @@ export async function getEncargoByNumber(
 ): Promise<EncargosInterface> {
   const database = (await conexion).db("tocgame");
   const clientes = database.collection<EncargosInterface>("encargos");
-  return await clientes.findOne({ tarjetaCliente: codigoBarras });
+  return await clientes.findOne({ codigoBarras: codigoBarras });
 }
