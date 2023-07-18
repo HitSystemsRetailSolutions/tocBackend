@@ -120,6 +120,7 @@ export class ImpresoraController {
   async pocoPapel() {
     try {
       io.emit("pocoPapel");
+      return true;
     } catch (err) {}
   }
 }
