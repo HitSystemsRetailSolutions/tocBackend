@@ -1701,57 +1701,59 @@ export class Impresora {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
       const options = { imprimirLogo: true };
-
-      this.enviarMQTT(
-        [
-          { tipo: "setCharacterCodeTable", payload: 19 },
-          { tipo: "encode", payload: "CP858" },
-          { tipo: "font", payload: "a" },
-          { tipo: "style", payload: "b" },
-          { tipo: "align", payload: "CT" },
-          { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: "ENTREGA" },
-          { tipo: "size", payload: [0, 0] },
-          { tipo: "align", payload: "LT" },
-          { tipo: "text", payload: cabecera },
-          {
-            tipo: "text",
-            payload: `Data: ${fecha.format("d")} ${fecha.format(
-              "DD-MM-YYYY HH:mm"
-            )}`,
-          },
-          { tipo: "text", payload: "Ates per: " + encargo.nombreTrabajador },
-          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
-          { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
-          { tipo: "control", payload: "LF" },
-          {
-            tipo: "text",
-            payload: "Quantitat        Article        Import (€)",
-          },
-          {
-            tipo: "text",
-            payload: "----------------------------------------------",
-          },
-          { tipo: "align", payload: "LT" },
-          { tipo: "text", payload: detalles },
-          {
-            tipo: "text",
-            payload: "----------------------------------------------",
-          },
-          { tipo: "text", payload: detalleImporte },
-          { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: importe },
-          { tipo: "size", payload: [0, 0] },
-          { tipo: "align", payload: "CT" },
-          { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
-          { tipo: "text", payload: detalleIva },
-          { tipo: "text", payload: "-- ES COPIA --" },
-          { tipo: "control", payload: "LF" },
-          { tipo: "text", payload: "ID: " + random() + " - " + random() },
-          { tipo: "cut", payload: "PAPER_FULL_CUT" },
-        ],
-        options
-      );
+      // se imprime 3 veces porque asi lo quieren las tiendas
+      for (let i = 0; i < 3; i++) {
+        this.enviarMQTT(
+          [
+            { tipo: "setCharacterCodeTable", payload: 19 },
+            { tipo: "encode", payload: "CP858" },
+            { tipo: "font", payload: "a" },
+            { tipo: "style", payload: "b" },
+            { tipo: "align", payload: "CT" },
+            { tipo: "size", payload: [1, 1] },
+            { tipo: "text", payload: "ENTREGA" },
+            { tipo: "size", payload: [0, 0] },
+            { tipo: "align", payload: "LT" },
+            { tipo: "text", payload: cabecera },
+            {
+              tipo: "text",
+              payload: `Data: ${fecha.format("d")} ${fecha.format(
+                "DD-MM-YYYY HH:mm"
+              )}`,
+            },
+            { tipo: "text", payload: "Ates per: " + encargo.nombreTrabajador },
+            { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+            { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
+            { tipo: "control", payload: "LF" },
+            {
+              tipo: "text",
+              payload: "Quantitat        Article        Import (€)",
+            },
+            {
+              tipo: "text",
+              payload: "----------------------------------------------",
+            },
+            { tipo: "align", payload: "LT" },
+            { tipo: "text", payload: detalles },
+            {
+              tipo: "text",
+              payload: "----------------------------------------------",
+            },
+            { tipo: "text", payload: detalleImporte },
+            { tipo: "size", payload: [1, 1] },
+            { tipo: "text", payload: importe },
+            { tipo: "size", payload: [0, 0] },
+            { tipo: "align", payload: "CT" },
+            { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+            { tipo: "text", payload: detalleIva },
+            { tipo: "text", payload: "-- ES COPIA --" },
+            { tipo: "control", payload: "LF" },
+            { tipo: "text", payload: "ID: " + random() + " - " + random() },
+            { tipo: "cut", payload: "PAPER_FULL_CUT" },
+          ],
+          options
+        );
+      }
 
       return { error: false, info: "OK" };
     } catch (err) {
