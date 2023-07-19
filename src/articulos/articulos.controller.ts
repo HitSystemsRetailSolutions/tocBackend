@@ -123,6 +123,33 @@ export class ArticulosController {
     }
   }
 
+  
+  @Post("eliminarMenu")
+  eliminarMenu(@Body() params) {
+    try {
+      if (params.id) {
+        return articulosInstance
+          .EliminarArticulo(params.id)
+          .then(async (res) => {
+            if (res) {
+              return { error: false, info: res };
+            }
+            return { error: true, mensaje: "Backend: Error, faltan datos" };
+          });
+      } else {
+        return {
+          error: true,
+          mensaje: "Backend: Faltan datos en articulos/editarArticulo",
+        };
+      }
+    } catch (err) {
+      return {
+        error: true,
+        mensaje: "Backend: Faltan datos en articulos/editarArticulo",
+      };
+    }
+  }
+
   @Post("eliminarArticulo")
   eliminarArticulo(@Body() params) {
     try {

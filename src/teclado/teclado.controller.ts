@@ -41,11 +41,10 @@ export class TecladoController {
     }
   }
 
-  /* está mal */
   @Post("cambiarPosTecla")
   async cambiarPosTecla(@Body() params) {
     try {
-      if (params.idArticle && params.nuevaPos && params.nombreMenu) {
+      if (params.idArticle && params.nuevaPos != undefined && params.nombreMenu) {
         return await tecladoInstance
           .cambiarPosTecla(params.idArticle, params.nuevaPos, params.nombreMenu)
           .then((res) => {
@@ -65,6 +64,7 @@ export class TecladoController {
       return false;
     }
   }
+
 
   @Get("getTecladoCompleto")
   async getTecladoCompleto() {

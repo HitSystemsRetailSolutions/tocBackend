@@ -167,7 +167,5 @@ export async function MoverArticulo(id, posicion, menu) {
 export async function eliminarArticulo(id) {
   const database = (await conexion).db("tocgame");
   const teclas = database.collection("teclas");
-  await teclas.deleteOne({ idArticle: id });
-  const articulos = database.collection("articulos");
-  return await articulos.deleteOne({ _id: id });
+  return await teclas.deleteOne({ idArticle: id });
 }
