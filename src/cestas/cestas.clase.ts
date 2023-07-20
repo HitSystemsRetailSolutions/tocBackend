@@ -179,10 +179,7 @@ export class CestaClase {
       let cesta = await this.getCestaById(idCesta);
       let productos = [];
       productos.push(cesta.lista[index]);
-      await this.registroLogSantaAna(
-        cesta,
-        productos
-      );
+      await this.registroLogSantaAna(cesta, productos);
 
       cesta.lista.splice(index, 1);
       // Enviar por socket
@@ -318,7 +315,7 @@ export class CestaClase {
     ) {
       // recojemos los datos del articulo
       let infoArticulo = await articulosInstance.getInfoArticulo(articulo._id);
-      // recorremos la cesta 
+      // recorremos la cesta
       for (let i = 0; i < cesta.lista.length; i++) {
         // si el articulo ya esta en la cesta
         if (
@@ -373,7 +370,6 @@ export class CestaClase {
             articuloNuevo = false;
             break;
           }
-
         }
       }
 
@@ -786,9 +782,9 @@ export class CestaClase {
     cesta: CestasInterface,
     productos: CestasInterface["lista"]
   ) {
-
     let cliente: number =
-      (await clienteInstance.getClienteById(cesta.idCliente))?.descuento == undefined
+      (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
+      undefined
         ? 0
         : Number(
             (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
@@ -806,9 +802,13 @@ export class CestaClase {
       idCliente: cesta.idCliente,
     };
 
-    await axios.post("lista/setRegistro", {
-      lista: lista,
-    }).catch((err) => {console.error("Error al enviar el registro a Santa Ana");});
+    await axios
+      .post("lista/setRegistro", {
+        lista: lista,
+      })
+      .catch((err) => {
+        console.error("Error al enviar el registro a Santa Ana");
+      });
   }
 }
 
