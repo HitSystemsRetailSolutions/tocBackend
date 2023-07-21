@@ -1,7 +1,9 @@
 import { Controller, Post, Body } from "@nestjs/common";
 import { ArticulosInterface } from "./articulos.interface";
 import { articulosInstance } from "./articulos.clase";
+import axios from "axios";
 import { logger } from "../logger";
+import { tecladoInstance } from "src/teclado/teclado.clase";
 @Controller("articulos")
 export class ArticulosController {
   /* Eze 4.0 */
@@ -48,28 +50,46 @@ export class ArticulosController {
 
   @Post("editarArticulo")
   editarArticulo(@Body() params) {
-    if (
-      params.idArticulo &&
-      params.nombre &&
-      params.precioBase != undefined &&
-      params.precioConIva != undefined
-    ) {
-      return articulosInstance
-        .editarArticulo(
-          params.idArticulo,
-          params.nombre,
-          params.precioBase,
-          params.precioConIva,
-          params.tipoIva,
-          params.essumable
-        )
-        .then((res) => {
-          if (res) {
-            return { error: false, info: res };
-          }
-          return { error: true, mensaje: "Backend: Error, faltan datos" };
-        });
-    } else {
+    try {
+      if (
+        params.idArticulo &&
+        params.nombre &&
+        params.precioBase != undefined &&
+        params.precioConIva != undefined
+      ) {
+        return articulosInstance
+          .editarArticulo(
+            params.idArticulo,
+            params.nombre,
+            params.precioBase,
+            params.precioConIva,
+            params.tipoIva,
+            params.essumable
+          )
+          .then((res) => {
+            if (res) {
+              const editarArticulo: any = axios.post(
+                "articulos/editarArticulos",
+                {
+                  id: params.idArticulo,
+                  nom: params.nombre,
+                  preu: params.precioConIva,
+                  desc: 1,
+                  esSum: params.essumable,
+                  tipoIva: params.tipoIva,
+                }
+              );
+              return { error: false, info: res };
+            }
+            return { error: true, mensaje: "Backend: Error, faltan datos" };
+          });
+      } else {
+        return {
+          error: true,
+          mensaje: "Backend: Faltan datos en articulos/editarArticulo",
+        };
+      }
+    } catch (err) {
       return {
         error: true,
         mensaje: "Backend: Faltan datos en articulos/editarArticulo",
@@ -79,16 +99,50 @@ export class ArticulosController {
 
   @Post("moverArticulo")
   moverArticulo(@Body() params) {
-    if ((params.id, params.posicion, params.menu)) {
-      return articulosInstance
-        .MoverArticulo(params.id, params.posicion, params.menu)
-        .then((res) => {
-          if (res) {
-            return { error: false, info: res };
-          }
-          return { error: true, mensaje: "Backend: Error, faltan datos" };
-        });
-    } else {
+    try {
+      if ((params.id, params.posicion, params.menu)) {
+        return articulosInstance
+          .MoverArticulo(params.id, params.posicion, params.menu)
+          .then(async (res) => {
+            if (res) {
+              return { error: false, info: res };
+            }
+            return { error: true, mensaje: "Backend: Error, faltan datos" };
+          });
+      } else {
+        return {
+          error: true,
+          mensaje: "Backend: Faltan datos en articulos/editarArticulo",
+        };
+      }
+    } catch (err) {
+      return {
+        error: true,
+        mensaje: "Backend: Faltan datos en articulos/editarArticulo",
+      };
+    }
+  }
+
+  
+  @Post("eliminarMenu")
+  eliminarMenu(@Body() params) {
+    try {
+      if (params.id) {
+        return articulosInstance
+          .EliminarArticulo(params.id)
+          .then(async (res) => {
+            if (res) {
+              return { error: false, info: res };
+            }
+            return { error: true, mensaje: "Backend: Error, faltan datos" };
+          });
+      } else {
+        return {
+          error: true,
+          mensaje: "Backend: Faltan datos en articulos/editarArticulo",
+        };
+      }
+    } catch (err) {
       return {
         error: true,
         mensaje: "Backend: Faltan datos en articulos/editarArticulo",
@@ -98,14 +152,23 @@ export class ArticulosController {
 
   @Post("eliminarArticulo")
   eliminarArticulo(@Body() params) {
-    if (params.id) {
-      return articulosInstance.EliminarArticulo(params.id).then((res) => {
-        if (res) {
-          return { error: false, info: res };
-        }
-        return { error: true, mensaje: "Backend: Error, faltan datos" };
-      });
-    } else {
+    try {
+      if (params.id) {
+        return articulosInstance
+          .EliminarArticulo(params.id)
+          .then(async (res) => {
+            if (res) {
+              return { error: false, info: res };
+            }
+            return { error: true, mensaje: "Backend: Error, faltan datos" };
+          });
+      } else {
+        return {
+          error: true,
+          mensaje: "Backend: Faltan datos en articulos/editarArticulo",
+        };
+      }
+    } catch (err) {
       return {
         error: true,
         mensaje: "Backend: Faltan datos en articulos/editarArticulo",
@@ -113,43 +176,67 @@ export class ArticulosController {
     }
   }
 
+  @Post("saveTeclas")
+  async saveTeclas(@Body() params) {
+    axios.post("teclas/subirTeclas", {
+      teclas: await tecladoInstance.getTeclas(),
+    });
+  }
+
   @Post("anadirProducto")
-  anadirProducto(@Body() params) {
-    if (
-      params.nombreArticulo != undefined &&
-      params.precioConIva != undefined &&
-      params.precioBase != undefined &&
-      params.tipoIva != undefined &&
-      params.menus != undefined &&
-      params.posicion != undefined &&
-      params.articuloExistente != undefined
-    ) {
-      if (params.articuloExistente && params.idArticulo) 
-        return articulosInstance.insertarTeclasNuevos(
-          params.menus,
-          params.esSumable,
-          params.nombreArticulo,
-          params.idArticulo,
-          params.posicion,
-          params.precioConIva
-        );
-      return articulosInstance
-        .insertarArticulosNuevos(
-          params.nombreArticulo,
-          params.precioConIva,
-          params.tipoIva,
-          params.esSumable,
-          params.menus,
-          params.precioBase,
-          params.posicion
-        )
-        .then((res) => {
-          if (res) {
-            return { error: false, info: res };
-          }
-          return { error: true, mensaje: "Backend: Error, faltan datos" };
+  async anadirProducto(@Body() params) {
+    try {
+      if (
+        params.nombreArticulo != undefined &&
+        params.precioConIva != undefined &&
+        params.precioBase != undefined &&
+        params.tipoIva != undefined &&
+        params.menus != undefined &&
+        params.posicion != undefined &&
+        params.articuloExistente != undefined
+      ) {
+        let id = -1;
+        if (params.articuloExistente && params.idArticulo) {
+          id = params.idArticulo;
+          articulosInstance.insertarTeclasNuevos(
+            params.menus,
+            params.esSumable,
+            params.nombreArticulo,
+            params.idArticulo,
+            params.posicion,
+            params.precioConIva
+          );
+        } else {
+          id = await articulosInstance.insertarArticulosNuevos(
+            params.nombreArticulo,
+            params.precioConIva,
+            params.tipoIva,
+            params.esSumable,
+            params.menus,
+            params.precioBase,
+            params.posicion
+          );
+        }
+
+        const subirArt: any = axios.post("articulos/subirArticulos", {
+          nom: params.nombreArticulo,
+          preu: params.precioConIva,
+          pos: params.posicion,
+          desc: 1,
+          esSum: params.esSumable,
+          familia: params.menus,
+          idArticle: id,
+          tipoIva: params.tipoIva,
         });
-    } else {
+
+
+      } else {
+        return {
+          error: true,
+          mensaje: "Backend: Faltan datos en articulos/editarArticulo",
+        };
+      }
+    } catch (err) {
       return {
         error: true,
         mensaje: "Backend: Faltan datos en articulos/editarArticulo",
