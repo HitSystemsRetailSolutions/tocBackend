@@ -12,7 +12,10 @@ var ip = require("ip");
 require("./sincro");
 require("./sockets.gateway");
 
-axios.defaults.baseURL = process.env.npm_lifecycle_event === "start:dev" ? "http://localhost:3001" : "https://santaana2-elb.nubehit.com:3001";
+axios.defaults.baseURL =
+  process.env.npm_lifecycle_event === "start:dev"
+    ? "http://localhost:3001"
+    : "https://santaana2-elb.nubehit.com:3003";
 
 parametrosInstance
   .getParametros()
@@ -27,7 +30,7 @@ parametrosInstance
     logger.Error(125, err);
   });
 
-async function bootstrap(ip,port) {
+async function bootstrap(ip, port) {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
@@ -38,9 +41,9 @@ async function bootstrap(ip,port) {
       },
     }
   );
-  await app.listen(port,ip);
+  await app.listen(port, ip);
   // await app.listen(3000,"10.137.0.201"); //para iterum ubuntu
   // await app.listen(3000,"10.137.0.243"); //para iterum windows
 }
-bootstrap(ip.address(),3000);
-bootstrap("localhost",3000);
+bootstrap(ip.address(), 3000);
+bootstrap("localhost", 3000);

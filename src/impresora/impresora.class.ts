@@ -122,6 +122,14 @@ export class Impresora {
           ticket.idCliente
         );
         const puntos = await clienteInstance.getPuntosCliente(ticket.idCliente);
+
+        let informacionVip = infoCliente.albaran
+          ? {
+              nombre: infoCliente.nombre,
+              nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+            }
+          : null;
+
         // preparamos los parametros que vamos a enviar a la impresora
         sendObject = {
           numFactura: ticket._id,
@@ -133,7 +141,7 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          infoClienteVip: null, // Mirar bien para terminar todo
+          infoClienteVip: informacionVip, // Mirar bien para terminar todo
           infoCliente: {
             nombre: infoCliente.nombre,
             puntos: puntos,
@@ -170,6 +178,15 @@ export class Impresora {
 
     let sendObject;
 
+    let infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
+
+    let informacionVip = infoCliente.albaran
+      ? {
+          nombre: infoCliente.nombre,
+          nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+        }
+      : null;
+
     if (ticket && trabajador) {
       if (ticket.idCliente && ticket.idCliente != "") {
         let infoCliente: ClientesInterface;
@@ -186,7 +203,7 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          infoClienteVip: null, // Mirar bien para terminar todo
+          infoClienteVip: informacionVip, // Mirar bien para terminar todo
           infoCliente: {
             nombre: infoCliente.nombre,
             puntos: puntos,
@@ -205,7 +222,7 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          infoClienteVip: null, // Mirar bien para terminar todo
+          infoClienteVip: null, // Mirar bien para terminar todo_venta
           infoCliente: null,
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
@@ -383,8 +400,8 @@ export class Impresora {
     let detallePuntosCliente = "";
     let detalleEncargo = "";
     let detalleDejaCuenta = "";
-    if (infoClienteVip && infoClienteVip.esVip) {
-      detalleClienteVip = `Nom: ${infoClienteVip.nombre}\nNIF: ${infoClienteVip.nif}\nCP: ${infoClienteVip.cp}\nCiutat: ${infoClienteVip.ciudad}\nAdr: ${infoClienteVip.direccion}\n`;
+    if (infoClienteVip) {
+      detalleClienteVip = `CLIENT:\nNom: ${infoClienteVip.nombre}\nNIF: ${infoClienteVip.nif}\n`;
     }
     // recojemos datos del cliente si nos los han mandado
     if (infoCliente != null) {
