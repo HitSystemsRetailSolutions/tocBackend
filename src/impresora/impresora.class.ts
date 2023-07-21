@@ -125,7 +125,6 @@ export class Impresora {
         const { descuento } = await clienteInstance.getClienteById(
           ticket.idCliente
         );
-        console.log({ descuento });
 
         let informacionVip = infoCliente.albaran
           ? {
