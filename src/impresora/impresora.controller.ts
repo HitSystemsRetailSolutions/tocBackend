@@ -4,6 +4,7 @@ import { logger } from "../logger";
 import { impresoraInstance } from "./impresora.class";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
 import { mqttInstance } from "src/mqtt";
+import { io } from "src/sockets.gateway";
 
 @Controller("impresora")
 export class ImpresoraController {
@@ -15,6 +16,19 @@ export class ImpresoraController {
         return true;
       }
       throw Error("Faltan datos en impresora/imprimirTicket");
+    } catch (err) {
+      logger.Error(139, err);
+      return false;
+    }
+  }
+
+
+  /* Yasai :D */
+  @Post("reiniciarPapel")
+  reiniciarPapel() {
+    try {
+      mqttInstance.resetPapel();
+      return true;
     } catch (err) {
       logger.Error(139, err);
       return false;
@@ -118,5 +132,13 @@ export class ImpresoraController {
     } catch (err) {
       return false;
     }
+  }
+
+  @Post("pocoPapel")
+  async pocoPapel() {
+    try {
+      io.emit("pocoPapel");
+      return true;
+    } catch (err) {}
   }
 }

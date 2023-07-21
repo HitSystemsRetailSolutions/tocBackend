@@ -20,6 +20,10 @@ class Mqtt {
     client.publish("hit.hardware/printer", txt);
   }
 
+  public resetPapel() {
+    client.publish("hit.hardware/resetPaper");
+  }
+  
   public async mandarLogo() {
     const logoMongo = await archivosInstance.getLogo();
     if (!logoMongo) {
