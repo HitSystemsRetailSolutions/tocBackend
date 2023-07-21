@@ -19,6 +19,7 @@ import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import { buffer } from "stream/consumers";
 import * as schDeudas from "../deudas/deudas.mongodb";
 import { conexion } from "../conexion/mongodb";
+import { sprintf } from 'sprintf-js';
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -710,22 +711,36 @@ export class Impresora {
         arrayCompra[i].arraySuplementos &&
         arrayCompra[i].arraySuplementos.length > 0
       ) {
-        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
+        var cantidadStr = sprintf("%-7d", arrayCompra[i].unidades);
+        var articuloStr = sprintf("%-18s", arrayCompra[
           i
-        ].nombre.slice(0, 20)} +      \n`;
+        ].nombre);
+        var precioUnitario= 
+          preuUnitari ? "    " + arrayCompra[i]["preuU"].toFixed(2) : "";
+        
+        var precioStr = sprintf("%-11.2f", precioUnitario);
+
+        var totalStr = sprintf("%-6.2f", arrayCompra[i].subtotal.toFixed(2));
+
+        var lineaTicket = cantidadStr + articuloStr;
+        
+        
         for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
           if (j == arrayCompra[i].arraySuplementos.length - 1) {
-            detalles += `       ${arrayCompra[i].arraySuplementos[
+
+            lineaTicket += `\n${sprintf("%-7s","")}${sprintf("%-24s",arrayCompra[i].arraySuplementos[
               j
-            ].nombre.slice(0, 20)}${
-              preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
-            }         ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+            ].nombre.slice(0, 20))}${
+              precioStr
+            }${totalStr}\n`;
           } else {
-            detalles += `       ${arrayCompra[i].arraySuplementos[
+            lineaTicket+=`\n${sprintf("%-7s","")}${sprintf("%-24s",arrayCompra[i].arraySuplementos[
               j
-            ].nombre.slice(0, 20)} +      \n`;
+            ].nombre.slice(0, 20))}`;
+            
           }
         }
+        detalles += lineaTicket;
       } else {
         if (arrayCompra[i].nombre.length < 20) {
           while (arrayCompra[i].nombre.length < 20) {
@@ -735,7 +750,7 @@ export class Impresora {
         detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
           i
         ].nombre.slice(0, 20)}${
-          preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
+          preuUnitari ? "     " + arrayCompra[i]["preuU"].toFixed(2) : ""
         }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
       }
     }
@@ -1699,7 +1714,6 @@ export class Impresora {
     const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
 
     let detalles = await this.precioUnitario(encargo.cesta.lista);
-
     let detalleImporte = "";
     let importe = "";
     if (encargo.dejaCuenta == 0) {
@@ -1753,7 +1767,7 @@ export class Impresora {
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
-            payload: "Quantitat        Article        Import (€)",
+            payload: "Quantitat       Article       PreuU  Import (€)",
           },
           {
             tipo: "text",
@@ -1775,6 +1789,10 @@ export class Impresora {
           { tipo: "text", payload: "-- ES COPIA --" },
           { tipo: "control", payload: "LF" },
           { tipo: "text", payload: "ID: " + random() + " - " + random() },
+          {
+            tipo: "barcode",
+            payload: [encargo.codigoBarras.slice(0, 12), "EAN13", 4],
+          },
           { tipo: "cut", payload: "PAPER_FULL_CUT" },
         ],
         options
