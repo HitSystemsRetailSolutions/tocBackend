@@ -285,6 +285,7 @@ export class Impresora {
     const printer = new escpos.Printer(device);
     const options = {
       imprimirLogo: false,
+      tipo: "encargo",
     };
     this.enviarMQTT(
       [
@@ -300,30 +301,30 @@ export class Impresora {
       options
     );
   }
-  private async imprimirRecibo(recibo: string) {
-    mqttInstance.loggerMQTT("imprimir recibo");
-    try {
-      const device = new escpos.Network("localhost");
-      const printer = new escpos.Printer(device);
-      const options = {
-        imprimirLogo: false,
-      };
-      this.enviarMQTT(
-        [
-          { tipo: "setCharacterCodeTable", payload: 19 },
-          { tipo: "encode", payload: "CP858" },
-          { tipo: "font", payload: "a" },
-          { tipo: "style", payload: "b" },
-          { tipo: "size", payload: [0, 0] },
-          { tipo: "text", payload: recibo },
-          { tipo: "cut", payload: "PAPER_FULL_CUT" },
-        ],
-        options
-      );
-    } catch (err) {
-      mqttInstance.loggerMQTT("Error impresora: " + err);
-    }
-  }
+  // private async imprimirRecibo(recibo: string) {
+  //   mqttInstance.loggerMQTT("imprimir recibo");
+  //   try {
+  //     const device = new escpos.Network("localhost");
+  //     const printer = new escpos.Printer(device);
+  //     const options = {
+  //       imprimirLogo: false,
+  //     };
+  //     this.enviarMQTT(
+  //       [
+  //         { tipo: "setCharacterCodeTable", payload: 19 },
+  //         { tipo: "encode", payload: "CP858" },
+  //         { tipo: "font", payload: "a" },
+  //         { tipo: "style", payload: "b" },
+  //         { tipo: "size", payload: [0, 0] },
+  //         { tipo: "text", payload: recibo },
+  //         { tipo: "cut", payload: "PAPER_FULL_CUT" },
+  //       ],
+  //       options
+  //     );
+  //   } catch (err) {
+  //     mqttInstance.loggerMQTT("Error impresora: " + err);
+  //   }
+  // }
   public async testMqtt(txt: string) {
     try {
       const device = new escpos.Network("localhost");
@@ -365,43 +366,33 @@ export class Impresora {
     });
   }
 
-  private enviarMQTTCajon(encodedData) {
-    // conectamos con el cliente
-    var client =
-      mqtt.connect(process.env.MQTT_URL) ||
-      mqtt.connect("mqtt://127.0.0.1:1883", {
-        username: "ImpresoraMQTT",
-      });
-    // cuando se conecta enviamos los datos
-    client.on("connect", function () {
-      let buff = Buffer.from(encodedData, "utf8");
-      client.publish("hit.hardware/cajon", buff);
-    });
-  }
-
   private async _venta(info, recibo = null) {
-    try {
-      // recojemos datos de los parametros
-      const numFactura = info.numFactura;
-      const arrayCompra: ItemLista[] = info.arrayCompra;
-      const total =
-        info.dejaCuenta > 0
-          ? nuevaInstancePromociones.redondearDecimales(
-              info.total + info.dejaCuenta,
-              2
-            )
-          : info.total;
-      const tipoPago = info.visa;
-      //   mqttInstance.loggerMQTT(tipoPago)
-      const tiposIva = info.tiposIva;
-      const cabecera = info.cabecera;
-      const firmaText = !info.firma ? "" : "\n\n\n\n\n";
-      const copiaText = !info.firma ? "-- ES COPIA --" : "-- FIRMA CLIENTE --";
-      const pie = info.pie;
-      const nombreDependienta = info.nombreTrabajador;
-      const tipoImpresora = info.impresora;
-      const infoClienteVip = info.infoClienteVip;
-      const infoCliente = info.infoCliente;
+    // recojemos datos de los parametros
+    const numFactura = info.numFactura;
+    const arrayCompra: ItemLista[] = info.arrayCompra;
+    const total =
+      info.dejaCuenta > 0
+        ? nuevaInstancePromociones.redondearDecimales(
+            info.total + info.dejaCuenta,
+            2
+          )
+        : info.total;
+    const tipoPago = info.visa;
+    //   mqttInstance.loggerMQTT(tipoPago)
+    const tiposIva = info.tiposIva;
+    const cabecera = info.cabecera;
+    const firmaText = !info.firma ? "" : "\n\n\n\n\n";
+    const copiaText = !info.firma ? "-- ES COPIA --" : "-- FIRMA CLIENTE --";
+    const pie = info.pie;
+    const nombreDependienta = info.nombreTrabajador;
+    const tipoImpresora = info.impresora;
+    const infoClienteVip = info.infoClienteVip;
+    const infoCliente = info.infoCliente;
+
+    let strRecibo = "";
+    if (recibo) {
+      strRecibo = recibo;
+    }
 
       let strRecibo = "";
       if (recibo != null && recibo != undefined) {
@@ -502,89 +493,81 @@ export class Impresora {
     }-${fecha.getFullYear()}  ${
       (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
     }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
-      // declaramos el dispositivo y la impresora escpos
-      const device = new escpos.Network("localhost");
-      const printer = new escpos.Printer(device);
-      const database = (await conexion).db("tocgame");
-      const coleccion = database.collection("parametros");
-      const preuU =
-        (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
-        "Si";
-      const arrayImprimir = [
-        { tipo: "setCharacterCodeTable", payload: 19 },
-        { tipo: "setCharacterCodeTable", payload: 19 },
-        { tipo: "encode", payload: "cp858" },
-        { tipo: "font", payload: "A" },
-        { tipo: "text", payload: cabecera },
-        {
-          tipo: "text",
-          payload: `Data: ${
-            diasSemana[fechaEspaña.format("d")]
-          } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
-        },
-        { tipo: "text", payload: "Factura simplificada N: " + numFactura },
-        { tipo: "text", payload: "Ates per: " + nombreDependienta },
-        { tipo: "size", payload: [1, 0] },
-        { tipo: "text", payload: nombreClienteVip },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "text", payload: detalleClienteVip },
-        { tipo: "text", payload: detalleNombreCliente },
-        { tipo: "text", payload: detallePuntosCliente },
-        { tipo: "text", payload: detalleDescuento },
-        { tipo: "control", payload: "LF" },
-        { tipo: "control", payload: "LF" },
-        { tipo: "control", payload: "LF" },
-        {
-          tipo: "text",
-          payload: `Quantitat      Article   ${
-            preuU ? "  Preu U." : ""
-          }   Import (€)`,
-        },
-        { tipo: "text", payload: "-----------------------------------------" },
-        { tipo: "align", payload: "LT" },
-        { tipo: "text", payload: detalles },
-        { tipo: "align", payload: "CT" },
-        { tipo: "text", payload: pagoTarjeta },
-        { tipo: "text", payload: pagoTkrs },
-        { tipo: "align", payload: "LT" },
-        { tipo: "text", payload: infoConsumoPersonal },
-        { tipo: "align", payload: "CT" },
-        {
-          tipo: "text",
-          payload: "----------------------------------------------",
-        },
-        { tipo: "align", payload: "LT" },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "text", payload: infoDescuento },
-        { tipo: "size", payload: [1, 1] },
-        { tipo: "text", payload: pagoDevolucion },
-        { tipo: "text", payload: detalleEncargo },
-        { tipo: "text", payload: detalleDejaCuenta },
-        { tipo: "size", payload: [1, 1] },
-        { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
-        { tipo: "control", payload: "LF" },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "align", payload: "CT" },
-        { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
-        { tipo: "text", payload: detalleIva },
-        { tipo: "text", payload: copiaText },
-        { tipo: "text", payload: firmaText },
-        { tipo: "control", payload: "LF" },
-        { tipo: "text", payload: "ID: " + random() + " - " + random() },
-        { tipo: "text", payload: pie },
-        { tipo: "control", payload: "LF" },
-        { tipo: "control", payload: "LF" },
-        { tipo: "control", payload: "LF" },
-        { tipo: "cut", payload: "PAPER_FULL_CUT" },
-      ];
-      const options = {
-        imprimirLogo: true,
-      };
-      // lo mandamos a la funcion enviarMQTT que se supone que imprime
-      this.enviarMQTT(arrayImprimir, options);
-    } catch (err) {
-      console.log(err);
-    }
+    // declaramos el dispositivo y la impresora escpos
+    const device = new escpos.Network("localhost");
+    const printer = new escpos.Printer(device);
+    const database = (await conexion).db("tocgame");
+    const coleccion = database.collection("parametros");
+    const preuU =
+      (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
+      "Si";
+    const arrayImprimir = [
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "encode", payload: "cp858" },
+      { tipo: "font", payload: "A" },
+      { tipo: "text", payload: cabecera },
+      {
+        tipo: "text",
+        payload: `Data: ${
+          diasSemana[fechaEspaña.format("d")]
+        } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+      },
+      { tipo: "text", payload: "Factura simplificada N: " + numFactura },
+      { tipo: "text", payload: "Ates per: " + nombreDependienta },
+      { tipo: "text", payload: detalleClienteVip },
+      { tipo: "text", payload: detalleNombreCliente },
+      { tipo: "text", payload: detallePuntosCliente },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      {
+        tipo: "text",
+        payload: `Quantitat      Article   ${
+          preuU ? "  Preu U." : ""
+        }   Import (€)`,
+      },
+      { tipo: "text", payload: "-----------------------------------------" },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: detalles },
+      { tipo: "align", payload: "CT" },
+      { tipo: "text", payload: pagoTarjeta },
+      { tipo: "text", payload: pagoTkrs },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: infoConsumoPersonal },
+      { tipo: "align", payload: "CT" },
+      {
+        tipo: "text",
+        payload: "----------------------------------------------",
+      },
+      { tipo: "align", payload: "LT" },
+      { tipo: "size", payload: [1, 1] },
+      { tipo: "text", payload: pagoDevolucion },
+      { tipo: "text", payload: detalleEncargo },
+      { tipo: "text", payload: detalleDejaCuenta },
+      { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "size", payload: [0, 0] },
+      { tipo: "align", payload: "CT" },
+      { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+      { tipo: "text", payload: detalleIva },
+      { tipo: "text", payload: copiaText },
+      { tipo: "text", payload: firmaText },
+      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: "ID: " + random() + " - " + random() },
+      { tipo: "text", payload: pie },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "cut", payload: "PAPER_FULL_CUT" },
+    ];
+    const options = {
+      imprimirLogo: true,
+      tipo: "venta",
+      lExtra: arrayCompra.length,
+    };
+    // lo mandamos a la funcion enviarMQTT que se supone que imprime
+    this.enviarMQTT(arrayImprimir, options);
   }
   async getDetallesIva(tiposIva) {
     let str1 = "          ";
@@ -808,6 +791,7 @@ export class Impresora {
 
       const options = {
         imprimirLogo: false,
+        tipo: "salida",
       };
 
       this.enviarMQTT(buffer, options);
@@ -864,6 +848,7 @@ export class Impresora {
 
       const options = {
         imprimirLogo: false,
+        tipo: "entrada",
       };
       this.enviarMQTT(buffer, options);
     } catch (err) {
@@ -873,29 +858,8 @@ export class Impresora {
   }
 
   async imprimirTest() {
-    const parametros = parametrosInstance.getParametros();
     try {
       permisosImpresora();
-      // if(parametros.tipoImpresora === 'USB')
-      // {
-      //     const arrayDevices = escpos.USB.findPrinter();
-      //     if (arrayDevices.length > 0) {
-      //         /* Solo puede haber un dispositivo USB */
-      //         const dispositivoUnico = arrayDevices[0];
-      //         var device = new escpos.USB(dispositivoUnico); //USB
-      //     } else if (arrayDevices.length == 0) {
-      //         throw 'Error, no hay ningún dispositivo USB conectado';
-      //     } else {
-      //         throw 'Error, hay más de un dispositivo USB conectado';
-      //     }
-      // }
-      // else if(parametros.tipoImpresora === 'SERIE') {
-      //     var device = new escpos.Serial('/dev/ttyS0', {
-      //         baudRate: 115000,
-      //         stopBit: 2
-      //     });
-      // }
-      const device = new escpos.Network("localhost");
       const options = {
         imprimirLogo: false,
       };
@@ -985,6 +949,7 @@ export class Impresora {
     const printer = new escpos.Printer(device);
     const options = {
       imprimirLogo: true,
+      tipo: "cierreCaja",
     };
     this.enviarMQTT(
       [
@@ -1266,8 +1231,6 @@ export class Impresora {
         `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
 
       permisosImpresora();
-      const device = new escpos.Network("localhost");
-      const printer = new escpos.Printer(device);
       const diasSemana = [
         "Diumenge",
         "Dilluns",
@@ -1278,7 +1241,7 @@ export class Impresora {
         "Dissabte",
       ];
 
-      const options = { imprimirLogo: true };
+      const options = { imprimirLogo: true, tipo: "cierreCaja" };
       this.enviarMQTT(
         [
           { tipo: "setCharacterCodeTable", payload: 19 },
@@ -1648,8 +1611,6 @@ export class Impresora {
       })
       .then(async (res: any) => {
         try {
-          const device = new escpos.Network("localhost");
-          const printer = new escpos.Printer(device);
           const options = { imprimirLogo: true };
 
           this.enviarMQTT(
@@ -1710,8 +1671,6 @@ export class Impresora {
         string += `${productoConSuplementos}\n`;
       });
     });
-    const device = new escpos.Network();
-    const printer = new escpos.Printer(device);
     // enviamos el string a la impresora por mqtt
     const options = { imprimirLogo: true };
     this.enviarMQTT(
@@ -1764,9 +1723,11 @@ export class Impresora {
       detallesIva.detalleIva21;
 
     try {
-      const device = new escpos.Network();
-      const printer = new escpos.Printer(device);
-      const options = { imprimirLogo: true };
+      const options = {
+        imprimirLogo: true,
+        tipo: "encargo",
+        lExtra: encargo.cesta.lista.length,
+      };
 
       this.enviarMQTT(
         [

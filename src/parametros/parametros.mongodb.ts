@@ -29,6 +29,7 @@ export async function setParametros(
         PreuUnitari: "",
         prohibirAnular3g: "",
         verInformesVentas: "",
+        prohibirAnularTkAlbaran: "",
       },
     }
   );
@@ -62,7 +63,7 @@ export async function setIpPaytef(ip: string): Promise<boolean> {
   return (
     await parametros.updateOne(
       { _id: "PARAMETROS" },
-      { $set: { ipTefpay: ip, tipoDatafono: 'PAYTEF' } },
+      { $set: { ipTefpay: ip, tipoDatafono: "PAYTEF" } },
       { upsert: true }
     )
   ).acknowledged;
@@ -75,7 +76,7 @@ export async function set3G(): Promise<boolean> {
   return (
     await parametros.updateOne(
       { _id: "PARAMETROS" },
-      { $set: { ipTefpay: '', tipoDatafono: '3G' } },
+      { $set: { ipTefpay: "", tipoDatafono: "3G" } },
       { upsert: true }
     )
   ).acknowledged;

@@ -75,6 +75,46 @@ export class ClientesController {
   }
 
   /* Yasai :D */
+  @Post("getClienteByServicio")
+  async getCLienteByServicio(@Body() { servicio }) {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      const empresa = parametros.nombreEmpresa;
+      const res = await axios.post("clientes/getClienteByServicio", {
+        empresa,
+        servicio,
+      });
+      if (!res.data) {
+        throw new Error(
+          "error, esta empresa no tiene el servicio especificado"
+        );
+      }
+      return res.data;
+    } catch (error) {
+      logger.Error(67, error);
+      return false;
+    }
+  }
+
+  @Post("getServiciosTienda")
+  async getServiciosTienda() {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      const empresa = parametros.nombreEmpresa;
+      const res = await axios.post("clientes/getServiciosTienda", {
+        empresa,
+      });
+      if (!res.data) {
+        throw new Error("");
+      }
+      return res.data;
+    } catch (error) {
+      logger.Error(67, error);
+      return false;
+    }
+  }
+
+  /* Yasai :D */
   @Post("actualizarCliente")
   async actualizarCliente(
     @Body()

@@ -8,6 +8,7 @@ import axios from "axios";
 import { parametrosInstance } from "./parametros/parametros.clase";
 import { logger } from "./logger";
 import { url } from "inspector";
+import { mqttInstance } from "./mqtt";
 var ip = require("ip");
 require("./sincro");
 require("./sockets.gateway");
@@ -45,5 +46,9 @@ async function bootstrap(ip, port) {
   // await app.listen(3000,"10.137.0.201"); //para iterum ubuntu
   // await app.listen(3000,"10.137.0.243"); //para iterum windows
 }
-bootstrap(ip.address(), 3000);
 bootstrap("localhost", 3000);
+bootstrap(ip.address(), 3000);
+
+// mandamos el logo a la impresora de tickets por si la impresora estaba encendida de antes
+mqttInstance.mandarLogo();
+
