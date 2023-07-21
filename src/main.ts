@@ -18,6 +18,7 @@ axios.defaults.baseURL =
     ? "http://localhost:3001"
     : "https://santaana2-elb.nubehit.com:3003";
 
+
 parametrosInstance
   .getParametros()
   .then((parametros) => {

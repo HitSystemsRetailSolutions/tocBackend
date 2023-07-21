@@ -102,7 +102,7 @@ export async function getComprovarTurno() {
   const fecha = tiempoTranscurrido.toLocaleDateString("es-ES");
   const buscar = await caja.findOne({ fecha: fecha });
 
-  if (buscar != null) {
+  if (buscar) {
     const res = await caja.find().sort({ _id: -1 }).limit(1).toArray();
     return { estado: true, time: res[0].time };
   } else {
