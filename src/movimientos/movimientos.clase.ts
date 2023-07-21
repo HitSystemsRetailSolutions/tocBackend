@@ -69,7 +69,9 @@ export class MovimientosClase {
       valor,
       ExtraData,
     };
-    if (await schMovimientos.existeMovimiento(idTicket, valor)) return false;
+    if (tipo === "TARJETA")
+      if (await schMovimientos.existeMovimiento(idTicket, valor)) return false;
+
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrega Diària") {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
