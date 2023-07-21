@@ -22,6 +22,7 @@ export class ImpresoraController {
     }
   }
 
+
   /* Yasai :D */
   @Post("reiniciarPapel")
   reiniciarPapel() {
@@ -33,6 +34,7 @@ export class ImpresoraController {
       return false;
     }
   }
+
   /* Uri */
 
   @Post("imprimirTicketPaytef")
@@ -98,6 +100,11 @@ export class ImpresoraController {
   @Post("bienvenida")
   binvenidaCliente() {
     impresoraInstance.bienvenidaCliente();
+  }
+
+  @Post("getLogo")
+  getLogo() {
+    mqttInstance.mandarLogo();
   }
 
   @Post("testMqtt")

@@ -23,6 +23,13 @@ export class CargarImagenController {
   @Post()
   async cargarImagen(@Param("licencia") license, @Body() datos) {
     const parametros = await parametrosController.getParametros();
+    if (!parametros) {
+      if (license == "instalador") {
+        io.emit("ponerImagen_trabajador", datos);
+        return true;
+      }
+      return false;
+    }
     if (license != parametros.licencia) return false;
 
     io.emit("ponerImagen_trabajador", datos);
