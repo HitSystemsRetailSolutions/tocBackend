@@ -37,6 +37,14 @@ export class MovimientosClase {
     schMovimientos.getMovimientosIntervalo(inicioTime, finalTime);
 
   /* Uri */
+  /* Yasai :D */
+  public async existeMovimiento(
+    idTicket: MovimientosInterface["idTicket"],
+    valor: MovimientosInterface["valor"]
+  ): Promise<boolean> {
+    return await schMovimientos.existeMovimiento(idTicket, valor);
+  }
+
   public async nuevoMovimiento(
     valor: MovimientosInterface["valor"],
     concepto: MovimientosInterface["concepto"],
@@ -46,12 +54,10 @@ export class MovimientosClase {
     ExtraData: MovimientosInterface["ExtraData"] = []
   ) {
     let codigoBarras = "";
-
-    if (concepto === "Entrega Diària" || concepto === "Entrada") {
-      codigoBarras = await this.generarCodigoBarrasSalida();
-      codigoBarras = String(Ean13Utils.generate(codigoBarras));
-    }
-
+    // if (concepto === "Entrega Diària" || concepto === "Entrada") {
+    codigoBarras = await this.generarCodigoBarrasSalida();
+    codigoBarras = String(Ean13Utils.generate(codigoBarras));
+    // }
     const nuevoMovimiento: MovimientosInterface = {
       _id: Date.now(),
       codigoBarras,
@@ -63,13 +69,14 @@ export class MovimientosClase {
       valor,
       ExtraData,
     };
+    if (tipo === "TARJETA")
+      if (await schMovimientos.existeMovimiento(idTicket, valor)) return false;
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
-      if (concepto === "Entrega Diària") {
-        impresoraInstance.imprimirSalida(nuevoMovimiento);
-      }
       if (concepto === "Entrada") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
+      } else {
+        impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
       return true;
     }
@@ -201,16 +208,16 @@ export class MovimientosClase {
     return null;
   }
 
-    /* Uri */
-    public async getExtraData(ticket) {
-      const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
-        ticket
-      );
-      if (arrayMovimientos?.length > 0) {
-        return arrayMovimientos[0].ExtraData;
-      }
-      return null;
+  /* Uri */
+  public async getExtraData(ticket) {
+    const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
+      ticket
+    );
+    if (arrayMovimientos?.length > 0) {
+      return arrayMovimientos[0].ExtraData;
     }
+    return null;
+  }
 
   /* Eze 4.0 */
   public calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {

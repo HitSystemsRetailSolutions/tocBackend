@@ -1,8 +1,8 @@
 import axios from "axios";
 import * as moment from "moment";
-import { logger } from "src/logger";
-import { parametrosInstance } from "src/parametros/parametros.clase";
-import { ParametrosInterface } from "src/parametros/parametros.interface";
+import { logger } from "../logger";
+import { parametrosInstance } from "../parametros/parametros.clase";
+import { ParametrosInterface } from "../parametros/parametros.interface";
 import {
   EncargosInterface,
   Estat,
@@ -10,38 +10,41 @@ import {
   Periodo,
 } from "./encargos.interface";
 import * as schEncargos from "./encargos.mongodb";
-import { impresoraInstance } from "src/impresora/impresora.class";
+import { impresoraInstance } from "../impresora/impresora.class";
 
 export class Encargos {
   async getEncargos() {
     return await schEncargos.getEncargos();
   }
   setEntregado = async (id) => {
-    const encargo = await this.getEncargoById(id);
-    if (encargo.opcionRecogida == 3) {
-      for (let i = 0; i < encargo.dias.length; i++) {
-        if (encargo.dias[i].checked && encargo.dias.length - 1 == i) {
-          encargo.dias[i].checked = false;
-          return schEncargos
-            .setChecked(id, encargo.dias)
-            .then((ok: boolean) => {
-              if (!ok)
-                return schEncargos.setEntregado(id).then((ok: boolean) => {
-                  if (!ok) return false;
-                  return true;
-                });
-            });
-        } else if (encargo.dias[i].checked) {
-          encargo.dias[i].checked = false;
-          return schEncargos
-            .setChecked(id, encargo.dias)
-            .then((ok: boolean) => {
-              if (!ok) return false;
-              return true;
-            });
-        }
-      }
-    }
+
+    // cuando pidan que encargos de cada cierto dia de la semana se pueda escoger mas de un dia, codigo medio hecho
+    // de momento solo se puede escoger un dia de la semana
+    // const encargo = await this.getEncargoById(id);
+    // if (encargo.opcionRecogida == 3) {
+    //   for (let i = 0; i < encargo.dias.length; i++) {
+    //     if (encargo.dias[i].checked && encargo.dias.length - 1 == i) {
+    //       encargo.dias[i].checked = false;
+    //       return schEncargos
+    //         .setChecked(id, encargo.dias)
+    //         .then((ok: boolean) => {
+    //           if (!ok)
+    //             return schEncargos.setEntregado(id).then((ok: boolean) => {
+    //               if (!ok) return false;
+    //               return true;
+    //             });
+    //         });
+    //     } else if (encargo.dias[i].checked) {
+    //       encargo.dias[i].checked = false;
+    //       return schEncargos
+    //         .setChecked(id, encargo.dias)
+    //         .then((ok: boolean) => {
+    //           if (!ok) return false;
+    //           return true;
+    //         });
+    //     }
+    //   }
+    // }
     return schEncargos
       .setEntregado(id)
       .then((ok: boolean) => {
@@ -153,7 +156,7 @@ export class Encargos {
       "YYYY-MM-DD HH:mm:ss.S",
       encargo.amPm
     );
-    let timestamp = new Date(fecha).getTime();
+    let timestamp = new Date().getTime();
     const encargo_santAna = {
       id: await this.generateId(
         this.getDate(
@@ -208,7 +211,13 @@ export class Encargos {
     // False -> Ha habido algún error al insertar el encargo.
     encargo.timestamp = timestamp;
     encargo.recogido = false;
-
+    await impresoraInstance.imprimirEncargo(encargo);
+    // insertamos las ids insertadas en la tabla utilizada a los prodctos
+    for (let i = 0; i < encargo.productos.length; i++) {
+      encargo.productos[i].idGraella =
+        data.ids[encargo.productos.length - (i + 1)].id;
+    }
+    // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
       .then((ok: boolean) => {
@@ -216,6 +225,74 @@ export class Encargos {
         return { error: false, msg: "Encargo creado" };
       })
       .catch((err: string) => ({ error: true, msg: err }));
+  };
+  // actualiza el registro del encargo al recoger
+  updateEncargoGraella = async (idEncargo) => {
+    const encargo = await this.getEncargoById(idEncargo);
+    const parametros = await parametrosInstance.getParametros();
+
+    if (!encargo) return false;
+    const idGraellas = encargo.productos.map((producto) => producto.idGraella);
+    let encargoGraella = {
+      ids: idGraellas,
+      bbdd: parametros.database,
+      fecha: encargo.fecha,
+    };
+//  se envia el encargo a bbdd para actualizar el registro
+    const { data }: any = await axios.post(
+      "encargos/updateEncargoGraella",
+      encargoGraella
+    );
+    if (!data.error && encargo.opcionRecogida != 3) {
+      return true;
+    } else if (!data.error && encargo.opcionRecogida == 3) {
+      // se creara automaticamente un encargo si el que se ha recogido es la opcionRecogida 3
+      let diaEnc = new Date(encargo.fecha);
+      diaEnc.setDate(diaEnc.getDate() + 7);
+
+      // Creamos una nueva fecha sumando una semana mas a la que tiene el encargo
+
+      const anio = diaEnc.getFullYear();
+      const mes = diaEnc.getMonth() + 1; // Se suma 1 porque los meses empiezan en 0
+      const dia = diaEnc.getDate();
+
+      let nuevaFecha = `${anio}-${mes.toString().padStart(2, "0")}-${dia
+        .toString()
+        .padStart(2, "0")}`;
+      encargo.fecha = nuevaFecha;
+      encargo.timestamp = new Date().getTime();
+      // reseteamos el dejaAcuenta y la _id antes de crear el nuevo encargo
+      encargo.dejaACuenta = 0;
+      encargo._id = undefined;
+      await this.setEncargo(encargo);
+      return true;
+    }
+
+    return false;
+  };
+// anula el ticket 
+  anularTicket = async (idEncargo) => {
+    const encargo = await this.getEncargoById(idEncargo);
+    const parametros = await parametrosInstance.getParametros();
+
+    if (encargo) {
+      const idGraellas = encargo.productos.map(
+        (producto) => producto.idGraella
+      );
+
+      let encargoGraella = {
+        ids: idGraellas,
+        bbdd: parametros.database,
+        fecha: encargo.fecha,
+      };
+      // borrara el registro del encargo en la bbdd
+      const { data }: any = await axios.post(
+        "encargos/deleteEncargoGraella",
+        encargoGraella
+      );
+      if (!data.error) return true;
+    }
+    return false;
   };
   private async generateId(
     formatDate: string,

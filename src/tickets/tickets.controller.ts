@@ -18,6 +18,7 @@ import { deudasInstance } from "src/deudas/deudas.clase";
 import { timestamp } from "rxjs";
 import { mqttInstance } from "src/mqtt";
 import axios from "axios";
+import { clienteInstance } from "src/clientes/clientes.clase";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -63,6 +64,11 @@ export class TicketsController {
   ) {
     try {
       const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
+      // modifica
+      const graellaModificada = await encargosInstance.updateEncargoGraella(
+        idEncargo
+      );
+      if (!graellaModificada) return false;
 
       const ticket = await ticketsInstance.generarNuevoTicket(
         total - dejaCuenta,
@@ -123,115 +129,114 @@ export class TicketsController {
     }
   ) {
     try {
-      if (typeof total == "number" && idCesta && idTrabajador && tipo) {
-        const cesta = await cestasInstance.getCestaById(idCesta);
-        let d3G = false;
-        if (tipo === "DATAFONO_3G") d3G = true;
-        const ticket = await ticketsInstance.generarNuevoTicket(
-          total,
-          idTrabajador,
-          cesta,
-          tipo === "CONSUMO_PERSONAL",
-          d3G,
-          null
-        );
+      if (!(typeof total == "number" && idCesta && idTrabajador && tipo)) {
+        throw Error("Error, faltan datos en crearTicket() controller 1");
+      }
+      const cesta = await cestasInstance.getCestaById(idCesta);
+      const d3G = tipo === "DATAFONO_3G";
+      const ticket = await ticketsInstance.generarNuevoTicket(
+        total,
+        idTrabajador,
+        cesta,
+        tipo === "CONSUMO_PERSONAL",
+        d3G,
+        null
+      );
 
-        if (!ticket) {
-          throw Error(
-            "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
-          );
-        }
-        if (await ticketsInstance.insertarTicket(ticket)) {
-          await cestasInstance.borrarArticulosCesta(idCesta, true);
-          if (tipo === "TARJETA")
-            paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
-          else if (
-            (tipo === "TKRS" && tkrsData) ||
-            (tkrsData?.cantidadTkrs > 0 && tipo === "EFECTIVO")
-          ) {
-            if (tkrsData.cantidadTkrs > total) {
-              await movimientosInstance.nuevoMovimiento(
-                total,
-                "",
-                "TKRS_SIN_EXCESO",
-                ticket._id,
-                idTrabajador
-              );
-              await movimientosInstance.nuevoMovimiento(
-                tkrsData.cantidadTkrs - total,
-                "",
-                "TKRS_CON_EXCESO",
-                ticket._id,
-                idTrabajador
-              );
-            } else if (tkrsData.cantidadTkrs < total) {
-              await movimientosInstance.nuevoMovimiento(
-                tkrsData.cantidadTkrs,
-                "",
-                "TKRS_SIN_EXCESO",
-                ticket._id,
-                idTrabajador
-              );
-            } else if (tkrsData.cantidadTkrs === total) {
-              await movimientosInstance.nuevoMovimiento(
-                total,
-                "",
-                "TKRS_SIN_EXCESO",
-                ticket._id,
-                idTrabajador
-              );
-            }
-          } else if (tipo === "DEUDA") {
-            //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
-            // se diferenciara su uso cuando el concepto sea igual a DEUDA
-            if (concepto && concepto == "DEUDA") {
-              await movimientosInstance.nuevoMovimiento(
-                total,
-                "",
-                "SALIDA",
-                ticket._id,
-                idTrabajador
-              );
-              var deuda = {
-                idTicket: ticket._id,
-                cesta: cesta,
-                idTrabajador: idTrabajador,
-                idCliente: cesta.idCliente,
-                nombreCliente: cesta.nombreCliente,
-                total: total,
-                timestamp: ticket.timestamp,
-              };
-              await deudasInstance.setDeuda(deuda);
-            } else {
-              await movimientosInstance.nuevoMovimiento(
-                total,
-                "",
-                "DEUDA",
-                ticket._id,
-                idTrabajador
-              );
-            }
-          } else if (
-            tipo !== "EFECTIVO" &&
-            tipo != "CONSUMO_PERSONAL" &&
-            tipo !== "DATAFONO_3G"
-          ) {
-            throw Error(
-              "Falta información del tkrs o bien ninguna forma de pago es correcta"
-            );
-          }
-          if (tipo !== "TARJETA" || concepto == "DEUDA") {
-            await impresoraInstance.abrirCajon();
-          }
-          ticketsInstance.actualizarTickets();
-          return true;
-        }
-
+      if (!ticket) {
         throw Error(
-          "Error, no se ha podido crear el ticket en crearTicket() controller 2"
+          "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
         );
       }
-      throw Error("Error, faltan datos en crearTicket() controller 1");
+      if (await ticketsInstance.insertarTicket(ticket)) {
+        await cestasInstance.borrarArticulosCesta(idCesta, true);
+        if (tipo === "TARJETA")
+          paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
+        else if (
+          (tipo === "TKRS" && tkrsData) ||
+          (tkrsData?.cantidadTkrs > 0 && tipo === "EFECTIVO")
+        ) {
+          if (tkrsData.cantidadTkrs > total) {
+            await movimientosInstance.nuevoMovimiento(
+              total,
+              "",
+              "TKRS_SIN_EXCESO",
+              ticket._id,
+              idTrabajador
+            );
+            await movimientosInstance.nuevoMovimiento(
+              tkrsData.cantidadTkrs - total,
+              "",
+              "TKRS_CON_EXCESO",
+              ticket._id,
+              idTrabajador
+            );
+          } else if (tkrsData.cantidadTkrs < total) {
+            await movimientosInstance.nuevoMovimiento(
+              tkrsData.cantidadTkrs,
+              "",
+              "TKRS_SIN_EXCESO",
+              ticket._id,
+              idTrabajador
+            );
+          } else if (tkrsData.cantidadTkrs === total) {
+            await movimientosInstance.nuevoMovimiento(
+              total,
+              "",
+              "TKRS_SIN_EXCESO",
+              ticket._id,
+              idTrabajador
+            );
+          }
+        } else if (tipo === "DEUDA") {
+          //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
+          // se diferenciara su uso cuando el concepto sea igual a DEUDA
+          if (concepto && concepto == "DEUDA") {
+            await movimientosInstance.nuevoMovimiento(
+              total,
+              "",
+              "SALIDA",
+              ticket._id,
+              idTrabajador
+            );
+            var deuda = {
+              idTicket: ticket._id,
+              cesta: cesta,
+              idTrabajador: idTrabajador,
+              idCliente: cesta.idCliente,
+              nombreCliente: cesta.nombreCliente,
+              total: total,
+              timestamp: ticket.timestamp,
+            };
+            await deudasInstance.setDeuda(deuda);
+          } else {
+            await movimientosInstance.nuevoMovimiento(
+              total,
+              "",
+              "DEUDA",
+              ticket._id,
+              idTrabajador
+            );
+          }
+        } else if (
+          tipo !== "EFECTIVO" &&
+          tipo != "CONSUMO_PERSONAL" &&
+          tipo !== "DATAFONO_3G"
+        ) {
+          throw Error(
+            "Falta información del tkrs o bien ninguna forma de pago es correcta"
+          );
+        }
+        if (tipo !== "TARJETA" || concepto == "DEUDA") {
+          await impresoraInstance.abrirCajon();
+        }
+        ticketsInstance.actualizarTickets();
+        return ticket._id;
+      }
+
+      throw Error(
+        "Error, no se ha podido crear el ticket en crearTicket() controller 2"
+      );
     } catch (err) {
       logger.Error(107, err);
       return false;

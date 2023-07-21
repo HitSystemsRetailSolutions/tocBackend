@@ -28,6 +28,7 @@ import { PromocionesController } from "./promociones/promociones.controller";
 import { TraduccionesController } from "./traducciones/traducciones.controller";
 import { EncargosController } from "./encargos/encargos.controller";
 import { DeudasController } from "./deudas/deudas.controller";
+import { CargarImagenController } from "./imagenInvasiva/imagen.controller";
 @Module({
   imports: [
     ServeStaticModule.forRoot({
@@ -62,6 +63,7 @@ import { DeudasController } from "./deudas/deudas.controller";
     TraduccionesController,
     EncargosController,
     DeudasController,
+    CargarImagenController,
   ],
   // providers: [SocketGateway],
 })

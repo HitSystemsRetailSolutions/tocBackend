@@ -27,6 +27,17 @@ export async function nuevoMovimiento(
   return (await movimientos.insertOne(data)).acknowledged;
 }
 
+export async function existeMovimiento(
+  idTicket: MovimientosInterface["idTicket"],
+  valor: MovimientosInterface["valor"]
+): Promise<any> {
+  const database = (await conexion).db("tocgame");
+  const movimientos = database.collection<MovimientosInterface>("movimientos");
+  const result = await movimientos.findOne({ idTicket });
+  if (!!result && result?.valor === valor) return true;
+  return false;
+}
+
 /* Eze 4.0 */
 export async function getUltimoCodigoBarras(): Promise<
   CuentaCodigoBarras["ultimo"]
@@ -73,13 +84,11 @@ export async function getMovimientoMasAntiguo(): Promise<MovimientosInterface> {
 
 /* Uri */
 export async function getMovimientoTarjetaMasAntiguo(
-  idTicket:MovimientosInterface
+  idTicket: MovimientosInterface
 ): Promise<MovimientosInterface> {
   const database = (await conexion).db("tocgame");
   const movimientos = database.collection<MovimientosInterface>("movimientos");
-  return await movimientos.findOne(
-    { idTicket: 152 }
-  );
+  return await movimientos.findOne({ idTicket: 152 });
 }
 
 /* Eze 4.0 */

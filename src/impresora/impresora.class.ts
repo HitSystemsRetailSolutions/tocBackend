@@ -17,6 +17,8 @@ import { CajaSincro } from "../caja/caja.interface";
 import { logger } from "../logger";
 import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import { buffer } from "stream/consumers";
+import * as schDeudas from "../deudas/deudas.mongodb";
+import { conexion } from "../conexion/mongodb";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -45,7 +47,7 @@ function random() {
 
 /* Función auxiliar borrar cuando sea posible */
 function dateToString2(fecha) {
-  let fechaFinal = null;
+  let fechaFinal;
   if (typeof fecha === "string" || typeof fecha === "number") {
     fechaFinal = new Date(fecha);
   }
@@ -103,16 +105,105 @@ export class Impresora {
 
   /* Eze 4.0 */
   async imprimirTicket(idTicket: number) {
+    // recoge el ticket por la id
+    const ticket = await ticketsInstance.getTicketById(idTicket);
+    const parametros = await parametrosInstance.getParametros();
+
+    const trabajador: TrabajadoresInterface =
+      await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
+    // Preparamos el objeto que vamos a mandar a la impresora
+    let sendObject: Object;
+    // Si el ticket existe y el trabajador tambien
+    if (ticket && trabajador) {
+      // Si el ticket tiene cliente imprimimos los datos del cliente tambien
+      if (ticket.idCliente && ticket.idCliente != "") {
+        // recogemos los datos del cliente
+        let infoCliente = await clienteInstance.getClienteById(
+          ticket.idCliente
+        );
+        const puntos = await clienteInstance.getPuntosCliente(ticket.idCliente);
+        const { descuento } = await clienteInstance.getClienteById(
+          ticket.idCliente
+        );
+
+        let informacionVip = infoCliente.albaran
+          ? {
+              nombre: infoCliente.nombre,
+              nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+              direccion:
+                infoCliente["direccion"] === "0"
+                  ? ""
+                  : infoCliente["direccion"],
+            }
+          : null;
+
+        // preparamos los parametros que vamos a enviar a la impresora
+        sendObject = {
+          numFactura: ticket._id,
+          timestamp: ticket.timestamp,
+          arrayCompra: ticket.cesta.lista,
+          total: ticket.total,
+          visa: await ticketsInstance.getFormaPago(ticket),
+          tiposIva: ticket.cesta.detalleIva,
+          cabecera: parametros.header,
+          pie: parametros.footer,
+          nombreTrabajador: trabajador.nombreCorto,
+          infoClienteVip: informacionVip, // Mirar bien para terminar todo
+          infoCliente: {
+            nombre: infoCliente.nombre,
+            puntos: puntos,
+            descuento,
+          },
+          dejaCuenta: ticket.dejaCuenta,
+        };
+      } else {
+        // si no tenemos cliente preparamos el objeto sin los datos del cliente
+        sendObject = {
+          numFactura: ticket._id,
+          timestamp: ticket.timestamp,
+          arrayCompra: ticket.cesta.lista,
+          total: ticket.total,
+          visa: await ticketsInstance.getFormaPago(ticket),
+          tiposIva: ticket.cesta.detalleIva,
+          cabecera: parametros.header,
+          pie: parametros.footer,
+          nombreTrabajador: trabajador.nombreCorto,
+          infoClienteVip: null, // Mirar bien para terminar todo
+          infoCliente: null,
+          dejaCuenta: ticket.dejaCuenta,
+        };
+      }
+      // enviamos el objeto
+      await this._venta(sendObject);
+    }
+  }
+
+  async imprimirFirma(idTicket: number) {
     const ticket = await ticketsInstance.getTicketById(idTicket);
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
 
-    let sendObject = null;
+    let sendObject;
+
+    let infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
+
+    let informacionVip = infoCliente.albaran
+      ? {
+          nombre: infoCliente.nombre,
+          nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+          direccion:
+            infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
+        }
+      : null;
+
+    const { descuento } = await clienteInstance.getClienteById(
+      ticket.idCliente
+    );
 
     if (ticket && trabajador) {
       if (ticket.idCliente && ticket.idCliente != "") {
-        let infoCliente: ClientesInterface = null;
+        let infoCliente: ClientesInterface;
         infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
         const puntos = await clienteInstance.getPuntosCliente(ticket.idCliente);
 
@@ -126,13 +217,14 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          impresora: parametros.tipoImpresora,
-          infoClienteVip: null, // Mirar bien para terminar todo
+          infoClienteVip: informacionVip, // Mirar bien para terminar todo
           infoCliente: {
             nombre: infoCliente.nombre,
             puntos: puntos,
+            descuento,
           },
           dejaCuenta: ticket.dejaCuenta,
+          firma: true,
         };
       } else {
         sendObject = {
@@ -145,15 +237,16 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          impresora: parametros.tipoImpresora,
-          infoClienteVip: null, // Mirar bien para terminar todo
+          infoClienteVip: null, // Mirar bien para terminar todo_venta
           infoCliente: null,
           dejaCuenta: ticket.dejaCuenta,
+          firma: true,
         };
       }
       await this._venta(sendObject);
     }
   }
+
   /* Eze 4.0 */
   async imprimirDevolucion(idDevolucion: ObjectId) {
     try {
@@ -164,7 +257,7 @@ export class Impresora {
       const trabajador: TrabajadoresInterface =
         await trabajadoresInstance.getTrabajadorById(devolucion.idTrabajador);
 
-      let sendObject = null;
+      let sendObject;
 
       if (devolucion && trabajador) {
         sendObject = {
@@ -177,7 +270,6 @@ export class Impresora {
           cabecera: parametros.header,
           pie: parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          impresora: parametros.tipoImpresora,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
         };
@@ -189,75 +281,93 @@ export class Impresora {
     }
   }
   public async imprimirListaEncargos(lista: string) {
-    const device = new escpos.Network();
+    const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
+    const options = {
+      imprimirLogo: false,
+      tipo: "encargo",
+    };
     this.enviarMQTT(
-      printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .size(0, 0)
-        .align("LT")
-        .text(lista)
-        .cut("PAPER_FULL_CUT")
-        .close().buffer._buffer
+      [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: lista },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ],
+      options
     );
   }
-  private async imprimirRecibo(recibo: string) {
-    mqttInstance.loggerMQTT("imprimir recibo");
-    try {
-      const device = new escpos.Network();
-      const printer = new escpos.Printer(device);
-      this.enviarMQTT(
-        printer
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .size(0, 0)
-          .text(recibo)
-          .cut("PAPER_FULL_CUT")
-          .close().buffer._buffer
-      );
-    } catch (err) {
-      mqttInstance.loggerMQTT("Error impresora: " + err);
-    }
-  }
+  // private async imprimirRecibo(recibo: string) {
+  //   mqttInstance.loggerMQTT("imprimir recibo");
+  //   try {
+  //     const device = new escpos.Network("localhost");
+  //     const printer = new escpos.Printer(device);
+  //     const options = {
+  //       imprimirLogo: false,
+  //     };
+  //     this.enviarMQTT(
+  //       [
+  //         { tipo: "setCharacterCodeTable", payload: 19 },
+  //         { tipo: "encode", payload: "CP858" },
+  //         { tipo: "font", payload: "a" },
+  //         { tipo: "style", payload: "b" },
+  //         { tipo: "size", payload: [0, 0] },
+  //         { tipo: "text", payload: recibo },
+  //         { tipo: "cut", payload: "PAPER_FULL_CUT" },
+  //       ],
+  //       options
+  //     );
+  //   } catch (err) {
+  //     mqttInstance.loggerMQTT("Error impresora: " + err);
+  //   }
+  // }
   public async testMqtt(txt: string) {
     try {
-      const device = new escpos.Network();
+      const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
+      const options = {
+        imprimirLogo: false,
+      };
       this.enviarMQTT(
-        printer
-
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .size(0, 0)
-          .text(txt)
-          .cut("PAPER_FULL_CUT")
-          .close().buffer._buffer
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: txt },
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
       );
     } catch (err) {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
   }
-
-  private enviarMQTT(encodedData) {
+  // recovimos los datos de la impresion
+  private enviarMQTT(encodedData, options) {
+    // conectamos con el cliente
     var client =
       mqtt.connect(process.env.MQTT_URL) ||
       mqtt.connect("mqtt://127.0.0.1:1883", {
         username: "ImpresoraMQTT",
       });
-
+    const enviar = {
+      arrayImprimir: encodedData,
+      options: options,
+    };
+    // cuando se conecta enviamos los datos
     client.on("connect", function () {
-      let buff = Buffer.from(encodedData, "hex");
-      client.publish("hit.hardware/printer", buff);
+      client.publish("hit.hardware/printer", JSON.stringify(enviar));
     });
   }
+
   private async _venta(info, recibo = null) {
+    // recojemos datos de los parametros
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
     const total =
@@ -271,39 +381,281 @@ export class Impresora {
     //   mqttInstance.loggerMQTT(tipoPago)
     const tiposIva = info.tiposIva;
     const cabecera = info.cabecera;
+    const firmaText = !info.firma ? "" : "\n\n\n\n\n";
+    const copiaText = !info.firma ? "-- ES COPIA --" : "-- FIRMA CLIENTE --";
     const pie = info.pie;
     const nombreDependienta = info.nombreTrabajador;
     const tipoImpresora = info.impresora;
     const infoClienteVip = info.infoClienteVip;
     const infoCliente = info.infoCliente;
+
     let strRecibo = "";
-    if (recibo != null && recibo != undefined) {
+    if (recibo) {
       strRecibo = recibo;
     }
 
-    let detalles = "";
-    let pagoTarjeta = "";
-    let pagoTkrs = "";
-    let detalleClienteVip = "";
-    let detalleNombreCliente = "";
-    let detallePuntosCliente = "";
-    let detalleEncargo = "";
-    let detalleDejaCuenta = "";
-    if (infoClienteVip && infoClienteVip.esVip) {
-      detalleClienteVip = `Nom: ${infoClienteVip.nombre}\nNIF: ${infoClienteVip.nif}\nCP: ${infoClienteVip.cp}\nCiutat: ${infoClienteVip.ciudad}\nAdr: ${infoClienteVip.direccion}\n`;
+      let strRecibo = "";
+      if (recibo != null && recibo != undefined) {
+        strRecibo = recibo;
+      }
+
+      let detalles = await this.precioUnitario(arrayCompra);
+      let pagoTarjeta = "";
+      let pagoTkrs = "";
+      let detalleClienteVip = "";
+      let detalleNombreCliente = "";
+      let detallePuntosCliente = "";
+      let detalleEncargo = "";
+      let detalleDejaCuenta = "";
+      let detalleDescuento = "";
+      let infoDescuento = "";
+      let nombreClienteVip = "";
+      if (infoClienteVip) {
+        nombreClienteVip = "\nCLIENT:";
+        detalleClienteVip = `Nom: ${infoClienteVip.nombre}\nNIF: ${infoClienteVip.nif}\nAdreça: ${infoClienteVip.direccion}\n`;
+      }
+      // recojemos datos del cliente si nos los han mandado
+      if (infoCliente != null) {
+        detalleNombreCliente = infoCliente.nombre;
+        detallePuntosCliente =
+          "Punts: " +
+            (infoCliente.puntos === "undefined" ? "0" : infoCliente.puntos) ||
+          "0";
+        detalleDescuento =
+          "Descompte: " + (infoCliente.descuento ?? "0") + " %";
+      }
+      if (infoCliente?.descuento && infoCliente.descuento != 0) {
+        const total =
+          tiposIva.importe1 +
+          tiposIva.importe2 +
+          tiposIva.importe3 +
+          tiposIva.importe3 +
+          tiposIva.importe4 +
+          tiposIva.importe5;
+        infoDescuento = `Total sense descompte: ${total.toFixed(
+          2
+        )}\nTotal del descompte: ${(
+          (total * infoCliente.descuento) /
+          100
+        ).toFixed(2)}\n`;
+      }
+
+      const moment = require("moment-timezone");
+      const fecha = new Date(info.timestamp);
+      //const offset = fecha.getTimezoneOffset() * 60000; // Obtener el desplazamiento de la zona horaria en minutos y convertirlo a milisegundos
+      // recojemos el tipo de pago
+      const fechaEspaña = moment(info.timestamp).tz("Europe/Madrid");
+      if (tipoPago == "TARJETA") {
+        pagoTarjeta = "----------- PAGADO CON TARJETA ---------\n";
+      }
+      if (tipoPago == "TICKET_RESTAURANT") {
+        pagoTkrs = "----- PAGADO CON TICKET RESTAURANT -----\n";
+      }
+      let pagoDevolucion: string = "";
+
+      if (tipoPago == "DEVOLUCION") {
+        //   mqttInstance.loggerMQTT('Entramos en tipo pago devolucion')
+        pagoDevolucion = "-- ES DEVOLUCION --\n";
+      }
+
+      if (info.dejaCuenta > 0) {
+        detalleEncargo = "Precio encargo: " + info.total;
+        detalleDejaCuenta = "Pago recibido: " + info.dejaCuenta;
+      }
+
+      const detallesIva = await this.getDetallesIva(tiposIva);
+
+      let detalleIva = "";
+      detalleIva =
+        detallesIva.detalleIva0 +
+        detallesIva.detalleIva4 +
+        detallesIva.detalleIva5 +
+        detallesIva.detalleIva10 +
+        detallesIva.detalleIva21;
+
+      let infoConsumoPersonal = "";
+      if (tipoPago == "CONSUMO_PERSONAL") {
+        infoConsumoPersonal = "---------------- Dte. 100% --------------";
+        detalleIva = "";
+      }
+
+      const diasSemana = [
+        "Diumenge",
+        "Dilluns",
+        "Dimarts",
+        "Dimecres",
+        "Dijous",
+        "Divendres",
+        "Dissabte",
+      ];
+      /*`Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
+      fecha.getMonth() + 1
+    }-${fecha.getFullYear()}  ${
+      (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
+    }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
+    // declaramos el dispositivo y la impresora escpos
+    const device = new escpos.Network("localhost");
+    const printer = new escpos.Printer(device);
+    const database = (await conexion).db("tocgame");
+    const coleccion = database.collection("parametros");
+    const preuU =
+      (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
+      "Si";
+    const arrayImprimir = [
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "encode", payload: "cp858" },
+      { tipo: "font", payload: "A" },
+      { tipo: "text", payload: cabecera },
+      {
+        tipo: "text",
+        payload: `Data: ${
+          diasSemana[fechaEspaña.format("d")]
+        } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+      },
+      { tipo: "text", payload: "Factura simplificada N: " + numFactura },
+      { tipo: "text", payload: "Ates per: " + nombreDependienta },
+      { tipo: "text", payload: detalleClienteVip },
+      { tipo: "text", payload: detalleNombreCliente },
+      { tipo: "text", payload: detallePuntosCliente },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      {
+        tipo: "text",
+        payload: `Quantitat      Article   ${
+          preuU ? "  Preu U." : ""
+        }   Import (€)`,
+      },
+      { tipo: "text", payload: "-----------------------------------------" },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: detalles },
+      { tipo: "align", payload: "CT" },
+      { tipo: "text", payload: pagoTarjeta },
+      { tipo: "text", payload: pagoTkrs },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: infoConsumoPersonal },
+      { tipo: "align", payload: "CT" },
+      {
+        tipo: "text",
+        payload: "----------------------------------------------",
+      },
+      { tipo: "align", payload: "LT" },
+      { tipo: "size", payload: [1, 1] },
+      { tipo: "text", payload: pagoDevolucion },
+      { tipo: "text", payload: detalleEncargo },
+      { tipo: "text", payload: detalleDejaCuenta },
+      { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "size", payload: [0, 0] },
+      { tipo: "align", payload: "CT" },
+      { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+      { tipo: "text", payload: detalleIva },
+      { tipo: "text", payload: copiaText },
+      { tipo: "text", payload: firmaText },
+      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: "ID: " + random() + " - " + random() },
+      { tipo: "text", payload: pie },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "cut", payload: "PAPER_FULL_CUT" },
+    ];
+    const options = {
+      imprimirLogo: true,
+      tipo: "venta",
+      lExtra: arrayCompra.length,
+    };
+    // lo mandamos a la funcion enviarMQTT que se supone que imprime
+    this.enviarMQTT(arrayImprimir, options);
+  }
+  async getDetallesIva(tiposIva) {
+    let str1 = "          ";
+    let str2 = "                 ";
+    let str3 = "              ";
+    let base = "";
+    let valorIva = "";
+    let importe = "";
+    const detalle = {
+      detalleIva4: "",
+      detalleIva10: "",
+      detalleIva21: "",
+      detalleIva0: "",
+      detalleIva5: "",
+    };
+    if (tiposIva.importe1 > 0) {
+      base = tiposIva.base1.toFixed(2) + " €";
+      valorIva = "4%: " + tiposIva.valorIva1.toFixed(2) + " €";
+      importe = tiposIva.importe1.toFixed(2) + " €\n";
+      detalle.detalleIva4 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe2 > 0) {
+      base = tiposIva.base2.toFixed(2) + " €";
+      valorIva = "10%: " + tiposIva.valorIva2.toFixed(2) + " €";
+      importe = tiposIva.importe2.toFixed(2) + " €\n";
+      detalle.detalleIva10 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe3 > 0) {
+      base = tiposIva.base3.toFixed(2) + " €";
+      valorIva = "21%: " + tiposIva.valorIva3.toFixed(2) + " €";
+      importe = tiposIva.importe3.toFixed(2) + " €\n";
+      detalle.detalleIva21 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe4 > 0) {
+      base = tiposIva.base4.toFixed(2) + " €";
+      valorIva = "0%: " + tiposIva.valorIva4.toFixed(2) + " €";
+      importe = tiposIva.importe4.toFixed(2) + " €\n";
+      detalle.detalleIva0 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
+    }
+    if (tiposIva.importe5 > 0) {
+      base = tiposIva.base5.toFixed(2) + " €";
+      valorIva = "5%: " + tiposIva.valorIva5.toFixed(2) + " €";
+      importe = tiposIva.importe5.toFixed(2) + " €\n";
+      detalle.detalleIva5 =
+        str1.substring(0, str1.length - base.length) +
+        base +
+        str2.substring(0, str2.length - valorIva.length) +
+        valorIva +
+        str3.substring(0, str3.length - importe.length) +
+        importe;
     }
 
-    if (infoCliente != null) {
-      detalleNombreCliente = infoCliente.nombre;
-      detallePuntosCliente = "PUNTOS: " + infoCliente.puntos;
-    }
+    return detalle;
+  }
+  async precioUnitario(arrayCompra) {
+    let detalles = "";
     //const preuUnitari =
+    // recojemos los productos del ticket
+    const preuUnitari =
+      (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
+      "Si";
     for (let i = 0; i < arrayCompra.length; i++) {
-      if (
-        (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
-        "Si"
-      ) {
-        arrayCompra[i]["subtotal"] = Number(
+      if (preuUnitari) {
+        arrayCompra[i]["preuU"] = Number(
           (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
         );
       }
@@ -320,9 +672,9 @@ export class Impresora {
         detalles += `${
           arrayCompra[i].unidades *
           arrayCompra[i].promocion.cantidadArticuloPrincipal
-        }     ${nombrePrincipal.slice(0, 20)}       ${arrayCompra[
-          i
-        ].subtotal.toFixed(2)}\n`;
+        }     ${nombrePrincipal.slice(0, 20)}${
+          preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
+        }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
         detalles += `     >     ${
           nombrePrincipal.slice(0, 20) +
           "(x" +
@@ -365,9 +717,9 @@ export class Impresora {
           if (j == arrayCompra[i].arraySuplementos.length - 1) {
             detalles += `       ${arrayCompra[i].arraySuplementos[
               j
-            ].nombre.slice(0, 20)}         ${arrayCompra[i].subtotal.toFixed(
-              2
-            )}\n`;
+            ].nombre.slice(0, 20)}${
+              preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
+            }         ${arrayCompra[i].subtotal.toFixed(2)}\n`;
           } else {
             detalles += `       ${arrayCompra[i].arraySuplementos[
               j
@@ -382,185 +734,13 @@ export class Impresora {
         }
         detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
           i
-        ].nombre.slice(0, 20)}       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+        ].nombre.slice(0, 20)}${
+          preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
+        }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
       }
     }
-    const moment = require("moment-timezone");
-    const fecha = new Date(info.timestamp);
-    //const offset = fecha.getTimezoneOffset() * 60000; // Obtener el desplazamiento de la zona horaria en minutos y convertirlo a milisegundos
-
-    const fechaEspaña = moment(info.timestamp).tz("Europe/Madrid");
-    if (tipoPago == "TARJETA") {
-      pagoTarjeta = "----------- PAGADO CON TARJETA ---------\n";
-    }
-    if (tipoPago == "TICKET_RESTAURANT") {
-      pagoTkrs = "----- PAGADO CON TICKET RESTAURANT -----\n";
-    }
-    let pagoDevolucion: string = "";
-
-    if (tipoPago == "DEVOLUCION") {
-      //   mqttInstance.loggerMQTT('Entramos en tipo pago devolucion')
-      pagoDevolucion = "-- ES DEVOLUCION --\n";
-    }
-
-    if (info.dejaCuenta > 0) {
-      detalleEncargo = "Precio encargo: " + info.total;
-      detalleDejaCuenta = "Pago recibido: " + info.dejaCuenta;
-    }
-
-    let str1 = "          ";
-    let str2 = "                 ";
-    let str3 = "              ";
-    let base = "";
-    let valorIva = "";
-    let importe = "";
-    let detalleIva4 = "";
-    let detalleIva10 = "";
-    let detalleIva21 = "";
-    let detalleIva = "";
-    let detalleIva0 = "";
-    let detalleIva5 = "";
-    if (tiposIva.importe1 > 0) {
-      base = tiposIva.base1.toFixed(2) + " €";
-      valorIva = "4%: " + tiposIva.valorIva1.toFixed(2) + " €";
-      importe = tiposIva.importe1.toFixed(2) + " €\n";
-      detalleIva4 =
-        str1.substring(0, str1.length - base.length) +
-        base +
-        str2.substring(0, str2.length - valorIva.length) +
-        valorIva +
-        str3.substring(0, str3.length - importe.length) +
-        importe;
-    }
-    if (tiposIva.importe2 > 0) {
-      base = tiposIva.base2.toFixed(2) + " €";
-      valorIva = "10%: " + tiposIva.valorIva2.toFixed(2) + " €";
-      importe = tiposIva.importe2.toFixed(2) + " €\n";
-      detalleIva10 =
-        str1.substring(0, str1.length - base.length) +
-        base +
-        str2.substring(0, str2.length - valorIva.length) +
-        valorIva +
-        str3.substring(0, str3.length - importe.length) +
-        importe;
-    }
-    if (tiposIva.importe3 > 0) {
-      base = tiposIva.base3.toFixed(2) + " €";
-      valorIva = "21%: " + tiposIva.valorIva3.toFixed(2) + " €";
-      importe = tiposIva.importe3.toFixed(2) + " €\n";
-      detalleIva21 =
-        str1.substring(0, str1.length - base.length) +
-        base +
-        str2.substring(0, str2.length - valorIva.length) +
-        valorIva +
-        str3.substring(0, str3.length - importe.length) +
-        importe;
-    }
-    if (tiposIva.importe4 > 0) {
-      base = tiposIva.base4.toFixed(2) + " €";
-      valorIva = "0%: " + tiposIva.valorIva4.toFixed(2) + " €";
-      importe = tiposIva.importe4.toFixed(2) + " €\n";
-      detalleIva0 =
-        str1.substring(0, str1.length - base.length) +
-        base +
-        str2.substring(0, str2.length - valorIva.length) +
-        valorIva +
-        str3.substring(0, str3.length - importe.length) +
-        importe;
-    }
-    if (tiposIva.importe5 > 0) {
-      base = tiposIva.base5.toFixed(2) + " €";
-      valorIva = "5%: " + tiposIva.valorIva5.toFixed(2) + " €";
-      importe = tiposIva.importe5.toFixed(2) + " €\n";
-      detalleIva5 =
-        str1.substring(0, str1.length - base.length) +
-        base +
-        str2.substring(0, str2.length - valorIva.length) +
-        valorIva +
-        str3.substring(0, str3.length - importe.length) +
-        importe;
-    }
-    detalleIva =
-      detalleIva0 + detalleIva4 + detalleIva5 + detalleIva10 + detalleIva21;
-    let infoConsumoPersonal = "";
-    if (tipoPago == "CONSUMO_PERSONAL") {
-      infoConsumoPersonal = "---------------- Dte. 100% --------------";
-      detalleIva = "";
-    }
-
-    const diasSemana = [
-      "Diumenge",
-      "Dilluns",
-      "Dimarts",
-      "Dimecres",
-      "Dijous",
-      "Divendres",
-      "Dissabte",
-    ];
-    /*`Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
-      fecha.getMonth() + 1
-    }-${fecha.getFullYear()}  ${
-      (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
-    }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
-
-    const device = new escpos.Network();
-    const printer = new escpos.Printer(device);
-    this.enviarMQTT(
-      printer
-
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .size(0, 0)
-        .text(cabecera)
-        .text(
-          `Data: ${diasSemana[fechaEspaña.format("d")]} ${fechaEspaña.format(
-            "DD-MM-YYYY HH:mm"
-          )}`
-        )
-        .text("Factura simplificada N: " + numFactura)
-        .text("Ates per: " + nombreDependienta)
-        .text(detalleClienteVip)
-        .text(detalleNombreCliente)
-        .text(detallePuntosCliente)
-        .control("LF")
-        .control("LF")
-        .control("LF")
-        .text("Quantitat      Article        Import (€)")
-        .text("-----------------------------------------")
-        .align("LT")
-        .text(detalles)
-        .align("CT")
-        .text(pagoTarjeta)
-        .text(pagoTkrs)
-        .align("LT")
-        .text(infoConsumoPersonal)
-        .align("CT")
-        .text("----------------------------------------------")
-        .align("LT")
-        .size(1, 1)
-        .text(pagoDevolucion)
-        .text(detalleEncargo)
-        .text(detalleDejaCuenta)
-        .text("TOTAL: " + total.toFixed(2) + " €")
-        .control("LF")
-        .size(0, 0)
-        .align("CT")
-        .text("Base IVA         IVA         IMPORT")
-        .text(detalleIva)
-        .text("-- ES COPIA --")
-        .control("LF")
-        .text("ID: " + random() + " - " + random())
-        .text(pie)
-        .control("LF")
-        .control("LF")
-        .control("LF")
-        .cut("PAPER_FULL_CUT")
-        .close().buffer._buffer
-    );
+    return detalles;
   }
-
   /* Eze 4.0 */
   async imprimirSalida(movimiento: MovimientosInterface) {
     try {
@@ -570,37 +750,51 @@ export class Impresora {
       const trabajador = await trabajadoresInstance.getTrabajadorById(
         movimiento.idTrabajador
       );
-      const device = new escpos.Network();
+      const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
-      let buffer = printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .align("CT")
-        .size(0, 0)
-        .text(parametros.nombreTienda)
-        .text(fechaStr.format("DD-MM-YYYY HH:mm"))
-        .text("Dependienta: " + trabajador.nombre)
-        .text("Retirada efectivo: " + movimiento.valor + "€")
-        .size(1, 1)
-        .text(movimiento.valor + "€")
-        .size(0, 0)
-        .text("Concepto")
-        .size(1, 1)
-        .text(movimiento.concepto);
+      let buffer = [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: parametros.nombreTienda },
+        { tipo: "text", payload: fechaStr.format("DD-MM-YYYY HH:mm") },
+        { tipo: "text", payload: "Dependienta: " + trabajador.nombre },
+        {
+          tipo: "text",
+          payload: "Retirada efectivo: " + movimiento.valor + "€",
+        },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.valor + "€" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Concepto" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.concepto },
+      ];
 
       if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
-        buffer = buffer.barcode(
-          movimiento.codigoBarras.slice(0, 12),
-          "EAN13",
-          4
-        );
+        buffer.push({
+          tipo: "barcode",
+          payload: [movimiento.codigoBarras.slice(0, 12), "EAN13", 4],
+        });
       }
+      buffer.push({
+        tipo: "text",
+        payload: "\n\n\n",
+      });
+      buffer.push({
+        tipo: "cut",
+        payload: "PAPER_FULL_CUT",
+      });
 
-      buffer = buffer.text("").text("").text("").cut().close().buffer._buffer;
+      const options = {
+        imprimirLogo: false,
+        tipo: "salida",
+      };
 
-      this.enviarMQTT(buffer);
+      this.enviarMQTT(buffer, options);
     } catch (err) {
       logger.Error(146, err);
     }
@@ -615,35 +809,48 @@ export class Impresora {
       const trabajador = await trabajadoresInstance.getTrabajadorById(
         movimiento.idTrabajador
       );
-      const device = new escpos.Network();
-      const printer = new escpos.Printer(device);
-      let buffer = printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .align("CT")
-        .size(0, 0)
-        .text(parametros.nombreTienda)
-        .text(fechaStr.format("DD-MM-YYYY HH:mm"))
-        .text("Dependienta: " + trabajador.nombre)
-        .text("Ingreso efectivo: " + movimiento.valor + "€")
-        .size(1, 1)
-        .text(movimiento.valor + "€")
-        .size(0, 0)
-        .text("Concepto")
-        .size(1, 1)
-        .text(movimiento.concepto);
+      let buffer = [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: parametros.nombreTienda },
+        { tipo: "text", payload: fechaStr.format("DD-MM-YYYY HH:mm") },
+        { tipo: "text", payload: "Dependienta: " + trabajador.nombre },
+        {
+          tipo: "text",
+          payload: "Ingreso efectivo: " + movimiento.valor + "€",
+        },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.valor + "€" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Concepto" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.concepto },
+      ];
 
       if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
-        buffer = buffer.barcode(
-          movimiento.codigoBarras.slice(0, 12),
-          "EAN13",
-          4
-        );
+        buffer.push({
+          tipo: "barcode",
+          payload: [movimiento.codigoBarras.slice(0, 12), "EAN13", 4],
+        });
       }
-      buffer = buffer.text("").text("").text("").cut().close().buffer._buffer;
-      this.enviarMQTT(buffer);
+      buffer.push({
+        tipo: "text",
+        payload: "\n\n\n",
+      });
+      buffer.push({
+        tipo: "cut",
+        payload: "PAPER_FULL_CUT",
+      });
+
+      const options = {
+        imprimirLogo: false,
+        tipo: "entrada",
+      };
+      this.enviarMQTT(buffer, options);
     } catch (err) {
       console.log(err);
       mqttInstance.loggerMQTT(err);
@@ -651,41 +858,23 @@ export class Impresora {
   }
 
   async imprimirTest() {
-    const parametros = parametrosInstance.getParametros();
     try {
       permisosImpresora();
-      // if(parametros.tipoImpresora === 'USB')
-      // {
-      //     const arrayDevices = escpos.USB.findPrinter();
-      //     if (arrayDevices.length > 0) {
-      //         /* Solo puede haber un dispositivo USB */
-      //         const dispositivoUnico = arrayDevices[0];
-      //         var device = new escpos.USB(dispositivoUnico); //USB
-      //     } else if (arrayDevices.length == 0) {
-      //         throw 'Error, no hay ningún dispositivo USB conectado';
-      //     } else {
-      //         throw 'Error, hay más de un dispositivo USB conectado';
-      //     }
-      // }
-      // else if(parametros.tipoImpresora === 'SERIE') {
-      //     var device = new escpos.Serial('/dev/ttyS0', {
-      //         baudRate: 115000,
-      //         stopBit: 2
-      //     });
-      // }
-      const device = new escpos.Network();
-      const printer = new escpos.Printer(device);
+      const options = {
+        imprimirLogo: false,
+      };
       this.enviarMQTT(
-        printer
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .align("CT")
-          .size(1, 1)
-          .text("HOLA HOLA")
-          .cut()
-          .close().buffer._buffer
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "HOLA HOLA" },
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
       );
     } catch (err) {
       mqttInstance.loggerMQTT(err);
@@ -756,166 +945,227 @@ export class Impresora {
 
     const mesInicial = fechaInicio.getMonth() + 1;
     const mesFinal = fechaFinal.getMonth() + 1;
-    const device = new escpos.Network();
+    const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
+    const options = {
+      imprimirLogo: true,
+      tipo: "cierreCaja",
+    };
     this.enviarMQTT(
-      printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .align("CT")
-        .size(1, 1)
-        .text("BOTIGA : " + parametros.nombreTienda)
-        .size(0, 0)
-        .text("Resum caixa")
-        .text("")
-        .align("LT")
-        .text("Resp. apertura   : " + trabajadorApertura.nombre)
-        .text("Resp. cierre   : " + trabajadorCierre.nombre)
-        .text(
-          `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
+      [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: "BOTIGA : " + parametros.nombreTienda },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Resum caixa" },
+        { tipo: "text", payload: "" },
+        { tipo: "align", payload: "LT" },
+        {
+          tipo: "text",
+          payload: "Resp. apertura   : " + trabajadorApertura.nombre,
+        },
+        {
+          tipo: "text",
+          payload: "Resp. cierre   : " + trabajadorCierre.nombre,
+        },
+        {
+          tipo: "text",
+          payload: `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
             (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
           }:${
             (fechaInicio.getMinutes() < 10 ? "0" : "") +
             fechaInicio.getMinutes()
-          }`
-        )
-        .text(
-          `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
+          }`,
+        },
+        {
+          tipo: "text",
+          payload: `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
             (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
           }:${
             (fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()
-          }`
-        )
-        .text("")
-        .size(0, 1)
-        .text("Calaix fet       :      " + caja.calaixFetZ.toFixed(2))
-        .text("Descuadre        :      " + caja.descuadre.toFixed(2))
-        .text("Clients atesos   :      " + caja.nClientes)
-        .text("Recaudat         :      " + caja.recaudado.toFixed(2))
-        .text("Datafon 3g       :      " + caja.totalDatafono3G)
-        .text("Canvi inicial    :      " + caja.totalApertura.toFixed(2))
-        .text("Canvi final      :      " + caja.totalCierre.toFixed(2))
-        .text("")
-        .size(0, 0)
-        .text("Moviments de caixa")
-        .text("")
-        .text("")
-        .text(textoMovimientos)
-        .text("")
-        .text("")
-        .text("")
-        .text(
-          "       0.01 --> " +
+          }`,
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "size", payload: [0, 1] },
+        {
+          tipo: "text",
+          payload: "Calaix fet       :      " + caja.calaixFetZ.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
+        },
+        { tipo: "text", payload: "Clients atesos   :      " + caja.nClientes },
+        {
+          tipo: "text",
+          payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "Datafon 3g       :      " + caja.totalDatafono3G,
+        },
+        {
+          tipo: "text",
+          payload: "Canvi inicial    :      " + caja.totalApertura.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Moviments de caixa" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: textoMovimientos },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        {
+          tipo: "text",
+          payload:
+            "       0.01 --> " +
             caja.detalleApertura[0]["valor"].toFixed(2) +
             "      " +
             "0.01 --> " +
-            caja.detalleCierre[0]["valor"].toFixed(2)
-        )
-        .text(
-          "       0.02 --> " +
+            caja.detalleCierre[0]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       0.02 --> " +
             caja.detalleApertura[1]["valor"].toFixed(2) +
             "      " +
             "0.02 --> " +
-            caja.detalleCierre[1]["valor"].toFixed(2)
-        )
-        .text(
-          "       0.05 --> " +
+            caja.detalleCierre[1]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       0.05 --> " +
             caja.detalleApertura[2]["valor"].toFixed(2) +
             "      " +
             "0.05 --> " +
-            caja.detalleCierre[2]["valor"].toFixed(2)
-        )
-        .text(
-          "       0.10 --> " +
+            caja.detalleCierre[2]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       0.10 --> " +
             caja.detalleApertura[3]["valor"].toFixed(2) +
             "      " +
             "0.10 --> " +
-            caja.detalleCierre[3]["valor"].toFixed(2)
-        )
-        .text(
-          "       0.20 --> " +
+            caja.detalleCierre[3]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       0.20 --> " +
             caja.detalleApertura[4]["valor"].toFixed(2) +
             "      " +
             "0.20 --> " +
-            caja.detalleCierre[4]["valor"].toFixed(2)
-        )
-        .text(
-          "       0.50 --> " +
+            caja.detalleCierre[4]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       0.50 --> " +
             caja.detalleApertura[5]["valor"].toFixed(2) +
             "      " +
             "0.50 --> " +
-            caja.detalleCierre[5]["valor"].toFixed(2)
-        )
-        .text(
-          "       1.00 --> " +
+            caja.detalleCierre[5]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       1.00 --> " +
             caja.detalleApertura[6]["valor"].toFixed(2) +
             "      " +
             "1.00 --> " +
-            caja.detalleCierre[6]["valor"].toFixed(2)
-        )
-        .text(
-          "       2.00 --> " +
+            caja.detalleCierre[6]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       2.00 --> " +
             caja.detalleApertura[7]["valor"].toFixed(2) +
             "      " +
             "2.00 --> " +
-            caja.detalleCierre[7]["valor"].toFixed(2)
-        )
-        .text(
-          "       5.00 --> " +
+            caja.detalleCierre[7]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       5.00 --> " +
             caja.detalleApertura[8]["valor"].toFixed(2) +
             "      " +
             "5.00 --> " +
-            caja.detalleCierre[8]["valor"].toFixed(2)
-        )
-        .text(
-          "       10.00 --> " +
+            caja.detalleCierre[8]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       10.00 --> " +
             caja.detalleApertura[9]["valor"].toFixed(2) +
             "     " +
             "10.00 --> " +
-            caja.detalleCierre[9]["valor"].toFixed(2)
-        )
-        .text(
-          "       20.00 --> " +
+            caja.detalleCierre[9]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       20.00 --> " +
             caja.detalleApertura[10]["valor"].toFixed(2) +
             "    " +
             "20.00 --> " +
-            caja.detalleCierre[10]["valor"].toFixed(2)
-        )
-        .text(
-          "       50.00 --> " +
+            caja.detalleCierre[10]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       50.00 --> " +
             caja.detalleApertura[11]["valor"].toFixed(2) +
             "    " +
             "50.00 --> " +
-            caja.detalleCierre[11]["valor"].toFixed(2)
-        )
-        .text(
-          "       100.00 --> " +
+            caja.detalleCierre[11]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       100.00 --> " +
             caja.detalleApertura[12]["valor"].toFixed(2) +
             "   " +
             "100.00 --> " +
-            caja.detalleCierre[12]["valor"].toFixed(2)
-        )
-        .text(
-          "       200.00 --> " +
+            caja.detalleCierre[12]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       200.00 --> " +
             caja.detalleApertura[13]["valor"].toFixed(2) +
             "   " +
             "200.00 --> " +
-            caja.detalleCierre[13]["valor"].toFixed(2)
-        )
-        .text(
-          "       500.00 --> " +
+            caja.detalleCierre[13]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "       500.00 --> " +
             caja.detalleApertura[14]["valor"].toFixed(2) +
             "   " +
             "500.00 --> " +
-            caja.detalleCierre[14]["valor"].toFixed(2)
-        )
-        .text("")
-        .text("")
-        .text("")
-        .cut()
-        .close().buffer._buffer
+            caja.detalleCierre[14]["valor"].toFixed(2),
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ],
+      options
     );
   }
   /* Eze 4.0 */
@@ -981,8 +1231,6 @@ export class Impresora {
         `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
 
       permisosImpresora();
-      const device = new escpos.Network();
-      const printer = new escpos.Printer(device);
       const diasSemana = [
         "Diumenge",
         "Dilluns",
@@ -992,159 +1240,221 @@ export class Impresora {
         "Divendres",
         "Dissabte",
       ];
+
+      const options = { imprimirLogo: true, tipo: "cierreCaja" };
       this.enviarMQTT(
-        printer
-          .setCharacterCodeTable(19)
-          .encode("CP858")
-          .font("a")
-          .style("b")
-          .align("CT")
-          .size(1, 1)
-          .text("BOTIGA : " + parametros.nombreTienda)
-          .size(0, 0)
-          .text("Resum caixa")
-          .text("")
-          .align("LT")
-          .text("Resp. apertura   : " + trabajadorApertura.nombre)
-          .text("Resp. cierre   : " + trabajadorCierre.nombre)
-          .text(
-            `Inici: ${diasSemana[fechaInicio.format("d")]} ${fechaInicio.format(
-              "DD-MM-YYYY HH:mm"
-            )}`
-          )
-          .text(
-            `Final: ${diasSemana[fechaFinal.format("d")]} ${fechaFinal.format(
-              "DD-MM-YYYY HH:mm"
-            )}`
-          )
-          .text("")
-          .size(0, 1)
-          .text("Calaix fet       :      " + caja.calaixFetZ.toFixed(2))
-          .text("Descuadre        :      " + caja.descuadre.toFixed(2))
-          .text("Clients atesos   :      " + caja.nClientes)
-          .text("Recaudat         :      " + caja.recaudado.toFixed(2))
-          .text("Datafon 3g       :      " + caja.totalDatafono3G)
-          .text("Canvi inicial    :      " + caja.totalApertura.toFixed(2))
-          .text("Canvi final      :      " + caja.totalCierre.toFixed(2))
-          .text("")
-          .size(0, 0)
-          .text("Moviments de caixa")
-          .text("")
-          .text("")
-          .text(textoMovimientos)
-          .text("")
-          .text("")
-          .text("")
-          .text(
-            "       0.01 --> " +
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "BOTIGA : " + parametros.nombreTienda },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: "Resum caixa" },
+          { tipo: "text", payload: "" },
+          { tipo: "align", payload: "LT" },
+          {
+            tipo: "text",
+            payload: "Resp. apertura   : " + trabajadorApertura.nombre,
+          },
+          {
+            tipo: "text",
+            payload: "Resp. cierre   : " + trabajadorCierre.nombre,
+          },
+          {
+            tipo: "text",
+            payload: `Inici: ${
+              diasSemana[fechaInicio.format("d")]
+            } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
+          },
+          {
+            tipo: "text",
+            payload: `Final: ${
+              diasSemana[fechaFinal.format("d")]
+            } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
+          },
+          { tipo: "text", payload: "" },
+          { tipo: "size", payload: [0, 1] },
+          {
+            tipo: "text",
+            payload: "Calaix fet       :      " + caja.calaixFetZ.toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload: "Clients atesos   :      " + caja.nClientes,
+          },
+          {
+            tipo: "text",
+            payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload: "Datafon 3g       :      " + caja.totalDatafono3G,
+          },
+          {
+            tipo: "text",
+            payload: "Canvi inicial    :      " + caja.totalApertura.toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
+          },
+          { tipo: "text", payload: "" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: "Moviments de caixa" },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: textoMovimientos },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "" },
+          {
+            tipo: "text",
+            payload:
+              "       0.01 --> " +
               caja.detalleApertura[0]["valor"].toFixed(2) +
               "      " +
               "0.01 --> " +
-              caja.detalleCierre[0]["valor"].toFixed(2)
-          )
-          .text(
-            "       0.02 --> " +
+              caja.detalleCierre[0]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       0.02 --> " +
               caja.detalleApertura[1]["valor"].toFixed(2) +
               "      " +
               "0.02 --> " +
-              caja.detalleCierre[1]["valor"].toFixed(2)
-          )
-          .text(
-            "       0.05 --> " +
+              caja.detalleCierre[1]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       0.05 --> " +
               caja.detalleApertura[2]["valor"].toFixed(2) +
               "      " +
               "0.05 --> " +
-              caja.detalleCierre[2]["valor"].toFixed(2)
-          )
-          .text(
-            "       0.10 --> " +
+              caja.detalleCierre[2]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       0.10 --> " +
               caja.detalleApertura[3]["valor"].toFixed(2) +
               "      " +
               "0.10 --> " +
-              caja.detalleCierre[3]["valor"].toFixed(2)
-          )
-          .text(
-            "       0.20 --> " +
+              caja.detalleCierre[3]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       0.20 --> " +
               caja.detalleApertura[4]["valor"].toFixed(2) +
               "      " +
               "0.20 --> " +
-              caja.detalleCierre[4]["valor"].toFixed(2)
-          )
-          .text(
-            "       0.50 --> " +
+              caja.detalleCierre[4]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       0.50 --> " +
               caja.detalleApertura[5]["valor"].toFixed(2) +
               "      " +
               "0.50 --> " +
-              caja.detalleCierre[5]["valor"].toFixed(2)
-          )
-          .text(
-            "       1.00 --> " +
+              caja.detalleCierre[5]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       1.00 --> " +
               caja.detalleApertura[6]["valor"].toFixed(2) +
               "      " +
               "1.00 --> " +
-              caja.detalleCierre[6]["valor"].toFixed(2)
-          )
-          .text(
-            "       2.00 --> " +
+              caja.detalleCierre[6]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       2.00 --> " +
               caja.detalleApertura[7]["valor"].toFixed(2) +
               "      " +
               "2.00 --> " +
-              caja.detalleCierre[7]["valor"].toFixed(2)
-          )
-          .text(
-            "       5.00 --> " +
+              caja.detalleCierre[7]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       5.00 --> " +
               caja.detalleApertura[8]["valor"].toFixed(2) +
               "      " +
               "5.00 --> " +
-              caja.detalleCierre[8]["valor"].toFixed(2)
-          )
-          .text(
-            "       10.00 --> " +
+              caja.detalleCierre[8]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       10.00 --> " +
               caja.detalleApertura[9]["valor"].toFixed(2) +
               "     " +
               "10.00 --> " +
-              caja.detalleCierre[9]["valor"].toFixed(2)
-          )
-          .text(
-            "       20.00 --> " +
+              caja.detalleCierre[9]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       20.00 --> " +
               caja.detalleApertura[10]["valor"].toFixed(2) +
               "    " +
               "20.00 --> " +
-              caja.detalleCierre[10]["valor"].toFixed(2)
-          )
-          .text(
-            "       50.00 --> " +
+              caja.detalleCierre[10]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       50.00 --> " +
               caja.detalleApertura[11]["valor"].toFixed(2) +
               "    " +
               "50.00 --> " +
-              caja.detalleCierre[11]["valor"].toFixed(2)
-          )
-          .text(
-            "       100.00 --> " +
+              caja.detalleCierre[11]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       100.00 --> " +
               caja.detalleApertura[12]["valor"].toFixed(2) +
               "   " +
               "100.00 --> " +
-              caja.detalleCierre[12]["valor"].toFixed(2)
-          )
-          .text(
-            "       200.00 --> " +
+              caja.detalleCierre[12]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       200.00 --> " +
               caja.detalleApertura[13]["valor"].toFixed(2) +
               "   " +
               "200.00 --> " +
-              caja.detalleCierre[13]["valor"].toFixed(2)
-          )
-          .text(
-            "       500.00 --> " +
+              caja.detalleCierre[13]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              "       500.00 --> " +
               caja.detalleApertura[14]["valor"].toFixed(2) +
               "   " +
               "500.00 --> " +
-              caja.detalleCierre[14]["valor"].toFixed(2)
-          )
-          .text("")
-          .text("")
-          .text("")
-          .cut()
-          .close().buffer._buffer
+              caja.detalleCierre[14]["valor"].toFixed(2),
+          },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "" },
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
       );
     } catch (err) {
       console.log(err);
@@ -1153,9 +1463,9 @@ export class Impresora {
   }
 
   async abrirCajon() {
-    const device = new escpos.Network();
-    const printer = new escpos.Printer(device);
-    this.enviarMQTT(printer.cashdraw(2).close().buffer._buffer);
+    const arrayImprimir = [{ tipo: "cashdraw", payload: 2 }];
+    const options = { imprimirlogo: false };
+    this.enviarMQTT(arrayImprimir, options);
   }
 
   async mostrarVisor(data) {
@@ -1226,47 +1536,69 @@ export class Impresora {
     const fecha = `${data.timestamp.day}/${data.timestamp.month}/${data.timestamp.year} - ${data.timestamp.hour}:${data.timestamp.minute}`;
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
+    const options = { imprimirLogo: true };
     await this.enviarMQTT(
-      printer
-        .setCharacterCodeTable(19)
-        .encode("CP858")
-        .font("a")
-        .style("b")
-        .align("CT")
-        .size(2, 2)
-        .text(data.operationTypeName)
-        .align("LT")
-        .size(0, 0)
-        .text(data.commerceText)
-        .text("")
-        .text("HCP: " + data.bankName)
-        .text("Aplicación: " + data.cardInformation.emvApplicationID)
-        .text("")
-        .text(data.cardInformation.emvApplicationLabel)
-        .text("Entidad Bancaria: " + data.issuerNameAndCountry)
-        .text("Tarjeta: " + data.cardInformation.hiddenCardNumber)
-        .text("")
-        .text("Fecha: " + fecha)
-        .text("Nº Operación: " + data.paytefOperationNumber)
-        .text("Autorización: " + data.authorisationCode)
-        .text("")
-        .size(1, 1)
-        .text("Importe: " + data.amountWithSign + "€")
-        .text("")
-        .size(0, 0)
-        .text("Operación " + data.cardInformation.dataEntryLetter)
-        .text(`FIRMA ${data.needsSignature == false ? "NO " : ""}NECESARIA`)
-        .text("------")
-        .text("")
-        .text("")
-        .text("")
-        .text("")
-        .text("------")
-        .text(`COPIA PARA EL ${copia}`)
-        .text("")
-        .text("")
-        .cut()
-        .close().buffer._buffer
+      [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [2, 2] },
+        { tipo: "text", payload: data.operationTypeName },
+        { tipo: "align", payload: "LT" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: data.commerceText },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "HCP: " + data.bankName },
+        {
+          tipo: "text",
+          payload: "Aplicación: " + data.cardInformation.emvApplicationID,
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: data.cardInformation.emvApplicationLabel },
+        {
+          tipo: "text",
+          payload: "Entidad Bancaria: " + data.issuerNameAndCountry,
+        },
+        {
+          tipo: "text",
+          payload: "Tarjeta: " + data.cardInformation.hiddenCardNumber,
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "Fecha: " + fecha },
+        {
+          tipo: "text",
+          payload: "Nº Operación: " + data.paytefOperationNumber,
+        },
+        { tipo: "text", payload: "Autorización: " + data.authorisationCode },
+        { tipo: "text", payload: "" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: "Importe: " + data.amountWithSign + "€" },
+        { tipo: "text", payload: "" },
+        { tipo: "size", payload: [0, 0] },
+        {
+          tipo: "text",
+          payload: "Operación " + data.cardInformation.dataEntryLetter,
+        },
+        {
+          tipo: "text",
+          payload: `FIRMA ${
+            data.needsSignature == false ? "NO " : ""
+          }NECESARIA`,
+        },
+        { tipo: "text", payload: "------" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "------" },
+        { tipo: "text", payload: `COPIA PARA EL ${copia}` },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ],
+      options
     );
   }
 
@@ -1279,19 +1611,20 @@ export class Impresora {
       })
       .then(async (res: any) => {
         try {
-          const device = new escpos.Network();
-          const printer = new escpos.Printer(device);
+          const options = { imprimirLogo: true };
+
           this.enviarMQTT(
-            printer
-              .setCharacterCodeTable(19)
-              .encode("CP858")
-              .font("a")
-              .style("b")
-              .align("CT")
-              .size(0, 0)
-              .text(res.data.info)
-              .cut()
-              .close().buffer._buffer
+            [
+              { tipo: "setCharacterCodeTable", payload: 19 },
+              { tipo: "encode", payload: "CP858" },
+              { tipo: "font", payload: "a" },
+              { tipo: "style", payload: "b" },
+              { tipo: "align", payload: "CT" },
+              { tipo: "size", payload: [0, 0] },
+              { tipo: "text", payload: res.data.info },
+              { tipo: "cut", payload: "PAPER_FULL_CUT" },
+            ],
+            options
           );
           return { error: false, info: "OK" };
         } catch (err) {
@@ -1303,6 +1636,155 @@ export class Impresora {
         mqttInstance.loggerMQTT(err);
         return { error: true, info: "Error en CATCH imprimirEntregas() 1" };
       });
+  }
+  async imprimirIntervaloDeuda(fechaInicial, fechaFinal) {
+    const unDiaEnMilisegundos = 86400000;
+    const tmpInicial = new Date(fechaInicial).getTime();
+    const tmpFinal = new Date(fechaFinal).getTime() + unDiaEnMilisegundos;
+    // buscamos deudas con pagado=false des del intervalo que ha llegado a la funcion
+    const deudas = await schDeudas.getIntervaloDeuda(tmpInicial, tmpFinal);
+
+    if (deudas.length == 0)
+      return { error: true, msg: "No se encontraron deudas en ese intervalo" };
+    let string = "";
+
+    // Imprimir las deudas por orden de fecha
+    await deudas.forEach((deuda) => {
+      const date = new Date(deuda.timestamp);
+      const options = { hour12: false };
+      const fecha = date.toLocaleDateString();
+      const hora = date.toLocaleTimeString(undefined, options);
+
+      string += `\n${fecha} ${hora}`;
+      string += `\n - cliente: ${deuda.nombreCliente}`;
+      string += `\n - total: ${deuda.total} EUR`;
+      string += `\n - productos:`;
+      const clientes = deuda.cesta.lista;
+      deuda.cesta.lista.forEach((producto) => {
+        const nombreProducto = producto.nombre.substring(0, 32);
+        const suplementos = producto.arraySuplementos || [];
+        const productoConSuplementos = ` ${suplementos
+          .map((suplemento) => `\n    ${suplemento.nombre}`)
+          .join(", ")}`;
+        const unidades = producto.unidades;
+        string += `\n  -> ${producto.nombre}: ${unidades}u`;
+        string += `${productoConSuplementos}\n`;
+      });
+    });
+    // enviamos el string a la impresora por mqtt
+    const options = { imprimirLogo: true };
+    this.enviarMQTT(
+      [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: string },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ],
+      options
+    );
+    return { error: false, msg: "Good work bro" };
+  }
+
+  async imprimirEncargo(encargo) {
+    const parametros = await parametrosInstance.getParametros();
+    const trabajador: TrabajadoresInterface =
+      await trabajadoresInstance.getTrabajadorById(encargo.cesta.idTrabajador);
+
+    const cabecera = parametros.header;
+    const moment = require("moment-timezone");
+    const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
+
+    let detalles = await this.precioUnitario(encargo.cesta.lista);
+
+    let detalleImporte = "";
+    let importe = "";
+    if (encargo.dejaCuenta == 0) {
+      importe = "TOTAL:" + encargo.total.toFixed(2) + " €";
+    } else {
+      detalleImporte = `IMPORT TOTAL: ${encargo.total.toFixed(
+        2
+      )} €\nIMPORT PAGAT: ${encargo.dejaCuenta.toFixed(2)} €`;
+      importe =
+        "IMPORT RESTANT:" +
+        (encargo.total - encargo.dejaCuenta).toFixed(2) +
+        " €";
+    }
+    const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
+    let detalleIva = "";
+    detalleIva =
+      detallesIva.detalleIva0 +
+      detallesIva.detalleIva4 +
+      detallesIva.detalleIva5 +
+      detallesIva.detalleIva10 +
+      detallesIva.detalleIva21;
+
+    try {
+      const options = {
+        imprimirLogo: true,
+        tipo: "encargo",
+        lExtra: encargo.cesta.lista.length,
+      };
+
+      this.enviarMQTT(
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "ENTREGA" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: cabecera },
+          {
+            tipo: "text",
+            payload: `Data: ${fecha.format("d")} ${fecha.format(
+              "DD-MM-YYYY HH:mm"
+            )}`,
+          },
+          { tipo: "text", payload: "Ates per: " + encargo.nombreTrabajador },
+          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
+          { tipo: "control", payload: "LF" },
+          {
+            tipo: "text",
+            payload: "Quantitat        Article        Import (€)",
+          },
+          {
+            tipo: "text",
+            payload: "----------------------------------------------",
+          },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: detalles },
+          {
+            tipo: "text",
+            payload: "----------------------------------------------",
+          },
+          { tipo: "text", payload: detalleImporte },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: importe },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "CT" },
+          { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+          { tipo: "text", payload: detalleIva },
+          { tipo: "text", payload: "-- ES COPIA --" },
+          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: "ID: " + random() + " - " + random() },
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
+      );
+
+      return { error: false, info: "OK" };
+    } catch (err) {
+      mqttInstance.loggerMQTT(err);
+      return { error: true, info: "Error en CATCH imprimirEntregas() 2" };
+    }
   }
 }
 export const impresoraInstance = new Impresora();

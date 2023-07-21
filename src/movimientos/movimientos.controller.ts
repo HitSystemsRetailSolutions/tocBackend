@@ -7,12 +7,12 @@ import axios from "axios";
 
 @Controller("movimientos")
 export class MovimientosController {
-  /* Eze 4.0 */
+  /* Yasai :D */
   @Post("nuevoMovimiento") // Solo para entradas o salidas manuales (idTicket = null)
-  nuevoMovimiento(@Body() { cantidad, concepto, idTrabajador, tipo }) {
+  async nuevoMovimiento(@Body() { cantidad, concepto, idTrabajador, tipo }) {
     try {
       if (
-        cantidad != undefined &&
+        cantidad &&
         UtilesModule.checkVariable(concepto, idTrabajador, tipo)
       ) {
         return movimientosInstance.nuevoMovimiento(

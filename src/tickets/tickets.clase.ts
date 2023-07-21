@@ -10,6 +10,8 @@ import { articulosInstance } from "../articulos/articulos.clase";
 import * as schMovimientos from "../movimientos/movimientos.mongodb";
 import { paytefInstance } from "../paytef/paytef.class";
 import { cajaInstance } from "../caja/caja.clase";
+import { ClientesInterface } from "src/clientes/clientes.interface";
+import { clienteInstance } from "src/clientes/clientes.clase";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -72,9 +74,10 @@ export class TicketsClase {
 
   /* Eze 4.0 */
   async insertarTicket(ticket: TicketsInterface): Promise<boolean> {
+    // miramos que la lista tenga elementos
     if (ticket.cesta.lista.length == 0)
       throw Error("Error al insertar ticket: la lista está vacía");
-
+    // calculamos el dinero que se descuenta
     let cantidadRegalada = 0;
 
     for (let i = 0; i < ticket.cesta.lista.length; i++) {
@@ -87,7 +90,7 @@ export class TicketsClase {
           ).precioConIva * ticket.cesta.lista[i].unidades;
       }
     }
-
+    // si tenemos que descontar dinero lo hacemos
     if (cantidadRegalada > 0) {
       const resDescuento = await axios.post("clientes/descontarPuntos", {
         idCliente: ticket.cesta.idCliente,
@@ -98,6 +101,7 @@ export class TicketsClase {
 
       throw Error("No se han podido descontar los puntos");
     }
+    // si no tenemos que descontar dinero, simplemente insertamos el ticket
     return await schTickets.nuevoTicket(ticket);
   }
 
@@ -142,6 +146,14 @@ export class TicketsClase {
     datafono3G: TicketsInterface["datafono3G"],
     dejaCuenta?: TicketsInterface["dejaCuenta"]
   ): Promise<TicketsInterface> {
+    const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+    if (cliente && cliente.descuento) {
+      cesta.lista.forEach((art, index) => {
+        cesta.lista[index].subtotal =
+          art.subtotal - art.subtotal * (cliente.descuento / 100);
+      });
+    }
+
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),
