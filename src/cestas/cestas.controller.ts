@@ -38,6 +38,22 @@ export class CestasController {
     }
   }
 
+  @Post("transferirItemsCesta")
+  async transferirItemsCesta(@Body() { idCestaOrigen, idCestaDestino }) {
+    try {
+      if (idCestaOrigen && idCestaDestino) {
+        if (await cestasInstance.pasarCestas(idCestaOrigen, idCestaDestino)) {
+          cestasInstance.actualizarCestas();
+          return true;
+        }
+      }
+      throw Error("Error, faltan datos en transferirItemsCesta controller");
+    } catch (err) {
+      logger.Error(121, err);
+      return false;
+    }
+  }
+
   /* Eze 4.0 */
   @Post("borrarItemCesta")
   async borrarItemCesta(@Body() { idCesta, index }) {

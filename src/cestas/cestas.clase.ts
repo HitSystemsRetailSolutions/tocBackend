@@ -292,6 +292,32 @@ export class CestaClase {
     return unaCesta;
   }
 
+  async pasarCestas(
+    idOrigen: CestasInterface["_id"],
+    idDestino: CestasInterface["_id"]
+  ): Promise<boolean> {
+    try {
+      let cestaOrigen = await this.getCestaById(idOrigen);
+      let cestaDestino = await this.getCestaById(idDestino);
+
+      for (let item of cestaOrigen.lista) {
+        this.clickTeclaArticulo(
+          item.idArticulo,
+          item.gramos,
+          idDestino,
+          item.unidades,
+          item.arraySuplementos,
+          ""
+        );
+      }
+      this.updateCesta(cestaDestino);
+      this.borrarArticulosCesta(idOrigen);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /* ??? ??? => la información del artículo "articulo" debe estar masticada (tarifas especiales) */
   /* Yasai :D */
   async insertarArticulo(
