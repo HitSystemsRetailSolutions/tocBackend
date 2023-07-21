@@ -171,12 +171,19 @@ export class CajaClase {
   }
 
   getFechaCierre(inicioTime?: CajaAbiertaInterface["inicioTime"]) {
+    let d;
+    if(inicioTime){
+      d = new Date(inicioTime);
+    } else {
+      d = new Date();
+    }
     return schCajas.getComprovarTurno().then((res) => {
-      if (res.estado == true) {
+      if (res.estado) {
         return { time: res.time, estadoTurno: true };
-      } else {
-        const d = new Date(inicioTime);
+      } else if(inicioTime) {
         d.setHours(23, 59, 59);
+        return { time: d.getTime(), estadoTurno: false };
+      } else {
         return { time: d.getTime(), estadoTurno: false };
       }
     });
@@ -342,21 +349,21 @@ export class CajaClase {
           ? -1
           : arrayTicketsCaja[arrayTicketsCaja.length - 1]._id,
       descuadre,
-      detalleCierre: detalleCierre,
-      finalTime: finalTime,
-      idDependientaCierre: idDependientaCierre,
-      nClientes: nClientes,
-      recaudado: recaudado,
-      totalCierre: totalCierre,
-      totalDatafono3G: totalDatafono3G,
-      totalTicketDatafono3G: totalTicketDatafono3G,
-      totalDeuda: totalDeuda,
-      totalEfectivo: totalEfectivo,
-      totalEntradas: totalEntradas,
-      totalSalidas: totalSalidas,
-      totalTarjeta: totalTarjeta,
-      totalTkrsConExceso: totalTkrsConExceso,
-      totalTkrsSinExceso: totalTkrsSinExceso,
+      detalleCierre,
+      finalTime,
+      idDependientaCierre,
+      nClientes,
+      recaudado,
+      totalCierre,
+      totalDatafono3G,
+      totalTicketDatafono3G,
+      totalDeuda,
+      totalEfectivo,
+      totalEntradas,
+      totalSalidas,
+      totalTarjeta,
+      totalTkrsConExceso,
+      totalTkrsSinExceso,
       mediaTickets: totalTickets / nClientes,
     };
   }
