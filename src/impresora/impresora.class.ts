@@ -122,11 +122,19 @@ export class Impresora {
           ticket.idCliente
         );
         const puntos = await clienteInstance.getPuntosCliente(ticket.idCliente);
+        const { descuento } = await clienteInstance.getClienteById(
+          ticket.idCliente
+        );
+        console.log({ descuento });
 
         let informacionVip = infoCliente.albaran
           ? {
               nombre: infoCliente.nombre,
               nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+              direccion:
+                infoCliente["direccion"] === "0"
+                  ? ""
+                  : infoCliente["direccion"],
             }
           : null;
 
@@ -145,6 +153,7 @@ export class Impresora {
           infoCliente: {
             nombre: infoCliente.nombre,
             puntos: puntos,
+            descuento,
           },
           dejaCuenta: ticket.dejaCuenta,
         };
@@ -184,8 +193,14 @@ export class Impresora {
       ? {
           nombre: infoCliente.nombre,
           nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+          direccion:
+            infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
         }
       : null;
+
+    const { descuento } = await clienteInstance.getClienteById(
+      ticket.idCliente
+    );
 
     if (ticket && trabajador) {
       if (ticket.idCliente && ticket.idCliente != "") {
@@ -207,6 +222,7 @@ export class Impresora {
           infoCliente: {
             nombre: infoCliente.nombre,
             puntos: puntos,
+            descuento,
           },
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
@@ -400,13 +416,15 @@ export class Impresora {
     let detallePuntosCliente = "";
     let detalleEncargo = "";
     let detalleDejaCuenta = "";
+    let detalleDescuento = "";
     if (infoClienteVip) {
-      detalleClienteVip = `CLIENT:\nNom: ${infoClienteVip.nombre}\nNIF: ${infoClienteVip.nif}\n`;
+      detalleClienteVip = `CLIENT:\nNom: ${infoClienteVip.nombre}\nNIF: ${infoClienteVip.nif}\nADREÇA: ${infoClienteVip.direccion}\n`;
     }
     // recojemos datos del cliente si nos los han mandado
     if (infoCliente != null) {
       detalleNombreCliente = infoCliente.nombre;
       detallePuntosCliente = "PUNTOS: " + infoCliente.puntos;
+      detalleDescuento = "DESCUENTO: " + infoCliente.descuento ?? "0" + "%";
     }
 
     const moment = require("moment-timezone");
@@ -486,6 +504,7 @@ export class Impresora {
       { tipo: "text", payload: detalleClienteVip },
       { tipo: "text", payload: detalleNombreCliente },
       { tipo: "text", payload: detallePuntosCliente },
+      { tipo: "text", payload: detalleDescuento },
       { tipo: "control", payload: "LF" },
       { tipo: "control", payload: "LF" },
       { tipo: "control", payload: "LF" },
