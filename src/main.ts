@@ -18,7 +18,6 @@ axios.defaults.baseURL =
     ? "http://localhost:3001"
     : "https://santaana2-elb.nubehit.com:3003";
 
-
 parametrosInstance
   .getParametros()
   .then((parametros) => {
@@ -52,3 +51,4 @@ bootstrap(ip.address(), 3000);
 
 // mandamos el logo a la impresora de tickets por si la impresora estaba encendida de antes
 mqttInstance.mandarLogo();
+
