@@ -422,7 +422,6 @@ export class Impresora {
       if (infoClienteVip) {
         nombreClienteVip = "\nCLIENT:";
         detalleClienteVip = `Nom: ${infoClienteVip.nombre}\nNIF: ${infoClienteVip.nif}\nAdreça: ${infoClienteVip.direccion}\n`;
-        console.log({ detalleClienteVip });
       }
       // recojemos datos del cliente si nos los han mandado
       if (infoCliente != null) {
