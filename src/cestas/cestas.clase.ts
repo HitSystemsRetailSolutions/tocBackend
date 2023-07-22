@@ -309,6 +309,7 @@ export class CestaClase {
           idDestino,
           item.unidades,
           item.arraySuplementos,
+          "",
           ""
         );
       }
