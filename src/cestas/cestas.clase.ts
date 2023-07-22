@@ -140,6 +140,7 @@ export class CestaClase {
           id,
           e.unidades,
           e.arraySuplementos,
+          "",
           ""
         );
       }
@@ -156,6 +157,7 @@ export class CestaClase {
         cesta,
         e.unidades,
         e.arraySuplementos,
+        "",
         ""
       );
     }
@@ -326,7 +328,8 @@ export class CestaClase {
     idCesta: CestasInterface["_id"],
     arraySuplementos: ItemLista["arraySuplementos"], // Los suplentos no deben tener tarifa especial para simplificar.
     gramos: ItemLista["gramos"],
-    nombre = ""
+    nombre = "",
+    menu = ""
   ): Promise<CestasInterface> {
     // recojemos la cesta
     let cesta = await this.getCestaById(idCesta);
@@ -339,6 +342,7 @@ export class CestaClase {
         unidades
       ))
     ) {
+      articulo["menu"] = menu;
       // recojemos los datos del articulo
       let infoArticulo = await articulosInstance.getInfoArticulo(articulo._id);
       // recorremos la cesta
@@ -426,7 +430,7 @@ export class CestaClase {
       });
     }
 
-    await this.recalcularIvas(cesta);
+    await this.recalcularIvas(cesta, menu);
 
     if (await schCestas.updateCesta(cesta)) return cesta;
 
@@ -440,7 +444,8 @@ export class CestaClase {
     idCesta: CestasInterface["_id"],
     unidades: number,
     arraySuplementos: ItemLista["arraySuplementos"],
-    nombre: string
+    nombre: string,
+    menu: string
   ) {
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
@@ -463,7 +468,8 @@ export class CestaClase {
           idCesta,
           arraySuplementos,
           gramos,
-          nombre
+          nombre,
+          menu
         );
 
       // Modo por unidad
@@ -473,7 +479,8 @@ export class CestaClase {
         idCesta,
         arraySuplementos,
         null,
-        nombre
+        nombre,
+        menu
       );
     }
     throw Error(
@@ -558,7 +565,7 @@ export class CestaClase {
   }
 
   /* Eze 4.0 */
-  async recalcularIvas(cesta: CestasInterface) {
+  async recalcularIvas(cesta: CestasInterface, menu: string = "") {
     cesta.detalleIva = {
       base1: 0,
       base2: 0,
@@ -599,6 +606,14 @@ export class CestaClase {
               ? articulo.precioConIva
               : (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo))
                   .precioConIva;
+        }
+        if (menu.length > 0) {
+          let preu = await tarifasInstance.tarifaMenu(
+            cesta.lista[i].idArticulo,
+            menu
+          );
+          articulo.precioConIva =
+            preu == null ? articulo.precioConIva : preu.precioConIva;
         }
 
         const auxDetalleIva = construirObjetoIvas(

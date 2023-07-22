@@ -10,7 +10,15 @@ export class TecladoController {
   @Post("clickTeclaArticulo")
   async clickTeclaArticulo(
     @Body()
-    { idArticulo, gramos, idCesta, unidades, arraySuplementos, nombre = "" }
+    {
+      idArticulo,
+      gramos,
+      idCesta,
+      unidades,
+      arraySuplementos,
+      nombre = "",
+      menu,
+    }
   ) {
     try {
       if (UtilesModule.checkVariable(idArticulo, gramos, idCesta, unidades)) {
@@ -20,7 +28,8 @@ export class TecladoController {
           idCesta,
           unidades,
           arraySuplementos,
-          nombre
+          nombre,
+          menu
         );
         await cestasInstance.actualizarCestas();
         return resultado;
