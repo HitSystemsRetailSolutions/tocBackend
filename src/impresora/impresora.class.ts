@@ -395,11 +395,6 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-      let strRecibo = "";
-      if (recibo != null && recibo != undefined) {
-        strRecibo = recibo;
-      }
-
       let detalles = await this.precioUnitario(arrayCompra);
       let pagoTarjeta = "";
       let pagoTkrs = "";
