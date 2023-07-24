@@ -111,7 +111,7 @@ export class MovimientosClase {
   }
 
   /* Eze 4.0 */
-  private async generarCodigoBarrasSalida(): Promise<string> {
+  public async generarCodigoBarrasSalida(): Promise<string> {
     const parametros = await parametrosInstance.getParametros();
     const ultimoCodigoDeBarras = await schMovimientos.getUltimoCodigoBarras();
 
