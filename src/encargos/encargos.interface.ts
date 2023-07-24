@@ -43,5 +43,6 @@ export interface EncargosInterface {
   cesta: CestasInterface;
   total: number;
   timestamp:number;
+  codigoBarras: number;
   recogido: boolean;
 }
