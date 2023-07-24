@@ -1726,7 +1726,7 @@ export class Impresora {
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
-            payload: "Quantitat        Article        Import (€)",
+            payload: `Quantitat     Article      Preu U.  Import (€)`,
           },
           {
             tipo: "text",
@@ -1748,6 +1748,10 @@ export class Impresora {
           { tipo: "text", payload: "-- ES COPIA --" },
           { tipo: "control", payload: "LF" },
           { tipo: "text", payload: "ID: " + random() + " - " + random() },
+          {
+            tipo: "barcode",
+            payload: [encargo.codigoBarras.slice(0, 12), "EAN13", 4],
+          },
           { tipo: "cut", payload: "PAPER_FULL_CUT" },
         ],
         options
