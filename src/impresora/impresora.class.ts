@@ -28,18 +28,6 @@ escpos.Network = require("escpos-network");
 const TIPO_ENTRADA_DINERO = "ENTRADA";
 const TIPO_SALIDA_DINERO = "SALIDA";
 
-function permisosImpresora() {
-  try {
-    exec(`  echo sa | sudo -S chmod 777 -R /dev/bus/usb/
-        echo sa | sudo -S chmod 777 -R /dev/ttyS0
-        echo sa | sudo -S chmod 777 -R /dev/ttyS1
-        echo sa | sudo -S chmod 777 -R /dev/    
-    `);
-  } catch (err) {
-    mqttInstance.loggerMQTT(err.message);
-  }
-}
-
 function random() {
   const numero = Math.floor(10000000 + Math.random() * 999999999);
   return numero.toString(16).slice(0, 8);
@@ -809,7 +797,6 @@ export class Impresora {
   async imprimirTest() {
     const parametros = parametrosInstance.getParametros();
     try {
-      permisosImpresora();
       // if(parametros.tipoImpresora === 'USB')
       // {
       //     const arrayDevices = escpos.USB.findPrinter();
@@ -910,8 +897,6 @@ export class Impresora {
 
     textoMovimientos =
       `\nTotal targeta:      ${sumaTarjetas.toFixed(2)}\n` + textoMovimientos;
-
-    permisosImpresora();
 
     const mesInicial = fechaInicio.getMonth() + 1;
     const mesFinal = fechaFinal.getMonth() + 1;
@@ -1199,7 +1184,6 @@ export class Impresora {
         textoMovimientos +
         `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
 
-      permisosImpresora();
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
       const diasSemana = [
