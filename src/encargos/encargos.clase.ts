@@ -11,6 +11,7 @@ import {
 } from "./encargos.interface";
 import * as schEncargos from "./encargos.mongodb";
 import { impresoraInstance } from "../impresora/impresora.class";
+import { movimientosInstance } from "src/movimientos/movimientos.clase";
 
 export class Encargos {
   async getEncargos() {
@@ -211,6 +212,9 @@ export class Encargos {
     // False -> Ha habido algún error al insertar el encargo.
     encargo.timestamp = timestamp;
     encargo.recogido = false;
+    encargo.codigoBarras =
+      await movimientosInstance.generarCodigoBarrasSalida();
+    encargo.codigoBarras = await calculoEAN13(encargo.codigoBarras);
     await impresoraInstance.imprimirEncargo(encargo);
     // insertamos las ids insertadas en la tabla utilizada a los prodctos
     for (let i = 0; i < encargo.productos.length; i++) {
@@ -226,6 +230,9 @@ export class Encargos {
       })
       .catch((err: string) => ({ error: true, msg: err }));
   };
+
+  getEncargoByNumber = async (idTarjeta: string): Promise<EncargosInterface> =>
+    await schEncargos.getEncargoByNumber(idTarjeta);
   // actualiza el registro del encargo al recoger
   updateEncargoGraella = async (idEncargo) => {
     const encargo = await this.getEncargoById(idEncargo);
