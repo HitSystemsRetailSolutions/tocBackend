@@ -255,6 +255,15 @@ export class MovimientosClase {
           superTicket.movimientos[0].valor + superTicket.movimientos[1].valor;
         if (debeSerCero === 0) return "DEVUELTO";
         return "ERROR_DETECTADO";
+      } else if (
+        superTicket.movimientos[0].tipo === "SALIDA" &&
+        superTicket.movimientos[1].tipo === "ENTRADA_DINERO"
+      ) {
+        // CASO DEUDA PAGADA
+        const debeSerCero =
+          superTicket.movimientos[0].valor - superTicket.movimientos[1].valor;
+        if (debeSerCero === 0) return "EFECTIVO";
+        return "ERROR_DETECTADO";
       } else {
         let tkrsSinExceso = false;
         let tkrsConExceso = false;
