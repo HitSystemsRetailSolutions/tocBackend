@@ -19,33 +19,6 @@ export class Encargos {
   }
   setEntregado = async (id) => {
 
-    // cuando pidan que encargos de cada cierto dia de la semana se pueda escoger mas de un dia, codigo medio hecho
-    // de momento solo se puede escoger un dia de la semana
-    // const encargo = await this.getEncargoById(id);
-    // if (encargo.opcionRecogida == 3) {
-    //   for (let i = 0; i < encargo.dias.length; i++) {
-    //     if (encargo.dias[i].checked && encargo.dias.length - 1 == i) {
-    //       encargo.dias[i].checked = false;
-    //       return schEncargos
-    //         .setChecked(id, encargo.dias)
-    //         .then((ok: boolean) => {
-    //           if (!ok)
-    //             return schEncargos.setEntregado(id).then((ok: boolean) => {
-    //               if (!ok) return false;
-    //               return true;
-    //             });
-    //         });
-    //     } else if (encargo.dias[i].checked) {
-    //       encargo.dias[i].checked = false;
-    //       return schEncargos
-    //         .setChecked(id, encargo.dias)
-    //         .then((ok: boolean) => {
-    //           if (!ok) return false;
-    //           return true;
-    //         });
-    //     }
-    //   }
-    // }
     return schEncargos
       .setEntregado(id)
       .then((ok: boolean) => {
@@ -245,7 +218,7 @@ export class Encargos {
       bbdd: parametros.database,
       fecha: encargo.fecha,
     };
-//  se envia el encargo a bbdd para actualizar el registro
+    //  se envia el encargo a bbdd para actualizar el registro
     const { data }: any = await axios.post(
       "encargos/updateEncargoGraella",
       encargoGraella
@@ -277,7 +250,7 @@ export class Encargos {
 
     return false;
   };
-// anula el ticket 
+  // anula el ticket
   anularTicket = async (idEncargo) => {
     const encargo = await this.getEncargoById(idEncargo);
     const parametros = await parametrosInstance.getParametros();
@@ -301,6 +274,8 @@ export class Encargos {
     }
     return false;
   };
+  getEncargoByNumber = async (idTarjeta: string): Promise<EncargosInterface> =>
+    await schEncargos.getEncargoByNumber(idTarjeta);
   private async generateId(
     formatDate: string,
     idTrabajador: string,
@@ -338,6 +313,24 @@ export class Encargos {
     }, new Array(7).fill(0));
   }
 }
+
+function calculoEAN13(codigo: any): any {
+  var codigoBarras = codigo;
+ var digitos = codigoBarras.split("").map(Number); // Convertir cadena en un arreglo de números
+
+// Calcular el dígito de control
+var suma = 0;
+for (var i = 0; i < digitos.length; i++) {
+  suma += digitos[i] * (i % 2 === 0 ? 1 : 3);
+}
+var digitoControl = (10 - (suma % 10)) % 10;
+
+// Agregar el dígito de control al código de barras
+var codigoBarrasEAN13 = codigoBarras + digitoControl;
+  // Devolvemos el resultado
+  return codigoBarrasEAN13;
+}
+
 const encargosInstance = new Encargos();
 export { encargosInstance };
 function calculoEAN13(codigo: any): any {
