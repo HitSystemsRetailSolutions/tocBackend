@@ -44,5 +44,6 @@ export interface EncargosInterface {
   total: number;
   codigoBarras: number;
   timestamp:number;
+  codigoBarras: number;
   recogido: boolean;
 }

@@ -1735,6 +1735,7 @@ export class Impresora {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
       const options = { imprimirLogo: true };
+
       // se imprime 3 veces porque asi lo quieren las tiendas
       for (let i = 0; i < 3; i++) {
         this.enviarMQTT(
@@ -1761,7 +1762,7 @@ export class Impresora {
             { tipo: "control", payload: "LF" },
             {
               tipo: "text",
-              payload: "Quantitat        Article        Import (€)",
+              payload: `Quantitat     Article      Preu U.  Import (€)`,
             },
             {
               tipo: "text",
@@ -1783,12 +1784,16 @@ export class Impresora {
             { tipo: "text", payload: "-- ES COPIA --" },
             { tipo: "control", payload: "LF" },
             { tipo: "text", payload: "ID: " + random() + " - " + random() },
+            {
+              tipo: "barcode",
+              payload: [encargo.codigoBarras.slice(0, 12), "EAN13", 4],
+            },
+
             { tipo: "cut", payload: "PAPER_FULL_CUT" },
           ],
           options
         );
       }
-
       return { error: false, info: "OK" };
     } catch (err) {
       mqttInstance.loggerMQTT(err);
