@@ -42,6 +42,8 @@ export interface EncargosInterface {
   productos: Productos[];
   cesta: CestasInterface;
   total: number;
+  codigoBarras: number;
   timestamp:number;
+  codigoBarras: number;
   recogido: boolean;
 }

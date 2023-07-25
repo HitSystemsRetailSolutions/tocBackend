@@ -39,7 +39,7 @@ export class Articulos {
     menus,
     precioBase,
     posicion
-  ) {
+  ): Promise<number> {
     return await schArticulos.insertarArticulosNuevos(
       nombreArticulo,
       precioConIva,

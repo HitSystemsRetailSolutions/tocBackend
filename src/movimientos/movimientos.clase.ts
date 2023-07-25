@@ -54,10 +54,10 @@ export class MovimientosClase {
     ExtraData: MovimientosInterface["ExtraData"] = []
   ) {
     let codigoBarras = "";
-    if (concepto === "Entrega Diària" || concepto === "Entrada") {
-      codigoBarras = await this.generarCodigoBarrasSalida();
-      codigoBarras = String(Ean13Utils.generate(codigoBarras));
-    }
+    // if (concepto === "Entrega Diària" || concepto === "Entrada") {
+    codigoBarras = await this.generarCodigoBarrasSalida();
+    codigoBarras = String(Ean13Utils.generate(codigoBarras));
+    // }
     const nuevoMovimiento: MovimientosInterface = {
       _id: Date.now(),
       codigoBarras,
@@ -69,13 +69,14 @@ export class MovimientosClase {
       valor,
       ExtraData,
     };
-    if (await schMovimientos.existeMovimiento(idTicket, valor)) return false;
+    if (tipo === "TARJETA")
+      if (await schMovimientos.existeMovimiento(idTicket, valor)) return false;
+
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
-      if (concepto === "Entrega Diària") {
-        impresoraInstance.imprimirSalida(nuevoMovimiento);
-      }
       if (concepto === "Entrada") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
+      } else {
+        impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
       return true;
     }
@@ -111,7 +112,7 @@ export class MovimientosClase {
   }
 
   /* Eze 4.0 */
-  private async generarCodigoBarrasSalida(): Promise<string> {
+  public async generarCodigoBarrasSalida(): Promise<string> {
     const parametros = await parametrosInstance.getParametros();
     const ultimoCodigoDeBarras = await schMovimientos.getUltimoCodigoBarras();
 

@@ -45,8 +45,25 @@ export async function tieneTarifaEspecial(
 
 /* Uri */
 export async function tarifasMesas(
-  idArticulo:TarifaInterface['idArticulo']): Promise<any> {
+  idArticulo: TarifaInterface["idArticulo"]
+): Promise<any> {
   const database = (await conexion).db("tocgame");
   const tarifas = database.collection<TarifaInterface>("tarifas");
-  return (await tarifas.findOne({ idArticulo: idArticulo, idClienteFinal: "mesas" }));
+  return await tarifas.findOne({
+    idArticulo: idArticulo,
+    idClienteFinal: "mesas",
+  });
+}
+
+/* Uri */
+export async function tarifasMenu(
+  idArticulo: TarifaInterface["idArticulo"],
+  menu
+): Promise<any> {
+  const database = (await conexion).db("tocgame");
+  const tarifas = database.collection<TarifaInterface>("tarifas");
+  return await tarifas.findOne({
+    idArticulo: idArticulo,
+    idClienteFinal: menu,
+  });
 }

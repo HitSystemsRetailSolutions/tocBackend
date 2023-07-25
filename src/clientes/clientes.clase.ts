@@ -32,7 +32,7 @@ export class Clientes {
         database: (await parametrosInstance.getParametros()).database,
         idClienteFinal,
       })
-    ).data.info;
+    ).data;
   }
 
   /* Eze 4.0 */
