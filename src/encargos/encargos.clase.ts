@@ -274,8 +274,7 @@ export class Encargos {
     }
     return false;
   };
-  getEncargoByNumber = async (idTarjeta: string): Promise<EncargosInterface> =>
-    await schEncargos.getEncargoByNumber(idTarjeta);
+  
   private async generateId(
     formatDate: string,
     idTrabajador: string,
@@ -312,23 +311,6 @@ export class Encargos {
       return arr;
     }, new Array(7).fill(0));
   }
-}
-
-function calculoEAN13(codigo: any): any {
-  var codigoBarras = codigo;
- var digitos = codigoBarras.split("").map(Number); // Convertir cadena en un arreglo de números
-
-// Calcular el dígito de control
-var suma = 0;
-for (var i = 0; i < digitos.length; i++) {
-  suma += digitos[i] * (i % 2 === 0 ? 1 : 3);
-}
-var digitoControl = (10 - (suma % 10)) % 10;
-
-// Agregar el dígito de control al código de barras
-var codigoBarrasEAN13 = codigoBarras + digitoControl;
-  // Devolvemos el resultado
-  return codigoBarrasEAN13;
 }
 
 const encargosInstance = new Encargos();
