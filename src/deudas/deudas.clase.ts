@@ -113,6 +113,7 @@ export class Deudas {
         Number(movimiento.idTicket),
         Number(movimiento.idTrabajador)
       );
+      // sera false cuando se encuentre un movimiento existente de idTicket
       if (pagado) {
         await schDeudas
           .setPagado(deuda._id)

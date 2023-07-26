@@ -165,6 +165,10 @@ export class TecladoClase {
     return false;
   }
 
+  public async getTeclas() {
+    return await schTeclas.getTeclas();
+  }
+
   async generarTecladoCompleto() {
     const teclas = await schTeclas.getTeclas();
     const menus = [];

@@ -38,6 +38,11 @@ export class TarifasClass {
   async tarifaMesas(idArticulo): Promise<TarifaInterface> {
     return await schTarifas.tarifasMesas(idArticulo);
   }
+
+  /* uri */
+  async tarifaMenu(id, menu): Promise<TarifaInterface> {
+    return await schTarifas.tarifasMenu(id, menu);
+  }
 }
 
 export const tarifasInstance = new TarifasClass();

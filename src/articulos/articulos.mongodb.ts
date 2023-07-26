@@ -28,7 +28,7 @@ export async function insertarArticulosNuevos(
   menus,
   precioBase,
   posicion
-) {
+): Promise<number> {
   const database = (await conexion).db("tocgame");
   const articulos = database.collection<ArticulosInterface>("articulos");
   const id = await articulos.findOne({}, { sort: { _id: -1 } });
@@ -52,7 +52,8 @@ export async function insertarArticulosNuevos(
     posicion,
     precioConIva
   );
-  return (await articulos.insertMany(valors)).acknowledged;
+  if ((await articulos.insertMany(valors)).acknowledged) return id["_id"] + 1;
+  return -1;
 }
 
 /* Eze 4.0 */
@@ -75,7 +76,7 @@ export async function insertarTeclasNuevos(
       pos: pos,
       color: 16769279,
       esSumable: esSumable,
-      precioConIva: preuIva
+      precioConIva: preuIva,
     },
   ];
   return await articulos.insertMany(valors);
@@ -166,7 +167,5 @@ export async function MoverArticulo(id, posicion, menu) {
 export async function eliminarArticulo(id) {
   const database = (await conexion).db("tocgame");
   const teclas = database.collection("teclas");
-  await teclas.deleteOne({ idArticle: id });
-  const articulos = database.collection("articulos");
-  return await articulos.deleteOne({ _id: id });
+  return await teclas.deleteOne({ idArticle: id });
 }
