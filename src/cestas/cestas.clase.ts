@@ -321,8 +321,7 @@ export class CestaClase {
     }
   }
 
-  /* ??? ??? => la información del artículo "articulo" debe estar masticada (tarifas especiales) */
-  /* Yasai :D */
+  /* Uri*/
   async insertarArticulo(
     articulo: ArticulosInterface,
     unidades: number,
@@ -620,7 +619,6 @@ export class CestaClase {
           articulo.precioConIva =
             preu == null ? articulo.precioConIva : preu.precioConIva;
         }
-        console.log(cesta.lista[i].subtotal);
         cesta.lista[i].subtotal =
           articulo.precioConIva * cesta.lista[i].unidades;
         if (descuento)
@@ -672,7 +670,6 @@ export class CestaClase {
         let numProductos = 0;
         let total = 0;
         for (let i = 0; i < cesta.lista.length; i++) {
-          console.log(cesta.lista[i].subtotal);
           numProductos += cesta.lista[i].unidades;
           total += cesta.lista[i].subtotal;
         }
