@@ -188,7 +188,14 @@ export class Encargos {
     encargo.codigoBarras =
       await movimientosInstance.generarCodigoBarrasSalida();
     encargo.codigoBarras = await calculoEAN13(encargo.codigoBarras);
-    await impresoraInstance.imprimirEncargo(encargo);
+    for (let i = 0; i < 3; i++) {
+      try {
+        await impresoraInstance.imprimirEncargo(encargo);
+      } catch (error) {
+        console.log("fallo la "+(i+1)+"a llamada a imprimirEncargo ",error.message)
+      }
+    
+    }
     // insertamos las ids insertadas en la tabla utilizada a los prodctos
     for (let i = 0; i < encargo.productos.length; i++) {
       encargo.productos[i].idGraella =
