@@ -12,6 +12,7 @@ import {
 import * as schEncargos from "./encargos.mongodb";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
+import { time } from "console";
 
 export class Encargos {
   async getEncargos() {
@@ -161,6 +162,7 @@ export class Encargos {
       productos: encargo.productos,
       idTrabajador: encargo.idTrabajador,
       recogido: false,
+      timestamp: timestamp,
     };
     // Mandamos el encargo al SantaAna
     const { data }: any = await axios.post(
