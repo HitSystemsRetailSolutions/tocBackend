@@ -23,35 +23,43 @@ class Mqtt {
   public resetPapel() {
     client.publish("hit.hardware/resetPaper");
   }
-  
+
   public async mandarLogo() {
-    const logoMongo = await archivosInstance.getLogo();
-    if (!logoMongo) {
-      const parametros = await parametrosInstance.getParametros();
-      axios
-        .post("/archivo/getLogo", {
-          database: parametros.database,
-        })
-        .then((res) => {
-          if (!res.data) {
-            throw new Error("No se pudo obtener la imagen");
-          }
-          const logo = res.data["logo"];
-          const extension = res.data["extension"];
+    try {
+      const logoMongo = await archivosInstance.getLogo();
+      if (!logoMongo) {
+        const parametros = await parametrosInstance.getParametros();
+        axios
+          .post("/archivo/getLogo", {
+            database: parametros.database,
+          })
+          .then((res) => {
+            if (!res.data) {
+              throw new Error("No se pudo obtener la imagen");
+            }
+            const logo = res.data["logo"];
+            const extension = res.data["extension"];
 
-          archivosInstance.insertarArchivo("logo", extension, logo.toString());
+            archivosInstance.insertarArchivo(
+              "logo",
+              extension,
+              logo.toString()
+            );
 
-          client.publish("hit.hardware/logo", JSON.stringify({ logo }));
-          return true;
-        })
-        .catch((err) => {
-          this.loggerMQTT(err.message);
-          return false;
-        });
-      return;
+            client.publish("hit.hardware/logo", JSON.stringify({ logo }));
+            return true;
+          })
+          .catch((err) => {
+            this.loggerMQTT(err.message);
+            return false;
+          });
+        return;
+      }
+      const logo = logoMongo.archivo;
+      client.publish("hit.hardware/logo", JSON.stringify({ logo }));
+    } catch (error) {
+      console.log("error mandarLogo: ",error.message)
     }
-    const logo = logoMongo.archivo;
-    client.publish("hit.hardware/logo", JSON.stringify({ logo }));
   }
 }
 
