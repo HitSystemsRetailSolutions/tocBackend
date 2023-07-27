@@ -126,6 +126,11 @@ export class Impresora {
             }
           : null;
 
+        let totalSinDescuento = 0;
+        for (let i = 0; i < ticket.cesta.lista.length; i++) {
+          totalSinDescuento += ticket.cesta.lista[i].subtotal;
+        }
+
         // preparamos los parametros que vamos a enviar a la impresora
         sendObject = {
           numFactura: ticket._id,
@@ -144,6 +149,8 @@ export class Impresora {
             descuento,
           },
           dejaCuenta: ticket.dejaCuenta,
+          idCliente: ticket.idCliente,
+          totalSinDescuento: totalSinDescuento,
         };
       } else {
         // si no tenemos cliente preparamos el objeto sin los datos del cliente
@@ -160,6 +167,8 @@ export class Impresora {
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
           dejaCuenta: ticket.dejaCuenta,
+          idCliente: ticket.idCliente,
+          totalSinDescuento: ticket.total,
         };
       }
       // enviamos el objeto
@@ -377,13 +386,13 @@ export class Impresora {
     const tipoImpresora = info.impresora;
     const infoClienteVip = info.infoClienteVip;
     const infoCliente = info.infoCliente;
-
     let strRecibo = "";
     if (recibo) {
       strRecibo = recibo;
     }
 
-    let detalles = await this.precioUnitario(arrayCompra);
+
+    let detalles = await this.precioUnitario(arrayCompra, info.idCliente);
     let pagoTarjeta = "";
     let pagoTkrs = "";
     let detalleClienteVip = "";
@@ -392,35 +401,38 @@ export class Impresora {
     let detalleEncargo = "";
     let detalleDejaCuenta = "";
     let detalleDescuento = "";
-    let infoDescuento = "";
-    let nombreClienteVip = "";
+    let clienteDescuento = "";
+    let clientTitle = "";
     if (infoClienteVip) {
-      nombreClienteVip = "\nCLIENT:";
-      detalleClienteVip = `Nom: ${infoClienteVip.nombre}\nNIF: ${infoClienteVip.nif}\nAdreça: ${infoClienteVip.direccion}\n`;
+      clientTitle = "\nCLIENT:";
+      detalleClienteVip = `\n${infoClienteVip.nombre}`;
+      if (infoClienteVip.nif)
+        detalleClienteVip += `\nNIF: ${infoClienteVip.nif}`;
+      if (infoClienteVip.direccion)
+        detalleClienteVip += `\n${infoClienteVip.direccion}`;
     }
     // recojemos datos del cliente si nos los han mandado
     if (infoCliente != null) {
+      clientTitle = "\nCLIENT:";
       detalleNombreCliente = infoCliente.nombre;
+      if (infoClienteVip) detalleNombreCliente = "";
       detallePuntosCliente =
-        "Punts: " +
-          (infoCliente.puntos === "undefined" ? "0" : infoCliente.puntos) ||
-        "0";
-      detalleDescuento = "Descompte: " + (infoCliente.descuento ?? "0") + " %";
+        "Punts restants: " +
+          (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+      clienteDescuento =
+        "Descompte de client: " +
+        (infoCliente.descuento ?? "0") +
+        " %" +
+        "\nVenta registrada.";
+      if (infoCliente.descuento == 0) clienteDescuento = "Venta registrada.";
     }
     if (infoCliente?.descuento && infoCliente.descuento != 0) {
-      const total =
-        tiposIva.importe1 +
-        tiposIva.importe2 +
-        tiposIva.importe3 +
-        tiposIva.importe3 +
-        tiposIva.importe4 +
-        tiposIva.importe5;
-      infoDescuento = `Total sense descompte: ${total.toFixed(
+      detalleDescuento = `Total sense descompte: ${info.totalSinDescuento.toFixed(
         2
-      )}\nTotal del descompte: ${(
-        (total * infoCliente.descuento) /
+      )}€\nTotal del descompte: ${(
+        (info.totalSinDescuento * infoCliente.descuento) /
         100
-      ).toFixed(2)}\n`;
+      ).toFixed(2)}€\n`;
     }
 
     const moment = require("moment-timezone");
@@ -498,9 +510,13 @@ export class Impresora {
       },
       { tipo: "text", payload: "Factura simplificada N: " + numFactura },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
+      { tipo: "size", payload: [1, 0] },
+      { tipo: "text", payload: clientTitle },
+      { tipo: "size", payload: [0, 0] },
       { tipo: "text", payload: detalleClienteVip },
       { tipo: "text", payload: detalleNombreCliente },
       { tipo: "text", payload: detallePuntosCliente },
+      { tipo: "text", payload: clienteDescuento },
       { tipo: "control", payload: "LF" },
       { tipo: "control", payload: "LF" },
       { tipo: "control", payload: "LF" },
@@ -524,6 +540,7 @@ export class Impresora {
         payload: "----------------------------------------------",
       },
       { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: detalleDescuento },
       { tipo: "size", payload: [1, 1] },
       { tipo: "text", payload: pagoDevolucion },
       { tipo: "text", payload: detalleEncargo },
@@ -629,14 +646,19 @@ export class Impresora {
 
     return detalle;
   }
-  async precioUnitario(arrayCompra) {
+  async precioUnitario(arrayCompra, idCliente = null) {
     let detalles = "";
     //const preuUnitari =
     // recojemos los productos del ticket
+    let descuento = 0;
+    if (idCliente)
+      descuento = (await clienteInstance.getClienteById(idCliente)).descuento;
     const preuUnitari =
       (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
       "Si";
     for (let i = 0; i < arrayCompra.length; i++) {
+      arrayCompra[i].subtotal =
+        arrayCompra[i].subtotal - arrayCompra[i].subtotal * (descuento / 100);
       if (preuUnitari) {
         arrayCompra[i]["preuU"] = Number(
           (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
@@ -1691,7 +1713,10 @@ export class Impresora {
     const moment = require("moment-timezone");
     const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
 
-    let detalles = await this.precioUnitario(encargo.cesta.lista);
+    let detalles = await this.precioUnitario(
+      encargo.cesta.lista,
+      encargo.idCliente
+    );
     let detalleImporte = "";
     let importe = "";
     if (encargo.dejaCuenta == 0) {

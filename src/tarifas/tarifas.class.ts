@@ -43,6 +43,10 @@ export class TarifasClass {
   async tarifaMenu(id, menu): Promise<TarifaInterface> {
     return await schTarifas.tarifasMenu(id, menu);
   }
+
+  async getAllTarifas(): Promise<TarifaInterface[]> {
+    return await schTarifas.getAllTarifas();
+  }
 }
 
 export const tarifasInstance = new TarifasClass();

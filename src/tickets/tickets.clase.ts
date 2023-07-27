@@ -146,13 +146,13 @@ export class TicketsClase {
     datafono3G: TicketsInterface["datafono3G"],
     dejaCuenta?: TicketsInterface["dejaCuenta"]
   ): Promise<TicketsInterface> {
-    const cliente = await clienteInstance.getClienteById(cesta.idCliente);
-    if (cliente && cliente.descuento) {
+    /*const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+   if (cliente && cliente.descuento) {
       cesta.lista.forEach((art, index) => {
         cesta.lista[index].subtotal =
           art.subtotal - art.subtotal * (cliente.descuento / 100);
       });
-    }
+    }*/
 
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
