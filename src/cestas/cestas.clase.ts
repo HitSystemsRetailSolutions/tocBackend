@@ -835,6 +835,7 @@ export class CestaClase {
     cesta: CestasInterface,
     productos: CestasInterface["lista"]
   ) {
+    try {
     let cliente: number =
       (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
       undefined
@@ -859,9 +860,9 @@ export class CestaClase {
       .post("lista/setRegistro", {
         lista: lista,
       })
-      .catch((err) => {
-        console.error("Error al enviar el registro a Santa Ana");
-      });
+    } catch (error) {
+      console.error("Error al enviar el registro a Santa Ana:", error.message);
+    }
   }
 }
 

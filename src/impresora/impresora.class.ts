@@ -29,18 +29,6 @@ escpos.Network = require("escpos-network");
 const TIPO_ENTRADA_DINERO = "ENTRADA";
 const TIPO_SALIDA_DINERO = "SALIDA";
 
-function permisosImpresora() {
-  try {
-    exec(`  echo sa | sudo -S chmod 777 -R /dev/bus/usb/
-        echo sa | sudo -S chmod 777 -R /dev/ttyS0
-        echo sa | sudo -S chmod 777 -R /dev/ttyS1
-        echo sa | sudo -S chmod 777 -R /dev/    
-    `);
-  } catch (err) {
-    mqttInstance.loggerMQTT(err.message);
-  }
-}
-
 function random() {
   const numero = Math.floor(10000000 + Math.random() * 999999999);
   return numero.toString(16).slice(0, 8);
@@ -402,6 +390,7 @@ export class Impresora {
     if (recibo) {
       strRecibo = recibo;
     }
+
 
     let detalles = await this.precioUnitario(arrayCompra, info.idCliente);
     let pagoTarjeta = "";
@@ -885,7 +874,7 @@ export class Impresora {
 
   async imprimirTest() {
     try {
-      permisosImpresora();
+      const device = new escpos.Network("localhost");
       const options = {
         imprimirLogo: false,
       };
@@ -966,8 +955,6 @@ export class Impresora {
 
     textoMovimientos =
       `\nTotal targeta:      ${sumaTarjetas.toFixed(2)}\n` + textoMovimientos;
-
-    permisosImpresora();
 
     const mesInicial = fechaInicio.getMonth() + 1;
     const mesFinal = fechaFinal.getMonth() + 1;
@@ -1256,7 +1243,9 @@ export class Impresora {
         textoMovimientos +
         `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
 
-      permisosImpresora();
+      const device = new escpos.Network("localhost");
+      const printer = new escpos.Printer(device);
+
       const diasSemana = [
         "Diumenge",
         "Dilluns",
@@ -1754,59 +1743,62 @@ export class Impresora {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
       const options = { imprimirLogo: true };
-      // se imprime 3 veces porque asi lo quieren las tiendas
-      for (let i = 0; i < 3; i++) {
-        this.enviarMQTT(
-          [
-            { tipo: "setCharacterCodeTable", payload: 19 },
-            { tipo: "encode", payload: "CP858" },
-            { tipo: "font", payload: "a" },
-            { tipo: "style", payload: "b" },
-            { tipo: "align", payload: "CT" },
-            { tipo: "size", payload: [1, 1] },
-            { tipo: "text", payload: "ENTREGA" },
-            { tipo: "size", payload: [0, 0] },
-            { tipo: "align", payload: "LT" },
-            { tipo: "text", payload: cabecera },
-            {
-              tipo: "text",
-              payload: `Data: ${fecha.format("d")} ${fecha.format(
-                "DD-MM-YYYY HH:mm"
-              )}`,
-            },
-            { tipo: "text", payload: "Ates per: " + encargo.nombreTrabajador },
-            { tipo: "text", payload: "Client: " + encargo.nombreCliente },
-            { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
-            { tipo: "control", payload: "LF" },
-            {
-              tipo: "text",
-              payload: "Quantitat        Article        Import (€)",
-            },
-            {
-              tipo: "text",
-              payload: "----------------------------------------------",
-            },
-            { tipo: "align", payload: "LT" },
-            { tipo: "text", payload: detalles },
-            {
-              tipo: "text",
-              payload: "----------------------------------------------",
-            },
-            { tipo: "text", payload: detalleImporte },
-            { tipo: "size", payload: [1, 1] },
-            { tipo: "text", payload: importe },
-            { tipo: "size", payload: [0, 0] },
-            { tipo: "align", payload: "CT" },
-            { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
-            { tipo: "text", payload: detalleIva },
-            { tipo: "text", payload: "-- ES COPIA --" },
-            { tipo: "control", payload: "LF" },
-            { tipo: "text", payload: "ID: " + random() + " - " + random() },
-            { tipo: "cut", payload: "PAPER_FULL_CUT" },
-          ],
-          options
-        );
-      }
+
+      this.enviarMQTT(
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "ENTREGA" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: cabecera },
+          {
+            tipo: "text",
+            payload: `Data: ${fecha.format("d")} ${fecha.format(
+              "DD-MM-YYYY HH:mm"
+            )}`,
+          },
+          { tipo: "text", payload: "Ates per: " + encargo.nombreTrabajador },
+          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
+          { tipo: "control", payload: "LF" },
+          {
+            tipo: "text",
+            payload: `Quantitat     Article      Preu U.  Import (€)`,
+          },
+          {
+            tipo: "text",
+            payload: "----------------------------------------------",
+          },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: detalles },
+          {
+            tipo: "text",
+            payload: "----------------------------------------------",
+          },
+          { tipo: "text", payload: detalleImporte },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: importe },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "CT" },
+          { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+          { tipo: "text", payload: detalleIva },
+          { tipo: "text", payload: "-- ES COPIA --" },
+          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: "ID: " + random() + " - " + random() },
+          {
+            tipo: "barcode",
+            payload: [encargo.codigoBarras.slice(0, 12), "EAN13", 4],
+          },
+
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
+      );
 
       return { error: false, info: "OK" };
     } catch (err) {

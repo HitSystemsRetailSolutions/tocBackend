@@ -75,7 +75,7 @@ export class MovimientosClase {
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrada") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
-      } else {
+      } else if (concepto !== "Targeta") {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
       return true;
@@ -254,6 +254,15 @@ export class MovimientosClase {
         const debeSerCero =
           superTicket.movimientos[0].valor + superTicket.movimientos[1].valor;
         if (debeSerCero === 0) return "DEVUELTO";
+        return "ERROR_DETECTADO";
+      } else if (
+        superTicket.movimientos[0].tipo === "SALIDA" &&
+        superTicket.movimientos[1].tipo === "ENTRADA_DINERO"
+      ) {
+        // CASO DEUDA PAGADA
+        const debeSerCero =
+          superTicket.movimientos[0].valor - superTicket.movimientos[1].valor;
+        if (debeSerCero === 0) return "EFECTIVO";
         return "ERROR_DETECTADO";
       } else {
         let tkrsSinExceso = false;
