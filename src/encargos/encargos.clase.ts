@@ -162,10 +162,11 @@ export class Encargos {
       recogido: false,
     };
     // Mandamos el encargo al SantaAna
-    const { data }: any = await axios.post(
-      "encargos/setEncargo",
-      encargo_santAna
-    );
+    const { data }: any = await axios
+      .post("encargos/setEncargo", encargo_santAna)
+      .catch((e) => {
+        console.log(e);
+      });
     // Si data no existe (null, undefined, etc...) o error = true devolvemos false
     if (!data || data.error) {
       // He puesto el 143 pero no se cual habría que poner, no se cual es el sistema que seguís
@@ -222,10 +223,11 @@ export class Encargos {
       fecha: encargo.fecha,
     };
     //  se envia el encargo a bbdd para actualizar el registro
-    const { data }: any = await axios.post(
-      "encargos/updateEncargoGraella",
-      encargoGraella
-    );
+    const { data }: any = await axios
+      .post("encargos/updateEncargoGraella", encargoGraella)
+      .catch((e) => {
+        console.log(e);
+      });
     if (!data.error && encargo.opcionRecogida != 3) {
       return true;
     } else if (!data.error && encargo.opcionRecogida == 3) {
@@ -269,10 +271,11 @@ export class Encargos {
         fecha: encargo.fecha,
       };
       // borrara el registro del encargo en la bbdd
-      const { data }: any = await axios.post(
-        "encargos/deleteEncargoGraella",
-        encargoGraella
-      );
+      const { data }: any = await axios
+        .post("encargos/deleteEncargoGraella", encargoGraella)
+        .catch((e) => {
+          console.log(e);
+        });
       if (!data.error) return true;
     }
     return false;

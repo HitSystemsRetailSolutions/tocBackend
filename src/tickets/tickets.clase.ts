@@ -92,12 +92,16 @@ export class TicketsClase {
     }
     // si tenemos que descontar dinero lo hacemos
     if (cantidadRegalada > 0) {
-      const resDescuento = await axios.post("clientes/descontarPuntos", {
-        idCliente: ticket.cesta.idCliente,
-        puntos: convertirDineroEnPuntos(cantidadRegalada),
-      });
+      const resDescuento: any = await axios
+        .post("clientes/descontarPuntos", {
+          idCliente: ticket.cesta.idCliente,
+          puntos: convertirDineroEnPuntos(cantidadRegalada),
+        })
+        .catch((e) => {
+          console.log(e);
+        });
 
-      if (resDescuento.data) return await schTickets.nuevoTicket(ticket);
+      if (resDescuento?.data) return await schTickets.nuevoTicket(ticket);
 
       throw Error("No se han podido descontar los puntos");
     }

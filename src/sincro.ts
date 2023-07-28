@@ -26,19 +26,23 @@ async function sincronizarTickets() {
         const ticket = await ticketsInstance.getTicketMasAntiguo();
         if (ticket) {
           nuevaInstancePromociones.deshacerPromociones(ticket);
-          const res = await axios.post("tickets/enviarTicket", { ticket });
+          const res: any = await axios
+            .post("tickets/enviarTicket", { ticket })
+            .catch((e) => {
+              console.log(e);
+            });
           if (res.data) {
-            if (await ticketsInstance.setTicketEnviado(ticket._id)){
+            if (await ticketsInstance.setTicketEnviado(ticket._id)) {
               enProcesoTickets = false;
               setTimeout(sincronizarTickets, 100);
-            }else{
-              enProcesoTickets=false;
+            } else {
+              enProcesoTickets = false;
             }
-          }else{
-            enProcesoTickets=false;
+          } else {
+            enProcesoTickets = false;
           }
-        }else{
-          enProcesoTickets=false;
+        } else {
+          enProcesoTickets = false;
         }
       } else {
         logger.Error(4, "No hay parámetros definidos en la BBDD");
@@ -54,7 +58,11 @@ async function sincronizarCajas() {
   try {
     const caja = await cajaInstance.getCajaSincroMasAntigua();
     if (caja) {
-      const resCaja = await axios.post("cajas/enviarCaja", { caja });
+      const resCaja: any = await axios
+        .post("cajas/enviarCaja", { caja })
+        .catch((e) => {
+          console.log(e);
+        });
       if (resCaja.data) {
         if (await cajaInstance.confirmarCajaEnviada(caja._id)) {
           sincronizarCajas();
@@ -78,12 +86,13 @@ async function sincronizarMovimientos(continuar: boolean = false) {
       if (parametros != null) {
         const res = await movimientosInstance.getMovimientoMasAntiguo();
         if (res) {
-          const resMovimiento = await axios.post(
-            "movimientos/enviarMovimiento",
-            {
+          const resMovimiento: any = await axios
+            .post("movimientos/enviarMovimiento", {
               movimiento: res,
-            }
-          );
+            })
+            .catch((e) => {
+              console.log(e);
+            });
           if (resMovimiento.data) {
             if (await movimientosInstance.setMovimientoEnviado(res))
               sincronizarMovimientos(true);
