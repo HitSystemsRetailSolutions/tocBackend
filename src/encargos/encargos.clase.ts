@@ -19,7 +19,6 @@ export class Encargos {
     return await schEncargos.getEncargos();
   }
   setEntregado = async (id) => {
-
     return schEncargos
       .setEntregado(id)
       .then((ok: boolean) => {
@@ -192,9 +191,17 @@ export class Encargos {
     encargo.codigoBarras = await calculoEAN13(encargo.codigoBarras);
     await impresoraInstance.imprimirEncargo(encargo);
     // insertamos las ids insertadas en la tabla utilizada a los prodctos
+    let j = 0;
     for (let i = 0; i < encargo.productos.length; i++) {
       encargo.productos[i].idGraella =
-        data.ids[encargo.productos.length - (i + 1)].id;
+        data.ids[encargo.productos.length - (j + 1)].id;
+      j++;
+      
+      if (encargo.productos[i]?.promocion.idArticuloSecundario != null) {
+        encargo.productos[i].idGraellaPromoArtSecundario =
+          data.ids[encargo.productos.length - (j + 1)].id;
+        j++;
+      }
     }
     // creamos un encargo en mongodb
     return schEncargos
@@ -276,7 +283,7 @@ export class Encargos {
     }
     return false;
   };
-  
+
   private async generateId(
     formatDate: string,
     idTrabajador: string,
@@ -319,18 +326,17 @@ const encargosInstance = new Encargos();
 export { encargosInstance };
 function calculoEAN13(codigo: any): any {
   var codigoBarras = codigo;
- var digitos = codigoBarras.split("").map(Number); // Convertir cadena en un arreglo de números
+  var digitos = codigoBarras.split("").map(Number); // Convertir cadena en un arreglo de números
 
-// Calcular el dígito de control
-var suma = 0;
-for (var i = 0; i < digitos.length; i++) {
-  suma += digitos[i] * (i % 2 === 0 ? 1 : 3);
-}
-var digitoControl = (10 - (suma % 10)) % 10;
+  // Calcular el dígito de control
+  var suma = 0;
+  for (var i = 0; i < digitos.length; i++) {
+    suma += digitos[i] * (i % 2 === 0 ? 1 : 3);
+  }
+  var digitoControl = (10 - (suma % 10)) % 10;
 
-// Agregar el dígito de control al código de barras
-var codigoBarrasEAN13 = codigoBarras + digitoControl;
+  // Agregar el dígito de control al código de barras
+  var codigoBarrasEAN13 = codigoBarras + digitoControl;
   // Devolvemos el resultado
   return codigoBarrasEAN13;
 }
-
