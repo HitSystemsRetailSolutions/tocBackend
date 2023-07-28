@@ -2,12 +2,24 @@ import { conexion } from "../conexion/mongodb";
 import { MesaInterface, ItemMesaCollection } from "./mesas.interface";
 
 export async function getMesas() {
-  const db = (await conexion).db("tocgame");
-  const mesasCollection = db.collection<ItemMesaCollection>("mesas");
-  const resItemMesaCollection = await mesasCollection.findOne({ _id: "MESAS" });
-  if (resItemMesaCollection && resItemMesaCollection.estructura)
-    return resItemMesaCollection.estructura;
-  return null;
+  try {
+    const db = (await conexion).db("tocgame");
+    const mesasCollection = db.collection<ItemMesaCollection>("mesas");
+    const resItemMesaCollection = await mesasCollection.findOne({
+      _id: "MESAS",
+    });
+    if (resItemMesaCollection && resItemMesaCollection.estructura) {
+      for (let i = 0; i < resItemMesaCollection.estructura.length; i++) {
+        resItemMesaCollection.estructura[i]._id = i;
+      }
+      return resItemMesaCollection.estructura;
+    }
+
+    return null;
+  } catch (err) {
+    console.log(err);
+    return null;
+  }
 }
 
 export async function deleteMesas() {

@@ -27,9 +27,13 @@ export class Clientes {
   async getPuntosCliente(
     idClienteFinal: ClientesInterface["id"]
   ): Promise<number> {
-    let x: any = await axios.post("clientes/getPuntosCliente", {
-      idClienteFinal: idClienteFinal,
-    });
+    let x: any = await axios
+      .post("clientes/getPuntosCliente", {
+        idClienteFinal: idClienteFinal,
+      })
+      .catch((e) => {
+        console.log(e);
+      });
     return x?.data;
   }
 

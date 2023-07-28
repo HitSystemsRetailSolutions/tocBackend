@@ -65,7 +65,11 @@ export class TecladoClase {
   async actualizarTeclado(): Promise<boolean> {
     const articulos = await articulosInstance.descargarArticulos();
     if (articulos) {
-      const resTeclas: any = await axios.get("teclas/descargarTeclados");
+      const resTeclas: any = await axios
+        .get("teclas/descargarTeclados")
+        .catch((e) => {
+          console.log(e);
+        });
       if (resTeclas.data) {
         if (resTeclas.data.length > 0) {
           return await this.insertarTeclas(resTeclas.data);

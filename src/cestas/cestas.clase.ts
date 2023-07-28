@@ -300,20 +300,19 @@ export class CestaClase {
   ): Promise<boolean> {
     try {
       let cestaOrigen = await this.getCestaById(idOrigen);
-      let cestaDestino = await this.getCestaById(idDestino);
 
-      for (let item of cestaOrigen.lista) {
-        this.clickTeclaArticulo(
+      for (let i = 0; i < cestaOrigen.lista.length; i++) {
+        let item = cestaOrigen.lista[i];
+        await this.clickTeclaArticulo(
           item.idArticulo,
           item.gramos,
           idDestino,
           item.unidades,
           item.arraySuplementos,
-          "",
+          item.nombre,
           ""
         );
       }
-      this.updateCesta(cestaDestino);
       this.borrarArticulosCesta(idOrigen);
       return true;
     } catch (e) {
@@ -450,7 +449,6 @@ export class CestaClase {
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
       const cesta = await cestasInstance.getCestaById(idCesta);
-
       articulo.nombre = nombre.length > 0 ? nombre : articulo.nombre;
 
       if (cesta.idCliente) {
@@ -461,7 +459,7 @@ export class CestaClase {
       }
 
       // Va a peso. 1 unidad son 1000 gramos. Los precios son por kilogramo.
-      if (gramos > 0)
+      if (gramos && gramos > 0)
         return await this.insertarArticulo(
           articulo,
           gramos / 1000,
@@ -483,6 +481,7 @@ export class CestaClase {
         menu
       );
     }
+    console.log("error");
     throw Error(
       "Error, la caja está cerrada. cestas.clase > clickTeclaArticulo()"
     );

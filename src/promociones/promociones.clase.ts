@@ -50,12 +50,21 @@ export class NuevaPromocion {
   }
 
   async descargarPromociones() {
-    const resPromos = (await axios.get("promociones/getPromociones"))
-      .data as PromocionesInterface[];
-    if (resPromos && resPromos.length > 0) {
-      return await schPromociones.insertarPromociones(resPromos);
+    try {
+      let resPromos: any = await axios
+        .get("promociones/getPromociones")
+        .catch((e) => {
+          console.log(e);
+        });
+
+      resPromos = resPromos.data as PromocionesInterface[];
+      if (resPromos && resPromos.length > 0) {
+        return await schPromociones.insertarPromociones(resPromos);
+      }
+      throw Error("No hay promociones para descargar");
+    } catch (e) {
+      console.log(e);
     }
-    throw Error("No hay promociones para descargar");
   }
 
   public async recargarPromosCache() {
