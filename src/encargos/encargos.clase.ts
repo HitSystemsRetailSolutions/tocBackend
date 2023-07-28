@@ -229,6 +229,7 @@ export class Encargos {
 
     if (!encargo) return false;
 
+    // recorremos los productos del encargo para añadir las idsGraellas a un array
     const idGraellas = encargo.productos
       .map((producto) => {
         const ids = [];
@@ -288,6 +289,8 @@ export class Encargos {
     const parametros = await parametrosInstance.getParametros();
 
     if (encargo) {
+      // recorremos los productos del encargo para añadir las idsGraellas a un array
+
       const idGraellas = encargo.productos
         .map((producto) => {
           const ids = [];
