@@ -188,7 +188,14 @@ export class Encargos {
     encargo.codigoBarras =
       await movimientosInstance.generarCodigoBarrasSalida();
     encargo.codigoBarras = await calculoEAN13(encargo.codigoBarras);
-    await impresoraInstance.imprimirEncargo(encargo);
+    for (let i = 0; i < 3; i++) {
+      try {
+        await impresoraInstance.imprimirEncargo(encargo);
+      } catch (error) {
+        console.log("fallo la "+(i+1)+"a llamada a imprimirEncargo ",error.message)
+      }
+    
+    }
     // insertamos las ids insertadas en la tabla utilizada a los prodctos
     for (let i = 0; i < encargo.productos.length; i++) {
       encargo.productos[i].idGraella =
@@ -203,6 +210,9 @@ export class Encargos {
       })
       .catch((err: string) => ({ error: true, msg: err }));
   };
+
+  getEncargoByNumber = async (idTarjeta: string): Promise<EncargosInterface> =>
+    await schEncargos.getEncargoByNumber(idTarjeta);
   // actualiza el registro del encargo al recoger
   updateEncargoGraella = async (idEncargo) => {
     const encargo = await this.getEncargoById(idEncargo);
@@ -271,8 +281,7 @@ export class Encargos {
     }
     return false;
   };
-  getEncargoByNumber = async (idTarjeta: string): Promise<EncargosInterface> =>
-    await schEncargos.getEncargoByNumber(idTarjeta);
+  
   private async generateId(
     formatDate: string,
     idTrabajador: string,
@@ -311,6 +320,8 @@ export class Encargos {
   }
 }
 
+const encargosInstance = new Encargos();
+export { encargosInstance };
 function calculoEAN13(codigo: any): any {
   var codigoBarras = codigo;
  var digitos = codigoBarras.split("").map(Number); // Convertir cadena en un arreglo de números
@@ -328,5 +339,3 @@ var codigoBarrasEAN13 = codigoBarras + digitoControl;
   return codigoBarrasEAN13;
 }
 
-const encargosInstance = new Encargos();
-export { encargosInstance };
