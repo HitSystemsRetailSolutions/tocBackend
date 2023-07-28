@@ -12,6 +12,7 @@ import {
 import * as schEncargos from "./encargos.mongodb";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
+import { time } from "console";
 
 export class Encargos {
   async getEncargos() {
@@ -160,6 +161,7 @@ export class Encargos {
       productos: encargo.productos,
       idTrabajador: encargo.idTrabajador,
       recogido: false,
+      timestamp: timestamp,
     };
     // Mandamos el encargo al SantaAna
     const { data }: any = await axios
@@ -194,9 +196,24 @@ export class Encargos {
       } catch (error) {}
     }
     // insertamos las ids insertadas en la tabla utilizada a los prodctos
+    let j = 0;
+
     for (let i = 0; i < encargo.productos.length; i++) {
-      encargo.productos[i].idGraella =
-        data.ids[encargo.productos.length - (i + 1)].id;
+      encargo.productos[i].idGraella = data.ids[data.ids.length - (j + 1)].id;
+      console.log(
+        "idArticulo/principal",
+        data.ids[data.ids.length - (j + 1)].id
+      );
+      j++;
+      if (encargo.productos[i]?.promocion?.idArticuloSecundario != null) {
+        encargo.productos[i].idGraellaPromoArtSecundario =
+          data.ids[data.ids.length - (j + 1)].id;
+        console.log(
+          "idArticulo secundario",
+          data.ids[data.ids.length - (j + 1)].id
+        );
+        j++;
+      }
     }
     // creamos un encargo en mongodb
     return schEncargos
@@ -216,7 +233,24 @@ export class Encargos {
     const parametros = await parametrosInstance.getParametros();
 
     if (!encargo) return false;
-    const idGraellas = encargo.productos.map((producto) => producto.idGraella);
+
+    // recorremos los productos del encargo para añadir las idsGraellas a un array
+    const idGraellas = encargo.productos
+      .map((producto) => {
+        const ids = [];
+
+        if (producto.idGraella) {
+          ids.push(producto.idGraella);
+        }
+
+        if (producto?.idGraellaPromoArtSecundario) {
+          ids.push(producto.idGraellaPromoArtSecundario);
+        }
+
+        return ids;
+      })
+      .flat();
+
     let encargoGraella = {
       ids: idGraellas,
       bbdd: parametros.database,
@@ -261,9 +295,23 @@ export class Encargos {
     const parametros = await parametrosInstance.getParametros();
 
     if (encargo) {
-      const idGraellas = encargo.productos.map(
-        (producto) => producto.idGraella
-      );
+      // recorremos los productos del encargo para añadir las idsGraellas a un array
+
+      const idGraellas = encargo.productos
+        .map((producto) => {
+          const ids = [];
+
+          if (producto.idGraella) {
+            ids.push(producto.idGraella);
+          }
+
+          if (producto?.idGraellaPromoArtSecundario) {
+            ids.push(producto.idGraellaPromoArtSecundario);
+          }
+
+          return ids;
+        })
+        .flat();
 
       let encargoGraella = {
         ids: idGraellas,
