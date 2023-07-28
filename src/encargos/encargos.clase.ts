@@ -192,14 +192,21 @@ export class Encargos {
     await impresoraInstance.imprimirEncargo(encargo);
     // insertamos las ids insertadas en la tabla utilizada a los prodctos
     let j = 0;
+
     for (let i = 0; i < encargo.productos.length; i++) {
-      encargo.productos[i].idGraella =
-        data.ids[encargo.productos.length - (j + 1)].id;
+      encargo.productos[i].idGraella = data.ids[data.ids.length - (j + 1)].id;
+      console.log(
+        "idArticulo/principal",
+        data.ids[data.ids.length - (j + 1)].id
+      );
       j++;
-      
-      if (encargo.productos[i]?.promocion.idArticuloSecundario != null) {
+      if (encargo.productos[i]?.promocion?.idArticuloSecundario != null) {
         encargo.productos[i].idGraellaPromoArtSecundario =
-          data.ids[encargo.productos.length - (j + 1)].id;
+          data.ids[data.ids.length - (j + 1)].id;
+        console.log(
+          "idArticulo secundario",
+          data.ids[data.ids.length - (j + 1)].id
+        );
         j++;
       }
     }
@@ -221,7 +228,23 @@ export class Encargos {
     const parametros = await parametrosInstance.getParametros();
 
     if (!encargo) return false;
-    const idGraellas = encargo.productos.map((producto) => producto.idGraella);
+
+    const idGraellas = encargo.productos
+      .map((producto) => {
+        const ids = [];
+
+        if (producto.idGraella) {
+          ids.push(producto.idGraella);
+        }
+
+        if (producto?.idGraellaPromoArtSecundario) {
+          ids.push(producto.idGraellaPromoArtSecundario);
+        }
+
+        return ids;
+      })
+      .flat();
+
     let encargoGraella = {
       ids: idGraellas,
       bbdd: parametros.database,
@@ -265,9 +288,21 @@ export class Encargos {
     const parametros = await parametrosInstance.getParametros();
 
     if (encargo) {
-      const idGraellas = encargo.productos.map(
-        (producto) => producto.idGraella
-      );
+      const idGraellas = encargo.productos
+        .map((producto) => {
+          const ids = [];
+
+          if (producto.idGraella) {
+            ids.push(producto.idGraella);
+          }
+
+          if (producto?.idGraellaPromoArtSecundario) {
+            ids.push(producto.idGraellaPromoArtSecundario);
+          }
+
+          return ids;
+        })
+        .flat();
 
       let encargoGraella = {
         ids: idGraellas,
