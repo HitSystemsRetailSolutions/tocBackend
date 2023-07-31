@@ -61,8 +61,12 @@ export class ClientesController {
   @Post("descargarClientesFinales")
   async descargarClientesFinales() {
     try {
-      const arrayClientes = (await axios.get("clientes/getClientesFinales"))
-        .data as ClientesInterface[];
+      let arrayClientes: any = await axios
+        .get("clientes/getClientesFinales")
+        .catch((e) => {
+          console.log(e);
+        });
+      arrayClientes = arrayClientes?.data as ClientesInterface[];
       if (arrayClientes)
         return await clienteInstance.insertarClientes(arrayClientes);
       throw Error(
@@ -101,9 +105,13 @@ export class ClientesController {
     try {
       const parametros = await parametrosInstance.getParametros();
       const empresa = parametros.nombreEmpresa;
-      const res = await axios.post("clientes/getServiciosTienda", {
-        empresa,
-      });
+      const res: any = await axios
+        .post("clientes/getServiciosTienda", {
+          empresa,
+        })
+        .catch((e) => {
+          console.log(e);
+        });
       if (!res.data) {
         throw new Error("");
       }

@@ -4,6 +4,7 @@ export interface MesaInterface {
   nombre: string;
   color: string;
   idCesta: ObjectId;
+  _id: number;
 }
 
 export interface ItemMesaCollection {

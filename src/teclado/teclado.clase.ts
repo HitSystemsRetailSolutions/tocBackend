@@ -64,7 +64,11 @@ export class TecladoClase {
   async actualizarTeclado(): Promise<boolean> {
     const articulos = await articulosInstance.descargarArticulos();
     if (articulos) {
-      const resTeclas: any = await axios.get("teclas/descargarTeclados");
+      const resTeclas: any = await axios
+        .get("teclas/descargarTeclados")
+        .catch((e) => {
+          console.log(e);
+        });
       if (resTeclas.data) {
         if (resTeclas.data.length > 0) {
           return await this.insertarTeclas(resTeclas.data);
@@ -166,6 +170,10 @@ export class TecladoClase {
     return false;
   }
 
+  public async getTeclas() {
+    return await schTeclas.getTeclas();
+  }
+
   async generarTecladoCompleto() {
     const teclas = await schTeclas.getTeclas();
     const tarifas = await tarifasInstance.allTarifas();
@@ -191,7 +199,7 @@ export class TecladoClase {
             color: teclas[i].color,
             esSumable: teclas[i].esSumable,
             suplementos: teclas[i].suplementos,
-            precioConIva: teclas[i].precioConIva,
+            precioConIva: preu,
           }
         );
       } else {

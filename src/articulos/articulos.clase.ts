@@ -39,7 +39,7 @@ export class Articulos {
     menus,
     precioBase,
     posicion
-  ) {
+  ): Promise<number> {
     return await schArticulos.insertarArticulosNuevos(
       nombreArticulo,
       precioConIva,
@@ -95,11 +95,19 @@ export class Articulos {
     return resultado;
   }
   async descargarArticulos(): Promise<boolean> {
-    const arrayArticulos: any = await axios.get("articulos/descargarArticulos");
-    if (arrayArticulos.data) {
-      return await this.insertarArticulos(arrayArticulos.data);
-    } else {
-      return false;
+    try {
+      const arrayArticulos: any = await axios
+        .get("articulos/descargarArticulos")
+        .catch((e) => {
+          console.log(e);
+        });
+      if (arrayArticulos.data) {
+        return await this.insertarArticulos(arrayArticulos.data);
+      } else {
+        return false;
+      }
+    } catch (err) {
+      console.log(err);
     }
   }
 }

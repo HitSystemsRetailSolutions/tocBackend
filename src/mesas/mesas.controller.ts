@@ -14,6 +14,7 @@ export class MesasController {
       for (let i = 0; i < 50; i++) {
         arrayMesas.push({
           idCesta: null,
+          _id: null,
         });
       }
       return arrayMesas;

@@ -56,6 +56,13 @@ export async function tarifasMesas(
 }
 
 /* Uri */
+export async function getAllTarifas(): Promise<any> {
+  const database = (await conexion).db("tocgame");
+  const tarifas = database.collection<TarifaInterface>("tarifas");
+  return await tarifas.find({}).toArray();
+}
+
+/* Uri */
 export async function tarifasMenu(
   idArticulo: TarifaInterface["idArticulo"],
   menu

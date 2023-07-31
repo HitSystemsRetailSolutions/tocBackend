@@ -294,8 +294,33 @@ export class CestaClase {
     return unaCesta;
   }
 
-  /* ??? ??? => la información del artículo "articulo" debe estar masticada (tarifas especiales) */
-  /* Yasai :D */
+  async pasarCestas(
+    idOrigen: CestasInterface["_id"],
+    idDestino: CestasInterface["_id"]
+  ): Promise<boolean> {
+    try {
+      let cestaOrigen = await this.getCestaById(idOrigen);
+
+      for (let i = 0; i < cestaOrigen.lista.length; i++) {
+        let item = cestaOrigen.lista[i];
+        await this.clickTeclaArticulo(
+          item.idArticulo,
+          item.gramos,
+          idDestino,
+          item.unidades,
+          item.arraySuplementos,
+          item.nombre,
+          ""
+        );
+      }
+      this.borrarArticulosCesta(idOrigen);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* Uri*/
   async insertarArticulo(
     articulo: ArticulosInterface,
     unidades: number,
@@ -424,7 +449,6 @@ export class CestaClase {
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
       const cesta = await cestasInstance.getCestaById(idCesta);
-
       articulo.nombre = nombre.length > 0 ? nombre : articulo.nombre;
 
       if (cesta.idCliente) {
@@ -435,7 +459,7 @@ export class CestaClase {
       }
 
       // Va a peso. 1 unidad son 1000 gramos. Los precios son por kilogramo.
-      if (gramos > 0)
+      if (gramos && gramos > 0)
         return await this.insertarArticulo(
           articulo,
           gramos / 1000,
@@ -457,6 +481,7 @@ export class CestaClase {
         menu
       );
     }
+    console.log("error");
     throw Error(
       "Error, la caja está cerrada. cestas.clase > clickTeclaArticulo()"
     );
@@ -557,6 +582,9 @@ export class CestaClase {
       importe4: 0,
       importe5: 0,
     };
+    let descuento: any = Number(
+      (await clienteInstance.isClienteDescuento(cesta.idCliente))?.descuento
+    );
     for (let i = 0; i < cesta.lista.length; i++) {
       if (cesta.lista[i].regalo) continue;
       if (cesta.lista[i].promocion) {
@@ -569,6 +597,7 @@ export class CestaClase {
         let articulo = await articulosInstance.getInfoArticulo(
           cesta.lista[i].idArticulo
         );
+
         articulo = await articulosInstance.getPrecioConTarifa(
           articulo,
           cesta.idCliente
@@ -589,6 +618,15 @@ export class CestaClase {
           articulo.precioConIva =
             preu == null ? articulo.precioConIva : preu.precioConIva;
         }
+        cesta.lista[i].subtotal =
+          articulo.precioConIva * cesta.lista[i].unidades;
+        if (descuento)
+          articulo.precioConIva = Number(
+            (
+              articulo.precioConIva -
+              articulo.precioConIva * (descuento / 100)
+            ).toFixed(2)
+          );
 
         const auxDetalleIva = construirObjetoIvas(
           articulo.precioConIva,
@@ -599,8 +637,7 @@ export class CestaClase {
           auxDetalleIva,
           cesta.detalleIva
         );
-        cesta.lista[i].subtotal =
-          articulo.precioConIva * cesta.lista[i].unidades;
+
         /* Detalle IVA de suplementos */
         if (
           cesta.lista[i].arraySuplementos &&
@@ -615,12 +652,12 @@ export class CestaClase {
             cesta.detalleIva,
             detalleDeSuplementos
           );
-          cesta.lista[i].subtotal +=
+          /*cesta.lista[i].subtotal +=
             detalleDeSuplementos.importe1 +
             detalleDeSuplementos.importe2 +
             detalleDeSuplementos.importe3 +
             detalleDeSuplementos.importe4 +
-            detalleDeSuplementos.importe5;
+            detalleDeSuplementos.importe5;*/
         }
       }
     }
@@ -797,6 +834,7 @@ export class CestaClase {
     cesta: CestasInterface,
     productos: CestasInterface["lista"]
   ) {
+    try {
     let cliente: number =
       (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
       undefined
@@ -821,9 +859,9 @@ export class CestaClase {
       .post("lista/setRegistro", {
         lista: lista,
       })
-      .catch((err) => {
-        console.error("Error al enviar el registro a Santa Ana");
-      });
+    } catch (error) {
+      console.error("Error al enviar el registro a Santa Ana:", error.message);
+    }
   }
 }
 

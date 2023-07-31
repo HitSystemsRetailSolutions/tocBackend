@@ -36,6 +36,7 @@ export class TecladoController {
       }
       throw Error("Faltan datos en cestas (controller) > clickTeclaArticulo");
     } catch (err) {
+      console.log(err);
       logger.Error(1, err);
       return false;
     }
@@ -51,11 +52,14 @@ export class TecladoController {
     }
   }
 
-  /* está mal */
   @Post("cambiarPosTecla")
   async cambiarPosTecla(@Body() params) {
     try {
-      if (params.idArticle && params.nuevaPos && params.nombreMenu) {
+      if (
+        params.idArticle &&
+        params.nuevaPos != undefined &&
+        params.nombreMenu
+      ) {
         return await tecladoInstance
           .cambiarPosTecla(params.idArticle, params.nuevaPos, params.nombreMenu)
           .then((res) => {

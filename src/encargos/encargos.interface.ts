@@ -9,6 +9,7 @@ type Dias = {
 type Productos = {
   id: number;
   idGraella: string;
+  idGraellaPromoArtSecundario: null|string;
   nombre: string;
   comentario: string;
 };
@@ -42,6 +43,7 @@ export interface EncargosInterface {
   productos: Productos[];
   cesta: CestasInterface;
   total: number;
+  codigoBarras: number;
   timestamp:number;
   recogido: boolean;
 }

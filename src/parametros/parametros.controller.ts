@@ -58,12 +58,16 @@ export class ParametrosController {
   /* Uri */
   async sendConfiguradorDB(params) {
     const parametros = await parametrosInstance.getParametros();
-    const res: any = await axios.post("configurador/setConfiguration", {
-      database: parametros.database,
-      licencia: parametros.licencia,
-      configuraciones: params,
-      timeout: 30000,
-    });
+    const res: any = await axios
+      .post("configurador/setConfiguration", {
+        database: parametros.database,
+        licencia: parametros.licencia,
+        configuraciones: params,
+        timeout: 30000,
+      })
+      .catch((e) => {
+        console.log(e);
+      });
     if (!res) {
       throw Error("Error al sincronizar con SantaAna");
     }
@@ -72,10 +76,14 @@ export class ParametrosController {
   /* Uri */
   async getConfiguradorDB() {
     const parametros = await parametrosInstance.getParametros();
-    const res: any = await axios.post("configurador/getConfiguration", {
-      database: parametros.database,
-      licencia: parametros.licencia,
-    });
+    const res: any = await axios
+      .post("configurador/getConfiguration", {
+        database: parametros.database,
+        licencia: parametros.licencia,
+      })
+      .catch((e) => {
+        // console.log(e);
+      });
     if (res.data) {
       return this.setPropiedad({ parametros: res.data });
     } else {
@@ -87,7 +95,11 @@ export class ParametrosController {
   @Get("actualizarParametros")
   async actualizarParametros() {
     try {
-      const res: any = await axios.get("parametros/getParametros");
+      const res: any = await axios
+        .get("parametros/getParametros")
+        .catch((e) => {
+          console.log(e);
+        });
 
       if (res.data) {
         delete res.data.database;

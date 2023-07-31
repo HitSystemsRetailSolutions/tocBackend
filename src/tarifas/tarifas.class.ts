@@ -45,6 +45,7 @@ export class TarifasClass {
   }
 
   async allTarifas(): Promise<TarifaInterface[]> {
+
     return await schTarifas.getAllTarifas();
   }
 }
