@@ -82,7 +82,7 @@ export class ParametrosController {
         licencia: parametros.licencia,
       })
       .catch((e) => {
-        console.log(e);
+        // console.log(e);
       });
     if (res.data) {
       return this.setPropiedad({ parametros: res.data });
