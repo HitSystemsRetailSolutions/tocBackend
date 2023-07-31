@@ -13,7 +13,7 @@ export class VersionController {
         licencia: parametros.licencia,
       })
       .catch((e) => {
-        console.log(e);
+        // console.log(e);
       });
     return {
       version: process.env.npm_package_version,

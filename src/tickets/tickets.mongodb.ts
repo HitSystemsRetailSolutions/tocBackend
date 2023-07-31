@@ -199,7 +199,7 @@ export async function toggle3G(existTicketId, oldValue = false) {
       ticket,
     })
     .catch((e) => {
-      console.log(e);
+      //  console.log(e);
     });
 
   return result.acknowledged;
