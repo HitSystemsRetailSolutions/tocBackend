@@ -6,6 +6,7 @@ import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import * as schTeclas from "./teclado.mongodb";
 import { logger } from "../logger";
 import { TeclasInterface } from "./teclado.interface";
+import { tarifasInstance } from "src/tarifas/tarifas.class";
 
 export class TecladoClase {
   /* Eze 4.0 */
@@ -167,9 +168,17 @@ export class TecladoClase {
 
   async generarTecladoCompleto() {
     const teclas = await schTeclas.getTeclas();
+    const tarifas = await tarifasInstance.allTarifas();
     const menus = [];
-
     for (let i = 0; i < teclas.length; i++) {
+      let tarifa = tarifas.find(
+        (tarifa) =>
+          tarifa.idArticulo == teclas[i].idArticle &&
+          tarifa.idClienteFinal ==
+            teclas[i].nomMenu.split("]")[0].replace("[", "")
+      );
+      teclas[i].precioConIva =
+        tarifa == undefined ? teclas[i].precioConIva : tarifa.precioConIva;
       if (this.tienePrefijoSubmenu(teclas[i].nomMenu)) {
         this.addTeclaConSubmenu(
           menus,
