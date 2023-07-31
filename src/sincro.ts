@@ -61,7 +61,7 @@ async function sincronizarCajas() {
       const resCaja: any = await axios
         .post("cajas/enviarCaja", { caja })
         .catch((e) => {
-          console.log(e);
+          // console.log(e);
         });
       if (resCaja.data) {
         if (await cajaInstance.confirmarCajaEnviada(caja._id)) {
