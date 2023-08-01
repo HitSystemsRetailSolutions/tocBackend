@@ -25,15 +25,10 @@ export class InstaladorController {
   @Post("pedirDatos")
   async instalador(
     @Body()
-    { password, numLlicencia, tipoDatafono}
-
+    { password, numLlicencia, tipoDatafono }
   ) {
     try {
-      if (
-        password &&
-        numLlicencia &&
-        tipoDatafono 
-      ) {
+      if (password && numLlicencia && tipoDatafono) {
         const resAuth: any = await axios.post("parametros/instaladorLicencia", {
           password,
           numLlicencia,
@@ -92,9 +87,11 @@ export class InstaladorController {
   @Post("getIPTienda")
   async getIPTienda(@Body() { ip }) {
     try {
-      return (await axios.post("parametros/getTiendaIP", {
-        ip,
-      }))?.data;
+      return (
+        await axios.post("parametros/getTiendaIP", {
+          ip,
+        })
+      )?.data;
     } catch (err) {
       logger.Error(93, err);
     }
@@ -126,7 +123,6 @@ export class InstaladorController {
           objParams.database = resAuth.data.database;
           objParams.header = resAuth.data.header;
           objParams.footer = resAuth.data.footer;
-
 
           return await parametrosInstance.setParametros(objParams);
         }
@@ -181,7 +177,7 @@ export class InstaladorController {
       }
       throw Error("Error de autenticación en SanPedro");
     } catch (err) {
-      console.log(err)
+      console.log(err);
       logger.Error(95, err);
       return false;
     }

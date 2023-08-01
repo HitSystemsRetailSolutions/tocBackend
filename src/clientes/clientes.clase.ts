@@ -11,10 +11,10 @@ export class Clientes {
   /* Eze 4.0 */
   getClienteById = async (idCliente: string): Promise<ClientesInterface> =>
     await schClientes.getClienteById(idCliente);
-  
-    isClienteDescuento = async (idCliente: string): Promise<ClientesInterface> =>
+
+  isClienteDescuento = async (idCliente: string): Promise<ClientesInterface> =>
     await schClientes.isClienteDescuento(idCliente);
-    
+
   /* Uri */
   getClienteByNumber = async (idTarjeta: string): Promise<ClientesInterface> =>
     await schClientes.getClienteByNumber(idTarjeta);
@@ -27,12 +27,14 @@ export class Clientes {
   async getPuntosCliente(
     idClienteFinal: ClientesInterface["id"]
   ): Promise<number> {
-    return (
-      await axios.post<any>("clientes/getPuntosCliente", {
-        database: (await parametrosInstance.getParametros()).database,
-        idClienteFinal,
+    let x: any = await axios
+      .post("clientes/getPuntosCliente", {
+        idClienteFinal: idClienteFinal,
       })
-    ).data;
+      .catch((e) => {
+        console.log(e);
+      });
+    return x?.data;
   }
 
   /* Eze 4.0 */

@@ -7,10 +7,14 @@ export class VersionController {
   @Get("tocGame")
   async getInfo() {
     const parametros = await parametrosInstance.getParametros();
-    axios.post("/parametros/actualizarVersion", {
-      version: process.env.npm_package_version,
-      licencia: parametros.licencia,
-    });
+    axios
+      .post("/parametros/actualizarVersion", {
+        version: process.env.npm_package_version,
+        licencia: parametros.licencia,
+      })
+      .catch((e) => {
+        // console.log(e);
+      });
     return {
       version: process.env.npm_package_version,
       nombreTienda: parametros.nombreTienda,

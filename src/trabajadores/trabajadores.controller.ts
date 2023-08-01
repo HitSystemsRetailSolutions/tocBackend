@@ -50,8 +50,12 @@ export class TrabajadoresController {
       if (idTrabajador) {
         const idCesta = await cestasInstance.crearCesta(null, idTrabajador);
         const parametros = await parametrosInstance.getParametros();
-        if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta)){
-          axios.post("/trabajadores/fichar", { idTrabajador , entrar: true});
+        if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta)) {
+          axios
+            .post("/trabajadores/fichar", { idTrabajador, entrar: true })
+            .catch((e) => {
+              console.log(e);
+            });
           return trabajadoresInstance.ficharTrabajador(idTrabajador);
         }
         throw Error(
@@ -69,8 +73,12 @@ export class TrabajadoresController {
   @Post("desfichar")
   async desfichar(@Body() { idTrabajador }) {
     try {
-      if (idTrabajador){
-        axios.post("/trabajadores/fichar", { idTrabajador , entrar: false});
+      if (idTrabajador) {
+        axios
+          .post("/trabajadores/fichar", { idTrabajador, entrar: false })
+          .catch((e) => {
+            console.log(e);
+          });
         return await trabajadoresInstance.desficharTrabajador(idTrabajador);
       }
       throw Error("Error, faltan datos en desfichar() controller");

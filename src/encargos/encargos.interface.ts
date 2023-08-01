@@ -9,6 +9,7 @@ type Dias = {
 type Productos = {
   id: number;
   idGraella: string;
+  idGraellaPromoArtSecundario: null|string;
   nombre: string;
   comentario: string;
 };

@@ -68,17 +68,18 @@ export class ArticulosController {
           )
           .then((res) => {
             if (res) {
-              const editarArticulo: any = axios.post(
-                "articulos/editarArticulos",
-                {
+              const editarArticulo: any = axios
+                .post("articulos/editarArticulos", {
                   id: params.idArticulo,
                   nom: params.nombre,
                   preu: params.precioConIva,
                   desc: 1,
                   esSum: params.essumable,
                   tipoIva: params.tipoIva,
-                }
-              );
+                })
+                .catch((e) => {
+                  console.log(e);
+                });
               return { error: false, info: res };
             }
             return { error: true, mensaje: "Backend: Error, faltan datos" };
@@ -123,7 +124,6 @@ export class ArticulosController {
     }
   }
 
-  
   @Post("eliminarMenu")
   eliminarMenu(@Body() params) {
     try {
@@ -178,9 +178,13 @@ export class ArticulosController {
 
   @Post("saveTeclas")
   async saveTeclas(@Body() params) {
-    axios.post("teclas/subirTeclas", {
-      teclas: await tecladoInstance.getTeclas(),
-    });
+    axios
+      .post("teclas/subirTeclas", {
+        teclas: await tecladoInstance.getTeclas(),
+      })
+      .catch((e) => {
+        console.log(e);
+      });
   }
 
   @Post("anadirProducto")
@@ -218,18 +222,20 @@ export class ArticulosController {
           );
         }
 
-        const subirArt: any = axios.post("articulos/subirArticulos", {
-          nom: params.nombreArticulo,
-          preu: params.precioConIva,
-          pos: params.posicion,
-          desc: 1,
-          esSum: params.esSumable,
-          familia: params.menus,
-          idArticle: id,
-          tipoIva: params.tipoIva,
-        });
-
-
+        const subirArt: any = axios
+          .post("articulos/subirArticulos", {
+            nom: params.nombreArticulo,
+            preu: params.precioConIva,
+            pos: params.posicion,
+            desc: 1,
+            esSum: params.esSumable,
+            familia: params.menus,
+            idArticle: id,
+            tipoIva: params.tipoIva,
+          })
+          .catch((e) => {
+            console.log(e);
+          });
       } else {
         return {
           error: true,

@@ -29,6 +29,7 @@ import { TraduccionesController } from "./traducciones/traducciones.controller";
 import { EncargosController } from "./encargos/encargos.controller";
 import { DeudasController } from "./deudas/deudas.controller";
 import { CargarImagenController } from "./imagenInvasiva/imagen.controller";
+import { checkers } from "./checkers/checkers.controller";
 @Module({
   imports: [
     ServeStaticModule.forRoot({
@@ -62,6 +63,7 @@ import { CargarImagenController } from "./imagenInvasiva/imagen.controller";
     PromocionesController,
     TraduccionesController,
     EncargosController,
+    checkers,
     DeudasController,
     CargarImagenController,
   ],

@@ -69,7 +69,11 @@ export class Deudas {
       bbdd: parametros.database,
     };
     // Mandamos la deuda al SantaAna
-    const { data }: any = await axios.post("deudas/setDeuda", deuda_santAna);
+    const { data }: any = await axios
+      .post("deudas/setDeuda", deuda_santAna)
+      .catch((e) => {
+        console.log(e);
+      });
     // Si data no existe (null, undefined, etc...) o error = true devolvemos false
     if (!data || data.error) {
       // He puesto el 153 pero no se cual habría que poner, no se cual es el sistema que seguís
@@ -139,8 +143,12 @@ export class Deudas {
               idTicket: deuda.idTicket,
               bbdd: parametros.database,
             };
-             // Mandamos la deuda al SantaAna
-            const { data }: any = await axios.post("deudas/setCertificadoDeuda", certificadoDeuda);
+            // Mandamos la deuda al SantaAna
+            const { data }: any = await axios
+              .post("deudas/setCertificadoDeuda", certificadoDeuda)
+              .catch((e) => {
+                console.log(e);
+              });
             return data;
           })
           .catch((err: string) => ({ error: true, msg: err }));
@@ -154,13 +162,13 @@ export class Deudas {
   }
   eliminarDeuda = async (idDeuda) => {
     return schDeudas
-    .setPagado(idDeuda)
-    .then((ok: boolean) => {
-      if (!ok) return { error: true, msg: "Error al borrar la deuda" };
-      return { error: false, msg: "Deuda borrada" };
-    })
-    .catch((err: string) => ({ error: true, msg: err }));
-  }
+      .setPagado(idDeuda)
+      .then((ok: boolean) => {
+        if (!ok) return { error: true, msg: "Error al borrar la deuda" };
+        return { error: false, msg: "Deuda borrada" };
+      })
+      .catch((err: string) => ({ error: true, msg: err }));
+  };
 }
 const deudasInstance = new Deudas();
 export { deudasInstance };

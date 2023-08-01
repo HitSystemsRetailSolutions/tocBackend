@@ -67,3 +67,9 @@ export async function tarifasMenu(
     idClienteFinal: menu,
   });
 }
+/* Uri */
+export async function getAllTarifas(): Promise<any> {
+  const database = (await conexion).db("tocgame");
+  const tarifas = database.collection<TarifaInterface>("tarifas");
+  return await tarifas.find({}).toArray();
+}

@@ -194,8 +194,14 @@ export async function toggle3G(existTicketId, oldValue = false) {
     }
   );
   const ticket = await tickets.findOne({ _id: existTicketId });
+  const santaAnaResult = await axios
+    .post("/tickets/enviarTicket", {
+      ticket,
+    })
+    .catch((e) => {
+      //  console.log(e);
+    });
 
-  const santaAnaResult = await axios.post("/tickets/enviarTicket", { ticket });
   return result.acknowledged;
 }
 

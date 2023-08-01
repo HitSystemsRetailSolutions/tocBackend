@@ -5,9 +5,16 @@ const mqtt = require("mqtt");
 const client = mqtt.connect("mqtt://63.33.116.171:1883");
 
 client.on("connect", async () => {
-  const parametros = await parametrosController.getParametros();
-  client.subscribe(`hit.software/imagen/${parametros.licencia}/trabajador`);
-  client.subscribe(`hit.software/imagen/${parametros.licencia}/cliente`);
+  try {
+    const parametros = await parametrosController.getParametros();
+    client.subscribe(`hit.software/imagen/${parametros.licencia}/trabajador`);
+    client.subscribe(`hit.software/imagen/${parametros.licencia}/cliente`);
+  } catch (error) {
+    console.log(
+      "error en imagen.controller parametros o direccion no encontrados: ",
+      error.message
+    );
+  }
 });
 
 client.on("message", (topic, message) => {

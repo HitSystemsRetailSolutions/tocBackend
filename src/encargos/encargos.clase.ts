@@ -12,13 +12,13 @@ import {
 import * as schEncargos from "./encargos.mongodb";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
+import { time } from "console";
 
 export class Encargos {
   async getEncargos() {
     return await schEncargos.getEncargos();
   }
   setEntregado = async (id) => {
-
     return schEncargos
       .setEntregado(id)
       .then((ok: boolean) => {
@@ -161,12 +161,14 @@ export class Encargos {
       productos: encargo.productos,
       idTrabajador: encargo.idTrabajador,
       recogido: false,
+      timestamp: timestamp,
     };
     // Mandamos el encargo al SantaAna
-    const { data }: any = await axios.post(
-      "encargos/setEncargo",
-      encargo_santAna
-    );
+    const { data }: any = await axios
+      .post("encargos/setEncargo", encargo_santAna)
+      .catch((e) => {
+        console.log(e);
+      });
     // Si data no existe (null, undefined, etc...) o error = true devolvemos false
     if (!data || data.error) {
       // He puesto el 143 pero no se cual habría que poner, no se cual es el sistema que seguís
@@ -188,11 +190,30 @@ export class Encargos {
     encargo.codigoBarras =
       await movimientosInstance.generarCodigoBarrasSalida();
     encargo.codigoBarras = await calculoEAN13(encargo.codigoBarras);
-    await impresoraInstance.imprimirEncargo(encargo);
+    for (let i = 0; i < 3; i++) {
+      try {
+        await impresoraInstance.imprimirEncargo(encargo);
+      } catch (error) {}
+    }
     // insertamos las ids insertadas en la tabla utilizada a los prodctos
+    let j = 0;
+
     for (let i = 0; i < encargo.productos.length; i++) {
-      encargo.productos[i].idGraella =
-        data.ids[encargo.productos.length - (i + 1)].id;
+      encargo.productos[i].idGraella = data.ids[data.ids.length - (j + 1)].id;
+      console.log(
+        "idArticulo/principal",
+        data.ids[data.ids.length - (j + 1)].id
+      );
+      j++;
+      if (encargo.productos[i]?.promocion?.idArticuloSecundario != null) {
+        encargo.productos[i].idGraellaPromoArtSecundario =
+          data.ids[data.ids.length - (j + 1)].id;
+        console.log(
+          "idArticulo secundario",
+          data.ids[data.ids.length - (j + 1)].id
+        );
+        j++;
+      }
     }
     // creamos un encargo en mongodb
     return schEncargos
@@ -212,17 +233,35 @@ export class Encargos {
     const parametros = await parametrosInstance.getParametros();
 
     if (!encargo) return false;
-    const idGraellas = encargo.productos.map((producto) => producto.idGraella);
+
+    // recorremos los productos del encargo para añadir las idsGraellas a un array
+    const idGraellas = encargo.productos
+      .map((producto) => {
+        const ids = [];
+
+        if (producto.idGraella) {
+          ids.push(producto.idGraella);
+        }
+
+        if (producto?.idGraellaPromoArtSecundario) {
+          ids.push(producto.idGraellaPromoArtSecundario);
+        }
+
+        return ids;
+      })
+      .flat();
+
     let encargoGraella = {
       ids: idGraellas,
       bbdd: parametros.database,
       fecha: encargo.fecha,
     };
     //  se envia el encargo a bbdd para actualizar el registro
-    const { data }: any = await axios.post(
-      "encargos/updateEncargoGraella",
-      encargoGraella
-    );
+    const { data }: any = await axios
+      .post("encargos/updateEncargoGraella", encargoGraella)
+      .catch((e) => {
+        console.log(e);
+      });
     if (!data.error && encargo.opcionRecogida != 3) {
       return true;
     } else if (!data.error && encargo.opcionRecogida == 3) {
@@ -256,9 +295,23 @@ export class Encargos {
     const parametros = await parametrosInstance.getParametros();
 
     if (encargo) {
-      const idGraellas = encargo.productos.map(
-        (producto) => producto.idGraella
-      );
+      // recorremos los productos del encargo para añadir las idsGraellas a un array
+
+      const idGraellas = encargo.productos
+        .map((producto) => {
+          const ids = [];
+
+          if (producto.idGraella) {
+            ids.push(producto.idGraella);
+          }
+
+          if (producto?.idGraellaPromoArtSecundario) {
+            ids.push(producto.idGraellaPromoArtSecundario);
+          }
+
+          return ids;
+        })
+        .flat();
 
       let encargoGraella = {
         ids: idGraellas,
@@ -266,15 +319,16 @@ export class Encargos {
         fecha: encargo.fecha,
       };
       // borrara el registro del encargo en la bbdd
-      const { data }: any = await axios.post(
-        "encargos/deleteEncargoGraella",
-        encargoGraella
-      );
+      const { data }: any = await axios
+        .post("encargos/deleteEncargoGraella", encargoGraella)
+        .catch((e) => {
+          console.log(e);
+        });
       if (!data.error) return true;
     }
     return false;
   };
-  
+
   private async generateId(
     formatDate: string,
     idTrabajador: string,
@@ -317,18 +371,17 @@ const encargosInstance = new Encargos();
 export { encargosInstance };
 function calculoEAN13(codigo: any): any {
   var codigoBarras = codigo;
- var digitos = codigoBarras.split("").map(Number); // Convertir cadena en un arreglo de números
+  var digitos = codigoBarras.split("").map(Number); // Convertir cadena en un arreglo de números
 
-// Calcular el dígito de control
-var suma = 0;
-for (var i = 0; i < digitos.length; i++) {
-  suma += digitos[i] * (i % 2 === 0 ? 1 : 3);
-}
-var digitoControl = (10 - (suma % 10)) % 10;
+  // Calcular el dígito de control
+  var suma = 0;
+  for (var i = 0; i < digitos.length; i++) {
+    suma += digitos[i] * (i % 2 === 0 ? 1 : 3);
+  }
+  var digitoControl = (10 - (suma % 10)) % 10;
 
-// Agregar el dígito de control al código de barras
-var codigoBarrasEAN13 = codigoBarras + digitoControl;
+  // Agregar el dígito de control al código de barras
+  var codigoBarrasEAN13 = codigoBarras + digitoControl;
   // Devolvemos el resultado
   return codigoBarrasEAN13;
 }
-
