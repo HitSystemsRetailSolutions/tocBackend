@@ -96,6 +96,21 @@ export class InstaladorController {
       logger.Error(93, err);
     }
   }
+
+  /* Uri */
+  @Post("getQRstatus")
+  async getQRstatus(@Body() { cn }) {
+    try {
+      return (
+        await axios.post("parametros/getQRstatus", {
+          cn,
+        })
+      )?.data;
+    } catch (err) {
+      logger.Error(93, err);
+    }
+  }
+
   /* Uri */
   @Post("pedirDatosIP")
   async pedirDatosIP(
