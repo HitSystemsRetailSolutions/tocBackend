@@ -203,12 +203,19 @@ export class CestasController {
   @Post("regalarProducto")
   async regalarProducto(@Body() { idCesta, indexLista, idPromoArtSel = null }) {
     try {
-      if (idCesta && typeof indexLista === "number")
+      if (idCesta && typeof indexLista === "number"){
+        if (idPromoArtSel!==null) {
+          return await cestasInstance.regalarItemPromo(
+            idCesta,
+            indexLista,
+            idPromoArtSel,
+          );
+        }
         return await cestasInstance.regalarItem(
           idCesta,
           indexLista,
-          idPromoArtSel
         );
+      }
       throw Error("Error, faltan datos en regalarProducto controller");
     } catch (err) {
       logger.Error(64, err);

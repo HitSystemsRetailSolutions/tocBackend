@@ -810,11 +810,7 @@ export class CestaClase {
     await schCestas.updateCesta(cesta);
 
   /* Eze 4.0 */
-  async regalarItem(
-    idCesta: CestasInterface["_id"],
-    index: number,
-    idPromoArtSel: number = null
-  ) {
+  async regalarItem(idCesta: CestasInterface["_id"], index: number) {
     const cesta = await cestasInstance.getCestaById(idCesta);
     if (cesta && cesta.idCliente) {
       const cliente = await clienteInstance.getClienteById(cesta.idCliente);
@@ -822,15 +818,9 @@ export class CestaClase {
     } else {
       return false;
     }
-    if (idPromoArtSel == null) {
-      cesta.lista[index].regalo = true;
-      cesta.lista[index].subtotal = 0;
-      
-    } else {
-      if (cesta.lista[index].promocion.idArticuloPrincipal==idPromoArtSel) {
-        cesta.lista[index].regalo
-      }
-    }
+    cesta.lista[index].regalo = true;
+    cesta.lista[index].subtotal = 0;
+
     await cestasInstance.recalcularIvas(cesta);
     if (await cestasInstance.updateCesta(cesta)) {
       await this.actualizarCestas();
@@ -839,6 +829,10 @@ export class CestaClase {
     throw Error("No se ha podido actualizar la cesta");
   }
 
+  async regalarItemPromo(idCesta: CestasInterface["_id"], index: number,idPromoArtSel){
+
+    return true;
+  }
   async registroLogSantaAna(
     cesta: CestasInterface,
     productos: CestasInterface["lista"]
