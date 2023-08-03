@@ -201,10 +201,14 @@ export class CestasController {
 
   /* Eze 4.0 */
   @Post("regalarProducto")
-  async regalarProducto(@Body() { idCesta, indexLista }) {
+  async regalarProducto(@Body() { idCesta, indexLista, idPromoArtSel = null }) {
     try {
       if (idCesta && typeof indexLista === "number")
-        return await cestasInstance.regalarItem(idCesta, indexLista);
+        return await cestasInstance.regalarItem(
+          idCesta,
+          indexLista,
+          idPromoArtSel
+        );
       throw Error("Error, faltan datos en regalarProducto controller");
     } catch (err) {
       logger.Error(64, err);
