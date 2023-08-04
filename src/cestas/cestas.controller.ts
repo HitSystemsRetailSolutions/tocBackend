@@ -201,10 +201,10 @@ export class CestasController {
 
   /* Eze 4.0 */
   @Post("regalarProducto")
-  async regalarProducto(@Body() { idCesta, indexLista, idPromoArtSel = null }) {
+  async regalarProducto(@Body() { idCesta, indexLista, idPromoArtSel }) {
     try {
       if (idCesta && typeof indexLista === "number"){
-        if (idPromoArtSel!==null) {
+        if (idPromoArtSel!=null) {
           return await cestasInstance.regalarItemPromo(
             idCesta,
             indexLista,

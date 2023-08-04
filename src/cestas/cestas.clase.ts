@@ -208,6 +208,7 @@ export class CestaClase {
           numProductos: numProductos,
         });
         this.actualizarCestas();
+        console.log("cesta actualizada despues de borrar promo");
         return true;
       }
       throw Error(
@@ -330,6 +331,7 @@ export class CestaClase {
     nombre = "",
     menu = ""
   ): Promise<CestasInterface> {
+    console.log("insertando");
     // recojemos la cesta
     let cesta = await this.getCestaById(idCesta);
     let articuloNuevo = true;
@@ -414,7 +416,7 @@ export class CestaClase {
           gramos: gramos,
         });
       }
-
+      console.log("insertado", cesta.lista);
       let numProductos = 0;
       let total = 0;
       for (let i = 0; i < cesta.lista.length; i++) {
@@ -446,9 +448,19 @@ export class CestaClase {
     nombre: string,
     menu: string
   ) {
+    console.log(
+      idArticulo,
+      gramos,
+      idCesta,
+      unidades,
+      arraySuplementos,
+      nombre,
+      menu
+    );
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
       const cesta = await cestasInstance.getCestaById(idCesta);
+      console.log("cesta antes de insertar arti", cesta.lista);
       articulo.nombre = nombre.length > 0 ? nombre : articulo.nombre;
 
       if (cesta.idCliente) {
@@ -469,7 +481,7 @@ export class CestaClase {
           nombre,
           menu
         );
-
+      console.log("por unidad");
       // Modo por unidad
       return await this.insertarArticulo(
         articulo,
@@ -811,6 +823,7 @@ export class CestaClase {
 
   /* Eze 4.0 */
   async regalarItem(idCesta: CestasInterface["_id"], index: number) {
+    console.log("casi esta");
     const cesta = await cestasInstance.getCestaById(idCesta);
     if (cesta && cesta.idCliente) {
       const cliente = await clienteInstance.getClienteById(cesta.idCliente);
@@ -829,8 +842,83 @@ export class CestaClase {
     throw Error("No se ha podido actualizar la cesta");
   }
 
-  async regalarItemPromo(idCesta: CestasInterface["_id"], index: number,idPromoArtSel){
+  async regalarItemPromo(
+    idCesta: CestasInterface["_id"],
+    index: number,
+    idPromoArtSel
+  ) {
+    console.log("hola");
+    const cesta = await cestasInstance.getCestaById(idCesta);
+    if (cesta && cesta.idCliente) {
+      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      if (cliente.albaran) return false;
+    } else {
+      return false;
+    }
+    let unidadesPaRegalar;
+    let unidadesNoRegaladas;
+    let idARegalar;
+    let idNoRegalar;
 
+    await this.borrarItemCesta(idCesta, index);
+    if (cesta.lista[index].promocion.idArticuloPrincipal === idPromoArtSel) {
+      unidadesPaRegalar =
+        cesta.lista[index].unidades *
+        cesta.lista[index].promocion.cantidadArticuloPrincipal;
+      unidadesNoRegaladas =
+        cesta.lista[index].unidades *
+        cesta.lista[index].promocion.cantidadArticuloSecundario;
+      idARegalar = cesta.lista[index].promocion.idArticuloPrincipal;
+      idNoRegalar = cesta.lista[index].promocion.idArticuloSecundario;
+    } else {
+      unidadesPaRegalar =
+        cesta.lista[index].unidades *
+        cesta.lista[index].promocion.cantidadArticuloSecundario;
+      unidadesNoRegaladas =
+        cesta.lista[index].unidades *
+        cesta.lista[index].promocion.cantidadArticuloPrincipal;
+      idARegalar = cesta.lista[index].promocion.idArticuloSecundario;
+      idNoRegalar = cesta.lista[index].promocion.idArticuloPrincipal;
+    }
+
+    console.log("ok1");
+    await this.clickTeclaArticulo(
+      idARegalar,
+      0,
+      idCesta,
+      unidadesPaRegalar,
+      null,
+      "",
+      ""
+    );
+    console.log("ok2");
+
+    const cestaActualizada = await cestasInstance.getCestaById(idCesta);
+    let newIndex = null;
+    console.log(cestaActualizada.lista);
+    let pos = 0;
+    while (typeof newIndex != null) {
+      if (cestaActualizada.lista[pos].idArticulo == idARegalar) {
+        console.log("encontrado");
+        newIndex = cestaActualizada.lista[pos].idArticulo;
+        console.log(newIndex);
+      }
+      pos++;
+    }
+    console.log(newIndex);
+    await this.regalarItem(cestaActualizada._id, newIndex);
+    console.log("ok3");
+    await this.clickTeclaArticulo(
+      idNoRegalar,
+      0,
+      idCesta,
+      unidadesNoRegaladas,
+      null,
+      "",
+      ""
+    );
+
+    console.log("yea");
     return true;
   }
   async registroLogSantaAna(
