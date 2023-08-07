@@ -390,7 +390,10 @@ export class CestaClase {
               articuloNuevo = false;
               break;
             }
-          } else if (cesta.lista[i].arraySuplementos == null) {
+          } else if (
+            cesta.lista[i].arraySuplementos == null &&
+            !cesta.lista[i].regalo
+          ) {
             cesta.lista[i].unidades += unidades;
             cesta.lista[i].subtotal = Number(
               (
@@ -862,6 +865,11 @@ export class CestaClase {
 
     await this.borrarItemCesta(idCesta, index);
     if (cesta.lista[index].promocion.idArticuloPrincipal === idPromoArtSel) {
+      console.log(
+        "primer if",
+        cesta.lista[index].promocion.idArticuloPrincipal,
+        idPromoArtSel
+      );
       unidadesPaRegalar =
         cesta.lista[index].unidades *
         cesta.lista[index].promocion.cantidadArticuloPrincipal;
@@ -871,6 +879,11 @@ export class CestaClase {
       idARegalar = cesta.lista[index].promocion.idArticuloPrincipal;
       idNoRegalar = cesta.lista[index].promocion.idArticuloSecundario;
     } else {
+      console.log(
+        "segundo if",
+        cesta.lista[index].promocion.idArticuloPrincipal,
+        idPromoArtSel
+      );
       unidadesPaRegalar =
         cesta.lista[index].unidades *
         cesta.lista[index].promocion.cantidadArticuloSecundario;
@@ -881,45 +894,50 @@ export class CestaClase {
       idNoRegalar = cesta.lista[index].promocion.idArticuloPrincipal;
     }
 
-    console.log("ok1");
-    await this.clickTeclaArticulo(
+    console.log(
+      "ok1",
       idARegalar,
-      0,
-      idCesta,
       unidadesPaRegalar,
-      null,
-      "",
-      ""
-    );
-    console.log("ok2");
-
-    const cestaActualizada = await cestasInstance.getCestaById(idCesta);
-    let newIndex = null;
-    console.log(cestaActualizada.lista);
-    let pos = 0;
-    while (typeof newIndex != null) {
-      if (cestaActualizada.lista[pos].idArticulo == idARegalar) {
-        console.log("encontrado");
-        newIndex = cestaActualizada.lista[pos].idArticulo;
-        console.log(newIndex);
-      }
-      pos++;
-    }
-    console.log(newIndex);
-    await this.regalarItem(cestaActualizada._id, newIndex);
-    console.log("ok3");
-    await this.clickTeclaArticulo(
+      " ",
       idNoRegalar,
-      0,
-      idCesta,
-      unidadesNoRegaladas,
-      null,
-      "",
-      ""
+      unidadesNoRegaladas
     );
+    for (let index = 0; index < unidadesPaRegalar; index++) {
+      await this.clickTeclaArticulo(idARegalar, 0, idCesta, 1, null, "", "");
+      const cestaActualizada = await cestasInstance.getCestaById(idCesta);
+      let newIndex = null;
+      console.log(cestaActualizada.lista);
+      let pos = 0;
+      while (newIndex == null) {
+        if (cestaActualizada.lista[pos].idArticulo == idARegalar && !cestaActualizada.lista[pos].regalo) {
+          console.log("encontrado");
+          newIndex = pos;
+          console.log(newIndex);
+        }
+        pos++;
+      }
+      console.log(newIndex);
+    await this.regalarItem(cestaActualizada._id, newIndex);
+    }
+
+    
+    
+    console.log("ok3");
+    for (let index = 0; index < unidadesNoRegaladas; index++) {
+      await this.clickTeclaArticulo(
+        idNoRegalar,
+        0,
+        idCesta,
+        1,
+        null,
+        "",
+        ""
+      );
+    }
 
     console.log("yea");
-    return true;
+    await cestasInstance.actualizarCestas();
+    return { promocion: true, error: false };
   }
   async registroLogSantaAna(
     cesta: CestasInterface,
