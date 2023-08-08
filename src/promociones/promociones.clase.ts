@@ -663,7 +663,7 @@ export class NuevaPromocion {
     idIgnorarArticulo: number
   ): MediaPromoEncontrada {
     for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idIgnorarArticulo) continue;
+      if (cesta.lista[i].idArticulo === idIgnorarArticulo || cesta.lista[i].regalo) continue;
       for (
         let j = 0;
         j < this.promosCombo[mediaPromo.indexPromo].secundario.length;
@@ -702,7 +702,7 @@ export class NuevaPromocion {
     idIgnorarArticulo: number
   ): MediaPromoEncontrada {
     for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idIgnorarArticulo) continue;
+      if (cesta.lista[i].idArticulo === idIgnorarArticulo || (cesta.lista[i].regalo)) continue;
       for (
         let j = 0;
         j < this.promosCombo[mediaPromo.indexPromo].principal.length;
