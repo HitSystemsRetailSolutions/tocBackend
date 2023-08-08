@@ -194,7 +194,7 @@ export class TicketsController {
           if (concepto && concepto == "DEUDA") {
             await movimientosInstance.nuevoMovimiento(
               total,
-              "",
+              "DEUDA",
               "SALIDA",
               ticket._id,
               idTrabajador
