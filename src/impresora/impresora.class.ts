@@ -1707,7 +1707,7 @@ export class Impresora {
   async imprimirEncargo(encargo) {
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
-      await trabajadoresInstance.getTrabajadorById(encargo.cesta.idTrabajador);
+      await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
 
     const cabecera = parametros.header;
     const moment = require("moment-timezone");
@@ -1762,7 +1762,7 @@ export class Impresora {
               "DD-MM-YYYY HH:mm"
             )}`,
           },
-          { tipo: "text", payload: "Ates per: " + encargo.nombreTrabajador },
+          { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
           { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
           { tipo: "control", payload: "LF" },
