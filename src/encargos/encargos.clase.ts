@@ -200,10 +200,6 @@ export class Encargos {
 
     for (let i = 0; i < encargo.productos.length; i++) {
       encargo.productos[i].idGraella = data.ids[data.ids.length - (j + 1)].id;
-      console.log(
-        "idArticulo/principal",
-        data.ids[data.ids.length - (j + 1)].id
-      );
       j++;
       if (encargo.productos[i]?.promocion?.idArticuloSecundario != null) {
         encargo.productos[i].idGraellaPromoArtSecundario =
