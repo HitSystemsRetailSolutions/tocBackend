@@ -13,6 +13,7 @@ import * as schEncargos from "./encargos.mongodb";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
 import { time } from "console";
+import { clienteInstance } from "src/clientes/clientes.clase";
 
 export class Encargos {
   async getEncargos() {
@@ -120,8 +121,19 @@ export class Encargos {
 
   getEncargoById = async (idEncargo: EncargosInterface["_id"]) =>
     await schEncargos.getEncargoById(idEncargo);
-
+  redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
   setEncargo = async (encargo) => {
+    let descuento: any = Number(
+      (await clienteInstance.isClienteDescuento(encargo.idCliente))?.descuento
+    );
+    if (descuento && descuento > 0) {
+      encargo.productos.forEach((producto) => {
+        producto.total = this.redondearPrecio(
+          producto.total - (producto.total * descuento) / 100
+        ); // Modificamos el total para añadir el descuento especial del cliente
+      });
+    }
+    encargo.producto;
     const parametros = await parametrosInstance.getParametros();
     let fecha = this.getDate(
       encargo.opcionRecogida,
@@ -192,10 +204,11 @@ export class Encargos {
     encargo.codigoBarras = await calculoEAN13(encargo.codigoBarras);
     for (let i = 0; i < 3; i++) {
       try {
-        await impresoraInstance.imprimirEncargo(encargo);
+        const encargoCopia = JSON.parse(JSON.stringify(encargo));
+        await impresoraInstance.imprimirEncargo(encargoCopia);
       } catch (error) {}
     }
-    // insertamos las ids insertadas en la tabla utilizada a los prodctos
+    // insertamos las ids insertadas en la tabla utilizada a los productos
     let j = 0;
 
     for (let i = 0; i < encargo.productos.length; i++) {

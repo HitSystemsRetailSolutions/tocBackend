@@ -391,7 +391,6 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-
     let detalles = await this.precioUnitario(arrayCompra, info.idCliente);
     let pagoTarjeta = "";
     let pagoTkrs = "";
@@ -454,8 +453,8 @@ export class Impresora {
     }
 
     if (info.dejaCuenta > 0) {
-      detalleEncargo = "Precio encargo: " + info.total;
-      detalleDejaCuenta = "Pago recibido: " + info.dejaCuenta;
+      detalleEncargo = "Preu encarrec: " + info.total;
+      detalleDejaCuenta = "Pagament rebut: " + info.dejaCuenta;
     }
 
     const detallesIva = await this.getDetallesIva(tiposIva);
@@ -1708,11 +1707,12 @@ export class Impresora {
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
-
+    const descuento: any = Number(
+      (await clienteInstance.isClienteDescuento(encargo.idCliente))?.descuento
+    );
     const cabecera = parametros.header;
     const moment = require("moment-timezone");
     const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
-
     let detalles = await this.precioUnitario(
       encargo.cesta.lista,
       encargo.idCliente
@@ -1720,15 +1720,33 @@ export class Impresora {
     let detalleImporte = "";
     let importe = "";
     if (encargo.dejaCuenta == 0) {
-      importe = "TOTAL:" + encargo.total.toFixed(2) + " €";
+      if (descuento && descuento != 0) {
+        importe = `Total sense descompte: ${((encargo.total*descuento/100)+encargo.total).toFixed(
+          2
+        )}€\nTotal del descompte: ${(
+          (encargo.total * descuento) /
+          100
+        ).toFixed(2)}€\n`;
+      }else{
+      importe = "Total:" + encargo.total.toFixed(2) + " €";
+      }
     } else {
       detalleImporte = `IMPORT TOTAL: ${encargo.total.toFixed(
         2
       )} €\nIMPORT PAGAT: ${encargo.dejaCuenta.toFixed(2)} €`;
+      if (descuento && descuento != 0) {
+        importe = `Import restant sense descompte: ${(encargo.total - encargo.dejaCuenta + (encargo.total*descuento/100)).toFixed(
+          2
+        )}€\nImport restant del descompte: ${(
+          (encargo.total * descuento) /
+          100
+        ).toFixed(2)}€\n`;
+      }else{   
       importe =
-        "IMPORT RESTANT:" +
+        "Import restant:" +
         (encargo.total - encargo.dejaCuenta).toFixed(2) +
         " €";
+      }
     }
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
@@ -1738,7 +1756,6 @@ export class Impresora {
       detallesIva.detalleIva5 +
       detallesIva.detalleIva10 +
       detallesIva.detalleIva21;
-
     try {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
