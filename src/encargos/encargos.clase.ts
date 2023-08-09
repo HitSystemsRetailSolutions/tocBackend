@@ -202,6 +202,7 @@ export class Encargos {
     encargo.codigoBarras =
       await movimientosInstance.generarCodigoBarrasSalida();
     encargo.codigoBarras = await calculoEAN13(encargo.codigoBarras);
+    console.log("ok1")
     for (let i = 0; i < 3; i++) {
       try {
         const encargoCopia = JSON.parse(JSON.stringify(encargo));

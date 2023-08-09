@@ -521,7 +521,7 @@ export class Impresora {
       { tipo: "control", payload: "LF" },
       {
         tipo: "text",
-        payload: `Quantitat      Article   ${
+        payload: `Quant      Article       ${
           preuU ? "  Preu U." : ""
         }   Import (€)`,
       },
@@ -536,7 +536,7 @@ export class Impresora {
       { tipo: "align", payload: "CT" },
       {
         tipo: "text",
-        payload: "----------------------------------------------",
+        payload: "------------------------------------------",
       },
       { tipo: "align", payload: "LT" },
       { tipo: "text", payload: detalleDescuento },
@@ -750,7 +750,7 @@ export class Impresora {
           i
         ].nombre.slice(0, 20)}${
           preuUnitari ? "     " + arrayCompra[i]["preuU"].toFixed(2) : ""
-        }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+        }   ${arrayCompra[i].subtotal.toFixed(2)}\n`;
       }
     }
     return detalles;
@@ -1721,29 +1721,27 @@ export class Impresora {
     let importe = "";
     if (encargo.dejaCuenta == 0) {
       if (descuento && descuento != 0) {
-        importe = `Total sense descompte: ${((encargo.total*descuento/100)+encargo.total).toFixed(
+        detalleImporte = `Total sense descompte: ${((encargo.total*descuento/100)+encargo.total).toFixed(
           2
         )}€\nTotal del descompte: ${(
           (encargo.total * descuento) /
           100
         ).toFixed(2)}€\n`;
-      }else{
-      importe = "Total:" + encargo.total.toFixed(2) + " €";
       }
+      importe = "Total:" + encargo.total.toFixed(2) + " €";
+      
     } else {
-      detalleImporte = `IMPORT TOTAL: ${encargo.total.toFixed(
-        2
-      )} €\nIMPORT PAGAT: ${encargo.dejaCuenta.toFixed(2)} €`;
+     
       if (descuento && descuento != 0) {
-        importe = `Import restant sense descompte: ${(encargo.total - encargo.dejaCuenta + (encargo.total*descuento/100)).toFixed(
+        detalleImporte = `Import restant sense descompte: ${(encargo.total - encargo.dejaCuenta + (encargo.total*descuento/100)).toFixed(
           2
         )}€\nImport restant del descompte: ${(
           (encargo.total * descuento) /
           100
-        ).toFixed(2)}€\n`;
+        ).toFixed(2)}€\nImport pagat: ${encargo.dejaACuenta.toFixed(2)} €\n`;
       }else{   
       importe =
-        "Import restant:" +
+        "Total:" +
         (encargo.total - encargo.dejaCuenta).toFixed(2) +
         " €";
       }
@@ -1756,6 +1754,7 @@ export class Impresora {
       detallesIva.detalleIva5 +
       detallesIva.detalleIva10 +
       detallesIva.detalleIva21;
+      console.log("ok2")
     try {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
@@ -1785,22 +1784,24 @@ export class Impresora {
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
-            payload: `Quantitat     Article      Preu U.  Import (€)`,
+            payload: `Quant     Article          Preu U.  Import (€)`,
           },
           {
             tipo: "text",
-            payload: "----------------------------------------------",
+            payload: "------------------------------------------",
           },
           { tipo: "align", payload: "LT" },
           { tipo: "text", payload: detalles },
           {
             tipo: "text",
-            payload: "----------------------------------------------",
+            payload: "------------------------------------------",
           },
           { tipo: "text", payload: detalleImporte },
+          { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
           { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: "" },
           { tipo: "align", payload: "CT" },
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },

@@ -75,7 +75,7 @@ export class MovimientosClase {
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrada") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
-      } else if (concepto !== "Targeta" && concepto!=="DEUDA") {
+      } else if (concepto !== "Targeta" && concepto!=="DEUDA" && concepto!=="dejaACuenta") {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
       return true;
