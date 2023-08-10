@@ -1703,7 +1703,7 @@ export class Impresora {
     return { error: false, msg: "Good work bro" };
   }
 
-  async imprimirEncargo(encargo) {
+  async imprimirEncargo(encargo, copia) {
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
@@ -1721,30 +1721,28 @@ export class Impresora {
     let importe = "";
     if (encargo.dejaCuenta == 0) {
       if (descuento && descuento != 0) {
-        detalleImporte = `Total sense descompte: ${((encargo.total*descuento/100)+encargo.total).toFixed(
-          2
-        )}€\nTotal del descompte: ${(
+        detalleImporte = `Total sense descompte: ${(
+          (encargo.total * descuento) / 100 +
+          encargo.total
+        ).toFixed(2)}€\nTotal del descompte: ${(
           (encargo.total * descuento) /
           100
         ).toFixed(2)}€\n`;
       }
       importe = "Total:" + encargo.total.toFixed(2) + " €";
-      
     } else {
-     
       if (descuento && descuento != 0) {
-        detalleImporte = `Import restant sense descompte: ${(encargo.total - encargo.dejaCuenta + (encargo.total*descuento/100)).toFixed(
-          2
-        )}€\nImport restant del descompte: ${(
+        detalleImporte = `Import restant sense descompte: ${(
+          encargo.total -
+          encargo.dejaCuenta +
+          (encargo.total * descuento) / 100
+        ).toFixed(2)}€\nImport restant del descompte: ${(
           (encargo.total * descuento) /
           100
-        ).toFixed(2)}€\nImport pagat: ${encargo.dejaACuenta.toFixed(2)} €\n`;
-      }else{   
-      importe =
-        "Total:" +
-        (encargo.total - encargo.dejaCuenta).toFixed(2) +
-        " €";
+        ).toFixed(2)}€ \nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
       }
+      importe =
+        "Total:" + (encargo.total - encargo.dejaCuenta).toFixed(2) + " €";
     }
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
@@ -1754,7 +1752,6 @@ export class Impresora {
       detallesIva.detalleIva5 +
       detallesIva.detalleIva10 +
       detallesIva.detalleIva21;
-      console.log("ok2")
     try {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
@@ -1768,13 +1765,13 @@ export class Impresora {
           { tipo: "style", payload: "b" },
           { tipo: "align", payload: "CT" },
           { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: "ENTREGA" },
+          { tipo: "text", payload: "ENTREGA COPIA " + copia },
           { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "LT" },
           { tipo: "text", payload: cabecera },
           {
             tipo: "text",
-            payload: `Data: ${fecha.format("d")} ${fecha.format(
+            payload: `Data: ${fecha.format(
               "DD-MM-YYYY HH:mm"
             )}`,
           },
@@ -1817,7 +1814,6 @@ export class Impresora {
         ],
         options
       );
-
       return { error: false, info: "OK" };
     } catch (err) {
       mqttInstance.loggerMQTT(err);
