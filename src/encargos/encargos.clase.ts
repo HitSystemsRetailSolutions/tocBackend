@@ -207,7 +207,9 @@ export class Encargos {
       try {
         const encargoCopia = JSON.parse(JSON.stringify(encargo));
         await impresoraInstance.imprimirEncargo(encargoCopia);
-      } catch (error) {}
+      } catch (error) {
+        console.log("error imprimirEncargo:",error)
+      }
     }
     // insertamos las ids insertadas en la tabla utilizada a los productos
     let j = 0;
