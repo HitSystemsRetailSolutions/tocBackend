@@ -355,7 +355,7 @@ export class Encargos {
       return moment(new Date(`${fecha}:${hora}`).getTime()).format(format);
 
     if (tipo === OpcionRecogida.REPETICION && format !== "YYYYMMDDHHmmss")
-      return "1899-12-30 00:00:000";
+      return fecha;
 
     return moment(Date.now()).format(format);
   }
