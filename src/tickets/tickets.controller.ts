@@ -19,6 +19,7 @@ import { timestamp } from "rxjs";
 import { mqttInstance } from "src/mqtt";
 import axios from "axios";
 import { clienteInstance } from "src/clientes/clientes.clase";
+import { getClienteById } from "src/clientes/clientes.mongodb";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -189,6 +190,7 @@ export class TicketsController {
             );
           }
         } else if (tipo === "DEUDA") {
+          const cliente = await getClienteById(cesta.idCliente);
           //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
           // se diferenciara su uso cuando el concepto sea igual a DEUDA
           if (concepto && concepto == "DEUDA") {
@@ -209,6 +211,14 @@ export class TicketsController {
               timestamp: ticket.timestamp,
             };
             await deudasInstance.setDeuda(deuda);
+          } else if (cliente.albaran) {
+            await movimientosInstance.nuevoMovimiento(
+              total,
+              "Albaran",
+              "DEUDA",
+              ticket._id,
+              idTrabajador
+            );
           } else {
             await movimientosInstance.nuevoMovimiento(
               total,
