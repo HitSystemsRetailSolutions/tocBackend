@@ -18,6 +18,7 @@ import { MovimientosInterface } from "src/movimientos/movimientos.interface";
 import { cestasInstance } from "src/cestas/cestas.clase";
 import { cajaInstance } from "src/caja/caja.clase";
 import { ticketsInstance } from "src/tickets/tickets.clase";
+import { exec } from "child_process";
 
 @Controller("instalador")
 export class InstaladorController {
@@ -31,6 +32,57 @@ export class InstaladorController {
       if (password && numLlicencia && tipoDatafono) {
         const resAuth: any = await axios.post("parametros/instaladorLicencia", {
           password,
+          numLlicencia,
+        });
+        if (resAuth.data) {
+          const objParams = parametrosInstance.generarObjetoParametros();
+          axios.defaults.headers.common["Authorization"] = resAuth.data.token;
+          objParams.licencia = numLlicencia;
+          objParams.tipoDatafono = tipoDatafono;
+          objParams.ultimoTicket = resAuth.data.ultimoTicket;
+          objParams.codigoTienda = resAuth.data.codigoTienda;
+          objParams.nombreEmpresa = resAuth.data.nombreEmpresa;
+          objParams.nombreTienda = resAuth.data.nombreTienda;
+          objParams.token = resAuth.data.token;
+          objParams.database = resAuth.data.database;
+          objParams.header = resAuth.data.header;
+          objParams.footer = resAuth.data.footer;
+
+          return await parametrosInstance.setParametros(objParams);
+        }
+        throw Error("Error: San Pedro no puede autentificar esta petición");
+      }
+      throw Error("Faltan datos en instalador/pedirDatos controller");
+    } catch (err) {
+      logger.Error(93, err);
+    }
+  }
+  /* Uri */
+  @Post("getCN")
+  async getCN() {
+    let result = "si";
+    await exec(
+      "cd /etc/openvpn/client/ && find Auto_linux*.crt",
+      (err, stdout, stderr) => {
+        result = "stdout s";
+        console.log("sterr >", stdout);
+        console.log("err >", err);
+        console.log("st >", stderr);
+      }
+    );
+    return result;
+  }
+
+  /* Uri */
+  @Post("pedirDatosQR")
+  async instaladorQR(
+    @Body()
+    { numLlicencia, tipoDatafono }
+  ) {
+    try {
+      if (numLlicencia && tipoDatafono) {
+        const resAuth: any = await axios.post("parametros/instaladorLicencia", {
+          password: "2b2c44fef72eafa3c5bd61cc1b9a89ad",
           numLlicencia,
         });
         if (resAuth.data) {
@@ -103,6 +155,20 @@ export class InstaladorController {
     try {
       return (
         await axios.post("parametros/getQRstatus", {
+          cn,
+        })
+      )?.data;
+    } catch (err) {
+      logger.Error(93, err);
+    }
+  }
+
+  /* Uri */
+  @Post("resetQRstatus")
+  async resetQRstatus(@Body() { cn }) {
+    try {
+      return (
+        await axios.post("parametros/resetQRstatus", {
           cn,
         })
       )?.data;
