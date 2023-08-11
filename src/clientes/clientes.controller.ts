@@ -187,8 +187,8 @@ export class ClientesController {
     try {
       const parametros = await parametrosInstance.getParametros();
 
-      if (nombre && tarjetaCliente) {
-        if (tarjetaCliente.toString().length > 5 && nombre.length >= 3) {
+      if (nombre) {
+        if (nombre.length >= 3) {
           const hola = {
             nombre,
             telefono,
