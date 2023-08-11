@@ -202,7 +202,9 @@ export class Encargos {
     encargo.codigoBarras =
       await movimientosInstance.generarCodigoBarrasSalida();
     encargo.codigoBarras = await calculoEAN13(encargo.codigoBarras);
-    await imprimirEncargosConIntervalo(encargo);
+    const encargoCopia = JSON.parse(JSON.stringify(encargo));
+    await impresoraInstance.imprimirEncargo(encargoCopia);
+
     // insertamos las ids insertadas en la tabla utilizada a los productos
     let j = 0;
 
@@ -366,20 +368,7 @@ export class Encargos {
     }, new Array(7).fill(0));
   }
 }
-async function imprimirEncargosConIntervalo(encargo: any) {
-  for (let i = 0; i < 3; i++) {
-    try {
-      const encargoCopia = JSON.parse(JSON.stringify(encargo));
-      await impresoraInstance.imprimirEncargo(encargoCopia, i + 1);
-    } catch (error) {
-      // Manejar el error si es necesario
-    }
-    await delay(700); // Esperar medio segundo (700 milisegundos)
-  }
-}
-async function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+
 const encargosInstance = new Encargos();
 export { encargosInstance };
 function calculoEAN13(codigo: any): any {

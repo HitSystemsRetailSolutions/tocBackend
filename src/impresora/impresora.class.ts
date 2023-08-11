@@ -1703,7 +1703,7 @@ export class Impresora {
     return { error: false, msg: "Good work bro" };
   }
 
-  async imprimirEncargo(encargo, copia) {
+  async imprimirEncargo(encargo) {
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
@@ -1765,7 +1765,111 @@ export class Impresora {
           { tipo: "style", payload: "b" },
           { tipo: "align", payload: "CT" },
           { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: "ENTREGA COPIA " + copia },
+          { tipo: "text", payload: "ENTREGA COPIA 1"},
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: cabecera },
+          {
+            tipo: "text",
+            payload: `Data: ${fecha.format(
+              "DD-MM-YYYY HH:mm"
+            )}`,
+          },
+          { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
+          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
+          { tipo: "control", payload: "LF" },
+          {
+            tipo: "text",
+            payload: `Quant     Article          Preu U.  Import (€)`,
+          },
+          {
+            tipo: "text",
+            payload: "------------------------------------------",
+          },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: detalles },
+          {
+            tipo: "text",
+            payload: "------------------------------------------",
+          },
+          { tipo: "text", payload: detalleImporte },
+          { tipo: "text", payload: "" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: importe },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: "" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+          { tipo: "text", payload: detalleIva },
+          { tipo: "text", payload: "-- ES COPIA --" },
+          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: "ID: " + random() + " - " + random() },
+          {
+            tipo: "barcode",
+            payload: [encargo.codigoBarras.slice(0, 12), "EAN13", 4],
+          },
+
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "ENTREGA COPIA 2"},
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: cabecera },
+          {
+            tipo: "text",
+            payload: `Data: ${fecha.format(
+              "DD-MM-YYYY HH:mm"
+            )}`,
+          },
+          { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
+          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
+          { tipo: "control", payload: "LF" },
+          {
+            tipo: "text",
+            payload: `Quant     Article          Preu U.  Import (€)`,
+          },
+          {
+            tipo: "text",
+            payload: "------------------------------------------",
+          },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: detalles },
+          {
+            tipo: "text",
+            payload: "------------------------------------------",
+          },
+          { tipo: "text", payload: detalleImporte },
+          { tipo: "text", payload: "" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: importe },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: "" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+          { tipo: "text", payload: detalleIva },
+          { tipo: "text", payload: "-- ES COPIA --" },
+          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: "ID: " + random() + " - " + random() },
+          {
+            tipo: "barcode",
+            payload: [encargo.codigoBarras.slice(0, 12), "EAN13", 4],
+          },
+
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "ENTREGA COPIA 3"},
           { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "LT" },
           { tipo: "text", payload: cabecera },
