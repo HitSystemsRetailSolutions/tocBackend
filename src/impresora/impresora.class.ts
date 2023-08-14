@@ -139,8 +139,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: informacionVip, // Mirar bien para terminar todo
           infoCliente: {
@@ -161,8 +161,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
@@ -212,8 +212,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: informacionVip, // Mirar bien para terminar todo
           infoCliente: {
@@ -232,8 +232,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo_venta
           infoCliente: null,
@@ -265,8 +265,8 @@ export class Impresora {
           total: devolucion.total,
           visa: "DEVOLUCION",
           tiposIva: devolucion.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
@@ -1710,7 +1710,7 @@ export class Impresora {
     const descuento: any = Number(
       (await clienteInstance.isClienteDescuento(encargo.idCliente))?.descuento
     );
-    const cabecera = parametros.header;
+    const cabecera = parametros?.header == undefined ? "" : parametros.header;
     const moment = require("moment-timezone");
     const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
     let detalles = await this.precioUnitario(
@@ -1765,15 +1765,13 @@ export class Impresora {
           { tipo: "style", payload: "b" },
           { tipo: "align", payload: "CT" },
           { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: "ENTREGA COPIA 1"},
+          { tipo: "text", payload: "ENTREGA COPIA 1" },
           { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "LT" },
           { tipo: "text", payload: cabecera },
           {
             tipo: "text",
-            payload: `Data: ${fecha.format(
-              "DD-MM-YYYY HH:mm"
-            )}`,
+            payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
@@ -1817,15 +1815,13 @@ export class Impresora {
           { tipo: "style", payload: "b" },
           { tipo: "align", payload: "CT" },
           { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: "ENTREGA COPIA 2"},
+          { tipo: "text", payload: "ENTREGA COPIA 2" },
           { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "LT" },
           { tipo: "text", payload: cabecera },
           {
             tipo: "text",
-            payload: `Data: ${fecha.format(
-              "DD-MM-YYYY HH:mm"
-            )}`,
+            payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
@@ -1869,15 +1865,13 @@ export class Impresora {
           { tipo: "style", payload: "b" },
           { tipo: "align", payload: "CT" },
           { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: "ENTREGA COPIA 3"},
+          { tipo: "text", payload: "ENTREGA COPIA 3" },
           { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "LT" },
           { tipo: "text", payload: cabecera },
           {
             tipo: "text",
-            payload: `Data: ${fecha.format(
-              "DD-MM-YYYY HH:mm"
-            )}`,
+            payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
