@@ -648,6 +648,14 @@ export class CestaClase {
             cesta.idCliente,
             cesta.lista[i].unidades
           );
+          const preuSumplements = Number(
+            await this.getPreuSuplementos(
+              cesta.lista[i].arraySuplementos,
+              cesta.idCliente,
+              cesta.lista[i].unidades
+            )
+          );
+          cesta.lista[i].subtotal += preuSumplements;
           cesta.detalleIva = fusionarObjetosDetalleIva(
             cesta.detalleIva,
             detalleDeSuplementos
@@ -684,6 +692,26 @@ export class CestaClase {
     }
   }
 
+  /* Uri */
+  async getPreuSuplementos(
+    arraySuplementos: ArticulosInterface[],
+    idCliente: ClientesInterface["id"],
+    unidades: number
+  ): Promise<Number> {
+    let preu = 0;
+    for (let i = 0; i < arraySuplementos.length; i++) {
+      let articulo = await articulosInstance.getInfoArticulo(
+        arraySuplementos[i]._id
+      );
+      articulo = await articulosInstance.getPrecioConTarifa(
+        articulo,
+        idCliente
+      );
+      preu += articulo.precioConIva * unidades;
+    }
+
+    return preu;
+  }
   /* Eze 4.0 */
   async getDetalleIvaSuplementos(
     arraySuplementos: ArticulosInterface[],
@@ -835,30 +863,29 @@ export class CestaClase {
     productos: CestasInterface["lista"]
   ) {
     try {
-    let cliente: number =
-      (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
-      undefined
-        ? 0
-        : Number(
-            (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
-          );
-    let parametros = await parametrosInstance.getParametros();
+      let cliente: number =
+        (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
+        undefined
+          ? 0
+          : Number(
+              (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
+            );
+      let parametros = await parametrosInstance.getParametros();
 
-    let lista = {
-      timestamp: new Date().getTime(),
-      botiga: parametros.codigoTienda,
-      bbdd: parametros.database,
-      accio: "ArticleEsborrat",
-      productos: productos,
-      dependienta: cesta.trabajador,
-      descuento: cliente,
-      idCliente: cesta.idCliente,
-    };
+      let lista = {
+        timestamp: new Date().getTime(),
+        botiga: parametros.codigoTienda,
+        bbdd: parametros.database,
+        accio: "ArticleEsborrat",
+        productos: productos,
+        dependienta: cesta.trabajador,
+        descuento: cliente,
+        idCliente: cesta.idCliente,
+      };
 
-    await axios
-      .post("lista/setRegistro", {
+      await axios.post("lista/setRegistro", {
         lista: lista,
-      })
+      });
     } catch (error) {
       console.error("Error al enviar el registro a Santa Ana:", error.message);
     }
