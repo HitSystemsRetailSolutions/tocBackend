@@ -65,6 +65,10 @@ export class ParametrosClase {
     await schParametros.setIpPaytef(ip);
 
   /* Uri*/
+  setTcod = async (ip: string): Promise<boolean> =>
+    await schParametros.setTcodPaytef(ip);
+
+  /* Uri*/
   setContadoDatafono = async (tipo: number, suma: number): Promise<boolean> =>
     await schParametros.setContadoDatafono(tipo, suma);
 
@@ -87,6 +91,7 @@ export class ParametrosClase {
       footer: "",
       contadorPaytef: 0,
       token: undefined,
+      payteftcod: "",
     };
   }
 }

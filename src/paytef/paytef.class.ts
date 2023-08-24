@@ -182,9 +182,11 @@ class PaytefClass {
   /* Uri 4.0 */
   async detectarPytef(ip) {
     try {
-      const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
-      if (!ip) ip = ipDatafono;
-      return (await axios.get(`http://${ip}:8887/`, { timeout: 5000 })).data;
+      return (
+        await axios.post(`http://${ip}:8887/pinpad/status`, {
+          pinpad: "*",
+        })
+      ).data["result"]?.tcod;
     } catch (e) {
       console.log(e);
       return "error";
@@ -241,13 +243,13 @@ class PaytefClass {
   /* Uri */
   async getRecuentoTotal(startDate) {
     const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
-    const tcod: any = (
-      await axios.post(`http://${ipDatafono}:8887/pinpad/status`, {
-        pinpad: "*",
-      })
-    ).data["result"]?.tcod;
+    const tcod = (await parametrosInstance.getParametros()).payteftcod;
     const res: any = await axios
-      .post("paytef/getCierre", { tcod: tcod, startDate: startDate })
+      .post("paytef/getCierre", {
+        timeout: 10000,
+        tcod: tcod,
+        startDate: startDate,
+      })
       .catch((e) => {
         console.log(e);
       });

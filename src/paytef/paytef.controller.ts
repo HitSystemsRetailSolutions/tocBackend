@@ -6,6 +6,7 @@ import { movimientosInstance } from "src/movimientos/movimientos.clase";
 import { cajaInstance } from "src/caja/caja.clase";
 import { parametrosController } from "src/parametros/parametros.controller";
 import { parametrosInstance } from "src/parametros/parametros.clase";
+import { UtilesModule } from "src/utiles/utiles.module";
 
 const exec = require("child_process").exec;
 
@@ -84,21 +85,28 @@ export class PaytefController {
   @Post("comprobarDisponibilidad")
   async comprobarDisponibilidad(@Body() { ip }) {
     try {
-      const validIp = await paytefInstance.detectarPytef(ip);
-      let startDate = await cajaInstance.getInicioTime();
-      if (validIp.toString().includes("PAYTEF")) {
-        paytefInstance
-          .getRecuentoTotal(startDate)
-          .then((res) => {
-            parametrosInstance.setContadoDatafono(1, res);
-          })
-          .catch((err) => {});
-        return "ONLINE";
-      }
-      return "OFFLINE";
+      const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
+      if (!UtilesModule.checkVariable(ip)) ip = ipDatafono;
+      return await paytefInstance
+        .detectarPytef(ip)
+        .then(async (res) => {
+          if (res == "error") return "OFFLINE";
+          await parametrosInstance.setIpPaytef(ip);
+          let startDate = cajaInstance.getInicioTime();
+          paytefInstance
+            .getRecuentoTotal(startDate)
+            .then((res) => {
+              parametrosInstance.setContadoDatafono(1, res);
+            })
+            .catch((err) => {});
+          return "ONLINE";
+        })
+        .catch((e) => {
+          return "OFFLINE";
+        });
     } catch (err) {
       logger.Error(131, err);
-      return false;
+      return "OFFLINE";
     }
   }
 

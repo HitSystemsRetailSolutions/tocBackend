@@ -69,6 +69,18 @@ export async function setIpPaytef(ip: string): Promise<boolean> {
   ).acknowledged;
 }
 
+export async function setTcodPaytef(tcod: string): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const parametros = database.collection("parametros");
+  return (
+    await parametros.updateOne(
+      { _id: "PARAMETROS" },
+      { $set: { payteftcod: tcod } },
+      { upsert: true }
+    )
+  ).acknowledged;
+}
+
 export async function totalPaytef(): Promise<number> {
   const database = (await conexion).db("tocgame");
   const parametros = database.collection<ParametrosInterface>("parametros");

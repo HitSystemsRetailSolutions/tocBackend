@@ -99,9 +99,7 @@ export class ParametrosController {
     try {
       const res: any = await axios
         .get("parametros/getParametros")
-        .catch((e) => {
-          console.log(e);
-        });
+        .catch((e) => {});
 
       if (res.data) {
         delete res.data.database;
@@ -125,7 +123,18 @@ export class ParametrosController {
   async setIpPaytef(@Body() { ip }) {
     try {
       if (UtilesModule.checkVariable(ip))
-        return await parametrosInstance.setIpPaytef(ip);
+        return await paytefInstance
+          .detectarPytef(ip)
+          .then(async (res) => {
+            if (res == "error") return false;
+            await parametrosInstance.setIpPaytef(ip);
+            await parametrosInstance.setTcod(res);
+            return true;
+          })
+          .catch((e) => {
+            return false;
+          });
+
       throw Error("Error, faltan datos en setIpPaytef() controller");
     } catch (err) {
       logger.Error(45, err);
@@ -153,13 +162,12 @@ export class ParametrosController {
       let startDate = await cajaInstance.getInicioTime();
       let localData = await parametrosInstance.totalPaytef();
       let paytefData = await paytefInstance.getRecuentoTotal(startDate);
-      console.log(paytefData);
       if (paytefData == null) return [localData, true];
       return [paytefData, false];
     } catch (err) {
       let localData = await parametrosInstance.totalPaytef();
-      return [localData, true];
       logger.Error(55, err);
+      return [localData, true];
     }
   }
 
