@@ -93,14 +93,7 @@ class PaytefClass {
                 if (
                   respuesta.data.result.result.transactionReference == idTicket
                 ) {
-                  movimientosInstance.nuevoMovimiento(
-                    total,
-                    "Targeta",
-                    "TARJETA",
-                    idTicket,
-                    idTrabajador,
-                    respuesta.data.result.result
-                  );
+                  parametrosInstance.setContadoDatafono(0, total);
                 } else {
                   io.emit("consultaPaytefRefund", {
                     ok: false,
@@ -114,6 +107,7 @@ class PaytefClass {
                       idTrabajador,
                     ],
                   });
+                  parametrosInstance.setContadoDatafono(0, total * -1);
                 }
               });
 
@@ -129,14 +123,7 @@ class PaytefClass {
                 if (
                   respuesta.data.result.result.transactionReference == idTicket
                 ) {
-                  movimientosInstance.nuevoMovimiento(
-                    total * -1,
-                    "Targeta",
-                    "TARJETA",
-                    idTicket + 1,
-                    idTrabajador,
-                    respuesta.data.result.result
-                  );
+                  parametrosInstance.setContadoDatafono(0, total * -1);
                 } else {
                   io.emit("consultaPaytefRefund", {
                     ok: false,
@@ -150,6 +137,7 @@ class PaytefClass {
                       idTrabajador,
                     ],
                   });
+                  parametrosInstance.setContadoDatafono(0, total * -1);
                 }
               });
             io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
@@ -192,12 +180,13 @@ class PaytefClass {
   }
 
   /* Uri 4.0 */
-  async detectarPytef() {
+  async detectarPytef(ip) {
     try {
       const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
-      return (await axios.get(`http://${ipDatafono}:8887/`, { timeout: 500 }))
-        .data;
+      if (!ip) ip = ipDatafono;
+      return (await axios.get(`http://${ip}:8887/`, { timeout: 5000 })).data;
     } catch (e) {
+      console.log(e);
       return "error";
     }
   }
@@ -247,6 +236,22 @@ class PaytefClass {
       })
     ).data as CancelInterface;
     return resultado.info.success;
+  }
+
+  /* Uri */
+  async getRecuentoTotal(startDate) {
+    const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
+    const tcod: any = (
+      await axios.post(`http://${ipDatafono}:8887/pinpad/status`, {
+        pinpad: "*",
+      })
+    ).data["result"]?.tcod;
+    const res: any = await axios
+      .post("paytef/getCierre", { tcod: tcod, startDate: startDate })
+      .catch((e) => {
+        console.log(e);
+      });
+    return res.data;
   }
 }
 

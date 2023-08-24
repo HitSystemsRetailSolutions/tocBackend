@@ -19,12 +19,13 @@ export class TicketsClase {
 
   /* Eze 4.0 */
   async anularTicket(idTicket: TicketsInterface["_id"]) {
-    const ticket = await schMovimientos.getMovimientosDelTicket(idTicket);
-    if (ticket[0]?.tipo == "TARJETA") {
+    const ticket = await schTickets.getTicketByID(idTicket);
+    console.log(ticket[0]);
+    if (ticket.paytef) {
       await paytefInstance.iniciarTransaccion(
-        ticket[0].idTrabajador,
-        ticket[0].idTicket,
-        ticket[0].valor,
+        ticket.idTrabajador,
+        idTicket,
+        ticket.total,
         "refund"
       );
       const devolucionCreada = schTickets.getTicketByID(idTicket + 1);
@@ -148,6 +149,7 @@ export class TicketsClase {
     cesta: CestasInterface,
     consumoPersonal: boolean,
     datafono3G: TicketsInterface["datafono3G"],
+    paytef: TicketsInterface["paytef"],
     dejaCuenta?: TicketsInterface["dejaCuenta"]
   ): Promise<TicketsInterface> {
     /*const cliente = await clienteInstance.getClienteById(cesta.idCliente);
@@ -164,6 +166,7 @@ export class TicketsClase {
       total: consumoPersonal ? 0 : total,
       dejaCuenta: dejaCuenta,
       datafono3G: datafono3G,
+      paytef: paytef,
       idCliente: cesta.idCliente,
       idTrabajador,
       cesta,

@@ -3,6 +3,8 @@ import { parametrosInstance } from "./parametros.clase";
 import axios from "axios";
 import { UtilesModule } from "../utiles/utiles.module";
 import { logger } from "../logger";
+import { paytefInstance } from "src/paytef/paytef.class";
+import { cajaInstance } from "src/caja/caja.clase";
 
 @Controller("parametros")
 export class ParametrosController {
@@ -118,7 +120,7 @@ export class ParametrosController {
     }
   }
 
-  /* Eze 4.0 */
+  /* Uri */
   @Post("setIpPaytef")
   async setIpPaytef(@Body() { ip }) {
     try {
@@ -130,6 +132,37 @@ export class ParametrosController {
       return false;
     }
   }
+
+  /* Uri */
+  @Post("setContadoDatafono")
+  async setContadoDatafono(@Body() { suma }) {
+    try {
+      if (UtilesModule.checkVariable(suma))
+        return await parametrosInstance.setIpPaytef(suma);
+      throw Error("Error, faltan datos en setIpPaytef() controller");
+    } catch (err) {
+      logger.Error(45, err);
+      return false;
+    }
+  }
+
+  /* Uri */
+  @Post("totalPaytef")
+  async totalPaytef() {
+    try {
+      let startDate = await cajaInstance.getInicioTime();
+      let localData = await parametrosInstance.totalPaytef();
+      let paytefData = await paytefInstance.getRecuentoTotal(startDate);
+      console.log(paytefData);
+      if (paytefData == null) return [localData, true];
+      return [paytefData, false];
+    } catch (err) {
+      let localData = await parametrosInstance.totalPaytef();
+      return [localData, true];
+      logger.Error(55, err);
+    }
+  }
+
   /* yasai :D */
   @Post("set3g")
   async set3g() {

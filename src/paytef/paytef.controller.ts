@@ -3,6 +3,9 @@ import { paytefInstance } from "./paytef.class";
 import { logger } from "../logger";
 import { ticketsInstance } from "../tickets/tickets.clase";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
+import { cajaInstance } from "src/caja/caja.clase";
+import { parametrosController } from "src/parametros/parametros.controller";
+import { parametrosInstance } from "src/parametros/parametros.clase";
 
 const exec = require("child_process").exec;
 
@@ -79,10 +82,19 @@ export class PaytefController {
 
   /* Uri */
   @Post("comprobarDisponibilidad")
-  async comprobarDisponibilidad() {
+  async comprobarDisponibilidad(@Body() { ip }) {
     try {
-      const validIp = await paytefInstance.detectarPytef();
-      if (validIp.toString().includes("PAYTEF")) return "ONLINE";
+      const validIp = await paytefInstance.detectarPytef(ip);
+      let startDate = await cajaInstance.getInicioTime();
+      if (validIp.toString().includes("PAYTEF")) {
+        paytefInstance
+          .getRecuentoTotal(startDate)
+          .then((res) => {
+            parametrosInstance.setContadoDatafono(1, res);
+          })
+          .catch((err) => {});
+        return "ONLINE";
+      }
       return "OFFLINE";
     } catch (err) {
       logger.Error(131, err);
@@ -92,12 +104,12 @@ export class PaytefController {
 
   /* Uri */
   @Post("comprobarUltimoTicket")
-  async comprobarUltimoTicket(@Body() {idticket} ) {
+  async comprobarUltimoTicket(@Body() { idticket }) {
     try {
       return await paytefInstance.ComprobarReconectado(idticket);
     } catch (err) {
       logger.Error(131, err);
-      console.log(err)
+      console.log(err);
       return false;
     }
   }

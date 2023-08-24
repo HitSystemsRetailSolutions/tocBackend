@@ -9,8 +9,24 @@ export class CajaController {
   /* Eze 4.0 */
   @Post("cerrarCaja")
   async cerrarCaja(
-    @Body() { total, detalleMonedas, infoDinero, cantidad3G, idDependienta }
+    @Body()
+    {
+      total,
+      detalleMonedas,
+      infoDinero,
+      cantidad3G,
+      cantidadPaytef,
+      idDependienta,
+    }
   ) {
+    console.log(
+      total,
+      detalleMonedas,
+      infoDinero,
+      cantidad3G,
+      cantidadPaytef,
+      idDependienta
+    );
     try {
       if (
         UtilesModule.checkVariable(
@@ -18,15 +34,18 @@ export class CajaController {
           detalleMonedas,
           infoDinero,
           cantidad3G,
+          cantidadPaytef,
           idDependienta
         ) &&
-        typeof cantidad3G === "number"
+        typeof cantidad3G === "number" &&
+        typeof cantidadPaytef === "number"
       ) {
         return await cajaInstance.cerrarCaja(
           total,
           detalleMonedas,
           infoDinero,
           cantidad3G,
+          cantidadPaytef,
           idDependienta
         );
       }

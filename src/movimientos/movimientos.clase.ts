@@ -228,14 +228,14 @@ export class MovimientosClase {
   public calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
     if (superTicket.consumoPersonal) return "CONSUMO_PERSONAL";
     if (superTicket.datafono3G) return "DATAFONO_3G";
+    if (superTicket.paytef)
+      if (superTicket.total < 0) {
+        return "DEVUELTO";
+      } else {
+        return "TARJETA";
+      }
     if (superTicket.movimientos.length === 1) {
-      if (superTicket.movimientos[0].tipo === "TARJETA") {
-        if (superTicket.movimientos[0].valor < 0) {
-          return "DEVUELTO";
-        } else {
-          return "TARJETA";
-        }
-      } else if (superTicket.movimientos[0].tipo === "TKRS_SIN_EXCESO") {
+      if (superTicket.movimientos[0].tipo === "TKRS_SIN_EXCESO") {
         if (superTicket.total > superTicket.movimientos[0].valor)
           return "TKRS + EFECTIVO";
         else return "TKRS";
