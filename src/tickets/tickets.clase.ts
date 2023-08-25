@@ -20,7 +20,6 @@ export class TicketsClase {
   /* Eze 4.0 */
   async anularTicket(idTicket: TicketsInterface["_id"]) {
     const ticket = await schTickets.getTicketByID(idTicket);
-    console.log(ticket[0]);
     if (ticket.paytef) {
       await paytefInstance.iniciarTransaccion(
         ticket.idTrabajador,
@@ -186,6 +185,10 @@ export class TicketsClase {
   /* Eze 4.0 */
   setTicketEnviado = (idTicket: TicketsInterface["_id"]) =>
     schTickets.setTicketEnviado(idTicket);
+
+  /* Uri 4.0 */
+  setPagadoPaytef = (idTicket: TicketsInterface["_id"]) =>
+    schTickets.setPagadoPaytef(idTicket);
 
   actualizarTickets = async () => {
     const arrayVentas = await movimientosInstance.construirArrayVentas();

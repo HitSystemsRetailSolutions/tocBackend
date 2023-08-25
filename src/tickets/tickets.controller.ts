@@ -134,10 +134,9 @@ export class TicketsController {
       if (!(typeof total == "number" && idCesta && idTrabajador && tipo)) {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
-      console.log(tipo);
       const cesta = await cestasInstance.getCestaById(idCesta);
       const d3G = tipo === "DATAFONO_3G";
-      const paytef = tipo === "TARJETA";
+      const paytef = false;
       const ticket = await ticketsInstance.generarNuevoTicket(
         total,
         idTrabajador,

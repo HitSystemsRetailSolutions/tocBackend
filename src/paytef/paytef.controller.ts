@@ -92,7 +92,7 @@ export class PaytefController {
         .then(async (res) => {
           if (res == "error") return "OFFLINE";
           await parametrosInstance.setIpPaytef(ip);
-          let startDate = cajaInstance.getInicioTime();
+          let startDate = await cajaInstance.getInicioTime();
           paytefInstance
             .getRecuentoTotal(startDate)
             .then((res) => {
@@ -115,6 +115,18 @@ export class PaytefController {
   async comprobarUltimoTicket(@Body() { idticket }) {
     try {
       return await paytefInstance.ComprobarReconectado(idticket);
+    } catch (err) {
+      logger.Error(131, err);
+      console.log(err);
+      return false;
+    }
+  }
+
+  /* Uri */
+  @Post("getLastFive")
+  async getLastFive() {
+    try {
+      return await paytefInstance.getLastFive();
     } catch (err) {
       logger.Error(131, err);
       console.log(err);

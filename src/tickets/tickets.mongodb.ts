@@ -205,6 +205,30 @@ export async function toggle3G(existTicketId, oldValue = false) {
   return result.acknowledged;
 }
 
+/* Uri */
+export async function setPagadoPaytef(Ticket) {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  const result = await tickets.updateOne(
+    { _id: Ticket },
+    {
+      $set: {
+        paytef: true,
+      },
+    }
+  );
+  const ticket = await tickets.findOne({ _id: Ticket });
+  const santaAnaResult = await axios
+    .post("/tickets/enviarTicket", {
+      ticket,
+    })
+    .catch((e) => {
+      //  console.log(e);
+    });
+
+  return result.acknowledged;
+}
+
 /* Eze v23 */
 export async function desbloquearTicket(idTicket: number) {
   const database = (await conexion).db("tocgame");
