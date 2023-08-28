@@ -5,6 +5,9 @@ import { impresoraInstance } from "./impresora.class";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
 import { mqttInstance } from "src/mqtt";
 import { io } from "src/sockets.gateway";
+import { parametrosInstance } from "src/parametros/parametros.clase";
+import { cajaInstance } from "src/caja/caja.clase";
+import axios from "axios";
 
 @Controller("impresora")
 export class ImpresoraController {
@@ -21,7 +24,6 @@ export class ImpresoraController {
       return false;
     }
   }
-
 
   /* Yasai :D */
   @Post("reiniciarPapel")
@@ -41,23 +43,27 @@ export class ImpresoraController {
   async imprimirTicketPaytef(@Body() { idTicket }) {
     try {
       if (idTicket) {
-        let extraDataMovimiento = await movimientosInstance.getExtraData(
-          idTicket
-        );
+        const tcod = (await parametrosInstance.getParametros()).payteftcod;
+        let startDate = await cajaInstance.getInicioTime();
+        let extraDataMovimiento: any = await axios.post("paytef/getTicket", {
+          timeout: 10000,
+          tcod: tcod,
+          startDate: startDate,
+          ticket: idTicket,
+        });
         if (extraDataMovimiento == null)
           throw Error("Faltan datos en impresora/imprimirTicket");
-        await impresoraInstance.imprimirTicketPaytef(
-          extraDataMovimiento,
-          "TITULAR"
-        );
-        await impresoraInstance.imprimirTicketPaytef(
-          extraDataMovimiento,
-          "ESTABLECIMIENTO"
-        );
+        for (const x of ["TITULAR", "ESTABLECIMIENTO"]) {
+          await impresoraInstance.imprimirTicketPaytef(
+            extraDataMovimiento.data,
+            x
+          );
+        }
         return true;
       }
       throw Error("Faltan datos en impresora/imprimirTicket");
     } catch (err) {
+      console.log(err);
       logger.Error(139, err);
       return false;
     }

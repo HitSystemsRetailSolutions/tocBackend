@@ -38,7 +38,7 @@ class PaytefClass {
     };
 
     if (parametros.ipTefpay) {
-      axios({
+      await axios({
         method: "POST",
         url: `http://${parametros.ipTefpay}:8887/transaction/start`,
         data: opciones,
@@ -46,10 +46,16 @@ class PaytefClass {
         .then(async (respuestaPayef: any) => {
           if (await respuestaPayef.data.info["started"]) {
             io.emit("procesoPaytef", { proceso: "Inicio proceso" });
-            await this.bucleComprobacion(idTicket, total, idTrabajador, type);
+            return await this.bucleComprobacion(
+              idTicket,
+              total,
+              idTrabajador,
+              type
+            );
           } else {
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
             io.emit("procesoPaytef", { proceso: "Denegado" });
+            return false;
           }
         })
         .catch(async (err) => {
@@ -93,10 +99,11 @@ class PaytefClass {
               .then((respuesta: any) => {
                 if (respuesta.data.result.transactionReference == idTicket) {
                   parametrosInstance.setContadoDatafono(0, total);
+                  this.imprimirTicket(idTicket);
                   ticketsInstance.setPagadoPaytef(idTicket);
                   io.emit("consultaPaytef", true);
                   io.emit("procesoPaytef", { proceso: "aprobado" });
-                  return;
+                  return true;
                 } else {
                   io.emit("consultaPaytefRefund", {
                     ok: false,
@@ -110,6 +117,7 @@ class PaytefClass {
                       idTrabajador,
                     ],
                   });
+                  return false;
                 }
               })
               .catch((e) => {
@@ -125,6 +133,8 @@ class PaytefClass {
                 if (respuesta.data.result.transactionReference == idTicket) {
                   parametrosInstance.setContadoDatafono(0, total * -1);
                   io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
+                  this.imprimirTicket(idTicket);
+                  return true;
                 } else {
                   io.emit("consultaPaytefRefund", {
                     ok: false,
@@ -138,6 +148,7 @@ class PaytefClass {
                       idTrabajador,
                     ],
                   });
+                  return false;
                 }
               });
             intentosBucleBucle = 0;
@@ -178,6 +189,22 @@ class PaytefClass {
     }
   }
 
+  async imprimirTicket(idTicket) {
+    const tcod = (await parametrosInstance.getParametros()).payteftcod;
+    let startDate = await cajaInstance.getInicioTime();
+    let extraDataMovimiento: any = await axios.post("paytef/getTicket", {
+      timeout: 10000,
+      tcod: tcod,
+      startDate: startDate,
+      ticket: idTicket,
+    });
+    if (extraDataMovimiento == null)
+      throw Error("Faltan datos en impresora/imprimirTicket");
+    for (const x of ["TITULAR", "ESTABLECIMIENTO"]) {
+      await impresoraInstance.imprimirTicketPaytef(extraDataMovimiento.data, x);
+    }
+  }
+
   /* Uri 4.0 */
   async detectarPytef(ip) {
     try {
@@ -212,6 +239,7 @@ class PaytefClass {
       ticketsInstance.setPagadoPaytef(ticket);
       io.emit("consultaPaytef", true);
       io.emit("procesoPaytef", { proceso: "aprobado" });
+      return true;
     }
   }
 
@@ -236,7 +264,7 @@ class PaytefClass {
   async ComprobarReconectado(ticket): Promise<string> {
     let rnt = "2";
     try {
-      this.ComprobarTicketPagado(ticket);
+      if (this.ComprobarTicketPagado(ticket)) return "4";
       const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
       await axios
         .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {

@@ -21,14 +21,17 @@ export class TicketsClase {
   async anularTicket(idTicket: TicketsInterface["_id"]) {
     const ticket = await schTickets.getTicketByID(idTicket);
     if (ticket.paytef) {
-      await paytefInstance.iniciarTransaccion(
+      let xy = await schTickets.getAnulado(idTicket);
+      if (xy?.anulado?.idTicketPositivo == idTicket)
+        return { res: false, tipo: "TARJETA" };
+      let x = await paytefInstance.iniciarTransaccion(
         ticket.idTrabajador,
         idTicket,
         ticket.total,
         "refund"
       );
-      const devolucionCreada = schTickets.getTicketByID(idTicket + 1);
-      if (devolucionCreada) {
+      const devolucionCreada = await schTickets.getUltimoTicket();
+      if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
         return { res: true, tipo: "TARJETA" };
       } else {
         return { res: false, tipo: "TARJETA" };
