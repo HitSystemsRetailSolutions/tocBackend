@@ -28,6 +28,7 @@ export interface CuentaCodigoBarras {
 export type FormaPago =
   | "EFECTIVO"
   | "TARJETA"
+  | "TARJETA-INPAGADO"
   | "TKRS"
   | "CONSUMO_PERSONAL"
   | "TKRS + EFECTIVO"

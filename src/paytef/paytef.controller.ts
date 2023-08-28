@@ -3,6 +3,10 @@ import { paytefInstance } from "./paytef.class";
 import { logger } from "../logger";
 import { ticketsInstance } from "../tickets/tickets.clase";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
+import { cajaInstance } from "src/caja/caja.clase";
+import { parametrosController } from "src/parametros/parametros.controller";
+import { parametrosInstance } from "src/parametros/parametros.clase";
+import { UtilesModule } from "src/utiles/utiles.module";
 
 const exec = require("child_process").exec;
 
@@ -79,25 +83,53 @@ export class PaytefController {
 
   /* Uri */
   @Post("comprobarDisponibilidad")
-  async comprobarDisponibilidad() {
+  async comprobarDisponibilidad(@Body() { ip }) {
     try {
-      const validIp = await paytefInstance.detectarPytef();
-      if (validIp.toString().includes("PAYTEF")) return "ONLINE";
-      return "OFFLINE";
+      const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
+      if (!ip) ip = ipDatafono;
+      return await paytefInstance
+        .detectarPytef(ip)
+        .then(async (res) => {
+          if (res == "error") return "OFFLINE";
+          await parametrosInstance.setIpPaytef(ip);
+          let startDate = await cajaInstance.getInicioTime();
+          paytefInstance
+            .getRecuentoTotal(startDate)
+            .then((res) => {
+              parametrosInstance.setContadoDatafono(1, res);
+            })
+            .catch((err) => {});
+          return "ONLINE";
+        })
+        .catch((e) => {
+          return "OFFLINE";
+        });
     } catch (err) {
       logger.Error(131, err);
-      return false;
+      return "OFFLINE";
     }
   }
 
   /* Uri */
   @Post("comprobarUltimoTicket")
-  async comprobarUltimoTicket(@Body() {idticket} ) {
+  async comprobarUltimoTicket(@Body() { idticket }) {
     try {
       return await paytefInstance.ComprobarReconectado(idticket);
     } catch (err) {
       logger.Error(131, err);
-      console.log(err)
+      console.log(err);
+      return false;
+    }
+  }
+
+  /* Uri */
+  @Post("getLastFive")
+  async getLastFive() {
+    try {
+      return await paytefInstance.getLastFive();
+    } catch (err) {
+      logger.Error(131, err);
+      console.log(err);
       return false;
     }
   }

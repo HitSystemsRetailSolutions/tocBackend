@@ -9,6 +9,7 @@ import { io } from "../sockets.gateway";
 import { logger } from "../logger";
 import * as schTickets from "../tickets/tickets.mongodb";
 import { impresoraInstance } from "src/impresora/impresora.class";
+import { cajaInstance } from "src/caja/caja.clase";
 let intentosBuclePago = 0;
 let intentosBucleBucle = 0;
 
@@ -86,21 +87,16 @@ class PaytefClass {
         if (resEstadoPaytef.result.approved) {
           if (type === "sale") {
             await axios
-              .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
+              .post(`http://${ipDatafono}:8887/transaction/result`, {
                 pinpad: "*",
               })
               .then((respuesta: any) => {
-                if (
-                  respuesta.data.result.result.transactionReference == idTicket
-                ) {
-                  movimientosInstance.nuevoMovimiento(
-                    total,
-                    "Targeta",
-                    "TARJETA",
-                    idTicket,
-                    idTrabajador,
-                    respuesta.data.result.result
-                  );
+                if (respuesta.data.result.transactionReference == idTicket) {
+                  parametrosInstance.setContadoDatafono(0, total);
+                  ticketsInstance.setPagadoPaytef(idTicket);
+                  io.emit("consultaPaytef", true);
+                  io.emit("procesoPaytef", { proceso: "aprobado" });
+                  return;
                 } else {
                   io.emit("consultaPaytefRefund", {
                     ok: false,
@@ -115,28 +111,20 @@ class PaytefClass {
                     ],
                   });
                 }
+              })
+              .catch((e) => {
+                console.log(e);
               });
-
-            io.emit("consultaPaytef", true);
-            io.emit("procesoPaytef", { proceso: "aprobado" });
           } else if (type === "refund") {
             schTickets.anularTicket(idTicket);
             await axios
-              .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
+              .post(`http://${ipDatafono}:8887/transaction/result`, {
                 pinpad: "*",
               })
               .then((respuesta: any) => {
-                if (
-                  respuesta.data.result.result.transactionReference == idTicket
-                ) {
-                  movimientosInstance.nuevoMovimiento(
-                    total * -1,
-                    "Targeta",
-                    "TARJETA",
-                    idTicket + 1,
-                    idTrabajador,
-                    respuesta.data.result.result
-                  );
+                if (respuesta.data.result.transactionReference == idTicket) {
+                  parametrosInstance.setContadoDatafono(0, total * -1);
+                  io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
                 } else {
                   io.emit("consultaPaytefRefund", {
                     ok: false,
@@ -152,7 +140,6 @@ class PaytefClass {
                   });
                 }
               });
-            io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
             intentosBucleBucle = 0;
             intentosBuclePago = 0;
           } else {
@@ -192,20 +179,64 @@ class PaytefClass {
   }
 
   /* Uri 4.0 */
-  async detectarPytef() {
+  async detectarPytef(ip) {
     try {
-      const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
-      return (await axios.get(`http://${ipDatafono}:8887/`, { timeout: 500 }))
-        .data;
+      return (
+        await axios.post(`http://${ip}:8887/pinpad/status`, {
+          pinpad: "*",
+        })
+      ).data["result"]?.tcod;
     } catch (e) {
+      console.log(e);
       return "error";
     }
+  }
+
+  /* Uri */
+  async ComprobarTicketPagado(ticket) {
+    const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
+    const tcod = (await parametrosInstance.getParametros()).payteftcod;
+    let startDate = await cajaInstance.getInicioTime();
+    const res: any = await axios
+      .post("paytef/getTicket", {
+        timeout: 10000,
+        tcod: tcod,
+        startDate: startDate,
+        ticket: ticket,
+      })
+      .catch((e) => {
+        console.log(e);
+      });
+
+    if (res) {
+      ticketsInstance.setPagadoPaytef(ticket);
+      io.emit("consultaPaytef", true);
+      io.emit("procesoPaytef", { proceso: "aprobado" });
+    }
+  }
+
+  /* Uri */
+  async getLastFive() {
+    const tcod = (await parametrosInstance.getParametros()).payteftcod;
+    let startDate = await cajaInstance.getInicioTime();
+    const res: any = await axios
+      .post("paytef/getLastFive", {
+        timeout: 10000,
+        tcod: tcod,
+        startDate: startDate,
+      })
+      .catch((e) => {
+        console.log(e);
+      });
+
+    if (res.data) return res.data;
   }
 
   /* Uri */
   async ComprobarReconectado(ticket): Promise<string> {
     let rnt = "2";
     try {
+      this.ComprobarTicketPagado(ticket);
       const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
       await axios
         .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
@@ -247,6 +278,22 @@ class PaytefClass {
       })
     ).data as CancelInterface;
     return resultado.info.success;
+  }
+
+  /* Uri */
+  async getRecuentoTotal(startDate) {
+    const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
+    const tcod = (await parametrosInstance.getParametros()).payteftcod;
+    const res: any = await axios
+      .post("paytef/getCierre", {
+        timeout: 10000,
+        tcod: tcod,
+        startDate: startDate,
+      })
+      .catch((e) => {
+        console.log(e);
+      });
+    return res.data;
   }
 }
 

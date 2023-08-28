@@ -77,6 +77,7 @@ export class TicketsController {
         cestaEncargo.cesta,
         tipo === "CONSUMO_PERSONAL",
         false,
+        false,
         dejaCuenta
       );
 
@@ -135,12 +136,14 @@ export class TicketsController {
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
       const d3G = tipo === "DATAFONO_3G";
+      const paytef = false;
       const ticket = await ticketsInstance.generarNuevoTicket(
         total,
         idTrabajador,
         cesta,
         tipo === "CONSUMO_PERSONAL",
         d3G,
+        paytef,
         null
       );
 

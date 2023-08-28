@@ -55,7 +55,7 @@ export async function setUltimoTicket(idTicket: number): Promise<boolean> {
   ).acknowledged;
 }
 
-/* Eze 4.0 */
+/* Uri */
 /* Actualizacion: yasai :D */
 export async function setIpPaytef(ip: string): Promise<boolean> {
   const database = (await conexion).db("tocgame");
@@ -64,6 +64,49 @@ export async function setIpPaytef(ip: string): Promise<boolean> {
     await parametros.updateOne(
       { _id: "PARAMETROS" },
       { $set: { ipTefpay: ip, tipoDatafono: "PAYTEF" } },
+      { upsert: true }
+    )
+  ).acknowledged;
+}
+
+export async function setTcodPaytef(tcod: string): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const parametros = database.collection("parametros");
+  return (
+    await parametros.updateOne(
+      { _id: "PARAMETROS" },
+      { $set: { payteftcod: tcod } },
+      { upsert: true }
+    )
+  ).acknowledged;
+}
+
+export async function totalPaytef(): Promise<number> {
+  const database = (await conexion).db("tocgame");
+  const parametros = database.collection<ParametrosInterface>("parametros");
+  return (await parametros.findOne({ _id: "PARAMETROS" }))?.contadorPaytef;
+}
+
+/* Uri */
+export async function setContadoDatafono(
+  tipo: number,
+  suma: number
+): Promise<boolean> {
+  let valor = 0;
+  switch (tipo) {
+    case 1:
+      valor = suma;
+      break;
+    default:
+      valor = (await totalPaytef()) + suma;
+      break;
+  }
+  const database = (await conexion).db("tocgame");
+  const parametros = database.collection("parametros");
+  return (
+    await parametros.updateOne(
+      { _id: "PARAMETROS" },
+      { $set: { contadorPaytef: valor } },
       { upsert: true }
     )
   ).acknowledged;

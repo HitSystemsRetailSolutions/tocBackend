@@ -53,11 +53,9 @@ export class NuevaPromocion {
     try {
       let resPromos: any = await axios
         .get("promociones/getPromociones")
-        .catch((e) => {
-          console.log(e);
-        });
+        .catch((e) => {});
 
-      resPromos = resPromos.data as PromocionesInterface[];
+      resPromos = resPromos?.data as PromocionesInterface[];
       if (resPromos && resPromos.length > 0) {
         return await schPromociones.insertarPromociones(resPromos);
       }
