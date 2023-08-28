@@ -86,7 +86,7 @@ export class PaytefController {
   async comprobarDisponibilidad(@Body() { ip }) {
     try {
       const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
-      if (!UtilesModule.checkVariable(ip)) ip = ipDatafono;
+      if (!ip) ip = ipDatafono;
       return await paytefInstance
         .detectarPytef(ip)
         .then(async (res) => {

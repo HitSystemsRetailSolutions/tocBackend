@@ -118,7 +118,7 @@ class PaytefClass {
           } else if (type === "refund") {
             schTickets.anularTicket(idTicket);
             await axios
-              .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
+              .post(`http://${ipDatafono}:8887/transaction/result`, {
                 pinpad: "*",
               })
               .then((respuesta: any) => {
