@@ -242,6 +242,13 @@ export async function desbloquearTicket(idTicket: number) {
   ).acknowledged;
 }
 
+/* Uri */
+export async function getAnulado(idTicket: number) {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  return await tickets.findOne({ "anulado.idTicketPositivo": idTicket });
+}
+
 /* Eze v23 */
 export async function actualizarEstadoTicket(
   ticket: TicketsInterface

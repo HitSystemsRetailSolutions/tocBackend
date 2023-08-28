@@ -1546,7 +1546,8 @@ export class Impresora {
   }
 
   async imprimirTicketPaytef(data, copia) {
-    const params = await parametrosInstance.getParametros();
+    let params = await parametrosInstance.getParametros();
+
     const fecha = `${data.timestamp.day}/${data.timestamp.month}/${data.timestamp.year} - ${data.timestamp.hour}:${data.timestamp.minute}`;
     const device = new escpos.Network();
     const printer = new escpos.Printer(device);
@@ -1559,31 +1560,32 @@ export class Impresora {
         { tipo: "style", payload: "b" },
         { tipo: "align", payload: "CT" },
         { tipo: "size", payload: [2, 2] },
-        { tipo: "text", payload: data.operationTypeName },
+        { tipo: "text", payload: data.typeName },
         { tipo: "align", payload: "LT" },
         { tipo: "size", payload: [0, 0] },
-        { tipo: "text", payload: data.commerceText },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: params.header },
         { tipo: "text", payload: "" },
         { tipo: "text", payload: "HCP: " + data.bankName },
         {
           tipo: "text",
-          payload: "Aplicación: " + data.cardInformation.emvApplicationID,
+          payload: "Estado: " + (data.approved ? "Aprobado" : "Denegado"),
         },
         { tipo: "text", payload: "" },
-        { tipo: "text", payload: data.cardInformation.emvApplicationLabel },
+        { tipo: "text", payload: data.country },
         {
           tipo: "text",
           payload: "Entidad Bancaria: " + data.issuerNameAndCountry,
         },
         {
           tipo: "text",
-          payload: "Tarjeta: " + data.cardInformation.hiddenCardNumber,
+          payload: "Tarjeta: " + data.hiddenCardNumber,
         },
         { tipo: "text", payload: "" },
         { tipo: "text", payload: "Fecha: " + fecha },
         {
           tipo: "text",
-          payload: "Nº Operación: " + data.paytefOperationNumber,
+          payload: "Nº Operación: " + data.id,
         },
         { tipo: "text", payload: "Autorización: " + data.authorisationCode },
         { tipo: "text", payload: "" },
@@ -1593,13 +1595,11 @@ export class Impresora {
         { tipo: "size", payload: [0, 0] },
         {
           tipo: "text",
-          payload: "Operación " + data.cardInformation.dataEntryLetter,
+          payload: "Operación " + data.reference,
         },
         {
           tipo: "text",
-          payload: `FIRMA ${
-            data.needsSignature == false ? "NO " : ""
-          }NECESARIA`,
+          payload: `FIRMA NECESARIA`,
         },
         { tipo: "text", payload: "------" },
         { tipo: "text", payload: "" },
@@ -1765,15 +1765,13 @@ export class Impresora {
           { tipo: "style", payload: "b" },
           { tipo: "align", payload: "CT" },
           { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: "ENTREGA COPIA 1"},
+          { tipo: "text", payload: "ENTREGA COPIA 1" },
           { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "LT" },
           { tipo: "text", payload: cabecera },
           {
             tipo: "text",
-            payload: `Data: ${fecha.format(
-              "DD-MM-YYYY HH:mm"
-            )}`,
+            payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
@@ -1817,15 +1815,13 @@ export class Impresora {
           { tipo: "style", payload: "b" },
           { tipo: "align", payload: "CT" },
           { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: "ENTREGA COPIA 2"},
+          { tipo: "text", payload: "ENTREGA COPIA 2" },
           { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "LT" },
           { tipo: "text", payload: cabecera },
           {
             tipo: "text",
-            payload: `Data: ${fecha.format(
-              "DD-MM-YYYY HH:mm"
-            )}`,
+            payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
@@ -1869,15 +1865,13 @@ export class Impresora {
           { tipo: "style", payload: "b" },
           { tipo: "align", payload: "CT" },
           { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: "ENTREGA COPIA 3"},
+          { tipo: "text", payload: "ENTREGA COPIA 3" },
           { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "LT" },
           { tipo: "text", payload: cabecera },
           {
             tipo: "text",
-            payload: `Data: ${fecha.format(
-              "DD-MM-YYYY HH:mm"
-            )}`,
+            payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
