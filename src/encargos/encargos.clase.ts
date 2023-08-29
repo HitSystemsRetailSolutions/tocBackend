@@ -174,6 +174,7 @@ export class Encargos {
       idTrabajador: encargo.idTrabajador,
       recogido: false,
       timestamp: timestamp,
+      opcionEncargo: encargo.opcionRecogida,
     };
     // Mandamos el encargo al SantaAna
     const { data }: any = await axios
@@ -366,6 +367,27 @@ export class Encargos {
       arr[nDia] = 1;
       return arr;
     }, new Array(7).fill(0));
+  }
+
+  public async insertarEncargos(encargos: any) {
+    // Objeto donde almacenaremos los grupos de objetos por timestamp
+    const groupedData = {};
+
+    // Iteramos sobre cada objeto en el array
+    encargos.forEach((item) => {
+      const timestamp = item.timestamp;
+
+      // Si el timestamp no está en el objeto groupedData, lo inicializamos como un array vacío
+      if (!groupedData[timestamp]) {
+        groupedData[timestamp] = [];
+      }
+
+      // Agregamos el objeto actual al grupo correspondiente según su timestamp
+      groupedData[timestamp].push(item);
+    });
+
+    // Obtenemos los valores (los arrays de objetos agrupados) del objeto groupedData
+    const groupedArray = Object.values(groupedData);
   }
 }
 

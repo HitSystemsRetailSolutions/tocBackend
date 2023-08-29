@@ -18,6 +18,7 @@ import { MovimientosInterface } from "src/movimientos/movimientos.interface";
 import { cestasInstance } from "src/cestas/cestas.clase";
 import { cajaInstance } from "src/caja/caja.clase";
 import { ticketsInstance } from "src/tickets/tickets.clase";
+import { encargosInstance } from "src/encargos/encargos.clase";
 
 @Controller("instalador")
 export class InstaladorController {
@@ -166,6 +167,7 @@ export class InstaladorController {
         const tarifas = await tarifasInstance.guardarTarifasEspeciales(
           res.data.tarifasEspeciales
         );
+        const encargos = await encargosInstance.insertarEncargos(res.data.encargos);
         if (
           // Solo los datos obligatorios
           trabajadores &&
