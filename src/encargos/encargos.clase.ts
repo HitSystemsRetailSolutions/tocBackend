@@ -16,6 +16,22 @@ import { time } from "console";
 import { clienteInstance } from "src/clientes/clientes.clase";
 
 export class Encargos {
+  async pruebaImportar() {
+    try {
+      console.log("ey");
+      const parametros = await parametrosInstance.getParametros();
+      const res: any = await axios.post("encargos/getEncargos", {
+        database: parametros.database,
+        codigoTienda: parametros.codigoTienda,
+      });
+      console.log("lista");
+      console.log(res.data);
+      console.log("lista:", res);
+      return res.data;
+    } catch (error) {
+      console.log("error", error);
+    }
+  }
   async getEncargos() {
     return await schEncargos.getEncargos();
   }
@@ -143,6 +159,8 @@ export class Encargos {
       encargo.amPm
     );
     let timestamp = new Date().getTime();
+    let codigoBarras = await movimientosInstance.generarCodigoBarrasSalida();
+    codigoBarras = await calculoEAN13(codigoBarras);
     const encargo_santAna = {
       id: await this.generateId(
         this.getDate(
@@ -175,6 +193,7 @@ export class Encargos {
       recogido: false,
       timestamp: timestamp,
       opcionEncargo: encargo.opcionRecogida,
+      codigoBarras: codigoBarras,
     };
     // Mandamos el encargo al SantaAna
     const { data }: any = await axios
@@ -200,9 +219,7 @@ export class Encargos {
     // False -> Ha habido algún error al insertar el encargo.
     encargo.timestamp = timestamp;
     encargo.recogido = false;
-    encargo.codigoBarras =
-      await movimientosInstance.generarCodigoBarrasSalida();
-    encargo.codigoBarras = await calculoEAN13(encargo.codigoBarras);
+    encargo.codigoBarras = codigoBarras;
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
     await impresoraInstance.imprimirEncargo(encargoCopia);
 
@@ -371,23 +388,53 @@ export class Encargos {
 
   public async insertarEncargos(encargos: any) {
     // Objeto donde almacenaremos los grupos de objetos por timestamp
-    const groupedData = {};
+    const timestampAgrupado = {};
 
     // Iteramos sobre cada objeto en el array
-    encargos.forEach((item) => {
+    const promise = encargos.map(async (item) => {
       const timestamp = item.timestamp;
 
-      // Si el timestamp no está en el objeto groupedData, lo inicializamos como un array vacío
-      if (!groupedData[timestamp]) {
-        groupedData[timestamp] = [];
+      // Si el timestamp no está en el objeto timestampAgrupado, lo inicializamos como un array vacío
+      if (!timestampAgrupado[timestamp]) {
+        timestampAgrupado[timestamp] = [];
       }
 
       // Agregamos el objeto actual al grupo correspondiente según su timestamp
-      groupedData[timestamp].push(item);
+      timestampAgrupado[timestamp].push(item);
     });
 
-    // Obtenemos los valores (los arrays de objetos agrupados) del objeto groupedData
-    const groupedArray = Object.values(groupedData);
+    await Promise.all(promise);
+    // Obtenemos los valores (los arrays de objetos agrupados) del objeto timestampAgrupado
+    let groupedArray = Object.values(timestampAgrupado);
+
+    for (let i = 0; i < groupedArray.length; i++) {
+      await this.insertarEncargo(groupedArray[i]);
+    }
+    return groupedArray;
+  }
+  insertarEncargo(encargo: any) {
+    console.log(encargo.length);
+    const mongodbEncargo = {
+      _id: {
+        $oid: "64d220034b02ea6ee475a5dd",
+      },
+      idCliente: "CliBoti_819_20200107103051",
+      nombreCliente: "Hit Systems",
+      opcionRecogida: 1,
+      amPm: "pm",
+      fecha: "2023-08-08",
+      hora: null,
+      dias: [],
+      dejaCuenta: 0,
+      total: 2,
+      productos: [],
+      cesta: {},
+      idTrabajador: 3772,
+      nombreDependienta: "Miguel Cortez Chávez",
+      timestamp: 1691492353101,
+      recogido: false,
+      codigoBarras: "9884232200268",
+    };
   }
 }
 

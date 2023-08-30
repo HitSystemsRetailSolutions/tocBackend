@@ -1,6 +1,6 @@
 import { Controller, Post, Body } from "@nestjs/common";
 import axios from "axios";
-axios.defaults.timeout = 20000;
+axios.defaults.timeout = 50000;
 
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
