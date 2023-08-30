@@ -141,12 +141,8 @@ export class TicketsController {
       );
       if (descuento && descuento > 0) {
         cesta.lista.forEach((producto) => {
-          if (producto.promocion!=null) {
-            let precioSuplementos=0;
-            producto.arraySuplementos.forEach((suplemento)=>{
-              precioSuplementos+=suplemento.precioConIva;
-            })
-            producto.subtotal=(this.redondearPrecio(producto.subtotal-precioSuplementos)*descuento/100)+precioSuplementos;
+          if (producto.arraySuplementos!=null) {
+            producto.subtotal=this.redondearPrecio((producto.subtotal-(producto.subtotal*descuento/100)));
           }
           else if (producto.promocion == null)
             producto.subtotal = this.redondearPrecio(
