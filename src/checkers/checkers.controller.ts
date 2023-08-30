@@ -7,7 +7,7 @@ export class checkers {
   async checkInternet() {
     try {
       return axios
-        .get("https://santaana2-elb.nubehit.com:3001", { timeout: 5000 })
+        .get("https://www.google.es", { timeout: 5000 })
         .then(() => {
           return true;
         })
