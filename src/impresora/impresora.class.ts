@@ -1752,11 +1752,15 @@ export class Impresora {
       detallesIva.detalleIva5 +
       detallesIva.detalleIva10 +
       detallesIva.detalleIva21;
+
+    // mostramos las observaciones de los productos
     let observacions = "";
     for (const producto of encargo.productos) {
-      if (producto.comentario != "")
-        observacions += `- ${producto.nombre}: ${producto.comentario}\n`;
+      if (producto.comentario != ""){
+        const nombreLimpio = producto.nombre.startsWith('+') ? producto.nombre.substring(1) : producto.nombre;
+        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;}
     }
+    console.log("obs",observacions)
     try {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
