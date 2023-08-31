@@ -1760,7 +1760,6 @@ export class Impresora {
         const nombreLimpio = producto.nombre.startsWith('+') ? producto.nombre.substring(1) : producto.nombre;
         observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;}
     }
-    console.log("obs",observacions)
     try {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
