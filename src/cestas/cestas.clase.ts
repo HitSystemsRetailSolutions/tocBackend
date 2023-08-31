@@ -404,6 +404,7 @@ export class CestaClase {
 
       if (articuloNuevo) {
         cesta.lista.push({
+          puntos: 0,
           idArticulo: articulo._id,
           nombre: articulo.nombre,
           arraySuplementos: arraySuplementos,

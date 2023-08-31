@@ -85,12 +85,14 @@ export class TicketsClase {
 
     for (let i = 0; i < ticket.cesta.lista.length; i++) {
       if (ticket.cesta.lista[i].regalo === true) {
-        cantidadRegalada +=
-          (
-            await articulosInstance.getInfoArticulo(
-              ticket.cesta.lista[i].idArticulo
-            )
-          ).precioConIva * ticket.cesta.lista[i].unidades;
+        let puntos = (
+          await articulosInstance.getInfoArticulo(
+            ticket.cesta.lista[i].idArticulo
+          )
+        ).precioConIva * ticket.cesta.lista[i].unidades;
+        ticket.cesta.lista[i].puntos= convertirDineroEnPuntos(puntos)
+        cantidadRegalada += puntos
+          
       }
     }
     // si tenemos que descontar dinero lo hacemos
