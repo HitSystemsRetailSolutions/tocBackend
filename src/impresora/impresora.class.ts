@@ -1752,6 +1752,14 @@ export class Impresora {
       detallesIva.detalleIva5 +
       detallesIva.detalleIva10 +
       detallesIva.detalleIva21;
+
+    // mostramos las observaciones de los productos
+    let observacions = "";
+    for (const producto of encargo.productos) {
+      if (producto.comentario != ""){
+        const nombreLimpio = producto.nombre.startsWith('+') ? producto.nombre.substring(1) : producto.nombre;
+        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;}
+    }
     try {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
@@ -1797,6 +1805,8 @@ export class Impresora {
           { tipo: "text", payload: importe },
           { tipo: "size", payload: [0, 0] },
           { tipo: "text", payload: "" },
+          { tipo: "text", payload: "Observacions:" },
+          { tipo: "text", payload: observacions },
           { tipo: "align", payload: "CT" },
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },
