@@ -1732,17 +1732,16 @@ export class Impresora {
       importe = "Total:" + encargo.total.toFixed(2) + " €";
     } else {
       if (descuento && descuento != 0) {
-        detalleImporte = `Import restant sense descompte: ${(
-          encargo.total -
-          encargo.dejaCuenta +
-          (encargo.total * descuento) / 100
-        ).toFixed(2)}€\nImport restant del descompte: ${(
+        detalleImporte = `Total sense descompte: ${(
+          (encargo.total * descuento) / 100 +
+          encargo.total
+        ).toFixed(2)}€\nTotal del descompte: ${(
           (encargo.total * descuento) /
           100
         ).toFixed(2)}€ \nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
       }
       importe =
-        "Total:" + (encargo.total - encargo.dejaCuenta).toFixed(2) + " €";
+        "Total restant:" + (encargo.total - encargo.dejaCuenta).toFixed(2) + " €";
     }
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
