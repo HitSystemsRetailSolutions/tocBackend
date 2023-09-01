@@ -139,8 +139,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: informacionVip, // Mirar bien para terminar todo
           infoCliente: {
@@ -161,8 +161,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
@@ -212,8 +212,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: informacionVip, // Mirar bien para terminar todo
           infoCliente: {
@@ -232,8 +232,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo_venta
           infoCliente: null,
@@ -265,8 +265,8 @@ export class Impresora {
           total: devolucion.total,
           visa: "DEVOLUCION",
           tiposIva: devolucion.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
@@ -1710,7 +1710,7 @@ export class Impresora {
     const descuento: any = Number(
       (await clienteInstance.isClienteDescuento(encargo.idCliente))?.descuento
     );
-    const cabecera = parametros.header;
+    const cabecera = parametros?.header == undefined ? "" : parametros.header;
     const moment = require("moment-timezone");
     const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
     let detalles = await this.precioUnitario(

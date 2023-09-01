@@ -663,6 +663,14 @@ export class CestaClase {
             cesta.idCliente,
             cesta.lista[i].unidades
           );
+          const preuSumplements = Number(
+            await this.getPreuSuplementos(
+              cesta.lista[i].arraySuplementos,
+              cesta.idCliente,
+              cesta.lista[i].unidades
+            )
+          );
+          cesta.lista[i].subtotal += preuSumplements;
           cesta.detalleIva = fusionarObjetosDetalleIva(
             cesta.detalleIva,
             detalleDeSuplementos
@@ -699,6 +707,26 @@ export class CestaClase {
     }
   }
 
+  /* Uri */
+  async getPreuSuplementos(
+    arraySuplementos: ArticulosInterface[],
+    idCliente: ClientesInterface["id"],
+    unidades: number
+  ): Promise<Number> {
+    let preu = 0;
+    for (let i = 0; i < arraySuplementos.length; i++) {
+      let articulo = await articulosInstance.getInfoArticulo(
+        arraySuplementos[i]._id
+      );
+      articulo = await articulosInstance.getPrecioConTarifa(
+        articulo,
+        idCliente
+      );
+      preu += articulo.precioConIva * unidades;
+    }
+
+    return preu;
+  }
   /* Eze 4.0 */
   async getDetalleIvaSuplementos(
     arraySuplementos: ArticulosInterface[],
