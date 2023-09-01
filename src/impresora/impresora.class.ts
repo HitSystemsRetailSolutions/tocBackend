@@ -1275,7 +1275,7 @@ export class Impresora {
           },
           {
             tipo: "text",
-            payload: "Resp. cierre   : " + trabajadorCierre.nombre,
+            payload: "Resp. cierre   : " + trabajadorCierre?.nombre,
           },
           {
             tipo: "text",

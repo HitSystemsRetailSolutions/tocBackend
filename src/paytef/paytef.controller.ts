@@ -91,8 +91,10 @@ export class PaytefController {
         .detectarPytef(ip)
         .then(async (res) => {
           if (res == "error") return "OFFLINE";
+          await parametrosInstance.setTcod(res);
           await parametrosInstance.setIpPaytef(ip);
           let startDate = await cajaInstance.getInicioTime();
+
           paytefInstance
             .getRecuentoTotal(startDate)
             .then((res) => {
