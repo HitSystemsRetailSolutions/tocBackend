@@ -89,7 +89,7 @@ export class NuevaPromocion {
     }
 
     for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idArticulo) {
+      if (cesta.lista[i].idArticulo === idArticulo && !cesta.lista[i].regalo) {
         unidadesTotales += cesta.lista[i].unidades;
         index1 = i;
         break;
@@ -585,6 +585,7 @@ export class NuevaPromocion {
                   if (
                     this.promosCombo[i].principal[k] ===
                       cesta.lista[c].idArticulo &&
+                    !cesta.lista[c].regalo &&
                     // comprovar si la promocion esta activada hoy
                     (await this.comprovarIntervaloFechas(this.promosCombo[i]))
                   ) {
@@ -623,6 +624,7 @@ export class NuevaPromocion {
                   if (
                     this.promosCombo[i].secundario[k] ===
                       cesta.lista[c].idArticulo &&
+                    !cesta.lista[c].regalo &&
                     // comprovar si la promocion esta activada hoy
                     (await this.comprovarIntervaloFechas(this.promosCombo[i]))
                   ) {
@@ -659,7 +661,7 @@ export class NuevaPromocion {
     idIgnorarArticulo: number
   ): MediaPromoEncontrada {
     for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idIgnorarArticulo) continue;
+      if (cesta.lista[i].idArticulo === idIgnorarArticulo || cesta.lista[i].regalo) continue;
       for (
         let j = 0;
         j < this.promosCombo[mediaPromo.indexPromo].secundario.length;
@@ -698,7 +700,7 @@ export class NuevaPromocion {
     idIgnorarArticulo: number
   ): MediaPromoEncontrada {
     for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idIgnorarArticulo) continue;
+      if (cesta.lista[i].idArticulo === idIgnorarArticulo || (cesta.lista[i].regalo)) continue;
       for (
         let j = 0;
         j < this.promosCombo[mediaPromo.indexPromo].principal.length;
