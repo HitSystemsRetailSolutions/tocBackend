@@ -993,6 +993,7 @@ export class NuevaPromocion {
 
   /* Eze 4.0 */
   public deshacerPromociones(ticket: TicketsInterface) {
+    let valor = ticket.total<0?-1:1;
     for (let i = 0; i < ticket.cesta.lista.length; i++) {
       if (ticket.cesta.lista[i].promocion) {
         if (ticket.cesta.lista[i].promocion.tipoPromo === "COMBO") {
@@ -1003,7 +1004,7 @@ export class NuevaPromocion {
             regalo: false,
             promocion: null,
             unidades: ticket.cesta.lista[i].unidades *
-              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
+              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal*valor,//unidades pierde el simbolo negativo cuando es un ticket anulado y se le multiplica -1
             subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
               ticket.cesta.lista[i].unidades *
@@ -1020,7 +1021,7 @@ export class NuevaPromocion {
             regalo: false,
             promocion: null,
             unidades: ticket.cesta.lista[i].unidades *
-              ticket.cesta.lista[i].promocion.cantidadArticuloSecundario,
+              ticket.cesta.lista[i].promocion.cantidadArticuloSecundario*valor,
             subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloSecundario *
               ticket.cesta.lista[i].unidades *
@@ -1039,7 +1040,7 @@ export class NuevaPromocion {
             regalo: false,
             promocion: null,
             unidades: ticket.cesta.lista[i].unidades *
-              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
+              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal*valor,
             subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
               ticket.cesta.lista[i].unidades *
