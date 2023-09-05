@@ -223,18 +223,6 @@ export class Encargos {
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
     await impresoraInstance.imprimirEncargo(encargoCopia);
 
-    // insertamos las ids insertadas en la tabla utilizada a los productos
-    let j = 0;
-
-    for (let i = 0; i < encargo.productos.length; i++) {
-      encargo.productos[i].idGraella = data.ids[data.ids.length - (j + 1)].id;
-      j++;
-      if (encargo.productos[i]?.promocion?.idArticuloSecundario != null) {
-        encargo.productos[i].idGraellaPromoArtSecundario =
-          data.ids[data.ids.length - (j + 1)].id;
-        j++;
-      }
-    }
     // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
@@ -254,27 +242,20 @@ export class Encargos {
 
     if (!encargo) return false;
 
-    // recorremos los productos del encargo para añadir las idsGraellas a un array
-    const idGraellas = encargo.productos
-      .map((producto) => {
-        const ids = [];
-
-        if (producto.idGraella) {
-          ids.push(producto.idGraella);
-        }
-
-        if (producto?.idGraellaPromoArtSecundario) {
-          ids.push(producto.idGraellaPromoArtSecundario);
-        }
-
-        return ids;
-      })
-      .flat();
-
     let encargoGraella = {
-      ids: idGraellas,
+      tmStmp: encargo.timestamp,
       bbdd: parametros.database,
-      fecha: encargo.fecha,
+      id:await this.generateId(
+        this.getDate(
+          encargo.opcionRecogida,
+          encargo.fecha,
+          encargo.hora,
+          "YYYYMMDDHHmmss",
+          encargo.amPm
+        ),
+        encargo.idTrabajador.toString(),
+        parametros
+      ),
     };
     //  se envia el encargo a bbdd para actualizar el registro
     const { data }: any = await axios
@@ -315,28 +296,20 @@ export class Encargos {
     const parametros = await parametrosInstance.getParametros();
 
     if (encargo) {
-      // recorremos los productos del encargo para añadir las idsGraellas a un array
-
-      const idGraellas = encargo.productos
-        .map((producto) => {
-          const ids = [];
-
-          if (producto.idGraella) {
-            ids.push(producto.idGraella);
-          }
-
-          if (producto?.idGraellaPromoArtSecundario) {
-            ids.push(producto.idGraellaPromoArtSecundario);
-          }
-
-          return ids;
-        })
-        .flat();
-
       let encargoGraella = {
-        ids: idGraellas,
+        tmStmp: encargo.timestamp,
         bbdd: parametros.database,
-        fecha: encargo.fecha,
+        id:await this.generateId(
+          this.getDate(
+            encargo.opcionRecogida,
+            encargo.fecha,
+            encargo.hora,
+            "YYYYMMDDHHmmss",
+            encargo.amPm
+          ),
+          encargo.idTrabajador.toString(),
+          parametros
+        ),
       };
       // borrara el registro del encargo en la bbdd
       const { data }: any = await axios
@@ -363,11 +336,13 @@ export class Encargos {
     format: string,
     amPm: string | null
   ) {
+    console.log(hora)
     if (tipo === OpcionRecogida.HOY && format !== "YYYYMMDDHHmmss") {
       fecha = moment(Date.now()).format("YYYY-MM-DD");
       hora = moment(Date.now())
         .set({ hour: amPm === "am" ? 12 : 17, minute: 0 })
         .format("HH:mm");
+        console.log(hora)
       return moment(new Date(`${fecha}:${hora}`).getTime()).format(format);
     }
 
