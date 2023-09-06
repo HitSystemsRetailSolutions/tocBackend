@@ -416,6 +416,7 @@ export class CestaClase {
           arraySuplementos: arraySuplementos,
           promocion: null,
           regalo: false,
+          puntos: articulo.puntos,
           subtotal: unidades * articulo.precioConIva,
           unidades: unidades,
           gramos: gramos,
