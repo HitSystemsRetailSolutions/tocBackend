@@ -89,7 +89,7 @@ export class NuevaPromocion {
     }
 
     for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idArticulo) {
+      if (cesta.lista[i].idArticulo === idArticulo && !cesta.lista[i].regalo) {
         unidadesTotales += cesta.lista[i].unidades;
         index1 = i;
         break;
@@ -585,6 +585,7 @@ export class NuevaPromocion {
                   if (
                     this.promosCombo[i].principal[k] ===
                       cesta.lista[c].idArticulo &&
+                    !cesta.lista[c].regalo &&
                     // comprovar si la promocion esta activada hoy
                     (await this.comprovarIntervaloFechas(this.promosCombo[i]))
                   ) {
@@ -623,6 +624,7 @@ export class NuevaPromocion {
                   if (
                     this.promosCombo[i].secundario[k] ===
                       cesta.lista[c].idArticulo &&
+                    !cesta.lista[c].regalo &&
                     // comprovar si la promocion esta activada hoy
                     (await this.comprovarIntervaloFechas(this.promosCombo[i]))
                   ) {
@@ -659,7 +661,7 @@ export class NuevaPromocion {
     idIgnorarArticulo: number
   ): MediaPromoEncontrada {
     for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idIgnorarArticulo) continue;
+      if (cesta.lista[i].idArticulo === idIgnorarArticulo || cesta.lista[i].regalo) continue;
       for (
         let j = 0;
         j < this.promosCombo[mediaPromo.indexPromo].secundario.length;
@@ -698,7 +700,7 @@ export class NuevaPromocion {
     idIgnorarArticulo: number
   ): MediaPromoEncontrada {
     for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idIgnorarArticulo) continue;
+      if (cesta.lista[i].idArticulo === idIgnorarArticulo || (cesta.lista[i].regalo)) continue;
       for (
         let j = 0;
         j < this.promosCombo[mediaPromo.indexPromo].principal.length;
@@ -769,6 +771,7 @@ export class NuevaPromocion {
           precioRealArticuloPrincipal: data.precioUnidad,
           precioRealArticuloSecundario: null,
         },
+        puntos: 0
       });
     }
   }
@@ -798,7 +801,8 @@ export class NuevaPromocion {
         nombre: `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`,
         regalo: false,
         puntos: null,
-        subtotal: data.precioPromoUnitario * data.seAplican, // No será necesario, se hace desde el recalcularIvas Cesta
+        subtotal: data.precioPromoUnitario * data.seAplican,
+
         promocion: {
           idPromocion: data.idPromocion,
           tipoPromo: "COMBO",
@@ -810,6 +814,7 @@ export class NuevaPromocion {
           precioRealArticuloPrincipal: preciosReales.precioRealPrincipal,
           precioRealArticuloSecundario: preciosReales.precioRealSecundario,
         },
+        puntos: 0
       });
     }
   }
@@ -943,6 +948,7 @@ export class NuevaPromocion {
       regalo: false,
       subtotal: null,
       unidades: data.sobran,
+      puntos: 0
     });
   }
 
@@ -960,6 +966,7 @@ export class NuevaPromocion {
       regalo: false,
       subtotal: null,
       unidades: data.sobranPrincipal,
+      puntos: 0
     });
   }
   private aplicarSobraComboSecundario(
@@ -976,6 +983,7 @@ export class NuevaPromocion {
       regalo: false,
       subtotal: null,
       unidades: data.sobranSecundario,
+      puntos: 0
     });
   }
 
@@ -1001,16 +1009,16 @@ export class NuevaPromocion {
             regalo: false,
             puntos: null,
             promocion: null,
-            unidades:
-              ticket.cesta.lista[i].unidades *
+            unidades: ticket.cesta.lista[i].unidades *
               ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
             subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
-                ticket.cesta.lista[i].unidades *
-                ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
+              ticket.cesta.lista[i].unidades *
+              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
               2
             ),
             nombre: "ArtículoDentroDePromoP",
+            puntos: 0
           });
           ticket.cesta.lista.push({
             arraySuplementos: null,
@@ -1019,16 +1027,16 @@ export class NuevaPromocion {
             regalo: false,
             puntos: null,
             promocion: null,
-            unidades:
-              ticket.cesta.lista[i].unidades *
+            unidades: ticket.cesta.lista[i].unidades *
               ticket.cesta.lista[i].promocion.cantidadArticuloSecundario,
             subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloSecundario *
-                ticket.cesta.lista[i].unidades *
-                ticket.cesta.lista[i].promocion.cantidadArticuloSecundario,
+              ticket.cesta.lista[i].unidades *
+              ticket.cesta.lista[i].promocion.cantidadArticuloSecundario,
               2
             ),
             nombre: "ArtículoDentroDePromoS",
+            puntos: 0
           });
           ticket.cesta.lista.splice(i, 1);
         } else if (ticket.cesta.lista[i].promocion.tipoPromo === "INDIVIDUAL") {
@@ -1039,16 +1047,16 @@ export class NuevaPromocion {
             idArticulo: ticket.cesta.lista[i].promocion.idArticuloPrincipal,
             regalo: false,
             promocion: null,
-            unidades:
-              ticket.cesta.lista[i].unidades *
+            unidades: ticket.cesta.lista[i].unidades *
               ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
             subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
-                ticket.cesta.lista[i].unidades *
-                ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
+              ticket.cesta.lista[i].unidades *
+              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
               2
             ),
             nombre: "ArtículoDentroDePromoI",
+            puntos: 0
           });
           ticket.cesta.lista.splice(i, 1);
         } else
