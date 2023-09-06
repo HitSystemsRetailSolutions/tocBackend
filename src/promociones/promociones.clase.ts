@@ -771,7 +771,7 @@ export class NuevaPromocion {
           precioRealArticuloPrincipal: data.precioUnidad,
           precioRealArticuloSecundario: null,
         },
-        puntos: 0
+        
       });
     }
   }
@@ -814,7 +814,7 @@ export class NuevaPromocion {
           precioRealArticuloPrincipal: preciosReales.precioRealPrincipal,
           precioRealArticuloSecundario: preciosReales.precioRealSecundario,
         },
-        puntos: 0
+        
       });
     }
   }
@@ -948,7 +948,7 @@ export class NuevaPromocion {
       regalo: false,
       subtotal: null,
       unidades: data.sobran,
-      puntos: 0
+      
     });
   }
 
@@ -966,7 +966,6 @@ export class NuevaPromocion {
       regalo: false,
       subtotal: null,
       unidades: data.sobranPrincipal,
-      puntos: 0
     });
   }
   private aplicarSobraComboSecundario(
@@ -979,11 +978,11 @@ export class NuevaPromocion {
       idArticulo: data.idArticuloSecundario,
       nombre: data.nombreSecundario,
       promocion: null,
-      puntos: null,
+      puntos:null,
       regalo: false,
       subtotal: null,
       unidades: data.sobranSecundario,
-      puntos: 0
+      
     });
   }
 
@@ -1018,7 +1017,7 @@ export class NuevaPromocion {
               2
             ),
             nombre: "ArtículoDentroDePromoP",
-            puntos: 0
+            
           });
           ticket.cesta.lista.push({
             arraySuplementos: null,
@@ -1036,7 +1035,7 @@ export class NuevaPromocion {
               2
             ),
             nombre: "ArtículoDentroDePromoS",
-            puntos: 0
+            
           });
           ticket.cesta.lista.splice(i, 1);
         } else if (ticket.cesta.lista[i].promocion.tipoPromo === "INDIVIDUAL") {
@@ -1056,7 +1055,7 @@ export class NuevaPromocion {
               2
             ),
             nombre: "ArtículoDentroDePromoI",
-            puntos: 0
+            
           });
           ticket.cesta.lista.splice(i, 1);
         } else

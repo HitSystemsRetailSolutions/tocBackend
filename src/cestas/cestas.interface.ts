@@ -16,7 +16,6 @@ export interface CestasInterface {
 }
 
 export type ItemLista = {
-  puntos: number;
   idArticulo: number;
   nombre: string;
   unidades: number;
