@@ -245,14 +245,8 @@ export class Encargos {
     let encargoGraella = {
       tmStmp: encargo.timestamp,
       bbdd: parametros.database,
-      id:await this.generateId(
-        this.getDate(
-          encargo.opcionRecogida,
-          encargo.fecha,
-          encargo.hora,
-          "YYYYMMDDHHmmss",
-          encargo.amPm
-        ),
+      id: await this.generateId(
+        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
         encargo.idTrabajador.toString(),
         parametros
       ),
@@ -299,14 +293,8 @@ export class Encargos {
       let encargoGraella = {
         tmStmp: encargo.timestamp,
         bbdd: parametros.database,
-        id:await this.generateId(
-          this.getDate(
-            encargo.opcionRecogida,
-            encargo.fecha,
-            encargo.hora,
-            "YYYYMMDDHHmmss",
-            encargo.amPm
-          ),
+        id: await this.generateId(
+          moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
           encargo.idTrabajador.toString(),
           parametros
         ),
@@ -336,13 +324,11 @@ export class Encargos {
     format: string,
     amPm: string | null
   ) {
-    console.log(hora)
     if (tipo === OpcionRecogida.HOY && format !== "YYYYMMDDHHmmss") {
       fecha = moment(Date.now()).format("YYYY-MM-DD");
       hora = moment(Date.now())
         .set({ hour: amPm === "am" ? 12 : 17, minute: 0 })
         .format("HH:mm");
-        console.log(hora)
       return moment(new Date(`${fecha}:${hora}`).getTime()).format(format);
     }
 
