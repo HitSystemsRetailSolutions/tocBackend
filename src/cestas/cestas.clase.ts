@@ -409,6 +409,7 @@ export class CestaClase {
           arraySuplementos: arraySuplementos,
           promocion: null,
           regalo: false,
+          puntos: articulo.puntos,
           subtotal: unidades * articulo.precioConIva,
           unidades: unidades,
           gramos: gramos,
@@ -835,30 +836,29 @@ export class CestaClase {
     productos: CestasInterface["lista"]
   ) {
     try {
-    let cliente: number =
-      (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
-      undefined
-        ? 0
-        : Number(
-            (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
-          );
-    let parametros = await parametrosInstance.getParametros();
+      let cliente: number =
+        (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
+        undefined
+          ? 0
+          : Number(
+              (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
+            );
+      let parametros = await parametrosInstance.getParametros();
 
-    let lista = {
-      timestamp: new Date().getTime(),
-      botiga: parametros.codigoTienda,
-      bbdd: parametros.database,
-      accio: "ArticleEsborrat",
-      productos: productos,
-      dependienta: cesta.trabajador,
-      descuento: cliente,
-      idCliente: cesta.idCliente,
-    };
+      let lista = {
+        timestamp: new Date().getTime(),
+        botiga: parametros.codigoTienda,
+        bbdd: parametros.database,
+        accio: "ArticleEsborrat",
+        productos: productos,
+        dependienta: cesta.trabajador,
+        descuento: cliente,
+        idCliente: cesta.idCliente,
+      };
 
-    await axios
-      .post("lista/setRegistro", {
+      await axios.post("lista/setRegistro", {
         lista: lista,
-      })
+      });
     } catch (error) {
       console.error("Error al enviar el registro a Santa Ana:", error.message);
     }

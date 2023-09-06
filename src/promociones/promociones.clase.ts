@@ -757,6 +757,7 @@ export class NuevaPromocion {
         nombre: "Promo. " + data.nombreArticulo,
         regalo: false,
         subtotal: Number(data.precioConIva.toFixed(2)),
+        puntos: null,
         promocion: {
           idPromocion: data.idPromocion,
           tipoPromo: "INDIVIDUAL",
@@ -796,6 +797,7 @@ export class NuevaPromocion {
         unidades: data.seAplican,
         nombre: `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`,
         regalo: false,
+        puntos: null,
         subtotal: data.precioPromoUnitario * data.seAplican, // No será necesario, se hace desde el recalcularIvas Cesta
         promocion: {
           idPromocion: data.idPromocion,
@@ -937,6 +939,7 @@ export class NuevaPromocion {
       idArticulo,
       nombre: data.nombreArticulo,
       promocion: null,
+      puntos: null,
       regalo: false,
       subtotal: null,
       unidades: data.sobran,
@@ -953,6 +956,7 @@ export class NuevaPromocion {
       idArticulo: data.idArticuloPrincipal,
       nombre: data.nombrePrincipal,
       promocion: null,
+      puntos: null,
       regalo: false,
       subtotal: null,
       unidades: data.sobranPrincipal,
@@ -968,6 +972,7 @@ export class NuevaPromocion {
       idArticulo: data.idArticuloSecundario,
       nombre: data.nombreSecundario,
       promocion: null,
+      puntos: null,
       regalo: false,
       subtotal: null,
       unidades: data.sobranSecundario,
@@ -994,6 +999,7 @@ export class NuevaPromocion {
             gramos: null,
             idArticulo: ticket.cesta.lista[i].promocion.idArticuloPrincipal,
             regalo: false,
+            puntos: null,
             promocion: null,
             unidades:
               ticket.cesta.lista[i].unidades *
@@ -1011,6 +1017,7 @@ export class NuevaPromocion {
             gramos: null,
             idArticulo: ticket.cesta.lista[i].promocion.idArticuloSecundario,
             regalo: false,
+            puntos: null,
             promocion: null,
             unidades:
               ticket.cesta.lista[i].unidades *
@@ -1028,6 +1035,7 @@ export class NuevaPromocion {
           ticket.cesta.lista.push({
             arraySuplementos: null,
             gramos: null,
+            puntos: null,
             idArticulo: ticket.cesta.lista[i].promocion.idArticuloPrincipal,
             regalo: false,
             promocion: null,

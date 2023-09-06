@@ -39,6 +39,7 @@ export async function insertarArticulosNuevos(
       tipoIva: tipoIva,
       esSumable: esSumable,
       familia: menus,
+      puntos: null,
       precioBase: precioBase,
       _id: id["_id"] + 1,
       suplementos: null,
