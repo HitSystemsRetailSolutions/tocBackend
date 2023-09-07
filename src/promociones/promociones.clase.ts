@@ -53,11 +53,9 @@ export class NuevaPromocion {
     try {
       let resPromos: any = await axios
         .get("promociones/getPromociones")
-        .catch((e) => {
-          console.log(e);
-        });
+        .catch((e) => {});
 
-      resPromos = resPromos.data as PromocionesInterface[];
+      resPromos = resPromos?.data as PromocionesInterface[];
       if (resPromos && resPromos.length > 0) {
         return await schPromociones.insertarPromociones(resPromos);
       }
@@ -91,7 +89,7 @@ export class NuevaPromocion {
     }
 
     for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idArticulo) {
+      if (cesta.lista[i].idArticulo === idArticulo && !cesta.lista[i].regalo) {
         unidadesTotales += cesta.lista[i].unidades;
         index1 = i;
         break;
@@ -587,6 +585,7 @@ export class NuevaPromocion {
                   if (
                     this.promosCombo[i].principal[k] ===
                       cesta.lista[c].idArticulo &&
+                    !cesta.lista[c].regalo &&
                     // comprovar si la promocion esta activada hoy
                     (await this.comprovarIntervaloFechas(this.promosCombo[i]))
                   ) {
@@ -625,6 +624,7 @@ export class NuevaPromocion {
                   if (
                     this.promosCombo[i].secundario[k] ===
                       cesta.lista[c].idArticulo &&
+                    !cesta.lista[c].regalo &&
                     // comprovar si la promocion esta activada hoy
                     (await this.comprovarIntervaloFechas(this.promosCombo[i]))
                   ) {
@@ -661,7 +661,7 @@ export class NuevaPromocion {
     idIgnorarArticulo: number
   ): MediaPromoEncontrada {
     for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idIgnorarArticulo) continue;
+      if (cesta.lista[i].idArticulo === idIgnorarArticulo || cesta.lista[i].regalo) continue;
       for (
         let j = 0;
         j < this.promosCombo[mediaPromo.indexPromo].secundario.length;
@@ -700,7 +700,7 @@ export class NuevaPromocion {
     idIgnorarArticulo: number
   ): MediaPromoEncontrada {
     for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idIgnorarArticulo) continue;
+      if (cesta.lista[i].idArticulo === idIgnorarArticulo || (cesta.lista[i].regalo)) continue;
       for (
         let j = 0;
         j < this.promosCombo[mediaPromo.indexPromo].principal.length;
@@ -759,6 +759,7 @@ export class NuevaPromocion {
         nombre: "Promo. " + data.nombreArticulo,
         regalo: false,
         subtotal: Number(data.precioConIva.toFixed(2)),
+        puntos: null,
         promocion: {
           idPromocion: data.idPromocion,
           tipoPromo: "INDIVIDUAL",
@@ -770,6 +771,7 @@ export class NuevaPromocion {
           precioRealArticuloPrincipal: data.precioUnidad,
           precioRealArticuloSecundario: null,
         },
+        
       });
     }
   }
@@ -798,7 +800,9 @@ export class NuevaPromocion {
         unidades: data.seAplican,
         nombre: `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`,
         regalo: false,
-        subtotal: data.precioPromoUnitario * data.seAplican, // No será necesario, se hace desde el recalcularIvas Cesta
+        puntos: null,
+        subtotal: data.precioPromoUnitario * data.seAplican,
+
         promocion: {
           idPromocion: data.idPromocion,
           tipoPromo: "COMBO",
@@ -810,6 +814,7 @@ export class NuevaPromocion {
           precioRealArticuloPrincipal: preciosReales.precioRealPrincipal,
           precioRealArticuloSecundario: preciosReales.precioRealSecundario,
         },
+        
       });
     }
   }
@@ -939,9 +944,11 @@ export class NuevaPromocion {
       idArticulo,
       nombre: data.nombreArticulo,
       promocion: null,
+      puntos: null,
       regalo: false,
       subtotal: null,
       unidades: data.sobran,
+      
     });
   }
 
@@ -955,6 +962,7 @@ export class NuevaPromocion {
       idArticulo: data.idArticuloPrincipal,
       nombre: data.nombrePrincipal,
       promocion: null,
+      puntos: null,
       regalo: false,
       subtotal: null,
       unidades: data.sobranPrincipal,
@@ -970,9 +978,11 @@ export class NuevaPromocion {
       idArticulo: data.idArticuloSecundario,
       nombre: data.nombreSecundario,
       promocion: null,
+      puntos:null,
       regalo: false,
       subtotal: null,
       unidades: data.sobranSecundario,
+      
     });
   }
 
@@ -988,6 +998,7 @@ export class NuevaPromocion {
 
   /* Eze 4.0 */
   public deshacerPromociones(ticket: TicketsInterface) {
+    let valor = ticket.total<0?-1:1;
     for (let i = 0; i < ticket.cesta.lista.length; i++) {
       if (ticket.cesta.lista[i].promocion) {
         if (ticket.cesta.lista[i].promocion.tipoPromo === "COMBO") {
@@ -996,53 +1007,56 @@ export class NuevaPromocion {
             gramos: null,
             idArticulo: ticket.cesta.lista[i].promocion.idArticuloPrincipal,
             regalo: false,
+            puntos: null,
             promocion: null,
-            unidades:
-              ticket.cesta.lista[i].unidades *
-              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
+            unidades: ticket.cesta.lista[i].unidades *
+              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal*valor,//unidades pierde el simbolo negativo cuando es un ticket anulado y se le multiplica -1
             subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
-                ticket.cesta.lista[i].unidades *
-                ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
+              ticket.cesta.lista[i].unidades *
+              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
               2
             ),
             nombre: "ArtículoDentroDePromoP",
+            
           });
           ticket.cesta.lista.push({
             arraySuplementos: null,
             gramos: null,
             idArticulo: ticket.cesta.lista[i].promocion.idArticuloSecundario,
             regalo: false,
+            puntos: null,
             promocion: null,
-            unidades:
-              ticket.cesta.lista[i].unidades *
-              ticket.cesta.lista[i].promocion.cantidadArticuloSecundario,
+            unidades: ticket.cesta.lista[i].unidades *
+              ticket.cesta.lista[i].promocion.cantidadArticuloSecundario*valor,
             subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloSecundario *
-                ticket.cesta.lista[i].unidades *
-                ticket.cesta.lista[i].promocion.cantidadArticuloSecundario,
+              ticket.cesta.lista[i].unidades *
+              ticket.cesta.lista[i].promocion.cantidadArticuloSecundario,
               2
             ),
             nombre: "ArtículoDentroDePromoS",
+            
           });
           ticket.cesta.lista.splice(i, 1);
         } else if (ticket.cesta.lista[i].promocion.tipoPromo === "INDIVIDUAL") {
           ticket.cesta.lista.push({
             arraySuplementos: null,
             gramos: null,
+            puntos: null,
             idArticulo: ticket.cesta.lista[i].promocion.idArticuloPrincipal,
             regalo: false,
             promocion: null,
-            unidades:
-              ticket.cesta.lista[i].unidades *
-              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
+            unidades: ticket.cesta.lista[i].unidades *
+              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal*valor,
             subtotal: this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
-                ticket.cesta.lista[i].unidades *
-                ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
+              ticket.cesta.lista[i].unidades *
+              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
               2
             ),
             nombre: "ArtículoDentroDePromoI",
+            
           });
           ticket.cesta.lista.splice(i, 1);
         } else

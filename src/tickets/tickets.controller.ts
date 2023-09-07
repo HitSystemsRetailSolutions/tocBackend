@@ -77,6 +77,7 @@ export class TicketsController {
         cestaEncargo.cesta,
         tipo === "CONSUMO_PERSONAL",
         false,
+        false,
         dejaCuenta
       );
 
@@ -105,6 +106,7 @@ export class TicketsController {
       return false;
     }
   }
+  redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
 
   /* Eze 4.0 */
   @Post("crearTicket")
@@ -134,13 +136,29 @@ export class TicketsController {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
+      let descuento: any = Number(
+        (await clienteInstance.isClienteDescuento(cesta.idCliente))?.descuento
+      );
+      if (descuento && descuento > 0) {
+        cesta.lista.forEach((producto) => {
+          if (producto.arraySuplementos!=null) {
+            producto.subtotal=this.redondearPrecio((producto.subtotal-(producto.subtotal*descuento/100)));
+          }
+          else if (producto.promocion == null)
+            producto.subtotal = this.redondearPrecio(
+              producto.subtotal - (producto.subtotal * descuento) / 100
+            ); // Modificamos el total para añadir el descuento especial del cliente
+        });
+      }
       const d3G = tipo === "DATAFONO_3G";
+      const paytef = false;
       const ticket = await ticketsInstance.generarNuevoTicket(
         total,
         idTrabajador,
         cesta,
         tipo === "CONSUMO_PERSONAL",
         d3G,
+        paytef,
         null
       );
 

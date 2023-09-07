@@ -11,6 +11,7 @@ export interface TicketsInterface {
   total: number;
   dejaCuenta?: number;
   datafono3G: boolean;
+  paytef: boolean;
   cesta: CestasInterface;
   idTrabajador: number;
   idCliente: ClientesInterface["id"];

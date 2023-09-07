@@ -16,6 +16,8 @@ import { impresoraInstance } from "../impresora/impresora.class";
 import { io } from "../sockets.gateway";
 import { cestasInstance } from "../cestas/cestas.clase";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
+import { parametrosInstance } from "src/parametros/parametros.clase";
+import * as moment from "moment";
 
 export class CajaClase {
   /* Eze 4.0 */
@@ -77,6 +79,7 @@ export class CajaClase {
     detalleCierre: CajaCerradaInterface["detalleCierre"],
     guardarInfoMonedas: MonedasInterface["array"],
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
+    cantidadPaytef: CajaCerradaInterface["cantidadPaytef"],
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     inicioTime?: CajaAbiertaInterface["inicioTime"]
   ): Promise<boolean> {
@@ -84,6 +87,7 @@ export class CajaClase {
       throw Error("Error al cerrar caja: La caja ya está cerrada");
 
     cestasInstance.actualizarCestas();
+    parametrosInstance.setContadoDatafono(1, 0);
     const finalTime = await this.getFechaCierre(inicioTime);
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
     const cajaCerradaActual = await this.getDatosCierre(
@@ -91,6 +95,7 @@ export class CajaClase {
       totalCierre,
       detalleCierre,
       idDependientaCierre,
+      cantidadPaytef,
       totalDatafono3G,
       finalTime.time
     );
@@ -172,7 +177,7 @@ export class CajaClase {
 
   getFechaCierre(inicioTime?: CajaAbiertaInterface["inicioTime"]) {
     let d;
-    if(inicioTime){
+    if (inicioTime) {
       d = new Date(inicioTime);
     } else {
       d = new Date();
@@ -180,12 +185,18 @@ export class CajaClase {
     return schCajas.getComprovarTurno().then((res) => {
       if (res.estado) {
         return { time: res.time, estadoTurno: true };
-      } else if(inicioTime) {
+      } else if (inicioTime) {
         d.setHours(23, 59, 59);
         return { time: d.getTime(), estadoTurno: false };
       } else {
         return { time: d.getTime(), estadoTurno: false };
       }
+    });
+  }
+
+  async getInicioTime() {
+    return schCajas.getApeturaCaja().then(async (res) => {
+      return moment(res.inicioTime).format("DD/M/YYYY HH:mm:ss");
     });
   }
 
@@ -235,6 +246,7 @@ export class CajaClase {
     totalCierre: CajaCerradaInterface["totalCierre"],
     detalleCierre: CajaCerradaInterface["detalleCierre"],
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
+    cantidadPaytef: CajaCerradaInterface["cantidadPaytef"],
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
     finalTime: CajaCerradaInterface["finalTime"]
   ): Promise<CajaCerradaInterface> {
@@ -274,10 +286,6 @@ export class CajaClase {
         //   totalEntradas += arrayMovimientos[i].valor;
         //   totalEfectivo += arrayMovimientos[i].valor;
         //   break;
-        case "TARJETA":
-          totalSalidas += arrayMovimientos[i].valor;
-          totalTarjeta += arrayMovimientos[i].valor;
-          break;
         case "TKRS_CON_EXCESO":
           totalTkrsConExceso += arrayMovimientos[i].valor;
           break;
@@ -334,11 +342,11 @@ export class CajaClase {
         (cajaAbiertaActual.totalApertura +
           totalTickets +
           totalEntradaDinero -
-          (totalDatafono3G + totalSalidas + totalCierre)) *
+          (totalDatafono3G + totalSalidas + totalCierre + cantidadPaytef)) *
         -1
       ).toFixed(2)
     );
-
+    console.log(">>>> 2: ", cantidadPaytef);
     recaudado = totalTickets + descuadre;
     return {
       calaixFetZ: totalTickets,
@@ -356,6 +364,7 @@ export class CajaClase {
       recaudado,
       totalCierre,
       totalDatafono3G,
+      cantidadPaytef,
       totalTicketDatafono3G,
       totalDeuda,
       totalEfectivo,
