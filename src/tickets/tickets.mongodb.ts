@@ -322,7 +322,7 @@ export async function anularTicket(
           element.promocion.unidadesOferta *= -1;
           element.promocion.cantidadArticuloPrincipal *= -1;
           if (element.promocion.cantidadArticuloSecundario != null) {
-            element.promocion.cantidadArticuloPrincipal *= -1;
+            element.promocion.cantidadArticuloSecundario *= -1;
           }
           if (element.promocion.precioRealArticuloSecundario != null) {
             element.promocion.precioRealArticuloSecundario *= -1;
