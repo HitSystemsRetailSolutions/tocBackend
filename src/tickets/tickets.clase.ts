@@ -85,13 +85,12 @@ export class TicketsClase {
 
     for (let i = 0; i < ticket.cesta.lista.length; i++) {
       if (ticket.cesta.lista[i].regalo === true) {
-        let puntos = (
-          await articulosInstance.getInfoArticulo(
-            ticket.cesta.lista[i].idArticulo
-          )
-        ).precioConIva * ticket.cesta.lista[i].unidades;
-        ticket.cesta.lista[i].puntos= convertirDineroEnPuntos(puntos)
-        cantidadRegalada += puntos
+        // let puntos = (
+        //   await articulosInstance.getInfoArticulo(
+        //     ticket.cesta.lista[i].idArticulo
+        //   )
+        // ).precioConIva * ticket.cesta.lista[i].unidades;
+        cantidadRegalada += ticket.cesta.lista[i].puntos;
           
       }
     }
@@ -100,7 +99,7 @@ export class TicketsClase {
       const resDescuento: any = await axios
         .post("clientes/descontarPuntos", {
           idCliente: ticket.cesta.idCliente,
-          puntos: convertirDineroEnPuntos(cantidadRegalada),
+          puntos: cantidadRegalada,
         })
         .catch((e) => {
           console.log(e);

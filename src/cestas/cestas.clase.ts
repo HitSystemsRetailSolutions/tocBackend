@@ -380,6 +380,7 @@ export class CestaClase {
             }
             if (igual == cesta.lista[i].arraySuplementos.length) {
               cesta.lista[i].unidades += unidades;
+              cesta.lista[i].puntos += articulo.puntos;
               cesta.lista[i].subtotal =
                 nuevaInstancePromociones.redondearDecimales(
                   cesta.lista[i].subtotal + unidades * articulo.precioConIva,
@@ -394,6 +395,7 @@ export class CestaClase {
             cesta.lista[i].regalo == regalar
           ) {
             cesta.lista[i].unidades += unidades;
+            cesta.lista[i].puntos += articulo.puntos;
             if (!regalar) {
               cesta.lista[i].subtotal = Number(
                 (
@@ -452,15 +454,6 @@ export class CestaClase {
     menu: string,
     regalar: boolean = false
   ) {
-    console.log(
-      idArticulo,
-      gramos,
-      idCesta,
-      unidades,
-      arraySuplementos,
-      nombre,
-      menu
-    );
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
       const cesta = await cestasInstance.getCestaById(idCesta);
@@ -497,7 +490,7 @@ export class CestaClase {
         regalar
       );
     }
-    console.log("error");
+
     throw Error(
       "Error, la caja está cerrada. cestas.clase > clickTeclaArticulo()"
     );

@@ -800,7 +800,7 @@ export class NuevaPromocion {
         unidades: data.seAplican,
         nombre: `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`,
         regalo: false,
-        puntos: null,
+        puntos: articuloPrincipal.puntos+articuloSecundario.puntos,
         subtotal: data.precioPromoUnitario * data.seAplican,
 
         promocion: {
