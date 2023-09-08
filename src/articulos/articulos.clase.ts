@@ -23,6 +23,10 @@ export class Articulos {
     await schArticulos.getInfoArticulo(idArticulo);
 
   /* Eze 4.0 */
+  getArticulos = async (): Promise<ArticulosInterface[]> =>
+    await schArticulos.getArticulos();
+
+  /* Eze 4.0 */
   buscarArticulos = async (busqueda: string) =>
     await schArticulos.buscar(busqueda);
 

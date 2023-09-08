@@ -177,6 +177,7 @@ export class TecladoClase {
   async generarTecladoCompleto() {
     const teclas = await schTeclas.getTeclas();
     const tarifas = await tarifasInstance.allTarifas();
+    const articulos = await articulosInstance.getArticulos();
     const menus = [];
     for (let i = 0; i < teclas.length; i++) {
       let tarifa = tarifas.find(
@@ -187,6 +188,11 @@ export class TecladoClase {
       );
       teclas[i].precioConIva =
         tarifa == undefined ? teclas[i].precioConIva : tarifa.precioConIva;
+      let articulo = articulos.find(
+        (articulo) => articulo._id == teclas[i].idArticle
+      );
+      if (articulo.precioConIva != teclas[i].precioConIva)
+        teclas[i].precioConIva = articulo.precioConIva;
       if (this.tienePrefijoSubmenu(teclas[i].nomMenu)) {
         this.addTeclaConSubmenu(
           menus,
