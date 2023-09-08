@@ -454,15 +454,6 @@ export class CestaClase {
     menu: string,
     regalar: boolean = false
   ) {
-    console.log(
-      idArticulo,
-      gramos,
-      idCesta,
-      unidades,
-      arraySuplementos,
-      nombre,
-      menu
-    );
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
       const cesta = await cestasInstance.getCestaById(idCesta);
