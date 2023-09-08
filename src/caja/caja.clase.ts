@@ -346,7 +346,6 @@ export class CajaClase {
         -1
       ).toFixed(2)
     );
-    console.log(">>>> 2: ", cantidadPaytef);
     recaudado = totalTickets + descuadre;
     return {
       calaixFetZ: totalTickets,

@@ -11,6 +11,13 @@ export async function getInfoArticulo(
   return await articulos.findOne({ _id: idArticulo });
 }
 
+/* Uri */
+export async function getArticulos(): Promise<ArticulosInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const articulos = database.collection<ArticulosInterface>("articulos");
+  return await articulos.find({}).toArray();
+}
+
 /* Eze 4.0 */
 export async function insertarArticulos(arrayArticulos: ArticulosInterface[]) {
   await borrarArticulos();

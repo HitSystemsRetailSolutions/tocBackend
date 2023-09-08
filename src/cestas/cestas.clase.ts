@@ -452,15 +452,6 @@ export class CestaClase {
     menu: string,
     regalar: boolean = false
   ) {
-    console.log(
-      idArticulo,
-      gramos,
-      idCesta,
-      unidades,
-      arraySuplementos,
-      nombre,
-      menu
-    );
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
       const cesta = await cestasInstance.getCestaById(idCesta);
@@ -911,12 +902,11 @@ export class CestaClase {
       idARegalar = cesta.lista[index].promocion.idArticuloSecundario;
       idNoRegalar = cesta.lista[index].promocion.idArticuloPrincipal;
     }
-    let mismoRegalo=false;
+    let mismoRegalo = false;
     for (let i = 0; i < cesta.lista.length; i++) {
-      if ( cesta.lista[i].regalo && cesta.lista[i].idArticulo==idPromoArtSel ) {
-        mismoRegalo=true;
+      if (cesta.lista[i].regalo && cesta.lista[i].idArticulo == idPromoArtSel) {
+        mismoRegalo = true;
       }
-      
     }
     // primero insertamos la id a regalar una por una
     for (let i = 0; i < unidadesPaRegalar; i++) {
