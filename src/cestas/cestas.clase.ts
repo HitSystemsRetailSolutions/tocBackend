@@ -380,6 +380,7 @@ export class CestaClase {
             }
             if (igual == cesta.lista[i].arraySuplementos.length) {
               cesta.lista[i].unidades += unidades;
+              cesta.lista[i].puntos += articulo.puntos;
               cesta.lista[i].subtotal =
                 nuevaInstancePromociones.redondearDecimales(
                   cesta.lista[i].subtotal + unidades * articulo.precioConIva,
@@ -394,6 +395,7 @@ export class CestaClase {
             cesta.lista[i].regalo == regalar
           ) {
             cesta.lista[i].unidades += unidades;
+            cesta.lista[i].puntos += articulo.puntos;
             if (!regalar) {
               cesta.lista[i].subtotal = Number(
                 (
