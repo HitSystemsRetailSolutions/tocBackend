@@ -497,7 +497,7 @@ export class CestaClase {
         regalar
       );
     }
-    console.log("error");
+
     throw Error(
       "Error, la caja está cerrada. cestas.clase > clickTeclaArticulo()"
     );
