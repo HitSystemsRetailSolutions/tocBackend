@@ -14,6 +14,7 @@ import { impresoraInstance } from "../impresora/impresora.class";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
 import { time } from "console";
 import { clienteInstance } from "src/clientes/clientes.clase";
+import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 
 export class Encargos {
   async pruebaImportar() {
@@ -144,9 +145,12 @@ export class Encargos {
     );
     if (descuento && descuento > 0) {
       encargo.productos.forEach((producto) => {
-        producto.total = this.redondearPrecio(
-          producto.total - (producto.total * descuento) / 100
-        ); // Modificamos el total para añadir el descuento especial del cliente
+        if (producto.id != -1) {
+          producto.total = this.redondearPrecio(
+            producto.total - (producto.total * descuento) / 100
+          );
+        }
+        // Modificamos el total para añadir el descuento especial del cliente
       });
     }
     encargo.producto;
@@ -348,54 +352,163 @@ export class Encargos {
   }
 
   public async insertarEncargos(encargos: any) {
-    // Objeto donde almacenaremos los grupos de objetos por timestamp
-    const timestampAgrupado = {};
+    const idsAgrupados = {};
 
-    // Iteramos sobre cada objeto en el array
-    const promise = encargos.map(async (item) => {
-      const timestamp = item.timestamp;
-
-      // Si el timestamp no está en el objeto timestampAgrupado, lo inicializamos como un array vacío
-      if (!timestampAgrupado[timestamp]) {
-        timestampAgrupado[timestamp] = [];
+    // Iteramos sobre cada objeto en el array y agrupamos por id
+    for (const item of encargos) {
+      const id = item.Id;
+      // Si el id no está en el objeto idsAgrupados, lo inicializamos como un array vacío
+      if (!idsAgrupados[id]) {
+        idsAgrupados[id] = [];
       }
 
-      // Agregamos el objeto actual al grupo correspondiente según su timestamp
-      timestampAgrupado[timestamp].push(item);
-    });
+      // Agregamos el objeto actual al grupo correspondiente según su id
+      idsAgrupados[id].push(item);
+    }
 
-    await Promise.all(promise);
-    // Obtenemos los valores (los arrays de objetos agrupados) del objeto timestampAgrupado
-    let groupedArray = Object.values(timestampAgrupado);
-
+    // Obtenemos los valores (los arrays de objetos agrupados) del objeto idsAgrupados
+    const groupedArray = Object.values(idsAgrupados);
     for (let i = 0; i < groupedArray.length; i++) {
       await this.insertarEncargo(groupedArray[i]);
     }
     return groupedArray;
   }
-  insertarEncargo(encargo: any) {
-    console.log(encargo.length);
-    const mongodbEncargo = {
-      _id: {
-        $oid: "64d220034b02ea6ee475a5dd",
+  async insertarEncargo(encargo: any) {
+    encargo = [
+      {
+        Id: "Id_Enc_20230912104642_842_842_3944",
+        Dependenta: 3944,
+        Client: "[Id:CliBoti_819_20200107103051]",
+        Data: "2023-09-13T11:46:00.000Z",
+        Anticip: 2,
+        Detall:
+          "[DataCreat:2023-09-12 10:46:42.288][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:2][OpcionRec:2][codigoBarras:9884232551483][Dia:13-09-2023][Hora:11:46]",
+        Article: 8573,
+        Quantitat: 1,
+        Import: 1.64,
+        Descompte: "0",
+        Comentari: ";lata",
       },
-      idCliente: "CliBoti_819_20200107103051",
-      nombreCliente: "Hit Systems",
-      opcionRecogida: 1,
-      amPm: "pm",
-      fecha: "2023-08-08",
-      hora: null,
-      dias: [],
-      dejaCuenta: 0,
-      total: 2,
-      productos: [],
-      cesta: {},
-      idTrabajador: 3772,
-      nombreDependienta: "Miguel Cortez Chávez",
-      timestamp: 1691492353101,
-      recogido: false,
-      codigoBarras: "9884232200268",
-    };
+      {
+        Id: "Id_Enc_20230912104642_842_842_3944",
+        Dependenta: 3944,
+        Client: "[Id:CliBoti_819_20200107103051]",
+        Data: "2023-09-13T11:46:00.000Z",
+        Anticip: 2,
+        Detall:
+          "[DataCreat:2023-09-12 10:46:42.288][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:2][OpcionRec:2][codigoBarras:9884232551483][Dia:13-09-2023][Hora:11:46]",
+        Article: 8910,
+        Quantitat: 3,
+        Import: 0.33,
+        Descompte: "0",
+        Comentari: ";PI",
+      },
+      {
+        Id: "Id_Enc_20230912104642_842_842_3944",
+        Dependenta: 3944,
+        Client: "[Id:CliBoti_819_20200107103051]",
+        Data: "2023-09-13T11:46:00.000Z",
+        Anticip: 2,
+        Detall:
+          "[DataCreat:2023-09-12 10:46:42.288][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:2][OpcionRec:2][codigoBarras:9884232551483][PromoArtSec:4203][Dia:13-09-2023][Hora:11:46]",
+        Article: 4203,
+        Quantitat: 1,
+        Import: 0.41,
+        Descompte: "0",
+        Comentari: "promoComboArtSec;PC",
+      },
+      {
+        Id: "Id_Enc_20230912104642_842_842_3944",
+        Dependenta: 3944,
+        Client: "[Id:CliBoti_819_20200107103051]",
+        Data: "2023-09-13T11:46:00.000Z",
+        Anticip: 2,
+        Detall:
+          "[DataCreat:2023-09-12 10:46:42.288][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:2][OpcionRec:2][codigoBarras:9884232551483][PromoArtPrinc:8910][Dia:13-09-2023][Hora:11:46]",
+        Article: 8910,
+        Quantitat: 2,
+        Import: 0.5,
+        Descompte: "0",
+        Comentari: ";PC",
+      },
+      {
+        Id: "Id_Enc_20230912104642_842_842_3944",
+        Dependenta: 3944,
+        Client: "[Id:CliBoti_819_20200107103051]",
+        Data: "2023-09-13T11:46:00.000Z",
+        Anticip: 2,
+        Detall:
+          "[DataCreat:2023-09-12 10:46:42.288][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:2][OpcionRec:2][codigoBarras:9884232551483][suplementos:4020,4180][Dia:13-09-2023][Hora:11:46]",
+        Article: 4178,
+        Quantitat: 1,
+        Import: 1.68,
+        Descompte: "0",
+        Comentari: "4020,4180;S",
+      },
+    ];
+
+    const detallesArray = [];
+    try {
+      // Iterar sobre los objetos y extraer los valores de "Detall" como objetos
+      for (const enc of encargo) {
+        const detallParts = enc.Detall.match(/\[(.*?)\]/g);
+        if (detallParts) {
+          const detallObject = {};
+          for (const part of detallParts) {
+            const [key, value] = part.replace(/[\[\]]/g, "").split(":");
+            detallObject[key] = value;
+          }
+          detallesArray.push(detallObject);
+        }
+      }
+
+      const data = new Date(encargo[0].Data);
+      let fecha = data.toISOString().split("T")[0]; // Formato YYYY-MM-DD
+      let hora = data.toISOString().split("T")[1].split(".")[0].slice(0, 5); // Formato hh:mm
+      let timestamp = detallesArray[0]?.timestamp
+        ? detallesArray[0].timestamp
+        : extraerTimestamp(encargo[0].Id);
+      let opcionRecogida = detallesArray[0]?.OpcionRec
+        ? detallesArray[0]?.OpcionRec
+        : 2;
+      let idCliente = detallesArray[0].Id;
+      let anticipo = encargo[0].Anticip;
+      let idDependenta = encargo[0].Dependenta;
+      let codigoBarras = detallesArray[0].codigoBarras;
+
+      let cesta = getCestaEnc(encargo,detallesArray);
+      let productos = getProductosEnc(encargo, detallesArray);
+      let dependenta = await trabajadoresInstance.getTrabajadorById(
+        idDependenta
+      );
+      let client = await clienteInstance.getClienteById(idCliente);
+      console.log(detallesArray)
+      const mongodbEncargo = {
+        _id: {
+          $oid: "64d220034b02ea6ee475a5dd",
+        },
+        idCliente: idCliente,
+        nombreCliente: client.nombre,
+        opcionRecogida: opcionRecogida,
+        amPm: "pm",
+        fecha: fecha,
+        hora: hora,
+        dias: [],
+        dejaCuenta: anticipo,
+        total: 2,
+        productos: productos,
+        cesta: {},
+        idTrabajador: idDependenta,
+        nombreDependienta: dependenta.nombre,
+        timestamp: timestamp,
+        recogido: false,
+        codigoBarras: codigoBarras,
+      };
+
+      return mongodbEncargo;
+    } catch (error) {
+      console.log("error insertEnc en Mongodb", error);
+    }
   }
 }
 
@@ -417,3 +530,44 @@ function calculoEAN13(codigo: any): any {
   // Devolvemos el resultado
   return codigoBarrasEAN13;
 }
+function extraerTimestamp(Id: any) {
+  const timestampMatch = Id.match(/\d{14}/);
+
+  const timestampStr = timestampMatch[0];
+  const year = timestampStr.substr(0, 4);
+  const month = timestampStr.substr(4, 2);
+  const day = timestampStr.substr(6, 2);
+  const hour = timestampStr.substr(8, 2);
+  const minute = timestampStr.substr(10, 2);
+  const second = timestampStr.substr(12, 2);
+
+  const timestamp = `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+  return new Date(timestamp).getTime(); // Devuelve el timestamp en milisegundos
+}
+function getProductosEnc(encargo: any, detall: any) {
+  const productos = [];
+
+  encargo.forEach((producto) => {
+    const idArticle = producto.Article;
+    const unidades = producto.Quantitat;
+    const importe = parseFloat(producto.Import);
+    const comentario = producto.Comentari;
+
+    const newProducto = {
+      id: idArticle,
+      nombre: "hola", // Puedes reemplazar "hola" con el nombre adecuado
+      total: importe,
+      unidades: unidades,
+      comentario: comentario,
+      arraySuplementos: null,
+      promocion: null,
+    };
+
+    productos.push(newProducto);
+  });
+  return productos;
+}
+function getCestaEnc(encargo: any, detallesArray: any[]) {
+  return "hola";
+}
+

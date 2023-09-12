@@ -101,10 +101,10 @@ export class EncargosController {
     try {
       let encargo = [
         {
-          id: "A76A0E8B-AD06-4103-A16C-DD5ED6BC642A",
+          Id: "A76A0E8B-AD06-4103-A16C-DD5ED6BC642A",
           fechaEntrega: "2023-09-02T12:48:00.000Z",
           timestamp: "2023-08-29 11:48:54.936",
-          detall:
+          Detall:
             "[DataCreat:2023-08-29 11:48:54.936][idServit:A76A0E8B-AD06-4103-A16C-DD5ED6BC642A][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:0][OpcionRec:2][Dia:02-09-2023][Hora:12:48]",
           idArticle: 4195,
           dependienta: 3944,
