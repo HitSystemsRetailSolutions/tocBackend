@@ -63,7 +63,7 @@ export class InstaladorController {
     return await exec(
       "cd /etc/openvpn/client/ && find Auto_linux*.crt",
       (err, stdout, stderr) => {
-        return stdout?.split(".")[0];
+        return "qrinstaller:" + stdout?.split(".")[0];
         console.log("sterr >", stdout);
         console.log("err >", err);
         console.log("st >", stderr);
