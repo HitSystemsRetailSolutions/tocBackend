@@ -60,17 +60,15 @@ export class InstaladorController {
   /* Uri */
   @Post("getCN")
   async getCN() {
-    let result = "si";
-    await exec(
+    return await exec(
       "cd /etc/openvpn/client/ && find Auto_linux*.crt",
       (err, stdout, stderr) => {
-        result = stdout.split(".")[0];
+        return stdout?.split(".")[0];
         console.log("sterr >", stdout);
         console.log("err >", err);
         console.log("st >", stderr);
       }
     );
-    return result;
   }
 
   /* Uri */
