@@ -64,7 +64,7 @@ export class InstaladorController {
     await exec(
       "cd /etc/openvpn/client/ && find Auto_linux*.crt",
       (err, stdout, stderr) => {
-        result = "stdout s";
+        result = stdout.split(".")[0];
         console.log("sterr >", stdout);
         console.log("err >", err);
         console.log("st >", stderr);
