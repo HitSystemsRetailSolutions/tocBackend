@@ -57,20 +57,26 @@ export class InstaladorController {
       logger.Error(93, err);
     }
   }
+
+  getCNpromise(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      exec(
+        "cd /etc/openvpn/client/ && find Auto_linux*.crt",
+        function async(err, stdout, stderr) {
+          if (err) {
+            console.log(err.message);
+            return "";
+          }
+          console.log(stdout);
+          resolve("qrinstaller:" + stdout.split(".")[0]);
+        }
+      );
+    });
+  }
   /* Uri */
   @Post("getCN")
   async getCN() {
-    return await exec(
-      "cd /etc/openvpn/client/ && find Auto_linux*.crt",
-      function async(err, stdout, stderr) {
-        if (err) {
-          console.log(err.message);
-          return "";
-        }
-        console.log(stdout);
-        return "qrinstaller:" + stdout.split(".")[0];
-      }
-    );
+    return await this.getCNpromise();
   }
 
   /* Uri */
