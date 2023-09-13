@@ -112,7 +112,6 @@ export async function getSuplementos(suplementos: ArticulosInterface[]) {
   const database = (await conexion).db("tocgame");
   const articulos = database.collection<ArticulosInterface>("articulos");
   const suplementosData: ArticulosInterface[] = [];
-
   for (const i in suplementos) {
     const artSuplemento = await articulos.findOne({ _id: suplementos[i] });
     if (artSuplemento) suplementosData.push(artSuplemento);

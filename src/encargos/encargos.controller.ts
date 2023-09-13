@@ -96,89 +96,83 @@ export class EncargosController {
       return null;
     }
   }
-  @Post("insertarEncargo")
-  async insertarEncargo() {
+  @Post("insertarEncargos")
+  async insertarEncargos() {
     try {
+      // ejemplo para comprovar la funcion
       let encargo = [
         {
-          Id: "A76A0E8B-AD06-4103-A16C-DD5ED6BC642A",
-          fechaEntrega: "2023-09-02T12:48:00.000Z",
-          timestamp: "2023-08-29 11:48:54.936",
+          Id: "Id_Enc_20230913102155_842_842_3944",
+          Dependenta: 3944,
+          Client: "[Id:CliBoti_819_20200107103051]",
+          Data: "2023-09-14T13:21:00.000Z",
+          Anticip: 1,
           Detall:
-            "[DataCreat:2023-08-29 11:48:54.936][idServit:A76A0E8B-AD06-4103-A16C-DD5ED6BC642A][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:0][OpcionRec:2][Dia:02-09-2023][Hora:12:48]",
-          idArticle: 4195,
-          dependienta: 3944,
-          cliente: "[Id:CliBoti_819_20200107103051]",
-          comentario: ";0",
+            "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][Dia:14-09-2023][Hora:13:21]",
+          Article: 8910,
+          Quantitat: 3,
+          Import: 0.42,
+          Descompte: "0",
+          Comentari: ";0",
         },
         {
-          id: "13B4D77A-7324-47F6-B778-E8E2AE0B1BF3",
-          fechaEntrega: "2023-09-02T12:48:00.000Z",
-          timestamp: "2023-08-29 11:48:54.936",
-          detall:
-            "[DataCreat:2023-08-29 11:48:54.936][idServit:13B4D77A-7324-47F6-B778-E8E2AE0B1BF3][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:0][OpcionRec:2][Dia:02-09-2023][Hora:12:48]",
-          idArticle: 7585,
-          dependienta: 3944,
-          cliente: "[Id:CliBoti_819_20200107103051]",
-          comentario: ";0",
+          Id: "Id_Enc_20230913102155_842_842_3944",
+          Dependenta: 3944,
+          Client: "[Id:CliBoti_819_20200107103051]",
+          Data: "2023-09-14T13:21:00.000Z",
+          Anticip: 1,
+          Detall:
+            "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][PromoArtPrinc:8910][Dia:14-09-2023][Hora:13:21]",
+          Article: 4203,
+          Quantitat: 1,
+          Import: 0.41,
+          Descompte: "0",
+          Comentari: "promoComboArtSec;0",
         },
         {
-          id: "C3D1B0C6-1AAD-4C5A-AE26-552FEA464EC0",
-          fechaEntrega: "2023-09-02T12:48:00.000Z",
-          timestamp: "2023-08-29 11:48:54.936",
-          detall:
-            "[DataCreat:2023-08-29 11:48:54.936][idServit:C3D1B0C6-1AAD-4C5A-AE26-552FEA464EC0][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:0][OpcionRec:2][Dia:02-09-2023][Hora:12:48]",
-          idArticle: 4187,
-          dependienta: 3944,
-          cliente: "[Id:CliBoti_819_20200107103051]",
-          comentario: ";0",
+          Id: "Id_Enc_20230913102155_842_842_3944",
+          Dependenta: 3944,
+          Client: "[Id:CliBoti_819_20200107103051]",
+          Data: "2023-09-14T13:21:00.000Z",
+          Anticip: 1,
+          Detall:
+            "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][PromoArtSec:4203][Dia:14-09-2023][Hora:13:21]",
+          Article: 8910,
+          Quantitat: 2,
+          Import: 0.63,
+          Descompte: "0",
+          Comentari: ";0",
         },
         {
-          id: "40B6107D-38E6-406A-B522-2DE1B8BA18F9",
-          fechaEntrega: "2023-09-02T12:48:00.000Z",
-          timestamp: "2023-08-29 11:48:54.936",
-          detall:
-            "[DataCreat:2023-08-29 11:48:54.936][idServit:40B6107D-38E6-406A-B522-2DE1B8BA18F9][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:0][OpcionRec:2][Dia:02-09-2023][Hora:12:48]",
-          idArticle: 8910,
-          dependienta: 3944,
-          cliente: "[Id:CliBoti_819_20200107103051]",
-          comentario: ";0",
+          Id: "Id_Enc_20230913102155_842_842_3944",
+          Dependenta: 3944,
+          Client: "[Id:CliBoti_819_20200107103051]",
+          Data: "2023-09-14T13:21:00.000Z",
+          Anticip: 1,
+          Detall:
+            "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][suplementos:4020,4180][Dia:14-09-2023][Hora:13:21]",
+          Article: 4178,
+          Quantitat: 1,
+          Import: 1.68,
+          Descompte: "0",
+          Comentari: "4020,4180;0",
         },
         {
-          id: "0AC1DEDF-D316-47CB-B7A1-469CFEBE6259",
-          fechaEntrega: "2023-09-02T12:48:00.000Z",
-          timestamp: "2023-08-29 11:48:54.936",
-          detall:
-            "[DataCreat:2023-08-29 11:48:54.936][idServit:0AC1DEDF-D316-47CB-B7A1-469CFEBE6259][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:0][OpcionRec:2][Dia:02-09-2023][Hora:12:48]",
-          idArticle: 4203,
-          dependienta: 3944,
-          cliente: "[Id:CliBoti_819_20200107103051]",
-          comentario: "promoComboArtSec;0",
-        },
-        {
-          id: "CA087899-25AF-48C8-BC5B-20F34A656493",
-          fechaEntrega: "2023-09-02T12:48:00.000Z",
-          timestamp: "2023-08-29 11:48:54.936",
-          detall:
-            "[DataCreat:2023-08-29 11:48:54.936][idServit:CA087899-25AF-48C8-BC5B-20F34A656493][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:0][OpcionRec:2][Dia:02-09-2023][Hora:12:48]",
-          idArticle: 8910,
-          dependienta: 3944,
-          cliente: "[Id:CliBoti_819_20200107103051]",
-          comentario: ";0",
-        },
-        {
-          id: "5445E581-8E6A-4E46-A9A7-2F708A914526",
-          fechaEntrega: "2023-09-02T12:48:00.000Z",
-          timestamp: "2023-08-29 11:48:54.936",
-          detall:
-            "[DataCreat:2023-08-29 11:48:54.936][idServit:5445E581-8E6A-4E46-A9A7-2F708A914526][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:0][OpcionRec:2][Dia:02-09-2023][Hora:12:48]",
-          idArticle: 4419,
-          dependienta: 3944,
-          cliente: "[Id:CliBoti_819_20200107103051]",
-          comentario: ";0",
+          Id: "Id_Enc_20230913102155_842_842_3944",
+          Dependenta: 3944,
+          Client: "[Id:CliBoti_819_20200107103051]",
+          Data: "2023-09-14T13:21:00.000Z",
+          Anticip: 1,
+          Detall:
+            "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][Dia:14-09-2023][Hora:13:21]",
+          Article: 1022,
+          Quantitat: 1,
+          Import: 1.48,
+          Descompte: "0",
+          Comentari: ";0",
         },
       ];
-      return await encargosInstance.insertarEncargo(encargo);
+      return await encargosInstance.insertarEncargos(encargo);
     } catch (err) {
       logger.Error(50, err);
       return null;

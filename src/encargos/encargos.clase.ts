@@ -15,11 +15,15 @@ import { movimientosInstance } from "src/movimientos/movimientos.clase";
 import { time } from "console";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
+import { CestaClase, cestasInstance } from "src/cestas/cestas.clase";
+import { CestasInterface } from "src/cestas/cestas.interface";
+import { CestasController } from "src/cestas/cestas.controller";
+import { getSuplementos } from "src/articulos/articulos.mongodb";
+import { articulosInstance } from "src/articulos/articulos.clase";
 
 export class Encargos {
   async pruebaImportar() {
     try {
-      console.log("ey");
       const parametros = await parametrosInstance.getParametros();
       const res: any = await axios.post("encargos/getEncargos", {
         database: parametros.database,
@@ -353,7 +357,8 @@ export class Encargos {
 
   public async insertarEncargos(encargos: any) {
     const idsAgrupados = {};
-
+    let newCesta = await cestasInstance.crearCesta();
+    const cesta = await cestasInstance.getCestaById(newCesta);
     // Iteramos sobre cada objeto en el array y agrupamos por id
     for (const item of encargos) {
       const id = item.Id;
@@ -369,84 +374,85 @@ export class Encargos {
     // Obtenemos los valores (los arrays de objetos agrupados) del objeto idsAgrupados
     const groupedArray = Object.values(idsAgrupados);
     for (let i = 0; i < groupedArray.length; i++) {
-      await this.insertarEncargo(groupedArray[i]);
+      await this.insertarEncargo(groupedArray[i], cesta);
     }
     return groupedArray;
   }
-  async insertarEncargo(encargo: any) {
+  async insertarEncargo(encargo: any, cesta: CestasInterface) {
+    // ejemplo para practicar la funcion
     encargo = [
       {
-        Id: "Id_Enc_20230912104642_842_842_3944",
+        Id: "Id_Enc_20230913102155_842_842_3944",
         Dependenta: 3944,
         Client: "[Id:CliBoti_819_20200107103051]",
-        Data: "2023-09-13T11:46:00.000Z",
-        Anticip: 2,
+        Data: "2023-09-14T13:21:00.000Z",
+        Anticip: 1,
         Detall:
-          "[DataCreat:2023-09-12 10:46:42.288][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:2][OpcionRec:2][codigoBarras:9884232551483][Dia:13-09-2023][Hora:11:46]",
-        Article: 8573,
-        Quantitat: 1,
-        Import: 1.64,
-        Descompte: "0",
-        Comentari: ";lata",
-      },
-      {
-        Id: "Id_Enc_20230912104642_842_842_3944",
-        Dependenta: 3944,
-        Client: "[Id:CliBoti_819_20200107103051]",
-        Data: "2023-09-13T11:46:00.000Z",
-        Anticip: 2,
-        Detall:
-          "[DataCreat:2023-09-12 10:46:42.288][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:2][OpcionRec:2][codigoBarras:9884232551483][Dia:13-09-2023][Hora:11:46]",
+          "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][Dia:14-09-2023][Hora:13:21]",
         Article: 8910,
         Quantitat: 3,
-        Import: 0.33,
+        Import: 0.42,
         Descompte: "0",
-        Comentari: ";PI",
+        Comentari: ";0",
       },
       {
-        Id: "Id_Enc_20230912104642_842_842_3944",
+        Id: "Id_Enc_20230913102155_842_842_3944",
         Dependenta: 3944,
         Client: "[Id:CliBoti_819_20200107103051]",
-        Data: "2023-09-13T11:46:00.000Z",
-        Anticip: 2,
+        Data: "2023-09-14T13:21:00.000Z",
+        Anticip: 1,
         Detall:
-          "[DataCreat:2023-09-12 10:46:42.288][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:2][OpcionRec:2][codigoBarras:9884232551483][PromoArtSec:4203][Dia:13-09-2023][Hora:11:46]",
+          "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][PromoArtPrinc:8910][Dia:14-09-2023][Hora:13:21]",
         Article: 4203,
         Quantitat: 1,
         Import: 0.41,
         Descompte: "0",
-        Comentari: "promoComboArtSec;PC",
+        Comentari: "promoComboArtSec;0",
       },
       {
-        Id: "Id_Enc_20230912104642_842_842_3944",
+        Id: "Id_Enc_20230913102155_842_842_3944",
         Dependenta: 3944,
         Client: "[Id:CliBoti_819_20200107103051]",
-        Data: "2023-09-13T11:46:00.000Z",
-        Anticip: 2,
+        Data: "2023-09-14T13:21:00.000Z",
+        Anticip: 1,
         Detall:
-          "[DataCreat:2023-09-12 10:46:42.288][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:2][OpcionRec:2][codigoBarras:9884232551483][PromoArtPrinc:8910][Dia:13-09-2023][Hora:11:46]",
+          "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][PromoArtSec:4203][Dia:14-09-2023][Hora:13:21]",
         Article: 8910,
         Quantitat: 2,
-        Import: 0.5,
+        Import: 0.63,
         Descompte: "0",
-        Comentari: ";PC",
+        Comentari: ";0",
       },
       {
-        Id: "Id_Enc_20230912104642_842_842_3944",
+        Id: "Id_Enc_20230913102155_842_842_3944",
         Dependenta: 3944,
         Client: "[Id:CliBoti_819_20200107103051]",
-        Data: "2023-09-13T11:46:00.000Z",
-        Anticip: 2,
+        Data: "2023-09-14T13:21:00.000Z",
+        Anticip: 1,
         Detall:
-          "[DataCreat:2023-09-12 10:46:42.288][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:2][OpcionRec:2][codigoBarras:9884232551483][suplementos:4020,4180][Dia:13-09-2023][Hora:11:46]",
+          "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][suplementos:4020,4180][Dia:14-09-2023][Hora:13:21]",
         Article: 4178,
         Quantitat: 1,
         Import: 1.68,
         Descompte: "0",
-        Comentari: "4020,4180;S",
+        Comentari: "4020,4180;0",
+      },
+      {
+        Id: "Id_Enc_20230913102155_842_842_3944",
+        Dependenta: 3944,
+        Client: "[Id:CliBoti_819_20200107103051]",
+        Data: "2023-09-14T13:21:00.000Z",
+        Anticip: 1,
+        Detall:
+          "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][Dia:14-09-2023][Hora:13:21]",
+        Article: 1022,
+        Quantitat: 1,
+        Import: 1.48,
+        Descompte: "0",
+        Comentari: ";0",
       },
     ];
-
+// convertimos en  array el string de detall
     const detallesArray = [];
     try {
       // Iterar sobre los objetos y extraer los valores de "Detall" como objetos
@@ -461,7 +467,7 @@ export class Encargos {
           detallesArray.push(detallObject);
         }
       }
-
+// variables que guardan los parametros del encargo de mongo
       const data = new Date(encargo[0].Data);
       let fecha = data.toISOString().split("T")[0]; // Formato YYYY-MM-DD
       let hora = data.toISOString().split("T")[1].split(".")[0].slice(0, 5); // Formato hh:mm
@@ -475,14 +481,17 @@ export class Encargos {
       let anticipo = encargo[0].Anticip;
       let idDependenta = encargo[0].Dependenta;
       let codigoBarras = detallesArray[0].codigoBarras;
-
-      let cesta = getCestaEnc(encargo,detallesArray);
+      let client = await clienteInstance.getClienteById(idCliente);
+      cesta.idCliente = idCliente;
+      await cestasInstance.updateCesta(cesta);
+      // creamos cesta para insertarlo en el parametro cesta del encargo mongo
+      let cestaEnc = await getCestaEnc(encargo, detallesArray, cesta);
+      console.log(cestaEnc);
       let productos = getProductosEnc(encargo, detallesArray);
       let dependenta = await trabajadoresInstance.getTrabajadorById(
         idDependenta
       );
-      let client = await clienteInstance.getClienteById(idCliente);
-      console.log(detallesArray)
+// creamos una data mogodb de encargo
       const mongodbEncargo = {
         _id: {
           $oid: "64d220034b02ea6ee475a5dd",
@@ -567,7 +576,117 @@ function getProductosEnc(encargo: any, detall: any) {
   });
   return productos;
 }
-function getCestaEnc(encargo: any, detallesArray: any[]) {
-  return "hola";
-}
+async function getCestaEnc(
+  encargo: any,
+  detallesArray: any[],
+  cesta: CestasInterface
+) {
+  // :Promise<{ cestaEnc: CestasInterface }>
+  const productosPromo = [];
+  const procesados = new Set();
 
+  // buscamos que productos entre si son promoCombo
+  function buscarCoincidencia(item, index, otroItem, otroIndex) {
+    return (
+      Number(detallesArray[index]?.PromoArtSec) === otroItem.Article &&
+      Number(detallesArray[otroIndex]?.PromoArtPrinc) === item.Article
+    );
+  }
+
+  // recorrer encargo para encontrar promoscombo
+  encargo.forEach((item, index) => {
+    if (item.Detall.includes("PromoArtSec") && !procesados.has(index)) {
+      const coincidencia = encargo.find((otroItem, otroIndex) => {
+        console.log(buscarCoincidencia(item, index, otroItem, otroIndex));
+        return (
+          index !== otroIndex &&
+          !procesados.has(otroIndex) &&
+          buscarCoincidencia(item, index, otroItem, otroIndex)
+        );
+      });
+
+      if (coincidencia) {
+        // modificar push en principio se inserta promosCombo creadas por coincidencia
+        productosPromo.push({
+          id: item.Article,
+          nombre: "hola",
+          total: item.Import,
+          unidades: item.Quantitat,
+          comentari: item.Comentari.replace(/^;/, ""),
+          arraySuplementos: null,
+          promocion: null,
+        });
+
+        procesados.add(index);
+        procesados.add(encargo.indexOf(coincidencia));
+      }
+    }
+    console.log(procesados);
+  });
+
+  // insetar articulos en cesta para calcularIva
+  try {
+    // insertar primero articulos que son promo
+    // es posible que falle ya que hay promos temporales, habra que modificarlo
+    for (const [index] of procesados.entries()) {
+      let number: number = index as number;
+      console.log(
+        "index",
+        index,
+        "id",
+        encargo[number].Article,
+        "unidades",
+        encargo[number].Quantitat
+      );
+
+      for (let i = 0; i < encargo[number].Quantitat; i++) {
+        cesta = await cestasInstance.clickTeclaArticulo(
+          encargo[number].Article,
+          0,
+          cesta._id,
+          1,
+          null,
+          "",
+          ""
+        );
+      }
+    }
+    // insertar productos restantes
+    encargo.forEach(async (item, index) => {
+      if (!procesados.has(index)) {
+        const arraySuplementos = detallesArray[index]?.suplementos
+          ? await articulosInstance.getSuplementos(
+              detallesArray[index]?.suplementos.split(",").map(Number)
+            )
+          : null;
+        console.log(
+          "index",
+          index,
+          "id:",
+          item.Article,
+          "unidades",
+          item.Quantitat,
+          "suple:",
+          arraySuplementos
+        );
+        for (let i = 0; i < item.Quantitat; i++) {
+          cesta = await cestasInstance.clickTeclaArticulo(
+            item.Article,
+            0,
+            cesta._id,
+            1,
+            arraySuplementos,
+            "",
+            ""
+          );
+        }
+      }
+    });
+  } catch (error) {
+    console.log("error crear cesta de encargo", error);
+  }
+
+  // devolver cesta pero hay que hacer promise. devuelve resultado antes de terminar los bucles
+  console.log("cesta", cesta.lista);
+  return cesta;
+}
