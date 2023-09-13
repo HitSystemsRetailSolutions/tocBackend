@@ -68,7 +68,7 @@ export class InstaladorController {
           return "";
         }
         console.log(stdout);
-        return "qrinstaller:" + stdout;
+        return "qrinstaller:" + stdout.split(".")[0];
       }
     );
   }
