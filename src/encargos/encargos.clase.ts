@@ -485,8 +485,13 @@ export class Encargos {
       cesta.idCliente = idCliente;
       await cestasInstance.updateCesta(cesta);
       // creamos cesta para insertarlo en el parametro cesta del encargo mongo
-      let cestaEnc = await getCestaEnc(encargo, detallesArray, cesta);
-      console.log(cestaEnc);
+      // let cestaEnc = await getCestaEnc(encargo, detallesArray, cesta);
+      // console.log(cestaEnc);
+      let cestaEnc = await getCestaEnc(encargo, detallesArray, cesta).then((cestaActualizada) => {
+        
+        return cestaActualizada;
+      });
+      console.log("Cesta actualizada:", cestaEnc.lista,cestaEnc.detalleIva);
       let productos = getProductosEnc(encargo, detallesArray);
       let dependenta = await trabajadoresInstance.getTrabajadorById(
         idDependenta
@@ -606,15 +611,15 @@ async function getCestaEnc(
       });
 
       if (coincidencia) {
+        let otroIndex=encargo.indexOf(coincidencia);
+        console.log(index,otroIndex,detallesArray[index]?.PromoArtPrinc,detallesArray[index]?.PromoArtSec,detallesArray[otroIndex]?.PromoArtPrinc,detallesArray[otroIndex]?.PromoArtSec)
         // modificar push en principio se inserta promosCombo creadas por coincidencia
         productosPromo.push({
-          id: item.Article,
-          nombre: "hola",
-          total: item.Import,
+          idArticuloPrincipal: detallesArray[index]?.PromoArtSec ? detallesArray[otroIndex]?.PromoArtPrinc : detallesArray[index]?.PromoArtPrinc,
+          idArticuloSecundario: detallesArray[index]?.PromoArtPrinc ? detallesArray[otroIndex]?.PromoArtSec : detallesArray[index]?.PromoArtSec,
+          unidadArtPrinc: item.Quantitat,
+          unidadArtSec: encargo[otroIndex].Quantitat,
           unidades: item.Quantitat,
-          comentari: item.Comentari.replace(/^;/, ""),
-          arraySuplementos: null,
-          promocion: null,
         });
 
         procesados.add(index);
@@ -623,7 +628,7 @@ async function getCestaEnc(
     }
     console.log(procesados);
   });
-
+  console.log("productosPromo",productosPromo);
   // insetar articulos en cesta para calcularIva
   try {
     // insertar primero articulos que son promo

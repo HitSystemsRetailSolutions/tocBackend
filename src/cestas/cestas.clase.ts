@@ -447,11 +447,6 @@ export class CestaClase {
     menu: string
   ) {
     console.log(idArticulo,
-    gramos,
-    idCesta,
-    unidades,
-    arraySuplementos,
-    nombre,
     menu)
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
