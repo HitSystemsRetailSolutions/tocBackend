@@ -404,7 +404,7 @@ export class Encargos {
         Detall:
           "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][PromoArtPrinc:8910][Dia:14-09-2023][Hora:13:21]",
         Article: 4203,
-        Quantitat: 1,
+        Quantitat: 2,
         Import: 0.41,
         Descompte: "0",
         Comentari: "promoComboArtSec;0",
@@ -418,7 +418,7 @@ export class Encargos {
         Detall:
           "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][PromoArtSec:4203][Dia:14-09-2023][Hora:13:21]",
         Article: 8910,
-        Quantitat: 2,
+        Quantitat: 4,
         Import: 0.63,
         Descompte: "0",
         Comentari: ";0",
@@ -612,7 +612,6 @@ async function getCestaEnc(
 
       if (coincidencia) {
         let otroIndex=encargo.indexOf(coincidencia);
-        console.log(index,otroIndex,detallesArray[index]?.PromoArtPrinc,detallesArray[index]?.PromoArtSec,detallesArray[otroIndex]?.PromoArtPrinc,detallesArray[otroIndex]?.PromoArtSec)
         // modificar push en principio se inserta promosCombo creadas por coincidencia
         productosPromo.push({
           idArticuloPrincipal: detallesArray[index]?.PromoArtSec ? detallesArray[otroIndex]?.PromoArtPrinc : detallesArray[index]?.PromoArtPrinc,
@@ -626,7 +625,6 @@ async function getCestaEnc(
         procesados.add(encargo.indexOf(coincidencia));
       }
     }
-    console.log(procesados);
   });
   console.log("productosPromo",productosPromo);
   // insetar articulos en cesta para calcularIva
@@ -657,7 +655,7 @@ async function getCestaEnc(
       }
     }
     // insertar productos restantes
-    encargo.forEach(async (item, index) => {
+    for(const [index,item] of encargo.entries()){
       if (!procesados.has(index)) {
         const arraySuplementos = detallesArray[index]?.suplementos
           ? await articulosInstance.getSuplementos(
@@ -686,7 +684,8 @@ async function getCestaEnc(
           );
         }
       }
-    });
+    }
+
   } catch (error) {
     console.log("error crear cesta de encargo", error);
   }
