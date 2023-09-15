@@ -375,10 +375,16 @@ export class Encargos {
 
     // Obtenemos los valores (los arrays de objetos agrupados) del objeto idsAgrupados
     const groupedArray = Object.values(idsAgrupados);
-    for (let i = 0; i < groupedArray.length; i++) {
-      await this.insertarEncargo(groupedArray[i], cesta);
+    try {
+      for (const item of groupedArray) {
+        await this.insertarEncargo(item, cesta);
+      }
+      
+      return groupedArray;
+    } catch (error) {
+      console.log("Error insertEncargos:",error);
     }
-    return groupedArray;
+    
   }
   async insertarEncargo(encargo: any, cesta: CestasInterface) {
     // ejemplo para practicar la funcion
@@ -616,11 +622,9 @@ async function getCestaEnc(
         let otroIndex=encargo.indexOf(coincidencia);
         // modificar push en principio se inserta promosCombo creadas por coincidencia
         productosPromo.push({
-          idArticuloPrincipal: detallesArray[index]?.PromoArtSec ? detallesArray[otroIndex]?.PromoArtPrinc : detallesArray[index]?.PromoArtPrinc,
-          idArticuloSecundario: detallesArray[index]?.PromoArtPrinc ? detallesArray[otroIndex]?.PromoArtSec : detallesArray[index]?.PromoArtSec,
-          unidadArtPrinc: item.Quantitat,
-          unidadArtSec: encargo[otroIndex].Quantitat,
-          unidades: item.Quantitat,
+          idPromoCombo: item?.IdPromoCombo,
+          indexEncargos:[index,encargo.indexOf(coincidencia)],
+          comentario:item.Comentari,
         });
 
         procesados.add(index);
@@ -628,6 +632,10 @@ async function getCestaEnc(
       }
     }
   });
+
+  for (const item of productosPromo) {
+    
+  }
   console.log("productosPromo",productosPromo);
   // insetar articulos en cesta para calcularIva
   try {
