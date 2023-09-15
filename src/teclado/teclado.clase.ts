@@ -191,8 +191,7 @@ export class TecladoClase {
       let articulo = articulos.find(
         (articulo) => articulo._id == teclas[i].idArticle
       );
-      if (articulo.precioConIva != teclas[i].precioConIva)
-        teclas[i].precioConIva = articulo.precioConIva;
+      teclas[i].precioConIva = articulo?.precioConIva;
       if (this.tienePrefijoSubmenu(teclas[i].nomMenu)) {
         this.addTeclaConSubmenu(
           menus,
