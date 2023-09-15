@@ -253,6 +253,7 @@ export class Encargos {
     let encargoGraella = {
       tmStmp: encargo.timestamp,
       bbdd: parametros.database,
+      data: encargo.fecha,
       id: await this.generateId(
         moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
         encargo.idTrabajador.toString(),
@@ -301,6 +302,7 @@ export class Encargos {
       let encargoGraella = {
         tmStmp: encargo.timestamp,
         bbdd: parametros.database,
+        data: encargo.fecha,
         id: await this.generateId(
           moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
           encargo.idTrabajador.toString(),
