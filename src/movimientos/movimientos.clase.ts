@@ -75,7 +75,12 @@ export class MovimientosClase {
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrada") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
-      } else if (concepto !== "Targeta") {
+      } else if (
+        concepto !== "Targeta" &&
+        concepto !== "DEUDA" &&
+        concepto !== "dejaACuenta" &&
+        concepto !== "Albaran"
+      ) {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
       return true;
@@ -223,6 +228,12 @@ export class MovimientosClase {
   public calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
     if (superTicket.consumoPersonal) return "CONSUMO_PERSONAL";
     if (superTicket.datafono3G) return "DATAFONO_3G";
+    if (superTicket.paytef)
+      if (superTicket.total < 0) {
+        return "DEVUELTO";
+      } else {
+        return "TARJETA";
+      }
     if (superTicket.movimientos.length === 1) {
       if (superTicket.movimientos[0].tipo === "TARJETA") {
         if (superTicket.movimientos[0].valor < 0) {
@@ -239,6 +250,7 @@ export class MovimientosClase {
       } else if (superTicket.movimientos[0].tipo === "SALIDA") {
         return "DEUDA";
       } else {
+        return "EFECTIVO";
         throw Error("Forma de pago desconocida");
       }
     } else if (superTicket.movimientos.length === 0 && superTicket.total > 0) {

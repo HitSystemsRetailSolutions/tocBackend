@@ -57,13 +57,23 @@ export class ParametrosClase {
   setPropiedad = async (claveValor: any) =>
     await schParametros.actualizarPropiedad(claveValor);
 
-  /* Eze 4.0 */
+  /* Uri*/
+  totalPaytef = async (): Promise<number> => await schParametros.totalPaytef();
+
+  /* Uri*/
   setIpPaytef = async (ip: string): Promise<boolean> =>
     await schParametros.setIpPaytef(ip);
 
+  /* Uri*/
+  setTcod = async (ip: string): Promise<boolean> =>
+    await schParametros.setTcodPaytef(ip);
+
+  /* Uri*/
+  setContadoDatafono = async (tipo: number, suma: number): Promise<boolean> =>
+    await schParametros.setContadoDatafono(tipo, suma);
+
   /* yasai :D */
-  set3G = async (): Promise<boolean> => 
-    await schParametros.set3G();
+  set3G = async (): Promise<boolean> => await schParametros.set3G();
 
   /* Yasai :D */
   generarObjetoParametros(): ParametrosInterface {
@@ -79,7 +89,9 @@ export class ParametrosClase {
       ultimoTicket: -1,
       header: "",
       footer: "",
+      contadorPaytef: 0,
       token: undefined,
+      payteftcod: "",
     };
   }
 }

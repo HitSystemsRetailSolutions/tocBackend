@@ -32,6 +32,7 @@ export type ItemLista = {
     unidadesOferta: number;
     tipoPromo: TiposPromociones;
   };
+  puntos: number;
   gramos: number;
   regalo: boolean;
 };
@@ -55,4 +56,8 @@ export type DetalleIvaInterface = {
 };
 
 export type TiposPromociones = "COMBO" | "INDIVIDUAL";
-export type ModoCesta = "VENTA" | "CONSUMO_PERSONAL" | "DEVOLUCION" | "PAGO SEPARADO";
+export type ModoCesta =
+  | "VENTA"
+  | "CONSUMO_PERSONAL"
+  | "DEVOLUCION"
+  | "PAGO SEPARADO";

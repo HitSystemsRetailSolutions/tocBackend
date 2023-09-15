@@ -205,6 +205,30 @@ export async function toggle3G(existTicketId, oldValue = false) {
   return result.acknowledged;
 }
 
+/* Uri */
+export async function setPagadoPaytef(Ticket) {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  const result = await tickets.updateOne(
+    { _id: Ticket },
+    {
+      $set: {
+        paytef: true,
+      },
+    }
+  );
+  const ticket = await tickets.findOne({ _id: Ticket });
+  const santaAnaResult = await axios
+    .post("/tickets/enviarTicket", {
+      ticket,
+    })
+    .catch((e) => {
+      //  console.log(e);
+    });
+
+  return result.acknowledged;
+}
+
 /* Eze v23 */
 export async function desbloquearTicket(idTicket: number) {
   const database = (await conexion).db("tocgame");
@@ -216,6 +240,13 @@ export async function desbloquearTicket(idTicket: number) {
       { upsert: true }
     )
   ).acknowledged;
+}
+
+/* Uri */
+export async function getAnulado(idTicket: number) {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  return await tickets.findOne({ "anulado.idTicketPositivo": idTicket });
 }
 
 /* Eze v23 */
@@ -291,7 +322,7 @@ export async function anularTicket(
           element.promocion.unidadesOferta *= -1;
           element.promocion.cantidadArticuloPrincipal *= -1;
           if (element.promocion.cantidadArticuloSecundario != null) {
-            element.promocion.cantidadArticuloPrincipal *= -1;
+            element.promocion.cantidadArticuloSecundario *= -1;
           }
           if (element.promocion.precioRealArticuloSecundario != null) {
             element.promocion.precioRealArticuloSecundario *= -1;

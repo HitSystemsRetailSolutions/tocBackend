@@ -3,6 +3,8 @@ import { parametrosInstance } from "./parametros.clase";
 import axios from "axios";
 import { UtilesModule } from "../utiles/utiles.module";
 import { logger } from "../logger";
+import { paytefInstance } from "src/paytef/paytef.class";
+import { cajaInstance } from "src/caja/caja.clase";
 
 @Controller("parametros")
 export class ParametrosController {
@@ -97,9 +99,7 @@ export class ParametrosController {
     try {
       const res: any = await axios
         .get("parametros/getParametros")
-        .catch((e) => {
-          console.log(e);
-        });
+        .catch((e) => {});
 
       if (res.data) {
         delete res.data.database;
@@ -118,18 +118,59 @@ export class ParametrosController {
     }
   }
 
-  /* Eze 4.0 */
+  /* Uri */
   @Post("setIpPaytef")
   async setIpPaytef(@Body() { ip }) {
     try {
       if (UtilesModule.checkVariable(ip))
-        return await parametrosInstance.setIpPaytef(ip);
+        return await paytefInstance
+          .detectarPytef(ip)
+          .then(async (res) => {
+            if (res == "error") return false;
+            await parametrosInstance.setIpPaytef(ip);
+            await parametrosInstance.setTcod(res);
+            return true;
+          })
+          .catch((e) => {
+            return false;
+          });
+
       throw Error("Error, faltan datos en setIpPaytef() controller");
     } catch (err) {
       logger.Error(45, err);
       return false;
     }
   }
+
+  /* Uri */
+  @Post("setContadoDatafono")
+  async setContadoDatafono(@Body() { suma }) {
+    try {
+      if (UtilesModule.checkVariable(suma))
+        return await parametrosInstance.setIpPaytef(suma);
+      throw Error("Error, faltan datos en setIpPaytef() controller");
+    } catch (err) {
+      logger.Error(45, err);
+      return false;
+    }
+  }
+
+  /* Uri */
+  @Post("totalPaytef")
+  async totalPaytef() {
+    try {
+      let startDate = await cajaInstance.getInicioTime();
+      let localData = await parametrosInstance.totalPaytef();
+      let paytefData = await paytefInstance.getRecuentoTotal(startDate);
+      if (paytefData == null) return [localData, true];
+      return [paytefData, false];
+    } catch (err) {
+      let localData = await parametrosInstance.totalPaytef();
+      logger.Error(55, err);
+      return [localData, true];
+    }
+  }
+
   /* yasai :D */
   @Post("set3g")
   async set3g() {

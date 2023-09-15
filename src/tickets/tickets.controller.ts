@@ -19,6 +19,7 @@ import { timestamp } from "rxjs";
 import { mqttInstance } from "src/mqtt";
 import axios from "axios";
 import { clienteInstance } from "src/clientes/clientes.clase";
+import { getClienteById } from "src/clientes/clientes.mongodb";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -76,6 +77,7 @@ export class TicketsController {
         cestaEncargo.cesta,
         tipo === "CONSUMO_PERSONAL",
         false,
+        false,
         dejaCuenta
       );
 
@@ -104,6 +106,7 @@ export class TicketsController {
       return false;
     }
   }
+  redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
 
   /* Eze 4.0 */
   @Post("crearTicket")
@@ -133,13 +136,29 @@ export class TicketsController {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
+      let descuento: any = Number(
+        (await clienteInstance.isClienteDescuento(cesta.idCliente))?.descuento
+      );
+      if (descuento && descuento > 0) {
+        cesta.lista.forEach((producto) => {
+          if (producto.arraySuplementos!=null) {
+            producto.subtotal=this.redondearPrecio((producto.subtotal-(producto.subtotal*descuento/100)));
+          }
+          else if (producto.promocion == null)
+            producto.subtotal = this.redondearPrecio(
+              producto.subtotal - (producto.subtotal * descuento) / 100
+            ); // Modificamos el total para añadir el descuento especial del cliente
+        });
+      }
       const d3G = tipo === "DATAFONO_3G";
+      const paytef = false;
       const ticket = await ticketsInstance.generarNuevoTicket(
         total,
         idTrabajador,
         cesta,
         tipo === "CONSUMO_PERSONAL",
         d3G,
+        paytef,
         null
       );
 
@@ -189,12 +208,13 @@ export class TicketsController {
             );
           }
         } else if (tipo === "DEUDA") {
+          const cliente = await getClienteById(cesta.idCliente);
           //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
           // se diferenciara su uso cuando el concepto sea igual a DEUDA
           if (concepto && concepto == "DEUDA") {
             await movimientosInstance.nuevoMovimiento(
               total,
-              "",
+              "DEUDA",
               "SALIDA",
               ticket._id,
               idTrabajador
@@ -209,6 +229,14 @@ export class TicketsController {
               timestamp: ticket.timestamp,
             };
             await deudasInstance.setDeuda(deuda);
+          } else if (cliente.albaran) {
+            await movimientosInstance.nuevoMovimiento(
+              total,
+              "Albaran",
+              "DEUDA",
+              ticket._id,
+              idTrabajador
+            );
           } else {
             await movimientosInstance.nuevoMovimiento(
               total,
