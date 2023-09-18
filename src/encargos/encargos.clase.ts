@@ -20,6 +20,14 @@ import { CestasInterface } from "src/cestas/cestas.interface";
 import { CestasController } from "src/cestas/cestas.controller";
 import { getSuplementos } from "src/articulos/articulos.mongodb";
 import { articulosInstance } from "src/articulos/articulos.clase";
+import {
+  NuevaPromocion,
+  nuevaInstancePromociones,
+} from "src/promociones/promociones.clase";
+import {
+  InfoPromocionCombo,
+  PromocionesInterface,
+} from "src/promociones/promociones.interface";
 
 export class Encargos {
   async pruebaImportar() {
@@ -29,9 +37,6 @@ export class Encargos {
         database: parametros.database,
         codigoTienda: parametros.codigoTienda,
       });
-      console.log("lista");
-      console.log(res.data);
-      console.log("lista:", res);
       return res.data;
     } catch (error) {
       console.log("error", error);
@@ -379,38 +384,37 @@ export class Encargos {
       for (const item of groupedArray) {
         await this.insertarEncargo(item, cesta);
       }
-      
+
       return groupedArray;
     } catch (error) {
-      console.log("Error insertEncargos:",error);
+      console.log("Error insertEncargos:", error);
     }
-    
   }
   async insertarEncargo(encargo: any, cesta: CestasInterface) {
     // ejemplo para practicar la funcion
     encargo = [
       {
-        Id: "Id_Enc_20230913102155_842_842_3944",
+        Id: "Id_Enc_20230918114753_842_842_3944",
         Dependenta: 3944,
         Client: "[Id:CliBoti_819_20200107103051]",
-        Data: "2023-09-14T13:21:00.000Z",
-        Anticip: 1,
+        Data: "2023-09-18T11:48:00.000Z",
+        Anticip: 3,
         Detall:
-          "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][Dia:14-09-2023][Hora:13:21]",
-        Article: 8910,
-        Quantitat: 3,
+          "[DataCreat:2023-09-18 11:47:53.393][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:3][OpcionRec:2][codigoBarras:9884232611798][IdPromoIndividual:C9102AD0-E69C-471F-B359-E27E8D677A58][Dia:18-09-2023][Hora:11:48]",
+        Article: 4203,
+        Quantitat: 9,
         Import: 0.42,
         Descompte: "0",
         Comentari: ";0",
       },
       {
-        Id: "Id_Enc_20230913102155_842_842_3944",
+        Id: "Id_Enc_20230918114753_842_842_3944",
         Dependenta: 3944,
         Client: "[Id:CliBoti_819_20200107103051]",
-        Data: "2023-09-14T13:21:00.000Z",
-        Anticip: 1,
+        Data: "2023-09-18T11:48:00.000Z",
+        Anticip: 3,
         Detall:
-          "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][PromoArtPrinc:8910][Dia:14-09-2023][Hora:13:21]",
+          "[DataCreat:2023-09-18 11:47:53.393][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:3][OpcionRec:2][codigoBarras:9884232611798][PromoArtPrinc:8910][IdPromoCombo:1D7EE3D4-3127-4F55-8FB7-2ABF1846D8DB][Dia:18-09-2023][Hora:11:48]",
         Article: 4203,
         Quantitat: 2,
         Import: 0.41,
@@ -418,13 +422,13 @@ export class Encargos {
         Comentari: "promoComboArtSec;0",
       },
       {
-        Id: "Id_Enc_20230913102155_842_842_3944",
+        Id: "Id_Enc_20230918114753_842_842_3944",
         Dependenta: 3944,
         Client: "[Id:CliBoti_819_20200107103051]",
-        Data: "2023-09-14T13:21:00.000Z",
-        Anticip: 1,
+        Data: "2023-09-18T11:48:00.000Z",
+        Anticip: 3,
         Detall:
-          "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][PromoArtSec:4203][Dia:14-09-2023][Hora:13:21]",
+          "[DataCreat:2023-09-18 11:47:53.393][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:3][OpcionRec:2][codigoBarras:9884232611798][PromoArtSec:4203][IdPromoCombo:1D7EE3D4-3127-4F55-8FB7-2ABF1846D8DB][Dia:18-09-2023][Hora:11:48]",
         Article: 8910,
         Quantitat: 4,
         Import: 0.63,
@@ -432,35 +436,49 @@ export class Encargos {
         Comentari: ";0",
       },
       {
-        Id: "Id_Enc_20230913102155_842_842_3944",
+        Id: "Id_Enc_20230918114753_842_842_3944",
         Dependenta: 3944,
         Client: "[Id:CliBoti_819_20200107103051]",
-        Data: "2023-09-14T13:21:00.000Z",
-        Anticip: 1,
+        Data: "2023-09-18T11:48:00.000Z",
+        Anticip: 3,
         Detall:
-          "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][suplementos:4020,4180][Dia:14-09-2023][Hora:13:21]",
+          "[DataCreat:2023-09-18 11:47:53.393][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:3][OpcionRec:2][codigoBarras:9884232611798][Dia:18-09-2023][Hora:11:48]",
+        Article: 4431,
+        Quantitat: 1,
+        Import: 0.28,
+        Descompte: "0",
+        Comentari: ";0",
+      },
+      {
+        Id: "Id_Enc_20230918114753_842_842_3944",
+        Dependenta: 3944,
+        Client: "[Id:CliBoti_819_20200107103051]",
+        Data: "2023-09-18T11:48:00.000Z",
+        Anticip: 3,
+        Detall:
+          "[DataCreat:2023-09-18 11:47:53.393][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:3][OpcionRec:2][codigoBarras:9884232611798][Dia:18-09-2023][Hora:11:48]",
+        Article: 5906,
+        Quantitat: 1,
+        Import: 1.4,
+        Descompte: "0",
+        Comentari: ";0",
+      },
+      {
+        Id: "Id_Enc_20230918114753_842_842_3944",
+        Dependenta: 3944,
+        Client: "[Id:CliBoti_819_20200107103051]",
+        Data: "2023-09-18T11:48:00.000Z",
+        Anticip: 3,
+        Detall:
+          "[DataCreat:2023-09-18 11:47:53.393][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:3][OpcionRec:2][codigoBarras:9884232611798][suplementos:4019,4020,4180][Dia:18-09-2023][Hora:11:48]",
         Article: 4178,
         Quantitat: 1,
         Import: 1.68,
         Descompte: "0",
-        Comentari: "4020,4180;0",
-      },
-      {
-        Id: "Id_Enc_20230913102155_842_842_3944",
-        Dependenta: 3944,
-        Client: "[Id:CliBoti_819_20200107103051]",
-        Data: "2023-09-14T13:21:00.000Z",
-        Anticip: 1,
-        Detall:
-          "[DataCreat:2023-09-13 10:21:55.993][Accio:Fa][Id:CliBoti_819_20200107103051][ACompte:1][OpcionRec:2][codigoBarras:9884232561659][Dia:14-09-2023][Hora:13:21]",
-        Article: 1022,
-        Quantitat: 1,
-        Import: 1.48,
-        Descompte: "0",
-        Comentari: ";0",
+        Comentari: "4019,4020,4180;0",
       },
     ];
-// convertimos en  array el string de detall
+    // convertimos en  array el string de detall
     const detallesArray = [];
     try {
       // Iterar sobre los objetos y extraer los valores de "Detall" como objetos
@@ -475,7 +493,7 @@ export class Encargos {
           detallesArray.push(detallObject);
         }
       }
-// variables que guardan los parametros del encargo de mongo
+      // variables que guardan los parametros del encargo de mongo
       const data = new Date(encargo[0].Data);
       let fecha = data.toISOString().split("T")[0]; // Formato YYYY-MM-DD
       let hora = data.toISOString().split("T")[1].split(".")[0].slice(0, 5); // Formato hh:mm
@@ -495,16 +513,17 @@ export class Encargos {
       // creamos cesta para insertarlo en el parametro cesta del encargo mongo
       // let cestaEnc = await getCestaEnc(encargo, detallesArray, cesta);
       // console.log(cestaEnc);
-      let cestaEnc = await getCestaEnc(encargo, detallesArray, cesta).then((cestaActualizada) => {
-        
-        return cestaActualizada;
-      });
-      console.log("Cesta actualizada:", cestaEnc.lista,cestaEnc.detalleIva);
+      let cestaEnc = await getCestaEnc(encargo, detallesArray, cesta).then(
+        (cestaActualizada) => {
+          return cestaActualizada;
+        }
+      );
+  
       let productos = getProductosEnc(encargo, detallesArray);
       let dependenta = await trabajadoresInstance.getTrabajadorById(
         idDependenta
       );
-// creamos una data mogodb de encargo
+      // creamos una data mogodb de encargo
       const mongodbEncargo = {
         _id: {
           $oid: "64d220034b02ea6ee475a5dd",
@@ -608,64 +627,167 @@ async function getCestaEnc(
 
   // recorrer encargo para encontrar promoscombo
   encargo.forEach((item, index) => {
-    if (item.Detall.includes("PromoArtSec") && !procesados.has(index)) {
+    if (item.Detall.includes("IdPromoCombo") && !procesados.has(index)) {
       const coincidencia = encargo.find((otroItem, otroIndex) => {
-        console.log(buscarCoincidencia(item, index, otroItem, otroIndex));
         return (
           index !== otroIndex &&
           !procesados.has(otroIndex) &&
           buscarCoincidencia(item, index, otroItem, otroIndex)
         );
       });
-
       if (coincidencia) {
-        let otroIndex=encargo.indexOf(coincidencia);
+        let otroIndex = encargo.indexOf(coincidencia);
         // modificar push en principio se inserta promosCombo creadas por coincidencia
         productosPromo.push({
-          idPromoCombo: item?.IdPromoCombo,
-          indexEncargos:[index,encargo.indexOf(coincidencia)],
-          comentario:item.Comentari,
+          idPromo: detallesArray[index].IdPromoCombo,
+          tipo: "COMBO",
+          indexArtEnc: [index, otroIndex],
+          comentario: item.Comentari,
         });
 
         procesados.add(index);
-        procesados.add(encargo.indexOf(coincidencia));
+        procesados.add(otroIndex);
       }
+    } else if (
+      item.Detall.includes("IdPromoIndividual") &&
+      !procesados.has(index)
+    ) {
+      productosPromo.push({
+        idPromo: detallesArray[index].IdPromoIndividual,
+        tipo: "INDIVIDUAL",
+        indexArtEnc: [index],
+        comentario: item.Comentari,
+      });
+      procesados.add(index);
     }
   });
-
   for (const item of productosPromo) {
-    
+    const promoEncontrado: PromocionesInterface =
+      await nuevaInstancePromociones.getPromoById(item.idPromo);
+    if (promoEncontrado) {
+      let unidadArtPrinc;
+      let idPrinc;
+      let idSec;
+      if (item.tipo == "INDIVIDUAL") {
+        unidadArtPrinc = encargo[item.indexArtEnc[0]].Quantitat;
+        idPrinc = encargo[item.indexArtEnc[0]].Article;
+        idSec = null;
+        console.log("unidad promoInd:",unidadArtPrinc,"cantidadPrincDePromo",promoEncontrado.cantidadPrincipal)
+        const unidades = unidadArtPrinc / promoEncontrado.cantidadPrincipal;
+        const articuloPrincipal = await articulosInstance.getInfoArticulo(
+          idPrinc
+        );
+        const nombre =
+          "Promo. " + articuloPrincipal.nombre;
+        const productoCesta = {
+          arraySuplementos: null,
+          gramos: 0,
+          idArticulo: -1,
+          unidades: unidades,
+          nombre: nombre,
+          regalo: false,
+          subtotal: this.redondearPrecio(
+            unidades *
+              promoEncontrado.cantidadPrincipal *
+              promoEncontrado.precioFinal
+          ),
+          promocion: {
+            idPromocion: promoEncontrado._id,
+            tipoPromo: promoEncontrado.tipo,
+            unidadesOferta: 1,
+            idArticuloPrincipal: idPrinc,
+            cantidadArticuloPrincipal: promoEncontrado.cantidadPrincipal,
+            cantidadArticuloSecundario: null,
+            idArticuloSecundario: idSec,
+            precioRealArticuloPrincipal: promoEncontrado.precioFinal,
+            precioRealArticuloSecundario: null,
+          },
+        };
+        cesta.lista.push(productoCesta);
+      } else {
+        if (detallesArray[item.indexArtEnc[0]]?.PromoArtSec) {
+          unidadArtPrinc = encargo[item.indexArtEnc[0]].Quantitat;
+          idPrinc = encargo[item.indexArtEnc[0]].Article;
+          idSec = encargo[item.indexArtEnc[1]].Article;
+        } else {
+          unidadArtPrinc = encargo[item.indexArtEnc[1]].Quantitat;
+          idPrinc = encargo[item.indexArtEnc[1]].Article;
+          idSec = encargo[item.indexArtEnc[0]].Article;
+        }
+
+        const unidades = unidadArtPrinc / promoEncontrado.cantidadPrincipal;
+        console.log(idPrinc,idSec)
+        const articuloPrincipal = await articulosInstance.getInfoArticulo(
+          idPrinc
+        );
+        const articuloSecundario = await articulosInstance.getInfoArticulo(
+          idSec
+        );
+        const infoFinal: InfoPromocionCombo = {
+          seAplican: unidades,
+          sobranPrincipal: 0,
+          sobranSecundario: 0,
+          indexListaOriginalPrincipal: null,
+          indexListaOriginalSecundario: null,
+          idArticuloPrincipal: idPrinc,
+          idArticuloSecundario: idSec,
+          precioPromoUnitario: promoEncontrado.precioFinal,
+          idPromocion: promoEncontrado._id,
+          cantidadNecesariaPrincipal: promoEncontrado.cantidadPrincipal,
+          cantidadNecesariaSecundario: promoEncontrado.cantidadSecundario,
+          nombrePrincipal: articuloPrincipal.nombre,
+          nombreSecundario: articuloSecundario?.nombre,
+        };
+        const preciosReales =
+          await nuevaInstancePromociones.calcularPrecioRealCombo(
+            infoFinal,
+            articuloPrincipal,
+            articuloSecundario
+          );
+          console.log(preciosReales)
+        const nombre =
+          "Promo. " +
+          (await articulosInstance.getInfoArticulo(idPrinc)).nombre +
+          " + " +
+          (await articulosInstance.getInfoArticulo(idSec)).nombre;
+        const productoCesta = {
+          arraySuplementos: null,
+          gramos: 0,
+          idArticulo: -1,
+          unidades: unidades,
+          nombre: nombre,
+          regalo: false,
+          subtotal: this.redondearPrecio(
+            unidades *
+              promoEncontrado.cantidadPrincipal *
+              preciosReales.precioRealPrincipal +
+              unidades *
+                promoEncontrado.cantidadSecundario *
+                preciosReales.precioRealSecundario
+          ),
+          promocion: {
+            idPromocion: promoEncontrado._id,
+            tipoPromo: promoEncontrado.tipo,
+            unidadesOferta: 1,
+            idArticuloPrincipal: idPrinc,
+            cantidadArticuloPrincipal: promoEncontrado.cantidadPrincipal,
+            cantidadArticuloSecundario: promoEncontrado.cantidadSecundario,
+            idArticuloSecundario: idSec,
+            precioRealArticuloPrincipal: preciosReales.precioRealPrincipal,
+            precioRealArticuloSecundario: preciosReales.precioRealSecundario,
+          },
+        };
+        cesta.lista.push(productoCesta);
+      }
+    }
   }
-  console.log("productosPromo",productosPromo);
+  console.log("productosPromoEnCesta", productosPromo,cesta.lista);
   // insetar articulos en cesta para calcularIva
   try {
     // insertar primero articulos que son promo
     // es posible que falle ya que hay promos temporales, habra que modificarlo
-    for (const [index] of procesados.entries()) {
-      let number: number = index as number;
-      console.log(
-        "index",
-        index,
-        "id",
-        encargo[number].Article,
-        "unidades",
-        encargo[number].Quantitat
-      );
-
-      for (let i = 0; i < encargo[number].Quantitat; i++) {
-        cesta = await cestasInstance.clickTeclaArticulo(
-          encargo[number].Article,
-          0,
-          cesta._id,
-          1,
-          null,
-          "",
-          ""
-        );
-      }
-    }
     // insertar productos restantes
-    for(const [index,item] of encargo.entries()){
+    for (const [index, item] of encargo.entries()) {
       if (!procesados.has(index)) {
         const arraySuplementos = detallesArray[index]?.suplementos
           ? await articulosInstance.getSuplementos(
@@ -695,12 +817,11 @@ async function getCestaEnc(
         }
       }
     }
-
   } catch (error) {
     console.log("error crear cesta de encargo", error);
   }
 
   // devolver cesta pero hay que hacer promise. devuelve resultado antes de terminar los bucles
-  console.log("cesta", cesta.lista);
+  console.log("cesta", cesta.lista, cesta.detalleIva);
   return cesta;
 }
