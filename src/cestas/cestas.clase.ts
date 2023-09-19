@@ -446,8 +446,6 @@ export class CestaClase {
     nombre: string,
     menu: string
   ) {
-    console.log(idArticulo,
-    menu)
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
       const cesta = await cestasInstance.getCestaById(idCesta);
@@ -729,10 +727,15 @@ export class CestaClase {
   async borrarArticulosCesta(
     idCesta: CestasInterface["_id"],
     borrarCliente = false,
-    borrarModo = false
+    borrarModo = false,
+    registroSantaAna = true
   ) {
+    console.log("borrar");
     const cesta = await this.getCestaById(idCesta);
-    this.registroLogSantaAna(cesta, cesta.lista);
+    if (registroSantaAna) {
+      console.log("pal santaana el registro de borrado")
+      this.registroLogSantaAna(cesta, cesta.lista);
+    }
     if (cesta) {
       cesta.lista = [];
       cesta.detalleIva = {
@@ -837,30 +840,29 @@ export class CestaClase {
     productos: CestasInterface["lista"]
   ) {
     try {
-    let cliente: number =
-      (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
-      undefined
-        ? 0
-        : Number(
-            (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
-          );
-    let parametros = await parametrosInstance.getParametros();
+      let cliente: number =
+        (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
+        undefined
+          ? 0
+          : Number(
+              (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
+            );
+      let parametros = await parametrosInstance.getParametros();
 
-    let lista = {
-      timestamp: new Date().getTime(),
-      botiga: parametros.codigoTienda,
-      bbdd: parametros.database,
-      accio: "ArticleEsborrat",
-      productos: productos,
-      dependienta: cesta.trabajador,
-      descuento: cliente,
-      idCliente: cesta.idCliente,
-    };
+      let lista = {
+        timestamp: new Date().getTime(),
+        botiga: parametros.codigoTienda,
+        bbdd: parametros.database,
+        accio: "ArticleEsborrat",
+        productos: productos,
+        dependienta: cesta.trabajador,
+        descuento: cliente,
+        idCliente: cesta.idCliente,
+      };
 
-    await axios
-      .post("lista/setRegistro", {
+      await axios.post("lista/setRegistro", {
         lista: lista,
-      })
+      });
     } catch (error) {
       console.error("Error al enviar el registro a Santa Ana:", error.message);
     }

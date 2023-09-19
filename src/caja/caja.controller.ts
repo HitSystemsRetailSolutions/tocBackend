@@ -19,14 +19,7 @@ export class CajaController {
       idDependienta,
     }
   ) {
-    console.log(
-      total,
-      detalleMonedas,
-      infoDinero,
-      cantidad3G,
-      cantidadPaytef,
-      idDependienta
-    );
+
     try {
       if (
         UtilesModule.checkVariable(
