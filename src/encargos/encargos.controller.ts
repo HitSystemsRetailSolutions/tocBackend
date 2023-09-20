@@ -89,7 +89,6 @@ export class EncargosController {
   async pruebaImportar() {
     try {
       const encargos: any = await encargosInstance.pruebaImportar();
-      console.log("devuelto", encargos);
       return await encargosInstance.insertarEncargos(encargos);
     } catch (err) {
       logger.Error(50, err);

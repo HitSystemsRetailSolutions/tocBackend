@@ -20,7 +20,6 @@ export class TecladoController {
       menu,
     }
   ) {
-    console.log(arraySuplementos)
     try {
       if (UtilesModule.checkVariable(idArticulo, gramos, idCesta, unidades)) {
         const resultado = await cestasInstance.clickTeclaArticulo(

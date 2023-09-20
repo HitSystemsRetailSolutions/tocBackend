@@ -730,10 +730,8 @@ export class CestaClase {
     borrarModo = false,
     registroSantaAna = true
   ) {
-    console.log("borrar");
     const cesta = await this.getCestaById(idCesta);
     if (registroSantaAna) {
-      console.log("pal santaana el registro de borrado")
       this.registroLogSantaAna(cesta, cesta.lista);
     }
     if (cesta) {

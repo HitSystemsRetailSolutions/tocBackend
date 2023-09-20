@@ -49,6 +49,5 @@ export async function insertarPromociones(
 export async function getPromoById(idPromo:PromocionesInterface["_id"]):Promise<PromocionesInterface> {
   const database = (await conexion).db("tocgame");
   const promociones = database.collection<PromocionesInterface>("promociones");
-  console.log(idPromo,"buscandoPromo:",promociones.findOne({ _id: idPromo }))
   return await promociones.findOne({ _id: idPromo });
 }
