@@ -28,6 +28,7 @@ import {
   InfoPromocionCombo,
   PromocionesInterface,
 } from "src/promociones/promociones.interface";
+import { cajaInstance } from "src/caja/caja.clase";
 
 export class Encargos {
   async pruebaImportar() {
@@ -363,6 +364,13 @@ export class Encargos {
   }
 
   public async insertarEncargos(encargos: any) {
+    // abrimos caja temporalmente para poder utilizar la cesta
+    cajaInstance.abrirCaja({
+      detalleApertura: [{ _id: "0", valor: 0, unidades: 0 }],
+      idDependientaApertura: Number.parseInt(encargos[0].Dependenta),
+      inicioTime: Number(new Date().getDate()),
+      totalApertura: 0,
+    });
     const idsAgrupados = {};
     let newCesta = await cestasInstance.crearCesta();
     const cesta = await cestasInstance.getCestaById(newCesta);
@@ -381,13 +389,19 @@ export class Encargos {
     // Obtenemos los valores (los arrays de objetos agrupados) del objeto idsAgrupados
     const groupedArray = Object.values(idsAgrupados);
     try {
-      const cestaClon = JSON.parse(JSON.stringify(cesta));
       for (const item of groupedArray) {
-        // Crear una copia de la cesta original
-        await this.insertarEncargo(item, cestaClon);
-        await cestasInstance.borrarArticulosCesta(cesta._id, true, false, false);
+        await this.insertarEncargo(item, cesta);
+        // Borramos valores de cesta para insertar productos del proximo encargo
+        await cestasInstance.borrarArticulosCesta(
+          cesta._id,
+          true,
+          false,
+          false
+        );
       }
       await cestasInstance.deleteCestaMesa(cesta._id);
+      // al acabar de insertar, borramos la cesta y la caja
+      await cajaInstance.borrarCaja();
       return groupedArray;
     } catch (error) {
       console.log("Error insertEncargos:", error);
@@ -429,9 +443,7 @@ export class Encargos {
       cesta.nombreCliente = client.nombre;
       cesta.trabajador = idDependenta;
       await cestasInstance.updateCesta(cesta);
-      // creamos cesta para insertarlo en el parametro cesta del encargo mongo
-      // let cestaEnc = await getCestaEnc(encargo, detallesArray, cesta);
-      // console.log(cestaEnc);
+
       let res = await this.postCestaEnc(encargo, detallesArray, cesta);
       let cestaEncargo = res.cesta;
 
@@ -445,12 +457,12 @@ export class Encargos {
 
         productos.push({
           id: cestaEncargo.lista[index].idArticulo,
-          nombre:cestaEncargo.lista[index].nombre,
-          total:cestaEncargo.lista[index].subtotal,
+          nombre: cestaEncargo.lista[index].nombre,
+          total: cestaEncargo.lista[index].subtotal,
           unidades: cestaEncargo.lista[index].unidades,
           comentario: textoModificado,
           arraySuplementos: cestaEncargo.lista[index].arraySuplementos,
-          promocion: cestaEncargo.lista[index].promocion
+          promocion: cestaEncargo.lista[index].promocion,
         });
       }
       let descuento: any = Number(
@@ -497,7 +509,9 @@ export class Encargos {
         recogido: false,
         codigoBarras: codigoBarras,
       };
+      // se vacia la lista para no duplicar posibles productos en la siguiente creacion de un encargo
 
+      cesta.lista = [];
       return schEncargos
         .setEncargo(mongodbEncargo)
         .then((ok: boolean) => {
