@@ -551,13 +551,14 @@ export class Encargos {
 
     // buscamos que productos entre si son promoCombo
     function buscarCoincidencia(item, index, otroItem, otroIndex) {
+      // devolvera true si los dos productos tienen la id del otro en su registro
       return (
         Number(detallesArray[index]?.PromoArtSec) === otroItem.Article &&
         Number(detallesArray[otroIndex]?.PromoArtPrinc) === item.Article
       );
     }
 
-    // recorrer encargo para encontrar promoscombo
+    // recorrer encargo para encontrar promos
     encargo.forEach((item, index) => {
       if (item.Detall.includes("IdPromoCombo") && !procesados.has(index)) {
         const coincidencia = encargo.find((otroItem, otroIndex) => {
@@ -577,7 +578,7 @@ export class Encargos {
             indexArtEnc: [index, otroIndex],
             comentario: item.Comentari,
           });
-
+          // guardamos los indices encontrados en el array para no volverlos a comrpobar
           procesados.add(index);
           procesados.add(otroIndex);
         }
@@ -594,7 +595,7 @@ export class Encargos {
         procesados.add(index);
       }
     });
-
+    // creamos las promos encontradas y las insertamos en cesta
     for (const item of productosPromo) {
       const promoEncontrado: PromocionesInterface =
         await nuevaInstancePromociones.getPromoById(item.idPromo);
