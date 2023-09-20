@@ -443,7 +443,7 @@ export class Encargos {
       cesta.nombreCliente = client.nombre;
       cesta.trabajador = idDependenta;
       await cestasInstance.updateCesta(cesta);
-
+      // conseguimos la cesta con los articulos y un array de sus comentarios con el mismo orden de la lista cesta
       let res = await this.postCestaEnc(encargo, detallesArray, cesta);
       let cestaEncargo = res.cesta;
 
