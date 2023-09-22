@@ -75,13 +75,14 @@ export class InstaladorController {
     });
   }
   /* Uri */
-  @Post("getCd")
-  async getCd(
+  @Post("setData")
+  async setData(
     @Body()
-    { cn, cd }
+    { cn, bssnes, cd }
   ) {
-    return await axios.post("parametros/setCd", {
+    return await axios.post("parametros/setData", {
       cn,
+      bssnes,
       cd,
     });
   }
