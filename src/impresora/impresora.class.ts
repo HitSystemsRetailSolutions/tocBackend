@@ -139,8 +139,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: informacionVip, // Mirar bien para terminar todo
           infoCliente: {
@@ -161,8 +161,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
@@ -212,8 +212,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: informacionVip, // Mirar bien para terminar todo
           infoCliente: {
@@ -232,8 +232,8 @@ export class Impresora {
           total: ticket.total,
           visa: await ticketsInstance.getFormaPago(ticket),
           tiposIva: ticket.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo_venta
           infoCliente: null,
@@ -265,8 +265,8 @@ export class Impresora {
           total: devolucion.total,
           visa: "DEVOLUCION",
           tiposIva: devolucion.cesta.detalleIva,
-          cabecera: parametros.header,
-          pie: parametros.footer,
+          cabecera: parametros?.header == undefined ? "" : parametros.header,
+          pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
@@ -1275,7 +1275,7 @@ export class Impresora {
           },
           {
             tipo: "text",
-            payload: "Resp. cierre   : " + trabajadorCierre.nombre,
+            payload: "Resp. cierre   : " + trabajadorCierre?.nombre,
           },
           {
             tipo: "text",
@@ -1710,7 +1710,7 @@ export class Impresora {
     const descuento: any = Number(
       (await clienteInstance.isClienteDescuento(encargo.idCliente))?.descuento
     );
-    const cabecera = parametros.header;
+    const cabecera = parametros?.header == undefined ? "" : parametros.header;
     const moment = require("moment-timezone");
     const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
     let detalles = await this.precioUnitario(
@@ -1732,17 +1732,16 @@ export class Impresora {
       importe = "Total:" + encargo.total.toFixed(2) + " €";
     } else {
       if (descuento && descuento != 0) {
-        detalleImporte = `Import restant sense descompte: ${(
-          encargo.total -
-          encargo.dejaCuenta +
-          (encargo.total * descuento) / 100
-        ).toFixed(2)}€\nImport restant del descompte: ${(
+        detalleImporte = `Total sense descompte: ${(
+          (encargo.total * descuento) / 100 +
+          encargo.total
+        ).toFixed(2)}€\nTotal del descompte: ${(
           (encargo.total * descuento) /
           100
         ).toFixed(2)}€ \nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
       }
       importe =
-        "Total:" + (encargo.total - encargo.dejaCuenta).toFixed(2) + " €";
+        "Total restant:" + (encargo.total - encargo.dejaCuenta).toFixed(2) + " €";
     }
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
@@ -1752,6 +1751,14 @@ export class Impresora {
       detallesIva.detalleIva5 +
       detallesIva.detalleIva10 +
       detallesIva.detalleIva21;
+
+    // mostramos las observaciones de los productos
+    let observacions = "";
+    for (const producto of encargo.productos) {
+      if (producto.comentario != ""){
+        const nombreLimpio = producto.nombre.startsWith('+') ? producto.nombre.substring(1) : producto.nombre;
+        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;}
+    }
     try {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
@@ -1797,6 +1804,8 @@ export class Impresora {
           { tipo: "text", payload: importe },
           { tipo: "size", payload: [0, 0] },
           { tipo: "text", payload: "" },
+          { tipo: "text", payload: "Observacions:" },
+          { tipo: "text", payload: observacions },
           { tipo: "align", payload: "CT" },
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },

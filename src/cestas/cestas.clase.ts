@@ -328,7 +328,8 @@ export class CestaClase {
     arraySuplementos: ItemLista["arraySuplementos"], // Los suplentos no deben tener tarifa especial para simplificar.
     gramos: ItemLista["gramos"],
     nombre = "",
-    menu = ""
+    menu = "",
+    regalar: boolean = false
   ): Promise<CestasInterface> {
     // recojemos la cesta
     let cesta = await this.getCestaById(idCesta);
@@ -350,7 +351,7 @@ export class CestaClase {
         if (
           cesta.lista[i].idArticulo === articulo._id &&
           cesta.lista[i].gramos == null &&
-          !cesta.lista[i].regalo &&
+          cesta.lista[i].regalo == regalar &&
           cesta.lista[i].promocion == null &&
           // aqui basicamente compruebo de que si el articulo es especial y tiene un nombre diferente que no se sume
           (cesta.lista[i].nombre == nombre || nombre.length == 0)
@@ -379,6 +380,7 @@ export class CestaClase {
             }
             if (igual == cesta.lista[i].arraySuplementos.length) {
               cesta.lista[i].unidades += unidades;
+              cesta.lista[i].puntos += articulo.puntos;
               cesta.lista[i].subtotal =
                 nuevaInstancePromociones.redondearDecimales(
                   cesta.lista[i].subtotal + unidades * articulo.precioConIva,
@@ -388,14 +390,20 @@ export class CestaClase {
               articuloNuevo = false;
               break;
             }
-          } else if (cesta.lista[i].arraySuplementos == null) {
+          } else if (
+            cesta.lista[i].arraySuplementos == null &&
+            cesta.lista[i].regalo == regalar
+          ) {
             cesta.lista[i].unidades += unidades;
-            cesta.lista[i].subtotal = Number(
-              (
-                cesta.lista[i].subtotal +
-                unidades * articulo.precioConIva
-              ).toFixed(2)
-            );
+            cesta.lista[i].puntos += articulo.puntos;
+            if (!regalar) {
+              cesta.lista[i].subtotal = Number(
+                (
+                  cesta.lista[i].subtotal +
+                  unidades * articulo.precioConIva
+                ).toFixed(2)
+              );
+            }
             articuloNuevo = false;
             break;
           }
@@ -409,12 +417,12 @@ export class CestaClase {
           arraySuplementos: arraySuplementos,
           promocion: null,
           regalo: false,
+          puntos: articulo.puntos,
           subtotal: unidades * articulo.precioConIva,
           unidades: unidades,
           gramos: gramos,
         });
       }
-
       let numProductos = 0;
       let total = 0;
       for (let i = 0; i < cesta.lista.length; i++) {
@@ -430,7 +438,6 @@ export class CestaClase {
     }
 
     await this.recalcularIvas(cesta, menu);
-
     if (await schCestas.updateCesta(cesta)) return cesta;
 
     throw Error("Error updateCesta() - cesta.clase.ts");
@@ -444,7 +451,8 @@ export class CestaClase {
     unidades: number,
     arraySuplementos: ItemLista["arraySuplementos"],
     nombre: string,
-    menu: string
+    menu: string,
+    regalar: boolean = false
   ) {
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
@@ -467,9 +475,9 @@ export class CestaClase {
           arraySuplementos,
           gramos,
           nombre,
-          menu
+          menu,
+          regalar
         );
-
       // Modo por unidad
       return await this.insertarArticulo(
         articulo,
@@ -478,10 +486,11 @@ export class CestaClase {
         arraySuplementos,
         null,
         nombre,
-        menu
+        menu,
+        regalar
       );
     }
-    console.log("error");
+
     throw Error(
       "Error, la caja está cerrada. cestas.clase > clickTeclaArticulo()"
     );
@@ -648,6 +657,14 @@ export class CestaClase {
             cesta.idCliente,
             cesta.lista[i].unidades
           );
+          const preuSumplements = Number(
+            await this.getPreuSuplementos(
+              cesta.lista[i].arraySuplementos,
+              cesta.idCliente,
+              cesta.lista[i].unidades
+            )
+          );
+          cesta.lista[i].subtotal += preuSumplements;
           cesta.detalleIva = fusionarObjetosDetalleIva(
             cesta.detalleIva,
             detalleDeSuplementos
@@ -684,6 +701,26 @@ export class CestaClase {
     }
   }
 
+  /* Uri */
+  async getPreuSuplementos(
+    arraySuplementos: ArticulosInterface[],
+    idCliente: ClientesInterface["id"],
+    unidades: number
+  ): Promise<Number> {
+    let preu = 0;
+    for (let i = 0; i < arraySuplementos.length; i++) {
+      let articulo = await articulosInstance.getInfoArticulo(
+        arraySuplementos[i]._id
+      );
+      articulo = await articulosInstance.getPrecioConTarifa(
+        articulo,
+        idCliente
+      );
+      preu += articulo.precioConIva * unidades;
+    }
+
+    return preu;
+  }
   /* Eze 4.0 */
   async getDetalleIvaSuplementos(
     arraySuplementos: ArticulosInterface[],
@@ -821,11 +858,10 @@ export class CestaClase {
     } else {
       return false;
     }
-
     cesta.lista[index].regalo = true;
     cesta.lista[index].subtotal = 0;
-    await cestasInstance.recalcularIvas(cesta);
 
+    await cestasInstance.recalcularIvas(cesta);
     if (await cestasInstance.updateCesta(cesta)) {
       await this.actualizarCestas();
       return true;
@@ -833,6 +869,86 @@ export class CestaClase {
     throw Error("No se ha podido actualizar la cesta");
   }
 
+  async regalarItemPromo(
+    idCesta: CestasInterface["_id"],
+    index: number,
+    idPromoArtSel
+  ) {
+    const cesta = await cestasInstance.getCestaById(idCesta);
+    if (cesta && cesta.idCliente) {
+      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      if (cliente.albaran) return false;
+    } else {
+      return false;
+    }
+    let unidadesPaRegalar;
+    let unidadesNoRegaladas;
+    let idARegalar;
+    let idNoRegalar;
+    // borramos la promo de la cesta
+    await this.borrarItemCesta(idCesta, index);
+    // guardamos cual de las dos id de promo se quiere regalar
+    if (cesta.lista[index].promocion.idArticuloPrincipal == idPromoArtSel) {
+      unidadesPaRegalar =
+        cesta.lista[index].unidades *
+        cesta.lista[index].promocion.cantidadArticuloPrincipal;
+      unidadesNoRegaladas =
+        cesta.lista[index].unidades *
+        cesta.lista[index].promocion.cantidadArticuloSecundario;
+      idARegalar = cesta.lista[index].promocion.idArticuloPrincipal;
+      idNoRegalar = cesta.lista[index].promocion.idArticuloSecundario;
+    } else {
+      unidadesPaRegalar =
+        cesta.lista[index].unidades *
+        cesta.lista[index].promocion.cantidadArticuloSecundario;
+      unidadesNoRegaladas =
+        cesta.lista[index].unidades *
+        cesta.lista[index].promocion.cantidadArticuloPrincipal;
+      idARegalar = cesta.lista[index].promocion.idArticuloSecundario;
+      idNoRegalar = cesta.lista[index].promocion.idArticuloPrincipal;
+    }
+    let mismoRegalo = false;
+    for (let i = 0; i < cesta.lista.length; i++) {
+      if (cesta.lista[i].regalo && cesta.lista[i].idArticulo == idPromoArtSel) {
+        mismoRegalo = true;
+      }
+    }
+    // primero insertamos la id a regalar una por una
+    for (let i = 0; i < unidadesPaRegalar; i++) {
+      await this.clickTeclaArticulo(
+        idARegalar,
+        0,
+        idCesta,
+        1,
+        null,
+        "",
+        "",
+        true
+      );
+      if (i == 0 && !mismoRegalo) {
+        const cestaActualizada = await cestasInstance.getCestaById(idCesta);
+        let newIndex = null;
+        let pos = 0;
+        while (newIndex == null) {
+          if (
+            cestaActualizada.lista[pos].idArticulo == idARegalar &&
+            !cestaActualizada.lista[pos].regalo
+          ) {
+            newIndex = pos;
+          }
+          pos++;
+        }
+        await this.regalarItem(cestaActualizada._id, newIndex);
+      }
+    }
+
+    for (let i = 0; i < unidadesNoRegaladas; i++) {
+      await this.clickTeclaArticulo(idNoRegalar, 0, idCesta, 1, null, "", "");
+    }
+
+    await cestasInstance.actualizarCestas();
+    return { promocion: true, error: false };
+  }
   async registroLogSantaAna(
     cesta: CestasInterface,
     productos: CestasInterface["lista"]

@@ -19,7 +19,6 @@ export class CajaController {
       idDependienta,
     }
   ) {
-
     try {
       if (
         UtilesModule.checkVariable(

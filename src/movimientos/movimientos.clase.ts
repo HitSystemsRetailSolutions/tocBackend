@@ -235,7 +235,13 @@ export class MovimientosClase {
         return "TARJETA";
       }
     if (superTicket.movimientos.length === 1) {
-      if (superTicket.movimientos[0].tipo === "TKRS_SIN_EXCESO") {
+      if (superTicket.movimientos[0].tipo === "TARJETA") {
+        if (superTicket.movimientos[0].valor < 0) {
+          return "DEVUELTO";
+        } else {
+          return "TARJETA";
+        }
+      } else if (superTicket.movimientos[0].tipo === "TKRS_SIN_EXCESO") {
         if (superTicket.total > superTicket.movimientos[0].valor)
           return "TKRS + EFECTIVO";
         else return "TKRS";
@@ -244,6 +250,7 @@ export class MovimientosClase {
       } else if (superTicket.movimientos[0].tipo === "SALIDA") {
         return "DEUDA";
       } else {
+        return "EFECTIVO";
         throw Error("Forma de pago desconocida");
       }
     } else if (superTicket.movimientos.length === 0 && superTicket.total > 0) {

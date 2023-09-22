@@ -201,7 +201,9 @@ class PaytefClass {
     if (extraDataMovimiento == null)
       throw Error("Faltan datos en impresora/imprimirTicket");
     for (const x of ["TITULAR", "ESTABLECIMIENTO"]) {
-      await impresoraInstance.imprimirTicketPaytef(extraDataMovimiento.data, x);
+      setTimeout(() => {
+        impresoraInstance.imprimirTicketPaytef(extraDataMovimiento.data, x);
+      }, 1500);
     }
   }
 
