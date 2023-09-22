@@ -80,7 +80,7 @@ export class InstaladorController {
     @Body()
     { cn, bssnes, cd }
   ) {
-    return await axios.post("parametros/setData", {
+    await axios.post("parametros/setData", {
       cn,
       bssnes,
       cd,
