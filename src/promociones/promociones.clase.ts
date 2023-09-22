@@ -49,6 +49,10 @@ export class NuevaPromocion {
     return await schPromociones.getPromosIndividuales();
   }
 
+  async getPromoById(idPromo){
+    return await schPromociones.getPromoById(idPromo);
+  }
+
   async descargarPromociones() {
     try {
       let resPromos: any = await axios

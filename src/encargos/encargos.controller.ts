@@ -37,7 +37,9 @@ export class EncargosController {
           msg: "Faltan datos.",
         };
 
-      const anularEncargoSantaAna = await encargosInstance.anularTicket(data.id);
+      const anularEncargoSantaAna = await encargosInstance.anularTicket(
+        data.id
+      );
       if (anularEncargoSantaAna) return encargosInstance.setEntregado(data.id);
 
       return false;
@@ -75,12 +77,24 @@ export class EncargosController {
   @Post("getEncargoByNumber")
   async getEncargoByNumber(@Body() { idEncargo }) {
     try {
-      if (idEncargo) return await encargosInstance.getEncargoByNumber(idEncargo);
+      if (idEncargo)
+        return await encargosInstance.getEncargoByNumber(idEncargo);
       throw Error("Error, faltan datos en getEncargoByNumber");
     } catch (err) {
       logger.Error(66, err);
       return null;
     }
   }
-}
 
+  @Post("pruebaImportar")
+  async pruebaImportar() {
+    try {
+      const encargos: any = await encargosInstance.pruebaImportar();
+      return await encargosInstance.insertarEncargos(encargos);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+
+}

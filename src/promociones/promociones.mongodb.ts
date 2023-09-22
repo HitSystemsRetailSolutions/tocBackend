@@ -45,3 +45,9 @@ export async function insertarPromociones(
   const promociones = database.collection<PromocionesInterface>("promociones");
   return (await promociones.insertMany(arrayPromociones)).acknowledged;
 }
+
+export async function getPromoById(idPromo:PromocionesInterface["_id"]):Promise<PromocionesInterface> {
+  const database = (await conexion).db("tocgame");
+  const promociones = database.collection<PromocionesInterface>("promociones");
+  return await promociones.findOne({ _id: idPromo });
+}
