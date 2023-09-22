@@ -75,6 +75,18 @@ export class InstaladorController {
     });
   }
   /* Uri */
+  @Post("getCd")
+  async getCd(
+    @Body()
+    { cn, cd }
+  ) {
+    return await axios.post("parametros/setCd", {
+      cn,
+      cd,
+    });
+  }
+
+  /* Uri */
   @Post("getCN")
   async getCN() {
     return await this.getCNpromise();
