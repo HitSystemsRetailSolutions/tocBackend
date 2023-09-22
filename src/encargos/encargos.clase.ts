@@ -627,6 +627,7 @@ export class Encargos {
                 promoEncontrado.cantidadPrincipal *
                 promoEncontrado.precioFinal
             ),
+            puntos: articuloPrincipal.puntos,
             promocion: {
               idPromocion: promoEncontrado._id,
               tipoPromo: promoEncontrado.tipo,
@@ -704,6 +705,7 @@ export class Encargos {
                   promoEncontrado.cantidadSecundario *
                   preciosReales.precioRealSecundario
             ),
+            puntos: articuloPrincipal.puntos + articuloSecundario?.puntos,
             promocion: {
               idPromocion: promoEncontrado._id,
               tipoPromo: promoEncontrado.tipo,
