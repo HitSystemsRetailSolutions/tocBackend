@@ -75,8 +75,8 @@ export class InstaladorController {
     });
   }
   /* Uri */
-  @Post("getCd")
-  async getCd(
+  @Post("setCd")
+  async setCd(
     @Body()
     { cn, cd }
   ) {
