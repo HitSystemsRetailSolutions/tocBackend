@@ -105,7 +105,7 @@ export async function borrarArticulos(): Promise<void> {
 export async function buscar(busqueda: string): Promise<ArticulosInterface[]> {
   const database = (await conexion).db("tocgame");
   const articulos = database.collection<ArticulosInterface>("articulos");
-  return await articulos
+  var articles: ArticulosInterface[] = await articulos
     .find(
       {
         nombre: { $regex: new RegExp(busqueda, "i") },
@@ -113,6 +113,15 @@ export async function buscar(busqueda: string): Promise<ArticulosInterface[]> {
       { limit: 20 }
     )
     .toArray();
+  var familias: ArticulosInterface[] = await articulos
+    .find(
+      {
+        familia: { $regex: new RegExp(busqueda, "i") },
+      },
+      { limit: 20 }
+    )
+    .toArray();
+  return articles.concat(familias);
 }
 
 /* Eze 4.0 */
