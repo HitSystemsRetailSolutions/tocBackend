@@ -65,6 +65,7 @@ export class ParametrosController {
         database: parametros.database,
         licencia: parametros.licencia,
         configuraciones: params,
+        nombreEmpresa: parametros.nombreEmpresa,
         timeout: 30000,
       })
       .catch((e) => {
