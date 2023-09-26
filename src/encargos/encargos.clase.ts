@@ -14,8 +14,35 @@ import { impresoraInstance } from "../impresora/impresora.class";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
 import { time } from "console";
 import { clienteInstance } from "src/clientes/clientes.clase";
+import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
+import { CestaClase, cestasInstance } from "src/cestas/cestas.clase";
+import { CestasInterface } from "src/cestas/cestas.interface";
+import { CestasController } from "src/cestas/cestas.controller";
+import { getSuplementos } from "src/articulos/articulos.mongodb";
+import { articulosInstance } from "src/articulos/articulos.clase";
+import {
+  NuevaPromocion,
+  nuevaInstancePromociones,
+} from "src/promociones/promociones.clase";
+import {
+  InfoPromocionCombo,
+  PromocionesInterface,
+} from "src/promociones/promociones.interface";
+import { cajaInstance } from "src/caja/caja.clase";
 
 export class Encargos {
+  async pruebaImportar() {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      const res: any = await axios.post("encargos/getEncargos", {
+        database: parametros.database,
+        codigoTienda: parametros.codigoTienda,
+      });
+      return res.data;
+    } catch (error) {
+      console.log("error", error);
+    }
+  }
   async getEncargos() {
     return await schEncargos.getEncargos();
   }
@@ -128,9 +155,12 @@ export class Encargos {
     );
     if (descuento && descuento > 0) {
       encargo.productos.forEach((producto) => {
-        producto.total = this.redondearPrecio(
-          producto.total - (producto.total * descuento) / 100
-        ); // Modificamos el total para añadir el descuento especial del cliente
+        if (producto.id != -1) {
+          producto.total = this.redondearPrecio(
+            producto.total - (producto.total * descuento) / 100
+          );
+        }
+        // Modificamos el total para añadir el descuento especial del cliente
       });
     }
     encargo.producto;
@@ -143,6 +173,8 @@ export class Encargos {
       encargo.amPm
     );
     let timestamp = new Date().getTime();
+    let codigoBarras = await movimientosInstance.generarCodigoBarrasSalida();
+    codigoBarras = await calculoEAN13(codigoBarras);
     const encargo_santAna = {
       id: await this.generateId(
         this.getDate(
@@ -174,6 +206,8 @@ export class Encargos {
       idTrabajador: encargo.idTrabajador,
       recogido: false,
       timestamp: timestamp,
+      opcionEncargo: encargo.opcionRecogida,
+      codigoBarras: codigoBarras,
     };
     // Mandamos el encargo al SantaAna
     const { data }: any = await axios
@@ -199,24 +233,10 @@ export class Encargos {
     // False -> Ha habido algún error al insertar el encargo.
     encargo.timestamp = timestamp;
     encargo.recogido = false;
-    encargo.codigoBarras =
-      await movimientosInstance.generarCodigoBarrasSalida();
-    encargo.codigoBarras = await calculoEAN13(encargo.codigoBarras);
+    encargo.codigoBarras = codigoBarras;
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
     await impresoraInstance.imprimirEncargo(encargoCopia);
 
-    // insertamos las ids insertadas en la tabla utilizada a los productos
-    let j = 0;
-
-    for (let i = 0; i < encargo.productos.length; i++) {
-      encargo.productos[i].idGraella = data.ids[data.ids.length - (j + 1)].id;
-      j++;
-      if (encargo.productos[i]?.promocion?.idArticuloSecundario != null) {
-        encargo.productos[i].idGraellaPromoArtSecundario =
-          data.ids[data.ids.length - (j + 1)].id;
-        j++;
-      }
-    }
     // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
@@ -236,27 +256,15 @@ export class Encargos {
 
     if (!encargo) return false;
 
-    // recorremos los productos del encargo para añadir las idsGraellas a un array
-    const idGraellas = encargo.productos
-      .map((producto) => {
-        const ids = [];
-
-        if (producto.idGraella) {
-          ids.push(producto.idGraella);
-        }
-
-        if (producto?.idGraellaPromoArtSecundario) {
-          ids.push(producto.idGraellaPromoArtSecundario);
-        }
-
-        return ids;
-      })
-      .flat();
-
     let encargoGraella = {
-      ids: idGraellas,
+      tmStmp: encargo.timestamp,
       bbdd: parametros.database,
-      fecha: encargo.fecha,
+      data: encargo.fecha,
+      id: await this.generateId(
+        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+        encargo.idTrabajador.toString(),
+        parametros
+      ),
     };
     //  se envia el encargo a bbdd para actualizar el registro
     const { data }: any = await axios
@@ -297,28 +305,15 @@ export class Encargos {
     const parametros = await parametrosInstance.getParametros();
 
     if (encargo) {
-      // recorremos los productos del encargo para añadir las idsGraellas a un array
-
-      const idGraellas = encargo.productos
-        .map((producto) => {
-          const ids = [];
-
-          if (producto.idGraella) {
-            ids.push(producto.idGraella);
-          }
-
-          if (producto?.idGraellaPromoArtSecundario) {
-            ids.push(producto.idGraellaPromoArtSecundario);
-          }
-
-          return ids;
-        })
-        .flat();
-
       let encargoGraella = {
-        ids: idGraellas,
+        tmStmp: encargo.timestamp,
         bbdd: parametros.database,
-        fecha: encargo.fecha,
+        data: encargo.fecha,
+        id: await this.generateId(
+          moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+          encargo.idTrabajador.toString(),
+          parametros
+        ),
       };
       // borrara el registro del encargo en la bbdd
       const { data }: any = await axios
@@ -367,6 +362,404 @@ export class Encargos {
       return arr;
     }, new Array(7).fill(0));
   }
+
+  public async insertarEncargos(encargos: any) {
+    // abrimos caja temporalmente para poder utilizar la cesta
+    cajaInstance.abrirCaja({
+      detalleApertura: [{ _id: "0", valor: 0, unidades: 0 }],
+      idDependientaApertura: Number.parseInt(encargos[0].Dependenta),
+      inicioTime: Number(new Date().getDate()),
+      totalApertura: 0,
+    });
+    const idsAgrupados = {};
+    let newCesta = await cestasInstance.crearCesta();
+    const cesta = await cestasInstance.getCestaById(newCesta);
+    // Iteramos sobre cada objeto en el array y agrupamos por id
+    for (const item of encargos) {
+      const id = item.Id;
+      // Si el id no está en el objeto idsAgrupados, lo inicializamos como un array vacío
+      if (!idsAgrupados[id]) {
+        idsAgrupados[id] = [];
+      }
+
+      // Agregamos el objeto actual al grupo correspondiente según su id
+      idsAgrupados[id].push(item);
+    }
+
+    // Obtenemos los valores (los arrays de objetos agrupados) del objeto idsAgrupados
+    const groupedArray = Object.values(idsAgrupados);
+    try {
+      for (const item of groupedArray) {
+        await this.insertarEncargo(item, cesta);
+        // Borramos valores de cesta para insertar productos del proximo encargo
+        await cestasInstance.borrarArticulosCesta(
+          cesta._id,
+          true,
+          false,
+          false
+        );
+      }
+      await cestasInstance.deleteCestaMesa(cesta._id);
+      // al acabar de insertar, borramos la cesta y la caja
+      await cajaInstance.borrarCaja();
+      return groupedArray;
+    } catch (error) {
+      console.log("Error insertEncargos:", error);
+    }
+  }
+  async insertarEncargo(encargo: any, cesta: CestasInterface) {
+    // convertimos en  array el string de detall
+    const detallesArray = [];
+    try {
+      // Iterar sobre los objetos y extraer los valores de "Detall" como objetos
+      for (const enc of encargo) {
+        const detallParts = enc.Detall.match(/\[(.*?)\]/g);
+        if (detallParts) {
+          const detallObject = {};
+          for (const part of detallParts) {
+            const [key, value] = part.replace(/[\[\]]/g, "").split(":");
+            detallObject[key] = value;
+          }
+          detallesArray.push(detallObject);
+        }
+      }
+      // variables que guardan los parametros del encargo de mongo
+      const data = new Date(encargo[0].Data);
+      let fecha = data.toISOString().split("T")[0]; // Formato YYYY-MM-DD
+      let hora = data.toISOString().split("T")[1].split(".")[0].slice(0, 5); // Formato hh:mm
+      let timestamp = detallesArray[0]?.timestamp
+        ? detallesArray[0].timestamp
+        : extraerTimestamp(encargo[0].Id);
+      let opcionRecogida = detallesArray[0]?.OpcionRec
+        ? detallesArray[0]?.OpcionRec
+        : 2;
+      let idCliente = detallesArray[0].Id;
+      let anticipo = encargo[0].Anticip;
+      let idDependenta = encargo[0].Dependenta;
+      let codigoBarras = detallesArray[0].codigoBarras;
+      let client = await clienteInstance.getClienteById(idCliente);
+      let total = 0;
+      cesta.idCliente = idCliente;
+      cesta.nombreCliente = client.nombre;
+      cesta.trabajador = idDependenta;
+      await cestasInstance.updateCesta(cesta);
+      // conseguimos la cesta con los articulos y un array de sus comentarios con el mismo orden de la lista cesta
+      let res = await this.postCestaEnc(encargo, detallesArray, cesta);
+      let cestaEncargo = res.cesta;
+
+      let productos = [];
+      const subcadena = ";0";
+      for (const [index, item] of res.comentarios.entries()) {
+        const textoModificado = await this.eliminarSubstringYAnterior(
+          item,
+          subcadena
+        );
+
+        productos.push({
+          id: cestaEncargo.lista[index].idArticulo,
+          nombre: cestaEncargo.lista[index].nombre,
+          total: cestaEncargo.lista[index].subtotal,
+          unidades: cestaEncargo.lista[index].unidades,
+          comentario: textoModificado,
+          arraySuplementos: cestaEncargo.lista[index].arraySuplementos,
+          promocion: cestaEncargo.lista[index].promocion,
+        });
+      }
+      let descuento: any = Number(
+        (await clienteInstance.isClienteDescuento(idCliente))?.descuento
+      );
+
+      // modificamos precios con el descuentro del cliente
+      if (descuento && descuento > 0) {
+        productos.forEach((producto) => {
+          if (producto.id != -1) {
+            producto.total = this.redondearPrecio(
+              producto.total - (producto.total * descuento) / 100
+            );
+          }
+          // Modificamos el total para añadir el descuento especial del cliente
+        });
+      }
+      let dependenta = await trabajadoresInstance.getTrabajadorById(
+        idDependenta
+      );
+
+      for (const key in cestaEncargo.detalleIva) {
+        if (key.startsWith("importe")) {
+          total += cestaEncargo.detalleIva[key];
+        }
+      }
+
+      // creamos una data mogodb de encargo
+      const mongodbEncargo = {
+        idCliente: idCliente,
+        nombreCliente: client.nombre,
+        opcionRecogida: opcionRecogida,
+        amPm: "pm",
+        fecha: fecha,
+        hora: hora,
+        dias: [],
+        dejaCuenta: anticipo,
+        total: total,
+        productos: productos,
+        cesta: cestaEncargo,
+        idTrabajador: idDependenta,
+        nombreDependienta: dependenta.nombre,
+        timestamp: timestamp,
+        recogido: false,
+        codigoBarras: codigoBarras,
+      };
+      // se vacia la lista para no duplicar posibles productos en la siguiente creacion de un encargo
+
+      cesta.lista = [];
+      return schEncargos
+        .setEncargo(mongodbEncargo)
+        .then((ok: boolean) => {
+          if (!ok) return { error: true, msg: "Error al crear el encargo" };
+          return { error: false, msg: "Encargo creado" };
+        })
+        .catch((err: string) => ({ error: true, msg: err }));
+    } catch (error) {
+      console.log("error insertEnc en Mongodb", error);
+    }
+  }
+
+  eliminarSubstringYAnterior(texto: string, subcadena: string) {
+    const indice = texto.indexOf(subcadena);
+    const indice2 = texto.indexOf(";");
+
+    if (indice !== -1) {
+      // Si se encuentra la subcadena, elimina todo antes de ella
+      return texto.substring(indice + subcadena.length);
+    } else if (indice2) {
+      return texto.substring(indice2 + 1);
+    }
+
+    // Si la subcadena no se encuentra, devuelve el texto original
+    return texto;
+  }
+
+  async postCestaEnc(
+    encargo: any,
+    detallesArray: any[],
+    cesta: CestasInterface
+  ) {
+    // :Promise<{ cestaEnc: CestasInterface }>
+    const productosPromo = [];
+    const procesados = new Set();
+    const comentarios = []; //array para inseratr los comentarios en productos con el mismo orden de la cesta
+
+    // buscamos que productos entre si son promoCombo
+    function buscarCoincidencia(item, index, otroItem, otroIndex) {
+      // devolvera true si los dos productos tienen la id del otro en su registro
+      return (
+        Number(detallesArray[index]?.PromoArtSec) === otroItem.Article &&
+        Number(detallesArray[otroIndex]?.PromoArtPrinc) === item.Article
+      );
+    }
+
+    // recorrer encargo para encontrar promos
+    encargo.forEach((item, index) => {
+      if (item.Detall.includes("IdPromoCombo") && !procesados.has(index)) {
+        const coincidencia = encargo.find((otroItem, otroIndex) => {
+          return (
+            index !== otroIndex &&
+            !procesados.has(otroIndex) &&
+            buscarCoincidencia(item, index, otroItem, otroIndex)
+          );
+        });
+
+        if (coincidencia) {
+          let otroIndex = encargo.indexOf(coincidencia);
+          // push  para crear promos en cesta
+          productosPromo.push({
+            idPromo: detallesArray[index].IdPromoCombo,
+            tipo: "COMBO",
+            indexArtEnc: [index, otroIndex],
+            comentario: item.Comentari,
+          });
+          // guardamos los indices encontrados en el array para no volverlos a comrpobar
+          procesados.add(index);
+          procesados.add(otroIndex);
+        }
+      } else if (
+        item.Detall.includes("IdPromoIndividual") &&
+        !procesados.has(index)
+      ) {
+        productosPromo.push({
+          idPromo: detallesArray[index].IdPromoIndividual,
+          tipo: "INDIVIDUAL",
+          indexArtEnc: [index],
+          comentario: item.Comentari,
+        });
+        procesados.add(index);
+      }
+    });
+    // creamos las promos encontradas y las insertamos en cesta
+    for (const item of productosPromo) {
+      const promoEncontrado: PromocionesInterface =
+        await nuevaInstancePromociones.getPromoById(item.idPromo);
+
+      if (promoEncontrado) {
+        let unidadArtPrinc;
+        let idPrinc;
+        let idSec;
+
+        if (item.tipo == "INDIVIDUAL") {
+          unidadArtPrinc = encargo[item.indexArtEnc[0]].Quantitat;
+          idPrinc = encargo[item.indexArtEnc[0]].Article;
+          idSec = null;
+
+          const unidades = unidadArtPrinc / promoEncontrado.cantidadPrincipal;
+          const articuloPrincipal = await articulosInstance.getInfoArticulo(
+            idPrinc
+          );
+          const nombre = "Promo. " + articuloPrincipal.nombre;
+          const productoCesta = {
+            arraySuplementos: null,
+            gramos: 0,
+            idArticulo: -1,
+            unidades: unidades,
+            nombre: nombre,
+            regalo: false,
+            subtotal: this.redondearPrecio(
+              unidades *
+                promoEncontrado.cantidadPrincipal *
+                promoEncontrado.precioFinal
+            ),
+            puntos: articuloPrincipal.puntos,
+            promocion: {
+              idPromocion: promoEncontrado._id,
+              tipoPromo: promoEncontrado.tipo,
+              unidadesOferta: 1,
+              idArticuloPrincipal: idPrinc,
+              cantidadArticuloPrincipal: promoEncontrado.cantidadPrincipal,
+              cantidadArticuloSecundario: null,
+              idArticuloSecundario: idSec,
+              precioRealArticuloPrincipal: promoEncontrado.precioFinal,
+              precioRealArticuloSecundario: null,
+            },
+          };
+          cesta.lista.push(productoCesta);
+
+          comentarios.push(encargo[item.indexArtEnc[0]].Comentari);
+        } else {
+          if (detallesArray[item.indexArtEnc[0]]?.PromoArtSec) {
+            unidadArtPrinc = encargo[item.indexArtEnc[0]].Quantitat;
+            idPrinc = encargo[item.indexArtEnc[0]].Article;
+            idSec = encargo[item.indexArtEnc[1]].Article;
+          } else {
+            unidadArtPrinc = encargo[item.indexArtEnc[1]].Quantitat;
+            idPrinc = encargo[item.indexArtEnc[1]].Article;
+            idSec = encargo[item.indexArtEnc[0]].Article;
+          }
+
+          const unidades = unidadArtPrinc / promoEncontrado.cantidadPrincipal;
+
+          const articuloPrincipal = await articulosInstance.getInfoArticulo(
+            idPrinc
+          );
+          const articuloSecundario = await articulosInstance.getInfoArticulo(
+            idSec
+          );
+          const infoFinal: InfoPromocionCombo = {
+            seAplican: unidades,
+            sobranPrincipal: 0,
+            sobranSecundario: 0,
+            indexListaOriginalPrincipal: null,
+            indexListaOriginalSecundario: null,
+            idArticuloPrincipal: idPrinc,
+            idArticuloSecundario: idSec,
+            precioPromoUnitario: promoEncontrado.precioFinal,
+            idPromocion: promoEncontrado._id,
+            cantidadNecesariaPrincipal: promoEncontrado.cantidadPrincipal,
+            cantidadNecesariaSecundario: promoEncontrado.cantidadSecundario,
+            nombrePrincipal: articuloPrincipal.nombre,
+            nombreSecundario: articuloSecundario?.nombre,
+          };
+          const preciosReales =
+            await nuevaInstancePromociones.calcularPrecioRealCombo(
+              infoFinal,
+              articuloPrincipal,
+              articuloSecundario
+            );
+
+          const nombre =
+            "Promo. " +
+            (await articulosInstance.getInfoArticulo(idPrinc)).nombre +
+            " + " +
+            (await articulosInstance.getInfoArticulo(idSec)).nombre;
+
+          const productoCesta = {
+            arraySuplementos: null,
+            gramos: 0,
+            idArticulo: -1,
+            unidades: unidades,
+            nombre: nombre,
+            regalo: false,
+            subtotal: this.redondearPrecio(
+              unidades *
+                promoEncontrado.cantidadPrincipal *
+                preciosReales.precioRealPrincipal +
+                unidades *
+                  promoEncontrado.cantidadSecundario *
+                  preciosReales.precioRealSecundario
+            ),
+            puntos: articuloPrincipal.puntos + articuloSecundario?.puntos,
+            promocion: {
+              idPromocion: promoEncontrado._id,
+              tipoPromo: promoEncontrado.tipo,
+              unidadesOferta: 1,
+              idArticuloPrincipal: idPrinc,
+              cantidadArticuloPrincipal: promoEncontrado.cantidadPrincipal,
+              cantidadArticuloSecundario: promoEncontrado.cantidadSecundario,
+              idArticuloSecundario: idSec,
+              precioRealArticuloPrincipal: preciosReales.precioRealPrincipal,
+              precioRealArticuloSecundario: preciosReales.precioRealSecundario,
+            },
+          };
+          cesta.lista.push(productoCesta);
+
+          comentarios.push(encargo[item.indexArtEnc[0]].Comentari);
+        }
+      }
+    }
+
+    await cestasInstance.updateCesta(cesta);
+
+    // insetar articulos en cesta para calcularIva
+    try {
+      // insertar productos restantes
+      for (const [index, item] of encargo.entries()) {
+        if (!procesados.has(index)) {
+          const arraySuplementos = detallesArray[index]?.suplementos
+            ? await articulosInstance.getSuplementos(
+                detallesArray[index]?.suplementos.split(",").map(Number)
+              )
+            : null;
+
+          for (let i = 0; i < item.Quantitat; i++) {
+            cesta = await cestasInstance.clickTeclaArticulo(
+              item.Article,
+              0,
+              cesta._id,
+              1,
+              arraySuplementos,
+              "",
+              ""
+            );
+          }
+
+          comentarios.push(encargo[index].Comentari);
+        }
+      }
+    } catch (error) {
+      console.log("error crear cesta de encargo", error);
+    }
+
+    // devolver cesta y comentarios
+    return { cesta: cesta, comentarios: comentarios };
+  }
 }
 
 const encargosInstance = new Encargos();
@@ -386,4 +779,18 @@ function calculoEAN13(codigo: any): any {
   var codigoBarrasEAN13 = codigoBarras + digitoControl;
   // Devolvemos el resultado
   return codigoBarrasEAN13;
+}
+function extraerTimestamp(Id: any) {
+  const timestampMatch = Id.match(/\d{14}/);
+
+  const timestampStr = timestampMatch[0];
+  const year = timestampStr.substr(0, 4);
+  const month = timestampStr.substr(4, 2);
+  const day = timestampStr.substr(6, 2);
+  const hour = timestampStr.substr(8, 2);
+  const minute = timestampStr.substr(10, 2);
+  const second = timestampStr.substr(12, 2);
+
+  const timestamp = `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+  return new Date(timestamp).getTime(); // Devuelve el timestamp en milisegundos
 }

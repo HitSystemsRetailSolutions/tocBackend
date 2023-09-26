@@ -1313,6 +1313,10 @@ export class Impresora {
           },
           {
             tipo: "text",
+            payload: "Visa             :      " + caja.cantidadPaytef.toFixed(2),
+          },
+          {
+            tipo: "text",
             payload: "Canvi inicial    :      " + caja.totalApertura.toFixed(2),
           },
           {

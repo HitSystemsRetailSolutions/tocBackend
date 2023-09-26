@@ -764,10 +764,13 @@ export class CestaClase {
   async borrarArticulosCesta(
     idCesta: CestasInterface["_id"],
     borrarCliente = false,
-    borrarModo = false
+    borrarModo = false,
+    registroSantaAna = true
   ) {
     const cesta = await this.getCestaById(idCesta);
-    this.registroLogSantaAna(cesta, cesta.lista);
+    if (registroSantaAna) {
+      this.registroLogSantaAna(cesta, cesta.lista);
+    }
     if (cesta) {
       cesta.lista = [];
       cesta.detalleIva = {
