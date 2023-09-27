@@ -204,6 +204,9 @@ export class TicketsClase {
     //   );
     // }
   };
+
+  insertImprimir = (idTicket: TicketsInterface["_id"]) =>
+    schTickets.insertImprimir(idTicket);
 }
 
 export const ticketsInstance = new TicketsClase();

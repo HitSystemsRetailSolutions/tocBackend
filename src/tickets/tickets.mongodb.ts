@@ -346,3 +346,21 @@ export async function anularTicket(
   }
   return false;
 }
+
+export async function insertImprimir(
+  idTicket: TicketsInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  return (
+    await tickets.updateOne(
+      { _id: idTicket },
+      {
+        $set: {
+          enviado: false,
+          imprimir: true,
+        },
+      }
+    )
+  ).acknowledged;
+}

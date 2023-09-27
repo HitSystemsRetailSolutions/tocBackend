@@ -97,7 +97,11 @@ export class Impresora {
     // recoge el ticket por la id
     const ticket = await ticketsInstance.getTicketById(idTicket);
     const parametros = await parametrosInstance.getParametros();
-
+    // insertamos parametro imprimir y enviado en false al ticket para enviarlo al santaAna
+    if (!ticket?.imprimir) {
+      // solo entramos si nunca antes se habia imprimido antes el ticket
+      await ticketsInstance.insertImprimir(idTicket);
+    }
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
     // Preparamos el objeto que vamos a mandar a la impresora
@@ -1313,7 +1317,8 @@ export class Impresora {
           },
           {
             tipo: "text",
-            payload: "Visa             :      " + caja.cantidadPaytef.toFixed(2),
+            payload:
+              "Visa             :      " + caja.cantidadPaytef.toFixed(2),
           },
           {
             tipo: "text",
@@ -1745,7 +1750,9 @@ export class Impresora {
         ).toFixed(2)}€ \nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
       }
       importe =
-        "Total restant:" + (encargo.total - encargo.dejaCuenta).toFixed(2) + " €";
+        "Total restant:" +
+        (encargo.total - encargo.dejaCuenta).toFixed(2) +
+        " €";
     }
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
@@ -1759,9 +1766,12 @@ export class Impresora {
     // mostramos las observaciones de los productos
     let observacions = "";
     for (const producto of encargo.productos) {
-      if (producto.comentario != ""){
-        const nombreLimpio = producto.nombre.startsWith('+') ? producto.nombre.substring(1) : producto.nombre;
-        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;}
+      if (producto.comentario != "") {
+        const nombreLimpio = producto.nombre.startsWith("+")
+          ? producto.nombre.substring(1)
+          : producto.nombre;
+        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;
+      }
     }
     try {
       const device = new escpos.Network();
