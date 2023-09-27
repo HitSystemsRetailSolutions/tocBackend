@@ -4,6 +4,7 @@ import { articulosInstance } from "./articulos.clase";
 import axios from "axios";
 import { logger } from "../logger";
 import { tecladoInstance } from "src/teclado/teclado.clase";
+import { type } from "os";
 @Controller("articulos")
 export class ArticulosController {
   /* Eze 4.0 */
@@ -23,7 +24,6 @@ export class ArticulosController {
   }
   @Post("getArticuloById")
   async getArticuloById(@Body() { idArticulo }) {
-
     try {
       if (idArticulo)
         return await articulosInstance.getInfoArticulo(idArticulo);
@@ -48,12 +48,20 @@ export class ArticulosController {
   }
 
   @Post("buscar")
-  async buscar(@Body() { busqueda }) {
+  async buscar(@Body() { busqueda, familia, limit }) {
     try {
-      if (busqueda) {
-        return await articulosInstance.buscarArticulos(busqueda);
-      }
+      return await articulosInstance.buscarArticulos(busqueda, familia, limit);
       throw Error("Faltan datos en articulos/buscar");
+    } catch (err) {
+      logger.Error(138, err);
+      return false;
+    }
+  }
+
+  @Post("familias")
+  async familias() {
+    try {
+      return await articulosInstance.getFamilies();
     } catch (err) {
       logger.Error(138, err);
       return false;
