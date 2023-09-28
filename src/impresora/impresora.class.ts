@@ -1313,7 +1313,8 @@ export class Impresora {
           },
           {
             tipo: "text",
-            payload: "Visa             :      " + caja.cantidadPaytef.toFixed(2),
+            payload:
+              "Visa             :      " + caja.cantidadPaytef.toFixed(2),
           },
           {
             tipo: "text",
@@ -1745,7 +1746,9 @@ export class Impresora {
         ).toFixed(2)}€ \nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
       }
       importe =
-        "Total restant:" + (encargo.total - encargo.dejaCuenta).toFixed(2) + " €";
+        "Total restant:" +
+        (encargo.total - encargo.dejaCuenta).toFixed(2) +
+        " €";
     }
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
@@ -1759,9 +1762,12 @@ export class Impresora {
     // mostramos las observaciones de los productos
     let observacions = "";
     for (const producto of encargo.productos) {
-      if (producto.comentario != ""){
-        const nombreLimpio = producto.nombre.startsWith('+') ? producto.nombre.substring(1) : producto.nombre;
-        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;}
+      if (producto.comentario != "") {
+        const nombreLimpio = producto.nombre.startsWith("+")
+          ? producto.nombre.substring(1)
+          : producto.nombre;
+        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;
+      }
     }
     try {
       const device = new escpos.Network();
@@ -1806,10 +1812,10 @@ export class Impresora {
           { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
-          { tipo: "size", payload: [0, 0] },
           { tipo: "text", payload: "" },
           { tipo: "text", payload: "Observacions:" },
           { tipo: "text", payload: observacions },
+          { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "CT" },
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },
@@ -1858,8 +1864,10 @@ export class Impresora {
           { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
-          { tipo: "size", payload: [0, 0] },
           { tipo: "text", payload: "" },
+          { tipo: "text", payload: "Observacions:" },
+          { tipo: "text", payload: observacions },
+          { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "CT" },
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },
@@ -1908,8 +1916,10 @@ export class Impresora {
           { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
-          { tipo: "size", payload: [0, 0] },
           { tipo: "text", payload: "" },
+          { tipo: "text", payload: "Observacions:" },
+          { tipo: "text", payload: observacions },
+          { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "CT" },
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },
