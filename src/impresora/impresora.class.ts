@@ -368,13 +368,9 @@ export class Impresora {
     // recojemos datos de los parametros
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
-    const total =
-      info.dejaCuenta > 0
-        ? nuevaInstancePromociones.redondearDecimales(
-            info.total + info.dejaCuenta,
-            2
-          )
-        : info.total;
+    const dejaCuenta = info?.dejaCuenta>0?info?.dejaCuenta:0;
+    const total = info.total;
+        console.log("total",info.total.toFixed(2),"dejacuenta",info?.dejaCuenta,"total",total.toFixed(2),(info.total-info?.dejaCuenta).toFixed(2));
     const tipoPago = info.visa;
     //   mqttInstance.loggerMQTT(tipoPago)
     const tiposIva = info.tiposIva;
@@ -426,10 +422,13 @@ export class Impresora {
       if (infoCliente.descuento == 0) clienteDescuento = "Venta registrada.";
     }
     if (infoCliente?.descuento && infoCliente.descuento != 0) {
-      detalleDescuento = `Total sense descompte: ${info.totalSinDescuento.toFixed(
-        2
-      )}€\nTotal del descompte: ${(
-        (info.totalSinDescuento * infoCliente.descuento) /
+      detalleDescuento+=
+      detalleDescuento += `Total sense descompte: ${(
+        (total + dejaCuenta) /
+        (1 - infoCliente.descuento / 100)
+      ).toFixed(2)}€\nDescompte total: ${(
+        (( (total + dejaCuenta) /
+        (1 - infoCliente.descuento / 100)) * infoCliente.descuento) /
         100
       ).toFixed(2)}€\n`;
     }
@@ -453,10 +452,9 @@ export class Impresora {
     }
 
     if (info.dejaCuenta > 0) {
-      detalleEncargo = "Preu encarrec: " + info.total;
       detalleDejaCuenta = "Pagament rebut: " + info.dejaCuenta;
     }
-
+    
     const detallesIva = await this.getDetallesIva(tiposIva);
 
     let detalleIva = "";
@@ -495,6 +493,8 @@ export class Impresora {
     const preuU =
       (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
       "Si";
+      console.log(clienteDescuento,detalles, detalleDescuento,detalleEncargo)
+      console.log("\n",detalleDejaCuenta);
     const arrayImprimir = [
       { tipo: "setCharacterCodeTable", payload: 19 },
       { tipo: "setCharacterCodeTable", payload: 19 },
@@ -539,11 +539,10 @@ export class Impresora {
         payload: "------------------------------------------",
       },
       { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: detalleDejaCuenta },
       { tipo: "text", payload: detalleDescuento },
       { tipo: "size", payload: [1, 1] },
       { tipo: "text", payload: pagoDevolucion },
-      { tipo: "text", payload: detalleEncargo },
-      { tipo: "text", payload: detalleDejaCuenta },
       { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
       { tipo: "control", payload: "LF" },
       { tipo: "size", payload: [0, 0] },
@@ -1727,29 +1726,30 @@ export class Impresora {
     if (encargo.dejaCuenta == 0) {
       if (descuento && descuento != 0) {
         detalleImporte = `Total sense descompte: ${(
-          (encargo.total * descuento) / 100 +
-          encargo.total
-        ).toFixed(2)}€\nTotal del descompte: ${(
+          encargo.total /
+          (1 - descuento / 100)
+        ).toFixed(2)}€\nDescompte total: ${(
           (encargo.total * descuento) /
           100
-        ).toFixed(2)}€\n`;
+        ).toFixed(2)}€ \n`;
       }
       importe = "Total:" + encargo.total.toFixed(2) + " €";
     } else {
       if (descuento && descuento != 0) {
         detalleImporte = `Total sense descompte: ${(
-          (encargo.total * descuento) / 100 +
-          encargo.total
-        ).toFixed(2)}€\nTotal del descompte: ${(
+          encargo.total /
+          (1 - descuento / 100)
+        ).toFixed(2)}€\nDescompte total: ${(
           (encargo.total * descuento) /
           100
-        ).toFixed(2)}€ \nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
+        ).toFixed(2)}€ \nImport total:${encargo.total.toFixed(2)}\nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
       }
       importe =
         "Total restant:" +
         (encargo.total - encargo.dejaCuenta).toFixed(2) +
         " €";
     }
+
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
     detalleIva =
@@ -1758,7 +1758,6 @@ export class Impresora {
       detallesIva.detalleIva5 +
       detallesIva.detalleIva10 +
       detallesIva.detalleIva21;
-
     // mostramos las observaciones de los productos
     let observacions = "";
     for (const producto of encargo.productos) {
