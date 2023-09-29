@@ -22,6 +22,7 @@ class PaytefClass {
     total: TicketsInterface["total"],
     type: "refund" | "sale" = "sale"
   ): Promise<void> {
+    console.log(total)
     const parametros = await parametrosInstance.getParametros();
     const opciones = {
       pinpad: "*",
@@ -96,10 +97,10 @@ class PaytefClass {
               .post(`http://${ipDatafono}:8887/transaction/result`, {
                 pinpad: "*",
               })
-              .then((respuesta: any) => {
+              .then(async (respuesta: any) => {
                 if (respuesta.data.result.transactionReference == idTicket) {
                   parametrosInstance.setContadoDatafono(0, total);
-                  this.imprimirTicket(idTicket);
+                  if((await parametrosInstance.getParametros())?.params?.TicketDFAuto=="Si") impresoraInstance.imprimirTicket(idTicket);
                   ticketsInstance.setPagadoPaytef(idTicket);
                   io.emit("consultaPaytef", true);
                   io.emit("procesoPaytef", { proceso: "aprobado" });
