@@ -88,8 +88,10 @@ export class CajaClase {
 
     cestasInstance.actualizarCestas();
     parametrosInstance.setContadoDatafono(1, 0);
-    const finalTime = await this.getFechaCierre(inicioTime);
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
+    
+    const inicioTurnoCaja= inicioTime ? inicioTime: cajaAbiertaActual.inicioTime;
+    const finalTime = await this.getFechaCierre(inicioTurnoCaja);
     const cajaCerradaActual = await this.getDatosCierre(
       cajaAbiertaActual,
       totalCierre,
