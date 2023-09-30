@@ -17,6 +17,7 @@ export interface TicketsInterface {
   idCliente: ClientesInterface["id"];
   consumoPersonal: boolean;
   anulado?: Anulado;
+  imprimir?: boolean;
   enviado: boolean;
 }
 export interface Anulado {
