@@ -364,6 +364,7 @@ export class Encargos {
   }
 
   public async insertarEncargos(encargos: any) {
+    if (encargos.length === 0) return
     // abrimos caja temporalmente para poder utilizar la cesta
     cajaInstance.abrirCaja({
       detalleApertura: [{ _id: "0", valor: 0, unidades: 0 }],
