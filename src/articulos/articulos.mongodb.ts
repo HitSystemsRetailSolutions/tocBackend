@@ -102,19 +102,37 @@ export async function borrarArticulos(): Promise<void> {
 }
 
 /* Eze 4.0 */
-export async function buscar(busqueda: string): Promise<ArticulosInterface[]> {
+export async function buscar(
+  busqueda: string,
+  familia: string,
+  limit: number
+): Promise<ArticulosInterface[]> {
+  if (familia.toLocaleLowerCase() === "todos") familia = "";
   const database = (await conexion).db("tocgame");
   const articulos = database.collection<ArticulosInterface>("articulos");
-  return await articulos
+  var articles: ArticulosInterface[] = await articulos
     .find(
       {
         nombre: { $regex: new RegExp(busqueda, "i") },
+        familia: { $regex: new RegExp(familia, "i") },
       },
-      { limit: 20 }
+      { limit: limit }
     )
     .toArray();
+  return articles;
 }
 
+export async function getFamilies() {
+  const database = (await conexion).db("tocgame");
+  const articulos = database.collection<ArticulosInterface>("articulos");
+  var articles: ArticulosInterface[] = await articulos.find().toArray();
+  let familias = [{ text: "TODOS", value: "Todos" }];
+  for (const x of articles) {
+    if (familias.find((f) => f.text === x.familia)) continue;
+    familias.push({ text: x.familia, value: x.familia });
+  }
+  return familias;
+}
 /* Eze 4.0 */
 export async function getSuplementos(suplementos: ArticulosInterface[]) {
   const database = (await conexion).db("tocgame");
