@@ -1240,7 +1240,7 @@ export class Impresora {
       textoMovimientos =
         `\n` +
         textoMovimientos +
-        `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
+        `Total targeta:      ${sumaTarjetas.toFixed(2)}\n` + textoMovimientos;
 
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
