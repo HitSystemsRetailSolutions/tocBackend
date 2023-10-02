@@ -28,6 +28,7 @@ export async function resetCajaAbierta(): Promise<boolean> {
           idDependientaApertura: null,
           totalApertura: null,
           detalleApertura: null,
+          fichajes: null,
         },
       }
     )
@@ -118,7 +119,6 @@ export async function getUltimoCierre(): Promise<CajaSincro> {
   return res[0];
 }
 
-
 /* Eze 4.0 */
 export async function getApeturaCaja(): Promise<CajaAbiertaInterface> {
   const database = (await conexion).db("tocgame");
@@ -147,7 +147,7 @@ export async function setInfoCaja(data: CajaAbiertaInterface) {
   );
 }
 
-/* Eze 4.0 (No se usa, pero aquí está) */
+/* Eze 4.0 */
 export async function borrarCaja(): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const collectionList = await database.listCollections().toArray();
@@ -192,4 +192,21 @@ export async function getCajaSincroMasAntigua(): Promise<CajaSincro> {
     { enviado: false },
     { sort: { finalTime: 1 } }
   );
+}
+
+export async function postfichajesCaja(
+  arrayFichados: CajaAbiertaInterface["fichajes"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const caja = database.collection("caja");
+  return (
+    await caja.updateMany(
+      {},
+      {
+        $set: {
+          fichajes: arrayFichados,
+        },
+      }
+    )
+  ).acknowledged;
 }

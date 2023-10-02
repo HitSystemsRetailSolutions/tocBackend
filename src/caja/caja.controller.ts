@@ -58,6 +58,7 @@ export class CajaController {
           idDependientaApertura: idDependienta,
           inicioTime: await cajaInstance.getComprovarFechaCierreTurno(),
           totalApertura: total,
+          fichajes:[idDependienta],
         });
       throw Error("Error abrirCaja > Faltan datos o son incorrectos");
     } catch (err) {
