@@ -183,7 +183,7 @@ export class CajaClase {
 
   getFechaCierre(inicioTime: CajaAbiertaInterface["inicioTime"],cierreAutomatico: boolean) {
     let d;
-    if (inicioTime) {
+    if (inicioTime && cierreAutomatico) {
       d = new Date(inicioTime);
     } else {
       d = new Date();

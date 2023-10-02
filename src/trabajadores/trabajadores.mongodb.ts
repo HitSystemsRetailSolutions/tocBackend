@@ -40,13 +40,6 @@ export async function buscar(
     .toArray();
 }
 
-export async function getFichados(): Promise<TrabajadoresInterface[]> {
-  const database = (await conexion).db("tocgame");
-  const trabajadores = database.collection<TrabajadoresInterface>("trabajadores");
-  return await trabajadores
-    .find({ fichado: true })
-    .toArray();
-}
 
 /* Eze 4.0 */
 export async function getTrabajador(

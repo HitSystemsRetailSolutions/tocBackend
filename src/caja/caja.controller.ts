@@ -3,6 +3,7 @@ import { UtilesModule } from "../utiles/utiles.module";
 import { cajaInstance } from "./caja.clase";
 import { logger } from "../logger";
 import { impresoraInstance } from "../impresora/impresora.class";
+import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 
 @Controller("caja")
 export class CajaController {
@@ -38,7 +39,8 @@ export class CajaController {
           infoDinero,
           cantidad3G,
           cantidadPaytef,
-          idDependienta
+          idDependienta,
+          false,
         );
       }
       throw Error("Error cerrarCaja > Faltan datos");
@@ -52,14 +54,17 @@ export class CajaController {
   @Post("abrirCaja")
   async abrirCaja(@Body() { total, detalle, idDependienta }) {
     try {
-      if (total != undefined && detalle != undefined)
+      if (total != undefined && detalle != undefined){
+        const fichados = await trabajadoresInstance.getTrabajadoresFichados()
+        const idTrabajadores = fichados.map((resultado) => resultado.idTrabajador);
         return await cajaInstance.abrirCaja({
           detalleApertura: detalle,
           idDependientaApertura: idDependienta,
           inicioTime: await cajaInstance.getComprovarFechaCierreTurno(),
           totalApertura: total,
-          fichajes:[idDependienta],
+          fichajes: idTrabajadores,
         });
+      }
       throw Error("Error abrirCaja > Faltan datos o son incorrectos");
     } catch (err) {
       logger.Error(53, err);

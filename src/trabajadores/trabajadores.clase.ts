@@ -13,7 +13,6 @@ import { cestasInstance } from "src/cestas/cestas.clase";
 import { cajaInstance } from "src/caja/caja.clase";
 
 export class TrabajadoresClase {
-  getFichados = async () => await schTrabajadores.getFichados();
   /* Eze 4.0 */
   getTrabajadorById = async (idTrabajador: number) =>
     await schTrabajadores.getTrabajador(idTrabajador);
