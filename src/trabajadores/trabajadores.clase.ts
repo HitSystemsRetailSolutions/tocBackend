@@ -64,7 +64,7 @@ export class TrabajadoresClase {
   /* Eze 4.0 */
   async ficharTrabajador(idTrabajador: number): Promise<boolean> {
     if (await schTrabajadores.ficharTrabajador(idTrabajador)) {
-      const arrayFichados = (await cajaInstance.getInfoCajaAbierta()).fichajes;
+      const arrayFichados = (await cajaInstance.getInfoCajaAbierta())?.fichajes;
       if (!arrayFichados || !arrayFichados.includes(idTrabajador)) {
         let array = arrayFichados ? arrayFichados : [];
         array.push(idTrabajador);
