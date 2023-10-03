@@ -68,7 +68,6 @@ export class InstaladorController {
             console.log(err.message);
             return "";
           }
-          console.log(stdout);
           resolve("qrinstaller:" + stdout.split(".")[0]);
         }
       );
