@@ -372,9 +372,8 @@ export class Impresora {
     // recojemos datos de los parametros
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
-    const dejaCuenta = info?.dejaCuenta>0?info?.dejaCuenta:0;
+    const dejaCuenta = info?.dejaCuenta > 0 ? info?.dejaCuenta : 0;
     const total = info.total;
-        console.log("total",info.total.toFixed(2),"dejacuenta",info?.dejaCuenta,"total",total.toFixed(2),(info.total-info?.dejaCuenta).toFixed(2));
     const tipoPago = info.visa;
     //   mqttInstance.loggerMQTT(tipoPago)
     const tiposIva = info.tiposIva;
@@ -391,7 +390,7 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    let detalles = await this.precioUnitario(arrayCompra, info.idCliente);
+    let detalles = await this.precioUnitario(arrayCompra);
     let pagoTarjeta = "";
     let pagoTkrs = "";
     let detalleClienteVip = "";
@@ -426,13 +425,12 @@ export class Impresora {
       if (infoCliente.descuento == 0) clienteDescuento = "Venta registrada.";
     }
     if (infoCliente?.descuento && infoCliente.descuento != 0) {
-      detalleDescuento+=
-      detalleDescuento += `Total sense descompte: ${(
+      detalleDescuento += detalleDescuento += `Total sense descompte: ${(
         (total + dejaCuenta) /
         (1 - infoCliente.descuento / 100)
       ).toFixed(2)}€\nDescompte total: ${(
-        (( (total + dejaCuenta) /
-        (1 - infoCliente.descuento / 100)) * infoCliente.descuento) /
+        (((total + dejaCuenta) / (1 - infoCliente.descuento / 100)) *
+          infoCliente.descuento) /
         100
       ).toFixed(2)}€\n`;
     }
@@ -458,7 +456,7 @@ export class Impresora {
     if (info.dejaCuenta > 0) {
       detalleDejaCuenta = "Pagament rebut: " + info.dejaCuenta;
     }
-    
+
     const detallesIva = await this.getDetallesIva(tiposIva);
 
     let detalleIva = "";
@@ -497,8 +495,6 @@ export class Impresora {
     const preuU =
       (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
       "Si";
-      console.log(clienteDescuento,detalles, detalleDescuento,detalleEncargo)
-      console.log("\n",detalleDejaCuenta);
     const arrayImprimir = [
       { tipo: "setCharacterCodeTable", payload: 19 },
       { tipo: "setCharacterCodeTable", payload: 19 },
@@ -915,9 +911,10 @@ export class Impresora {
     const trabajadorCierre = await trabajadoresInstance.getTrabajadorById(
       caja.idDependientaCierre
     );
-    let dependientas = ""
+    let dependientas = "";
     for (const item of caja.fichajes) {
-      const nombre=(await trabajadoresInstance.getTrabajadorById(item)).nombre
+      const nombre = (await trabajadoresInstance.getTrabajadorById(item))
+        .nombre;
       dependientas += `${nombre}\n`;
     }
     let sumaTarjetas = 0;
@@ -1210,11 +1207,12 @@ export class Impresora {
       const trabajadorCierre = await trabajadoresInstance.getTrabajadorById(
         caja.idDependientaCierre
       );
-      let dependientas = ""
-    for (const item of caja.fichajes) {
-      const nombre=(await trabajadoresInstance.getTrabajadorById(item)).nombre
-      dependientas += `${nombre}\n`;
-    }
+      let dependientas = "";
+      for (const item of caja.fichajes) {
+        const nombre = (await trabajadoresInstance.getTrabajadorById(item))
+          .nombre;
+        dependientas += `${nombre}\n`;
+      }
       let sumaTarjetas = 0;
       let textoMovimientos = "";
 
@@ -1257,7 +1255,8 @@ export class Impresora {
       textoMovimientos =
         `\n` +
         textoMovimientos +
-        `Total targeta:      ${sumaTarjetas.toFixed(2)}\n` + textoMovimientos;
+        `Total targeta:      ${sumaTarjetas.toFixed(2)}\n` +
+        textoMovimientos;
 
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
@@ -1764,7 +1763,9 @@ export class Impresora {
         ).toFixed(2)}€\nDescompte total: ${(
           (encargo.total * descuento) /
           100
-        ).toFixed(2)}€ \nImport total:${encargo.total.toFixed(2)}\nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
+        ).toFixed(2)}€ \nImport total:${encargo.total.toFixed(
+          2
+        )}\nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
       }
       importe =
         "Total restant:" +

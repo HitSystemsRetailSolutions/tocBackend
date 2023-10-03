@@ -100,7 +100,6 @@ export class Encargos {
         string += ` - ${producto}: ${unidades}\n`;
       });
     });
-
     impresoraInstance.imprimirListaEncargos(string);
   }
 
@@ -135,8 +134,14 @@ export class Encargos {
 
     // Imprimir los productos y los clientes con las unidades pedidas
     productosOrdenados.forEach((producto) => {
-      string += `\n${producto}\n`;
+      let totalUnidadesProducto = 0; // Inicializar el total de unidades para este producto
       const clientes = productosClientes[producto];
+      Object.keys(clientes).forEach((cliente) => {
+        const unidades = clientes[cliente];
+        totalUnidadesProducto += unidades; // Sumar las unidades para este cliente al total del producto
+      });
+      string += `\n${producto}: ${totalUnidadesProducto}\n`;
+
       Object.keys(clientes).forEach((cliente) => {
         const unidades = clientes[cliente];
         string += ` - ${cliente}: ${unidades}\n`;
@@ -154,14 +159,17 @@ export class Encargos {
       (await clienteInstance.isClienteDescuento(encargo.idCliente))?.descuento
     );
     if (descuento && descuento > 0) {
-      encargo.productos.forEach((producto) => {
-        if (producto.id != -1) {
+      for (let i = 0; i < encargo.productos.length; i++) {
+        const producto = encargo.productos[i];
+        if (producto.id !== -1) {
           producto.total = this.redondearPrecio(
             producto.total - (producto.total * descuento) / 100
           );
+
+          // Asigna el valor de producto.total al subtotal en cesta.lista
+          encargo.cesta.lista[i].subtotal = producto.total;
         }
-        // Modificamos el total para añadir el descuento especial del cliente
-      });
+      }
     }
     encargo.producto;
     const parametros = await parametrosInstance.getParametros();
@@ -364,14 +372,14 @@ export class Encargos {
   }
 
   public async insertarEncargos(encargos: any) {
-    if (encargos.length === 0) return
+    if (encargos.length === 0) return;
     // abrimos caja temporalmente para poder utilizar la cesta
     cajaInstance.abrirCaja({
       detalleApertura: [{ _id: "0", valor: 0, unidades: 0 }],
       idDependientaApertura: Number.parseInt(encargos[0].Dependenta),
       inicioTime: Number(new Date().getDate()),
       totalApertura: 0,
-      fichajes:[Number.parseInt(encargos[0].Dependenta)],
+      fichajes: [Number.parseInt(encargos[0].Dependenta)],
     });
     const idsAgrupados = {};
     let newCesta = await cestasInstance.crearCesta();
@@ -473,14 +481,17 @@ export class Encargos {
 
       // modificamos precios con el descuentro del cliente
       if (descuento && descuento > 0) {
-        productos.forEach((producto) => {
-          if (producto.id != -1) {
-            producto.total = this.redondearPrecio(
-              producto.total - (producto.total * descuento) / 100
+        for (let i = 0; i < productos.length; i++) {
+          
+          if (productos[i].id !== -1) {
+            productos[i].total = this.redondearPrecio(
+              productos[i].total - (productos[i].total * descuento) / 100
             );
+  
+            // Asigna el valor de producto.total al subtotal en cesta.lista
+            cestaEncargo.lista[i].subtotal = productos[i].total;
           }
-          // Modificamos el total para añadir el descuento especial del cliente
-        });
+        }
       }
       let dependenta = await trabajadoresInstance.getTrabajadorById(
         idDependenta
