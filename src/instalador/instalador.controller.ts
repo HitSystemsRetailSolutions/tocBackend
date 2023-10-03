@@ -68,7 +68,6 @@ export class InstaladorController {
             console.log(err.message);
             return "";
           }
-          console.log(stdout);
           resolve("qrinstaller:" + stdout.split(".")[0]);
         }
       );
@@ -387,6 +386,7 @@ export class InstaladorController {
             idDependientaApertura: Number.parseInt(Dependenta),
             inicioTime: Date.parse(date.toString()),
             totalApertura: totalMonedas,
+            fichajes:[Number.parseInt(Dependenta)],
           });
         }
         return [1, monedas];

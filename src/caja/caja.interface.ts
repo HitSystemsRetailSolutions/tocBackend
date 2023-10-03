@@ -5,6 +5,7 @@ export interface CajaAbiertaInterface {
   idDependientaApertura: number;
   totalApertura: number;
   detalleApertura: DetalleMonedas;
+  fichajes: number[];
 }
 
 export interface CajaCerradaInterface {
@@ -37,6 +38,7 @@ export interface CajaSincro {
   idDependientaApertura: number;
   totalApertura: number;
   detalleApertura: DetalleMonedas;
+  fichajes: number[];
   finalTime: number;
   idDependientaCierre: number;
   totalCierre: number;

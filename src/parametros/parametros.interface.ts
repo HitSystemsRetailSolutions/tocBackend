@@ -12,6 +12,7 @@ export interface ParametrosInterface {
   footer: string;
   token: string;
   contadorPaytef: number;
+  params?: any;
   ipTefpay?: string;
   tarifaMesa: string;
   payteftcod: string;

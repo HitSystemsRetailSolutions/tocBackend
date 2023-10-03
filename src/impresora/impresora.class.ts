@@ -97,7 +97,11 @@ export class Impresora {
     // recoge el ticket por la id
     const ticket = await ticketsInstance.getTicketById(idTicket);
     const parametros = await parametrosInstance.getParametros();
-
+    // insertamos parametro imprimir y enviado en false al ticket para enviarlo al santaAna
+    if (!ticket?.imprimir) {
+      // solo entramos si nunca antes se habia imprimido antes el ticket
+      await ticketsInstance.insertImprimir(idTicket);
+    }
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
     // Preparamos el objeto que vamos a mandar a la impresora
@@ -368,13 +372,8 @@ export class Impresora {
     // recojemos datos de los parametros
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
-    const total =
-      info.dejaCuenta > 0
-        ? nuevaInstancePromociones.redondearDecimales(
-            info.total + info.dejaCuenta,
-            2
-          )
-        : info.total;
+    const dejaCuenta = info?.dejaCuenta > 0 ? info?.dejaCuenta : 0;
+    const total = info.total;
     const tipoPago = info.visa;
     //   mqttInstance.loggerMQTT(tipoPago)
     const tiposIva = info.tiposIva;
@@ -391,7 +390,7 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    let detalles = await this.precioUnitario(arrayCompra, info.idCliente);
+    let detalles = await this.precioUnitario(arrayCompra);
     let pagoTarjeta = "";
     let pagoTkrs = "";
     let detalleClienteVip = "";
@@ -426,10 +425,12 @@ export class Impresora {
       if (infoCliente.descuento == 0) clienteDescuento = "Venta registrada.";
     }
     if (infoCliente?.descuento && infoCliente.descuento != 0) {
-      detalleDescuento = `Total sense descompte: ${info.totalSinDescuento.toFixed(
-        2
-      )}€\nTotal del descompte: ${(
-        (info.totalSinDescuento * infoCliente.descuento) /
+      detalleDescuento += detalleDescuento += `Total sense descompte: ${(
+        (total + dejaCuenta) /
+        (1 - infoCliente.descuento / 100)
+      ).toFixed(2)}€\nDescompte total: ${(
+        (((total + dejaCuenta) / (1 - infoCliente.descuento / 100)) *
+          infoCliente.descuento) /
         100
       ).toFixed(2)}€\n`;
     }
@@ -453,7 +454,6 @@ export class Impresora {
     }
 
     if (info.dejaCuenta > 0) {
-      detalleEncargo = "Preu encarrec: " + info.total;
       detalleDejaCuenta = "Pagament rebut: " + info.dejaCuenta;
     }
 
@@ -539,11 +539,10 @@ export class Impresora {
         payload: "------------------------------------------",
       },
       { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: detalleDejaCuenta },
       { tipo: "text", payload: detalleDescuento },
       { tipo: "size", payload: [1, 1] },
       { tipo: "text", payload: pagoDevolucion },
-      { tipo: "text", payload: detalleEncargo },
-      { tipo: "text", payload: detalleDejaCuenta },
       { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
       { tipo: "control", payload: "LF" },
       { tipo: "size", payload: [0, 0] },
@@ -912,6 +911,12 @@ export class Impresora {
     const trabajadorCierre = await trabajadoresInstance.getTrabajadorById(
       caja.idDependientaCierre
     );
+    let dependientas = "";
+    for (const item of caja.fichajes) {
+      const nombre = (await trabajadoresInstance.getTrabajadorById(item))
+        .nombre;
+      dependientas += `${nombre}\n`;
+    }
     let sumaTarjetas = 0;
     let textoMovimientos = "";
     for (let i = 0; i < arrayMovimientos.length; i++) {
@@ -1000,6 +1005,10 @@ export class Impresora {
           }:${
             (fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()
           }`,
+        },
+        {
+          tipo: "text",
+          payload: "Dependents   : \n" + dependientas,
         },
         { tipo: "text", payload: "" },
         { tipo: "size", payload: [0, 1] },
@@ -1198,6 +1207,12 @@ export class Impresora {
       const trabajadorCierre = await trabajadoresInstance.getTrabajadorById(
         caja.idDependientaCierre
       );
+      let dependientas = "";
+      for (const item of caja.fichajes) {
+        const nombre = (await trabajadoresInstance.getTrabajadorById(item))
+          .nombre;
+        dependientas += `${nombre}\n`;
+      }
       let sumaTarjetas = 0;
       let textoMovimientos = "";
 
@@ -1240,7 +1255,8 @@ export class Impresora {
       textoMovimientos =
         `\n` +
         textoMovimientos +
-        `Total targeta:      ${sumaTarjetas.toFixed(2)}\n`;
+        `Total targeta:      ${sumaTarjetas.toFixed(2)}\n` +
+        textoMovimientos;
 
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
@@ -1289,6 +1305,10 @@ export class Impresora {
               diasSemana[fechaFinal.format("d")]
             } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
           },
+          {
+            tipo: "text",
+            payload: "Dependents   : \n" + dependientas,
+          },
           { tipo: "text", payload: "" },
           { tipo: "size", payload: [0, 1] },
           {
@@ -1313,7 +1333,8 @@ export class Impresora {
           },
           {
             tipo: "text",
-            payload: "Visa             :      " + caja.cantidadPaytef.toFixed(2),
+            payload:
+              "Visa             :      " + caja.cantidadPaytef.toFixed(2),
           },
           {
             tipo: "text",
@@ -1726,27 +1747,32 @@ export class Impresora {
     if (encargo.dejaCuenta == 0) {
       if (descuento && descuento != 0) {
         detalleImporte = `Total sense descompte: ${(
-          (encargo.total * descuento) / 100 +
-          encargo.total
-        ).toFixed(2)}€\nTotal del descompte: ${(
+          encargo.total /
+          (1 - descuento / 100)
+        ).toFixed(2)}€\nDescompte total: ${(
           (encargo.total * descuento) /
           100
-        ).toFixed(2)}€\n`;
+        ).toFixed(2)}€ \n`;
       }
       importe = "Total:" + encargo.total.toFixed(2) + " €";
     } else {
       if (descuento && descuento != 0) {
         detalleImporte = `Total sense descompte: ${(
-          (encargo.total * descuento) / 100 +
-          encargo.total
-        ).toFixed(2)}€\nTotal del descompte: ${(
+          encargo.total /
+          (1 - descuento / 100)
+        ).toFixed(2)}€\nDescompte total: ${(
           (encargo.total * descuento) /
           100
-        ).toFixed(2)}€ \nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
+        ).toFixed(2)}€ \nImport total:${encargo.total.toFixed(
+          2
+        )}\nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
       }
       importe =
-        "Total restant:" + (encargo.total - encargo.dejaCuenta).toFixed(2) + " €";
+        "Total restant:" +
+        (encargo.total - encargo.dejaCuenta).toFixed(2) +
+        " €";
     }
+
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
     detalleIva =
@@ -1755,13 +1781,15 @@ export class Impresora {
       detallesIva.detalleIva5 +
       detallesIva.detalleIva10 +
       detallesIva.detalleIva21;
-
     // mostramos las observaciones de los productos
     let observacions = "";
     for (const producto of encargo.productos) {
-      if (producto.comentario != ""){
-        const nombreLimpio = producto.nombre.startsWith('+') ? producto.nombre.substring(1) : producto.nombre;
-        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;}
+      if (producto.comentario != "") {
+        const nombreLimpio = producto.nombre.startsWith("+")
+          ? producto.nombre.substring(1)
+          : producto.nombre;
+        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;
+      }
     }
     try {
       const device = new escpos.Network();
@@ -1806,10 +1834,10 @@ export class Impresora {
           { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
-          { tipo: "size", payload: [0, 0] },
           { tipo: "text", payload: "" },
           { tipo: "text", payload: "Observacions:" },
           { tipo: "text", payload: observacions },
+          { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "CT" },
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },
@@ -1858,8 +1886,10 @@ export class Impresora {
           { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
-          { tipo: "size", payload: [0, 0] },
           { tipo: "text", payload: "" },
+          { tipo: "text", payload: "Observacions:" },
+          { tipo: "text", payload: observacions },
+          { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "CT" },
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },
@@ -1908,8 +1938,10 @@ export class Impresora {
           { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
-          { tipo: "size", payload: [0, 0] },
           { tipo: "text", payload: "" },
+          { tipo: "text", payload: "Observacions:" },
+          { tipo: "text", payload: observacions },
+          { tipo: "size", payload: [0, 0] },
           { tipo: "align", payload: "CT" },
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },

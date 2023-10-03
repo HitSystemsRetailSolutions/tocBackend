@@ -40,6 +40,7 @@ export async function buscar(
     .toArray();
 }
 
+
 /* Eze 4.0 */
 export async function getTrabajador(
   idTrabajador: number
