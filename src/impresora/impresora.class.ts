@@ -915,6 +915,11 @@ export class Impresora {
     const trabajadorCierre = await trabajadoresInstance.getTrabajadorById(
       caja.idDependientaCierre
     );
+    let dependientas = ""
+    for (const item of caja.fichajes) {
+      const nombre=(await trabajadoresInstance.getTrabajadorById(item)).nombre
+      dependientas += `${nombre}\n`;
+    }
     let sumaTarjetas = 0;
     let textoMovimientos = "";
     for (let i = 0; i < arrayMovimientos.length; i++) {
@@ -1003,6 +1008,10 @@ export class Impresora {
           }:${
             (fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()
           }`,
+        },
+        {
+          tipo: "text",
+          payload: "Dependents   : \n" + dependientas,
         },
         { tipo: "text", payload: "" },
         { tipo: "size", payload: [0, 1] },
@@ -1201,6 +1210,11 @@ export class Impresora {
       const trabajadorCierre = await trabajadoresInstance.getTrabajadorById(
         caja.idDependientaCierre
       );
+      let dependientas = ""
+    for (const item of caja.fichajes) {
+      const nombre=(await trabajadoresInstance.getTrabajadorById(item)).nombre
+      dependientas += `${nombre}\n`;
+    }
       let sumaTarjetas = 0;
       let textoMovimientos = "";
 
@@ -1291,6 +1305,10 @@ export class Impresora {
             payload: `Final: ${
               diasSemana[fechaFinal.format("d")]
             } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
+          },
+          {
+            tipo: "text",
+            payload: "Dependents   : \n" + dependientas,
           },
           { tipo: "text", payload: "" },
           { tipo: "size", payload: [0, 1] },

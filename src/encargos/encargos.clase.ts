@@ -371,6 +371,7 @@ export class Encargos {
       idDependientaApertura: Number.parseInt(encargos[0].Dependenta),
       inicioTime: Number(new Date().getDate()),
       totalApertura: 0,
+      fichajes:[Number.parseInt(encargos[0].Dependenta)],
     });
     const idsAgrupados = {};
     let newCesta = await cestasInstance.crearCesta();

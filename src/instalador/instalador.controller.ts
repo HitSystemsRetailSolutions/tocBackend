@@ -387,6 +387,7 @@ export class InstaladorController {
             idDependientaApertura: Number.parseInt(Dependenta),
             inicioTime: Date.parse(date.toString()),
             totalApertura: totalMonedas,
+            fichajes:[Number.parseInt(Dependenta)],
           });
         }
         return [1, monedas];

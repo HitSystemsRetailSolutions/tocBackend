@@ -18,8 +18,12 @@ import { cestasInstance } from "../cestas/cestas.clase";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import * as moment from "moment";
+import { parametrosController } from "src/parametros/parametros.controller";
 
 export class CajaClase {
+  postFichajesCaja = async (
+    arrayTrabajadores: CajaAbiertaInterface["fichajes"]
+  ) => await schCajas.postfichajesCaja(arrayTrabajadores);
   /* Eze 4.0 */
   getInfoCajaAbierta = async () => await schCajas.getInfoCajaAbierta();
 
@@ -81,7 +85,7 @@ export class CajaClase {
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
     cantidadPaytef: CajaCerradaInterface["cantidadPaytef"],
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
-    inicioTime?: CajaAbiertaInterface["inicioTime"]
+    cierreAutomatico: boolean = true,
   ): Promise<boolean> {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
@@ -89,9 +93,9 @@ export class CajaClase {
     cestasInstance.actualizarCestas();
     parametrosInstance.setContadoDatafono(1, 0);
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
-    
-    const inicioTurnoCaja= inicioTime ? inicioTime: cajaAbiertaActual.inicioTime;
-    const finalTime = await this.getFechaCierre(inicioTurnoCaja);
+
+    const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
+    const finalTime = await this.getFechaCierre(inicioTurnoCaja,cierreAutomatico);
     const cajaCerradaActual = await this.getDatosCierre(
       cajaAbiertaActual,
       totalCierre,
@@ -177,9 +181,9 @@ export class CajaClase {
     });
   }
 
-  getFechaCierre(inicioTime?: CajaAbiertaInterface["inicioTime"]) {
+  getFechaCierre(inicioTime: CajaAbiertaInterface["inicioTime"],cierreAutomatico: boolean) {
     let d;
-    if (inicioTime) {
+    if (inicioTime && cierreAutomatico) {
       d = new Date(inicioTime);
     } else {
       d = new Date();
@@ -187,7 +191,7 @@ export class CajaClase {
     return schCajas.getComprovarTurno().then((res) => {
       if (res.estado) {
         return { time: res.time, estadoTurno: true };
-      } else if (inicioTime) {
+      } else if (cierreAutomatico) {
         d.setHours(23, 59, 59);
         return { time: d.getTime(), estadoTurno: false };
       } else {
@@ -210,6 +214,8 @@ export class CajaClase {
       let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0][
         "_id"
       ];
+      const paytef = await parametrosController.totalPaytef()
+      let totalPaytef = paytef[0] ? paytef[0]: 0;
       if (trabId == undefined) trabId = 0;
       if (fechaHoy != fechaApertura) {
         await cajaInstance.cerrarCaja(
@@ -233,8 +239,9 @@ export class CajaClase {
           ],
           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           0,
+          totalPaytef,
           trabId,
-          res.inicioTime
+          true,
         );
         return true;
       }

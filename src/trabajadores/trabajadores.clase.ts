@@ -10,6 +10,7 @@ import { CestasInterface } from "../cestas/cestas.interface";
 import { io } from "../sockets.gateway";
 import { logger } from "../logger";
 import { cestasInstance } from "src/cestas/cestas.clase";
+import { cajaInstance } from "src/caja/caja.clase";
 
 export class TrabajadoresClase {
   /* Eze 4.0 */
@@ -63,6 +64,12 @@ export class TrabajadoresClase {
   /* Eze 4.0 */
   async ficharTrabajador(idTrabajador: number): Promise<boolean> {
     if (await schTrabajadores.ficharTrabajador(idTrabajador)) {
+      const arrayFichados = (await cajaInstance.getInfoCajaAbierta()).fichajes;
+      if (!arrayFichados || !arrayFichados.includes(idTrabajador)) {
+        let array = arrayFichados ? arrayFichados : [];
+        array.push(idTrabajador);
+        await cajaInstance.postFichajesCaja(array);
+      }
       const fichados = await this.nuevoFichajesSincro("ENTRADA", idTrabajador);
       await trabajadoresInstance.actualizarTrabajadoresFrontend();
       cestasInstance.actualizarCestas();
