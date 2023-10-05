@@ -129,3 +129,10 @@ export async function getMovimientosDelTicket(
     database.collection<MovimientosInterface>("movimientos");
   return await movimientosCollection.find({ idTicket: idTicket }).toArray();
 }
+
+export async function getSalidas() {
+  const database = (await conexion).db("tocgame");
+  const movimientosCollection =
+    database.collection<MovimientosInterface>("movimientos");
+  return await movimientosCollection.find({ tipo: "SALIDA" }).toArray();
+}

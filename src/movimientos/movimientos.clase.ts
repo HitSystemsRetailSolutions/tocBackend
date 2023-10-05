@@ -33,6 +33,8 @@ function getNumeroTresDigitos(x: number) {
 
 export class MovimientosClase {
   /* Eze v23 */
+  getSalidas = () => schMovimientos.getSalidas();
+  /* Eze v23 */
   getMovimientosIntervalo = (inicioTime: number, finalTime: number) =>
     schMovimientos.getMovimientosIntervalo(inicioTime, finalTime);
 

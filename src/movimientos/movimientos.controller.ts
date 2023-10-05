@@ -29,7 +29,16 @@ export class MovimientosController {
       return false;
     }
   }
-
+  @Get("getSalidas")
+  async getSalidas() {
+    try {
+      return await movimientosInstance.getSalidas();
+    } catch (err) {
+      logger.Error(54, err);
+      console.log(err);
+      return 0;
+    }
+  }
   @Post("getMovimientosIntervalo")
   async getMovimientosIntervalo(@Body() { inicio, final }) {
     try {
