@@ -4,6 +4,7 @@ import { movimientosInstance } from "./movimientos.clase";
 import { logger } from "../logger";
 import { parametrosController } from "../parametros/parametros.controller";
 import axios from "axios";
+import { cajaInstance } from "src/caja/caja.clase";
 
 @Controller("movimientos")
 export class MovimientosController {
@@ -29,10 +30,12 @@ export class MovimientosController {
       return false;
     }
   }
-  @Get("getSalidas")
-  async getSalidas() {
+  @Get("getSalidasIntervalo")
+  async getSalidasIntervalo() {
     try {
-      return await movimientosInstance.getSalidas();
+      const horaApertura = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
+      const final = Date.now();
+      return await movimientosInstance.getSalidasIntervalo(horaApertura, final);
     } catch (err) {
       logger.Error(54, err);
       console.log(err);
