@@ -51,18 +51,16 @@ export class Deudas {
       dataDeuda.replace(/\D/g, "");
     return id;
   }
-  // async getDeudas() {
-  //   return await schEncargos.getEncargos();
-  // }
 
-  // getDeudaById = async (idEncargo:DeudasInterface["_id"]) =>
-  //   await schEncargos.getEncargoById(idEncargo);
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
+  borrarDeudas = async () =>{await schDeudas.borrarDeudas()};
   setDeuda = async (deuda) => {
+
     const parametros = await parametrosInstance.getParametros();
     const dataDeuda = this.getDate(deuda.timestamp);
+    const idSql= this.getId(parametros.codigoTienda, deuda.idTrabajador, dataDeuda)
     const deuda_santAna = {
-      id: this.getId(parametros.codigoTienda, deuda.idTrabajador, dataDeuda),
+      id: idSql,
       timestamp: deuda.timestamp,
       dependenta: deuda.idTrabajador,
       cliente: deuda.idCliente,
@@ -80,6 +78,7 @@ export class Deudas {
       .catch((e) => {
         console.log(e);
       });
+
     // Si data no existe (null, undefined, etc...) o error = true devolvemos false
     if (!data || data.error) {
       // He puesto el 153 pero no se cual habría que poner, no se cual es el sistema que seguís
@@ -91,6 +90,7 @@ export class Deudas {
     }
     // Si existe, llamámos a la función de setDeuda
     // que devuelve un boolean.
+    deuda.idSql= idSql;
     deuda.pagado = false;
 
     return schDeudas
@@ -133,11 +133,7 @@ export class Deudas {
             const parametros = await parametrosInstance.getParametros();
             const dataDeuda = this.getDate(deuda.timestamp);
             const certificadoDeuda = {
-              id: this.getId(
-                parametros.codigoTienda,
-                deuda.idTrabajador,
-                dataDeuda
-              ),
+              id: deuda.idSql,
               timestamp: deuda.timestamp,
               dependenta: deuda.idTrabajador,
               cliente: deuda.idCliente,
@@ -167,24 +163,62 @@ export class Deudas {
     }
   }
   eliminarDeuda = async (idDeuda) => {
-    return schDeudas
-      .setPagado(idDeuda)
-      .then((ok: boolean) => {
-        if (!ok) return { error: true, msg: "Error al borrar la deuda" };
-        return { error: false, msg: "Deuda borrada" };
-      })
-      .catch((err: string) => ({ error: true, msg: err }));
+    const deuda = await schDeudas.getDeudaById(idDeuda);
+    if (deuda) {
+      const parametros = await parametrosInstance.getParametros();
+      const dataDeuda = this.getDate(deuda.timestamp);
+      const certificadoDeuda = {
+        id: deuda.idSql,
+        timestamp: deuda.timestamp,
+        dependenta: deuda.idTrabajador,
+        cliente: deuda.idCliente,
+        data: dataDeuda,
+        estat: 0,
+        tipus: 1,
+        import: deuda.total,
+        botiga: parametros.licencia,
+        idTicket: deuda.idTicket,
+        bbdd: parametros.database,
+      };
+      return await axios
+        .post("deudas/anularDeuda", certificadoDeuda)
+        .then((res: any) => {
+          if (!res.data.error) {
+            return schDeudas
+              .setPagado(idDeuda)
+              .then((ok: boolean) => {
+                if (!ok)
+                  return { error: true, msg: "Error al borrar la deuda" };
+                return { error: false, msg: "Deuda borrada" };
+              })
+              .catch((err: string) => ({ error: true, msg: err }));
+          }
+          return { error: true, msg: "Error al borrar la deuda en servidor" };
+        })
+        .catch((e) => {
+          console.log(e);
+        });
+    } else {
+      return {
+        error: true,
+        msg: "Deuda no encontrada",
+      };
+    }
   };
   public async insertarDeudas(deudas: any) {
+    let cajaAbierta = cajaInstance.cajaAbierta();
     if (deudas.length == 0) return;
     // abrimos caja temporalmente para poder utilizar la cesta
-    cajaInstance.abrirCaja({
-      detalleApertura: [{ _id: "0", valor: 0, unidades: 0 }],
-      idDependientaApertura: Number.parseInt(deudas[0].Dependenta),
-      inicioTime: Number(new Date().getDate()),
-      totalApertura: 0,
-      fichajes: [Number.parseInt(deudas[0].Dependenta)],
-    });
+    if (!cajaAbierta) {
+      await cajaInstance.abrirCaja({
+        detalleApertura: [{ _id: "0", valor: 0, unidades: 0 }],
+        idDependientaApertura: Number.parseInt(deudas[0].Dependenta),
+        inicioTime: Number(new Date().getDate()),
+        totalApertura: 0,
+        fichajes: [Number.parseInt(deudas[0].Dependenta)],
+      });
+    }
+    
     const grupos = {};
     let newCesta = await cestasInstance.crearCesta();
     const cesta = await cestasInstance.getCestaById(newCesta);
@@ -200,7 +234,6 @@ export class Deudas {
     // Convierte el objeto de grupos en un array de arrays
     const deudasAgrupadas = Object.values(grupos).map((subarray) => subarray);
 
-    console.log(deudasAgrupadas.length);
     try {
       for (const item of deudasAgrupadas) {
         await this.insertarDeuda(item, cesta);
@@ -214,21 +247,30 @@ export class Deudas {
       }
       await cestasInstance.deleteCestaMesa(cesta._id);
       // al acabar de insertar, borramos la cesta y la caja
+      if (!cajaAbierta) {
       await cajaInstance.borrarCaja();
+      }
       return deudasAgrupadas;
     } catch (error) {
       console.log("Error insertEncargos:", error);
     }
   }
+
   async insertarDeuda(deuda: any, cesta: CestasInterface) {
     try {
       const idTicket = deuda[0].Num_tick;
+      const idSql = deuda[0].DeutesAnticipsId;
       const idDependenta = deuda[0].Dependenta;
       const idCliente = deuda[0].Otros.match(/\[Id:(.*?)\]/)?.[1] || "";
       const cliente = await clienteInstance.getClienteById(idCliente);
       const nombreCliente = cliente.nombre;
       let total = 0;
-      const timestamp = new Date(deuda[0].Data).getTime();
+      const fechaOriginal = new Date(deuda[0].Data); // Fecha y hora original en tu zona horaria local
+      const fechaGMT = new Date(
+        fechaOriginal.getTime() + fechaOriginal.getTimezoneOffset() * 60 * 1000
+      );
+
+      const timestamp = fechaGMT.getTime();
       cesta.idCliente = idCliente;
       cesta.nombreCliente = cliente.nombre;
       cesta.trabajador = idDependenta;
@@ -243,12 +285,11 @@ export class Deudas {
       // modificamos precios con el descuentro del cliente
       if (descuento && descuento > 0) {
         for (let i = 0; i < cestaDeuda.lista.length; i++) {
-          
           if (cestaDeuda.lista[i].idArticulo !== -1) {
             cestaDeuda.lista[i].subtotal = this.redondearPrecio(
-              cestaDeuda.lista[i].subtotal - (cestaDeuda.lista[i].subtotal * descuento) / 100
+              cestaDeuda.lista[i].subtotal -
+                (cestaDeuda.lista[i].subtotal * descuento) / 100
             );
-
           }
         }
       }
@@ -261,6 +302,7 @@ export class Deudas {
 
       const mongodbDeuda = {
         idTicket: idTicket,
+        idSql: idSql,
         cesta: cestaDeuda,
         idTrabajador: idDependenta,
         idCliente: idCliente,
