@@ -9,6 +9,8 @@ client.on("connect", async () => {
     const parametros = await parametrosController.getParametros();
     client.subscribe(`hit.software/imagen/${parametros.licencia}/trabajador`);
     client.subscribe(`hit.software/imagen/${parametros.licencia}/cliente`);
+    // TODO: cambiar tienda1 por el nombre de la tienda
+    client.subscribe(`hit.orders/tienda1`);
   } catch (error) {
     console.log(
       "error en imagen.controller parametros o direccion no encontrados: ",
@@ -22,6 +24,22 @@ client.on("message", (topic, message) => {
     const mensaje = Buffer.from(message, "binary").toString("utf-8");
     const objetivo = topic.split("/")[3];
     io.emit(`ponerImagen_${objetivo}`, JSON.parse(mensaje));
+  }
+
+  if(topic.includes("hit.orders")){
+    const mensaje = Buffer.from(message, "binary").toString("utf-8");
+    const msg = JSON.parse(mensaje);
+
+    if(msg.payed){
+      // TODO: manejar la orden pagada
+      // avisamos al frontend del pedido
+      io.emit("pedidoPagado", msg);
+    } else {
+      // TODO: manejar la orden no pagada
+      // posiblemente en el backend no tengamos que hacer nada, hasta que el frontend no conteste,
+      // asi que solo lo enviamos de momento
+      io.emit("pedidoNoPagado", msg);
+    }
   }
 });
 
