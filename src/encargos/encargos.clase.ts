@@ -376,7 +376,7 @@ export class Encargos {
 
   public async insertarEncargos(encargos: any) {
     if (encargos.length === 0) return;
-    let cajaAbierta = cajaInstance.cajaAbierta();
+    let cajaAbierta = await cajaInstance.cajaAbierta();
     // abrimos caja temporalmente para poder utilizar la cesta
     if (!cajaAbierta) {
       await cajaInstance.abrirCaja({

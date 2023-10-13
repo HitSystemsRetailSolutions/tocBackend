@@ -206,8 +206,8 @@ export class Deudas {
     }
   };
   public async insertarDeudas(deudas: any) {
-    let cajaAbierta = cajaInstance.cajaAbierta();
     if (deudas.length == 0) return;
+    let cajaAbierta = await cajaInstance.cajaAbierta();
     // abrimos caja temporalmente para poder utilizar la cesta
     if (!cajaAbierta) {
       await cajaInstance.abrirCaja({
