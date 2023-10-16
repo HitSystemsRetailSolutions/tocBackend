@@ -1,6 +1,6 @@
 import { Controller, Post, Body } from "@nestjs/common";
 import axios from "axios";
-axios.defaults.timeout = 60000;
+axios.defaults.timeout = 65000;
 
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
@@ -20,6 +20,7 @@ import { cajaInstance } from "src/caja/caja.clase";
 import { ticketsInstance } from "src/tickets/tickets.clase";
 import { encargosInstance } from "src/encargos/encargos.clase";
 import { exec } from "child_process";
+import { deudasInstance } from "src/deudas/deudas.clase";
 
 @Controller("instalador")
 export class InstaladorController {
@@ -266,7 +267,11 @@ export class InstaladorController {
         const tarifas = await tarifasInstance.guardarTarifasEspeciales(
           res.data.tarifasEspeciales
         );
-        const encargos = await encargosInstance.insertarEncargos(res.data.encargos);
+        const encargos = await encargosInstance.insertarEncargos(
+          res.data.encargos
+        );
+
+        const deudas = await deudasInstance.insertarDeudas(res.data.deudas);
         if (
           // Solo los datos obligatorios
           trabajadores &&
@@ -386,7 +391,7 @@ export class InstaladorController {
             idDependientaApertura: Number.parseInt(Dependenta),
             inicioTime: Date.parse(date.toString()),
             totalApertura: totalMonedas,
-            fichajes:[Number.parseInt(Dependenta)],
+            fichajes: [Number.parseInt(Dependenta)],
           });
         }
         return [1, monedas];

@@ -2,6 +2,7 @@ import { Body, Controller, Post } from "@nestjs/common";
 import { logger } from "../logger";
 import { encargosInstance } from "./encargos.clase";
 import axios from "axios";
+import { parametrosInstance } from "src/parametros/parametros.clase";
 
 @Controller("encargos")
 export class EncargosController {
@@ -96,5 +97,20 @@ export class EncargosController {
       return null;
     }
   }
+  @Post("descargarEncargos")
+  async descargarEncargos() {
+    try {
+      await encargosInstance.borrarEncargos();
+      const parametros:any = await parametrosInstance.getParametros();
+      const data:any ={database: parametros.database,
+        codigoTienda: parametros.codigoTienda,
+        licencia: parametros.licencia};
 
+      const res: any = await axios.post("encargos/getEncargos", data)
+      return await encargosInstance.insertarEncargos(res.data);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
 }
