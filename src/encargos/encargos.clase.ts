@@ -153,6 +153,9 @@ export class Encargos {
 
   getEncargoById = async (idEncargo: EncargosInterface["_id"]) =>
     await schEncargos.getEncargoById(idEncargo);
+  borrarEncargos = async () => {
+    await schEncargos.borrarEncargos();
+  };
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
   setEncargo = async (encargo) => {
     let descuento: any = Number(
@@ -373,14 +376,17 @@ export class Encargos {
 
   public async insertarEncargos(encargos: any) {
     if (encargos.length === 0) return;
+    let cajaAbierta = await cajaInstance.cajaAbierta();
     // abrimos caja temporalmente para poder utilizar la cesta
-    cajaInstance.abrirCaja({
-      detalleApertura: [{ _id: "0", valor: 0, unidades: 0 }],
-      idDependientaApertura: Number.parseInt(encargos[0].Dependenta),
-      inicioTime: Number(new Date().getDate()),
-      totalApertura: 0,
-      fichajes: [Number.parseInt(encargos[0].Dependenta)],
-    });
+    if (!cajaAbierta) {
+      await cajaInstance.abrirCaja({
+        detalleApertura: [{ _id: "0", valor: 0, unidades: 0 }],
+        idDependientaApertura: Number.parseInt(encargos[0].Dependenta),
+        inicioTime: Number(new Date().getDate()),
+        totalApertura: 0,
+        fichajes: [Number.parseInt(encargos[0].Dependenta)],
+      });
+    }
     const idsAgrupados = {};
     let newCesta = await cestasInstance.crearCesta();
     const cesta = await cestasInstance.getCestaById(newCesta);
@@ -411,7 +417,9 @@ export class Encargos {
       }
       await cestasInstance.deleteCestaMesa(cesta._id);
       // al acabar de insertar, borramos la cesta y la caja
-      await cajaInstance.borrarCaja();
+      if (!cajaAbierta) {
+        await cajaInstance.borrarCaja();
+      }
       return groupedArray;
     } catch (error) {
       console.log("Error insertEncargos:", error);
@@ -482,12 +490,11 @@ export class Encargos {
       // modificamos precios con el descuentro del cliente
       if (descuento && descuento > 0) {
         for (let i = 0; i < productos.length; i++) {
-          
           if (productos[i].id !== -1) {
             productos[i].total = this.redondearPrecio(
               productos[i].total - (productos[i].total * descuento) / 100
             );
-  
+
             // Asigna el valor de producto.total al subtotal en cesta.lista
             cestaEncargo.lista[i].subtotal = productos[i].total;
           }

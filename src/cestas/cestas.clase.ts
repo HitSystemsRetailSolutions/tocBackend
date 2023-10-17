@@ -642,12 +642,12 @@ export class CestaClase {
           articulo.tipoIva,
           cesta.lista[i].unidades
         );
-        console.log("auxDetalleIva",auxDetalleIva,"cestaIva:",cesta.detalleIva);
+
         cesta.detalleIva = fusionarObjetosDetalleIva(
           auxDetalleIva,
           cesta.detalleIva
         );
-          console.log("fusion",cesta.detalleIva)
+
         /* Detalle IVA de suplementos */
         if (
           cesta.lista[i].arraySuplementos &&
@@ -745,6 +745,9 @@ export class CestaClase {
       importe4: 0,
       importe5: 0,
     };
+    let descuento: any = Number(
+      (await clienteInstance.isClienteDescuento(idCliente))?.descuento
+    );
     for (let i = 0; i < arraySuplementos.length; i++) {
       let articulo = await articulosInstance.getInfoArticulo(
         arraySuplementos[i]._id
@@ -753,6 +756,10 @@ export class CestaClase {
         articulo,
         idCliente
       );
+      if (descuento) {
+        articulo.precioConIva =
+          articulo.precioConIva - articulo.precioConIva * (descuento / 100);
+      }
       objetoIva = fusionarObjetosDetalleIva(
         construirObjetoIvas(articulo.precioConIva, articulo.tipoIva, unidades),
         objetoIva

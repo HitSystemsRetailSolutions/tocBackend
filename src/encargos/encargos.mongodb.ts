@@ -70,3 +70,15 @@ export async function getEncargoByNumber(
   const clientes = database.collection<EncargosInterface>("encargos");
   return await clientes.findOne({ codigoBarras: codigoBarras });
 }
+
+export async function borrarEncargos(): Promise<void> {
+  const database = (await conexion).db("tocgame");
+  const collectionlist = await database.listCollections().toArray();
+
+  for (let i = 0; i < collectionlist.length; i++) {
+    if (collectionlist[i].name === "encargos") {
+      await database.collection("encargos").drop();
+      break;
+    }
+  }
+}

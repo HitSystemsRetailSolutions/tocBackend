@@ -1,6 +1,8 @@
 import { Body, Controller, Post } from "@nestjs/common";
 import { logger } from "../logger";
 import { deudasInstance } from "./deudas.clase";
+import { parametrosInstance } from "src/parametros/parametros.clase";
+import axios from "axios";
 
 @Controller("deudas")
 export class DeudasController {
@@ -53,6 +55,22 @@ export class DeudasController {
       return await deudasInstance.eliminarDeuda(data.idDeuda);
     } catch (err) {
       logger.Error(510, err);
+      return null;
+    }
+  }
+  @Post("descargarDeudas")
+  async descargarDeudas() {
+    try {
+      await deudasInstance.borrarDeudas();
+      const parametros:any = await parametrosInstance.getParametros();
+      const data:any ={database: parametros.database,
+        botiga: parametros.codigoTienda,
+        licencia: parametros.licencia};
+
+      const res: any = await axios.post("deudas/getDeudas", data)
+      return await deudasInstance.insertarDeudas(res.data);
+    } catch (err) {
+      logger.Error(50, err);
       return null;
     }
   }
