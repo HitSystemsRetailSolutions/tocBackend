@@ -15,6 +15,21 @@ export interface CestasInterface {
   trabajadores: ObjectId[];
 }
 
+export type itemHonei = {
+  id: string,
+  comments: string,
+  metadata: object,
+  modifiers: {
+    id: string,
+    name: string,
+    price: number,
+    quantity: number,
+  }[],
+  name: string,
+  price: number,
+  quantity: number,
+}
+
 export type ItemLista = {
   idArticulo: number;
   nombre: string;

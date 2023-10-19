@@ -4,6 +4,7 @@ import {
   DetalleIvaInterface,
   ItemLista,
   ModoCesta,
+  itemHonei,
 } from "./cestas.interface";
 import {
   construirObjetoIvas,
@@ -429,18 +430,55 @@ export class CestaClase {
         numProductos += cesta.lista[i].unidades;
         total += cesta.lista[i].subtotal;
       }
-      impresoraInstance.mostrarVisor({
-        total: total.toFixed(2),
-        precio: articulo.precioConIva.toFixed(2).toString(),
-        texto: articulo.nombre,
-        numProductos: numProductos,
-      });
+      if (menu != "honei") {
+        impresoraInstance.mostrarVisor({
+          total: total.toFixed(2),
+          precio: articulo.precioConIva.toFixed(2).toString(),
+          texto: articulo.nombre,
+          numProductos: numProductos,
+        });
+      }
     }
 
     await this.recalcularIvas(cesta, menu);
     if (await schCestas.updateCesta(cesta)) return cesta;
 
     throw Error("Error updateCesta() - cesta.clase.ts");
+  }
+  /* Yasai :D */
+  async insertarArticulosHonei(
+    idCesta: CestasInterface["_id"],
+    articulos: itemHonei[]
+  ) {
+    for (const articulo of articulos) {
+      // cogemos el articulo
+      const artInsertar: ArticulosInterface =
+        await articulosInstance.getInfoArticulo(Number(articulo.id));
+      let suplementos: ArticulosInterface[] = [];
+      // cargamos los suplementos
+      if (articulo.modifiers.length > 0) {
+        suplementos = await Promise.all(
+          articulo.modifiers.map(async (suplemento) => {
+            return await articulosInstance.getInfoArticulo(
+              Number(suplemento.id)
+            );
+          })
+        );
+      }
+
+      // insertamos el articulo
+      this.insertarArticulo(
+        artInsertar,
+        articulo.quantity,
+        idCesta,
+        suplementos,
+        null,
+        "",
+        "honei"
+      );
+    }
+
+    return { ok: true };
   }
 
   /* Yasai :D */
@@ -642,12 +680,17 @@ export class CestaClase {
           articulo.tipoIva,
           cesta.lista[i].unidades
         );
-        console.log("auxDetalleIva",auxDetalleIva,"cestaIva:",cesta.detalleIva);
+        console.log(
+          "auxDetalleIva",
+          auxDetalleIva,
+          "cestaIva:",
+          cesta.detalleIva
+        );
         cesta.detalleIva = fusionarObjetosDetalleIva(
           auxDetalleIva,
           cesta.detalleIva
         );
-          console.log("fusion",cesta.detalleIva)
+        console.log("fusion", cesta.detalleIva);
         /* Detalle IVA de suplementos */
         if (
           cesta.lista[i].arraySuplementos &&

@@ -235,6 +235,19 @@ export class CestasController {
     }
   }
 
+  /* Yasai :D */
+  @Post("insertarArtsHonei")
+  async insertarArtsHonei(@Body() { idCesta, articulos }) {
+    try {
+      if (idCesta && articulos) {
+        return await cestasInstance.insertarArticulosHonei(idCesta, articulos);
+      }
+      throw Error("Error, faltan datos en cestas/insertarHonei");
+    } catch (err) {
+      logger.Error(133, err);
+    }
+  }
+
   // @Post("addSuplementos")
   // async addSuplementos(
   //   @Body() { idCesta, suplementos, idArticuloGeneral, unidades }

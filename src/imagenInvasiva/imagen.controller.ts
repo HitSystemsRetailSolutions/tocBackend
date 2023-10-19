@@ -36,9 +36,8 @@ client.on("message", (topic, message) => {
       io.emit("pedidoPagado", msg);
     } else {
       // TODO: manejar la orden no pagada
-      // posiblemente en el backend no tengamos que hacer nada, hasta que el frontend no conteste,
-      // asi que solo lo enviamos de momento
       io.emit("pedidoNoPagado", msg);
+      // TODO: manejar la insercion en la mesa o lo que sea que haya que hacer
     }
   }
 });
