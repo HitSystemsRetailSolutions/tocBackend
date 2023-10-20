@@ -16,19 +16,19 @@ export interface CestasInterface {
 }
 
 export type itemHonei = {
-  id: string,
-  comments: string,
-  metadata: object,
+  id: string;
+  comments: string;
+  metadata: object;
   modifiers: {
-    id: string,
-    name: string,
-    price: number,
-    quantity: number,
-  }[],
-  name: string,
-  price: number,
-  quantity: number,
-}
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }[];
+  name: string;
+  price: number;
+  quantity: number;
+};
 
 export type ItemLista = {
   idArticulo: number;
@@ -50,6 +50,7 @@ export type ItemLista = {
   puntos: number;
   gramos: number;
   regalo: boolean;
+  pagado?: boolean;
 };
 
 export type DetalleIvaInterface = {

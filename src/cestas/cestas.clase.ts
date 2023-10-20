@@ -345,7 +345,7 @@ export class CestaClase {
     ) {
       articulo["menu"] = menu;
       // recojemos los datos del articulo
-      let infoArticulo = await articulosInstance.getInfoArticulo(articulo._id);
+      // let infoArticulo = await articulosInstance.getInfoArticulo(articulo._id);
       // recorremos la cesta
       for (let i = 0; i < cesta.lista.length; i++) {
         // si el articulo ya esta en la cesta
@@ -355,7 +355,10 @@ export class CestaClase {
           cesta.lista[i].regalo == regalar &&
           cesta.lista[i].promocion == null &&
           // aqui basicamente compruebo de que si el articulo es especial y tiene un nombre diferente que no se sume
-          (cesta.lista[i].nombre == nombre || nombre.length == 0)
+          (cesta.lista[i].nombre == nombre || nombre.length == 0) &&
+          // comrpuebo que no se sumen articulos pagados con no pagados
+          !(menu === "pagados" && !cesta.lista[i].pagado) &&
+          !(menu !== "pagados" && cesta.lista[i].pagado)
         ) {
           if (
             arraySuplementos &&
@@ -379,6 +382,7 @@ export class CestaClase {
                 igual++;
               }
             }
+            // articulos pagados y no pagados de honei
             if (igual == cesta.lista[i].arraySuplementos.length) {
               cesta.lista[i].unidades += unidades;
               cesta.lista[i].puntos += articulo.puntos;
@@ -410,6 +414,7 @@ export class CestaClase {
           }
         }
       }
+      const pagado = menu === "pagados";
 
       if (articuloNuevo) {
         cesta.lista.push({
@@ -422,6 +427,7 @@ export class CestaClase {
           subtotal: unidades * articulo.precioConIva,
           unidades: unidades,
           gramos: gramos,
+          pagado,
         });
       }
       let numProductos = 0;
@@ -430,7 +436,7 @@ export class CestaClase {
         numProductos += cesta.lista[i].unidades;
         total += cesta.lista[i].subtotal;
       }
-      if (menu != "honei") {
+      if (menu != "honei" && menu != "pagados") {
         impresoraInstance.mostrarVisor({
           total: total.toFixed(2),
           precio: articulo.precioConIva.toFixed(2).toString(),
@@ -467,7 +473,7 @@ export class CestaClase {
       }
 
       // insertamos el articulo
-      this.insertarArticulo(
+      await this.insertarArticulo(
         artInsertar,
         articulo.quantity,
         idCesta,
@@ -475,6 +481,41 @@ export class CestaClase {
         null,
         "",
         "honei"
+      );
+    }
+
+    return { ok: true };
+  }
+
+  async insertarArticulosPagados(
+    idCesta: CestasInterface["_id"],
+    articulos: itemHonei[]
+  ) {
+    for (const articulo of articulos) {
+      // cogemos el articulo
+      const artInsertar: ArticulosInterface =
+        await articulosInstance.getInfoArticulo(Number(articulo.id));
+      let suplementos: ArticulosInterface[] = [];
+      // cargamos los suplementos
+      if (articulo.modifiers.length > 0) {
+        suplementos = await Promise.all(
+          articulo.modifiers.map(async (suplemento) => {
+            return await articulosInstance.getInfoArticulo(
+              Number(suplemento.id)
+            );
+          })
+        );
+      }
+
+      // insertamos el articulo
+      await this.insertarArticulo(
+        artInsertar,
+        articulo.quantity,
+        idCesta,
+        suplementos,
+        null,
+        "",
+        "pagados"
       );
     }
 
