@@ -234,4 +234,37 @@ export class ClientesController {
       return false;
     }
   }
+
+  @Post("eliminarCliente")
+  async eliminarCliente(@Body() cliente: any) {
+    try {
+      if (!cliente) {
+        return { error: true, message: "Datos cliente no recibidos" };
+      }
+      const clienteSantaAna = {
+        id: cliente.id,
+        nombre: cliente.nombre,
+        tarjetaCliente: cliente.tarjetaCliente,
+        descuento: cliente.descuento,
+        nif: cliente.nif,
+        telefono: cliente.telefono,
+        direccion: cliente.direccion,
+        email: cliente.email,
+      };
+      const res = await axios.post("clientes/eliminarCliente", clienteSantaAna);
+      if (res.data) {
+        const res2 = await clienteInstance.eliminarCliente(cliente.id);
+        if (res2) {
+          return { error: false, message: "OK" };
+        } else {
+          return { error: true, message: "cliente no borrado en TOC" };
+        }
+      } else {
+        return { error: true, message: "Cliente no borrado en base de datos" };
+      }
+    } catch (error) {
+      logger.Error(135, error);
+      return false;
+    }
+  }
 }
