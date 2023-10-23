@@ -19,6 +19,7 @@ import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import * as moment from "moment";
 import { parametrosController } from "src/parametros/parametros.controller";
+import { ticketsInstance } from "src/tickets/tickets.clase";
 
 export class CajaClase {
   postFichajesCaja = async (
@@ -86,6 +87,7 @@ export class CajaClase {
     cantidadPaytef: CajaCerradaInterface["cantidadPaytef"],
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cierreAutomatico: boolean = true,
+    totalHonei: number
   ): Promise<boolean> {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
@@ -103,7 +105,8 @@ export class CajaClase {
       idDependientaCierre,
       cantidadPaytef,
       totalDatafono3G,
-      finalTime.time
+      finalTime.time,
+      totalHonei
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
@@ -242,6 +245,7 @@ export class CajaClase {
           totalPaytef,
           trabId,
           true,
+          await ticketsInstance.getTotalHonei()
         );
         return true;
       }
@@ -257,7 +261,8 @@ export class CajaClase {
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cantidadPaytef: CajaCerradaInterface["cantidadPaytef"],
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
-    finalTime: CajaCerradaInterface["finalTime"]
+    finalTime: CajaCerradaInterface["finalTime"],
+    totalHonei: number
   ): Promise<CajaCerradaInterface> {
     const arrayTicketsCaja: TicketsInterface[] =
       await schTickets.getTicketsIntervalo(
@@ -351,7 +356,7 @@ export class CajaClase {
         (cajaAbiertaActual.totalApertura +
           totalTickets +
           totalEntradaDinero -
-          (totalDatafono3G + totalSalidas + totalCierre + cantidadPaytef)) *
+          (totalDatafono3G + totalSalidas + totalCierre + cantidadPaytef + totalHonei)) *
         -1
       ).toFixed(2)
     );
@@ -382,6 +387,7 @@ export class CajaClase {
       totalTkrsConExceso,
       totalTkrsSinExceso,
       mediaTickets: totalTickets / nClientes,
+      totalHonei,
     };
   }
 }

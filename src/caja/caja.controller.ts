@@ -29,7 +29,8 @@ export class CajaController {
           infoDinero,
           cantidad3G,
           cantidadPaytef,
-          idDependienta
+          idDependienta,
+          totalHonei
         ) &&
         typeof cantidad3G === "number" &&
         typeof cantidadPaytef === "number"
@@ -42,6 +43,7 @@ export class CajaController {
           cantidadPaytef,
           idDependienta,
           false,
+          totalHonei
         );
       }
       throw Error("Error cerrarCaja > Faltan datos");

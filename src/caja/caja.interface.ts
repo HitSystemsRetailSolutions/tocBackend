@@ -21,6 +21,7 @@ export interface CajaCerradaInterface {
   totalEfectivo: number;
   totalTarjeta: number;
   totalDatafono3G: number;
+  totalHonei: number;
   cantidadPaytef: number;
   totalTicketDatafono3G: number;
   totalDeuda: number;
