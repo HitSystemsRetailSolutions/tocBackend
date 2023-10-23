@@ -21,6 +21,7 @@ import * as schDeudas from "../deudas/deudas.mongodb";
 import { conexion } from "../conexion/mongodb";
 import { sprintf } from "sprintf-js";
 import { paytefInstance } from "src/paytef/paytef.class";
+import { deudasInstance } from "src/deudas/deudas.clase";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -1220,8 +1221,15 @@ export class Impresora {
       let paytef = "";
       let datafono3G = "";
       let textoMovimientos = "";
-
-      
+      let totalDeudaCaja = 0;
+      const arrayDeudasCaja = await deudasInstance.getDeudasCajaAsync();
+      for (let i = 0; i < arrayDeudasCaja.length; i++) {
+        switch (arrayDeudasCaja[i].estado) {
+          case "SIN_PAGAR":
+            totalDeudaCaja -= Number(arrayDeudasCaja[i].total.toFixed(2));
+            break;
+        }
+      }
       for (let i = 0; i < arrayMovimientos.length; i++) {
         const auxFecha = new Date(arrayMovimientos[i]._id);
         switch (arrayMovimientos[i].tipo) {
@@ -1234,22 +1242,38 @@ export class Impresora {
           case "DEUDA":
             break;
           case "SALIDA":
-            textoMovimientos += ` Salida:\n  Cantidad: -${arrayMovimientos[
-              i
-            ].valor.toFixed(
-              2
-            )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepto: ${
-              arrayMovimientos[i].concepto
-            }\n`;
+            if (arrayMovimientos[i].concepto == "DEUDA") {
+              textoMovimientos += ` Deuda dejada a deber:\n  Cantidad: -${arrayMovimientos[
+                i
+              ].valor.toFixed(
+                2
+              )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            } else {
+              textoMovimientos += ` Salida:\n  Cantidad: -${arrayMovimientos[
+                i
+              ].valor.toFixed(
+                2
+              )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepto: ${
+                arrayMovimientos[i].concepto
+              }\n`;
+            }
             break;
           case "ENTRADA_DINERO":
-            textoMovimientos += ` Entrada:\n  Cantidad: +${arrayMovimientos[
-              i
-            ].valor.toFixed(
-              2
-            )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepto: ${
-              arrayMovimientos[i].concepto
-            }\n`;
+            if (arrayMovimientos[i].concepto == "DEUDA") {
+              textoMovimientos += ` Deuda pagada:\n  Cantidad: +${arrayMovimientos[
+                i
+              ].valor.toFixed(
+                2
+              )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            } else {
+              textoMovimientos += ` Entrada:\n  Cantidad: +${arrayMovimientos[
+                i
+              ].valor.toFixed(
+                2
+              )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepto: ${
+                arrayMovimientos[i].concepto
+              }\n`;
+            }
             break;
           case "DATAFONO_3G":
             datafono3G += `  Cantidad: +${arrayMovimientos[i].valor.toFixed(
@@ -1258,7 +1282,9 @@ export class Impresora {
             break;
         }
       }
-      textoMovimientos += `\nTotal targeta: ${(caja.cantidadPaytef+caja.totalDatafono3G).toFixed(2)}`;
+      textoMovimientos += `\nTotal tarjeta: ${(
+        caja.cantidadPaytef + caja.totalDatafono3G
+      ).toFixed(2)}\nDeudas acumuladas en la caja: ${totalDeudaCaja}\nTotal deudas acumuladas: ${caja.totalDeudas.toFixed(2)}`;
 
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);

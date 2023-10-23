@@ -10,6 +10,7 @@ import { CestasInterface } from "src/cestas/cestas.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { articulosInstance } from "src/articulos/articulos.clase";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
+import { CajaCerradaInterface, CajaSincro } from "src/caja/caja.interface";
 export class Deudas {
   getDate(timestamp: any) {
     var date = new Date(timestamp);
@@ -91,8 +92,8 @@ export class Deudas {
     // Si existe, llamámos a la función de setDeuda
     // que devuelve un boolean.
     deuda.idSql= idSql;
-    deuda.pagado = false;
-
+    deuda.enviado = false;
+    deuda.estado = 'SIN_PAGAR';
     return schDeudas
       .setDeuda(deuda)
       .then((ok: boolean) => {
@@ -104,14 +105,27 @@ export class Deudas {
   async getDeudas() {
     return await schDeudas.getDeudas();
   }
-
+  async getAllDeudas() {
+    return await schDeudas.getAllDeudas();
+  }
+  async getTotalMoneyStandBy(){
+    const arrayDeudas= await this.getAllDeudas();
+    let money = 0;
+    for (let i = 0; i < arrayDeudas.length; i++) {
+      if (arrayDeudas[i].estado && arrayDeudas[i].estado =="SIN_PAGAR") {
+        money-=Number(arrayDeudas[i].total.toFixed(2));
+      }
+      
+    }
+    return money;
+  }
   async ticketPagado(data) {
     const deuda = await schDeudas.getDeudaById(data.idDeuda);
 
     if (deuda) {
       const movimiento = {
         cantidad: deuda.total,
-        concepto: "ENTRADA",
+        concepto: "DEUDA",
         idTicket: deuda.idTicket,
         idTrabajador: deuda.idTrabajador,
         tipo: "ENTRADA_DINERO",
@@ -185,7 +199,7 @@ export class Deudas {
         .then((res: any) => {
           if (!res.data.error) {
             return schDeudas
-              .setPagado(idDeuda)
+              .setAnulado(idDeuda)
               .then((ok: boolean) => {
                 if (!ok)
                   return { error: true, msg: "Error al borrar la deuda" };
@@ -309,7 +323,8 @@ export class Deudas {
         nombreCliente: nombreCliente,
         total: total,
         timestamp: timestamp,
-        pagado: false,
+        enviado: false,
+        estado:"SIN_PAGAR"
       };
 
       // se vacia la lista para no duplicar posibles productos en la siguiente creacion de un encargo
@@ -357,6 +372,13 @@ export class Deudas {
     }
 
     return cesta;
+  }
+  async getDeudasCajaAsync(){
+    const ultimaCaja: CajaSincro= await cajaInstance.getUltimoCierre()
+    return await schDeudas.getDeudasCajaAsync(ultimaCaja.inicioTime,ultimaCaja.finalTime)
+  }
+  async getUpdateDeudas(){
+    return await schDeudas.getUpdateDeudas()
   }
 }
 const deudasInstance = new Deudas();

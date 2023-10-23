@@ -16,9 +16,13 @@ export async function setDeuda(deuda): Promise<boolean> {
 export async function getDeudas(): Promise<DeudasInterface[]> {
   const database = (await conexion).db("tocgame");
   const deudas = database.collection<DeudasInterface>("deudas");
-  return await deudas.find({ pagado: false }).toArray();
+  return await deudas.find({ estado: "SIN_PAGAR" }).toArray();
 }
-
+export async function getAllDeudas(): Promise<DeudasInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const deudas = database.collection<DeudasInterface>("deudas");
+  return await deudas.find().toArray();
+}
 export async function getDeudaById(
   idDeuda: DeudasInterface["_id"]
 ): Promise<DeudasInterface> {
@@ -36,13 +40,30 @@ export async function setPagado(
       { _id: new ObjectId(idDeuda) },
       {
         $set: {
-          pagado: true,
+          enviado: true,
+          estado: "PAGADO",
         },
       }
     )
   ).acknowledged;
 }
-
+export async function setAnulado(
+  idDeuda: DeudasInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const deudas = database.collection<DeudasInterface>("deudas");
+  return (
+    await deudas.updateOne(
+      { _id: new ObjectId(idDeuda) },
+      {
+        $set: {
+          enviado: true,
+          estado: "ANULADO",
+        },
+      }
+    )
+  ).acknowledged;
+}
 export async function getIntervaloDeuda(
   fechaInicial: DeudasInterface["timestamp"],
   fechaFinal: DeudasInterface["timestamp"]
@@ -50,10 +71,19 @@ export async function getIntervaloDeuda(
   const database = (await conexion).db("tocgame");
   const deudas = database.collection<DeudasInterface>("deudas");
   return await deudas
-    .find({ timestamp: { $lte: fechaFinal, $gte: fechaInicial }, pagado: false })
+    .find({ timestamp: { $lte: fechaFinal, $gte: fechaInicial }, enviado: false })
     .toArray();
 }
-
+export async function getDeudasCajaAsync(
+  fechaInicial: DeudasInterface["timestamp"],
+  fechaFinal: DeudasInterface["timestamp"]
+): Promise<DeudasInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const deudas = database.collection<DeudasInterface>("deudas");
+  return await deudas
+    .find({ timestamp: { $lte: fechaFinal, $gte: fechaInicial } })
+    .toArray();
+}
 export async function borrarDeudas(): Promise<void> {
   const database = (await conexion).db("tocgame");
   const collectionlist = await database.listCollections().toArray();
@@ -64,4 +94,24 @@ export async function borrarDeudas(): Promise<void> {
       break;
     }
   }
+  
+}
+
+export async function getUpdateDeudas(): Promise<boolean> {
+  try {
+    const database = (await conexion).db("tocgame");
+    const deudas = database.collection<DeudasInterface>("deudas");
+    
+    const documento = await deudas.findOne({ pagado: { $exists: true } });
+    
+    if (documento) {
+      return false; // Existe al menos una deuda, devuelve false.
+    } else {
+      return true; // No existen deudas, devuelve true.
+    }
+  } catch (error) {
+    console.error('Error al buscar documentos: ', error);
+    throw error; // Lanza el error si ocurre un problema durante la búsqueda.
+  };
+  
 }
