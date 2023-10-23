@@ -267,6 +267,16 @@ export async function actualizarEstadoTicket(
   ).acknowledged;
 }
 
+export async function getTicketsHonei() {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+
+  const resultado = await tickets.find({ honei: true });
+  const arrayResult = await resultado.toArray();
+
+  return arrayResult;
+}
+
 /* Eze v4 */
 export async function setTicketEnviado(
   idTicket: TicketsInterface["_id"]

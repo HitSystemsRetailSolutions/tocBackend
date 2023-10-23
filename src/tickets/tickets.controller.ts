@@ -47,6 +47,16 @@ export class TicketsController {
     }
   }
 
+  @Post("getTotalHonei")
+  async getTotalHonei() {
+    try {
+      return await ticketsInstance.getTotalHonei();
+    } catch (err) {
+      logger.Error(52, err);
+      return false;
+    }
+  }
+
   @Post("crearTicketEncargo") async crearTicketEncargo(
     @Body()
     {
@@ -76,6 +86,7 @@ export class TicketsController {
         idTrabajador,
         cestaEncargo.cesta,
         tipo === "CONSUMO_PERSONAL",
+        false,
         false,
         false,
         dejaCuenta
@@ -119,6 +130,7 @@ export class TicketsController {
       tipo,
       tkrsData,
       concepto,
+      honei,
     }: {
       total: number;
       idCesta: TicketsInterface["cesta"]["_id"];
@@ -129,6 +141,7 @@ export class TicketsController {
         formaPago: FormaPago;
       };
       concepto?: MovimientosInterface["concepto"];
+      honei?: boolean;
     }
   ) {
     try {
@@ -159,7 +172,7 @@ export class TicketsController {
         tipo === "CONSUMO_PERSONAL",
         d3G,
         paytef,
-        null
+        tipo.includes("HONEI") || honei
       );
 
       if (!ticket) {
@@ -302,7 +315,8 @@ export class TicketsController {
           cesta,
           tipo === "CONSUMO_PERSONAL",
           d3G,
-          null
+          null,
+          tipo.includes('HONEI')
         );
         if (!ticket) {
           throw Error(

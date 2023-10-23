@@ -226,6 +226,16 @@ export class MovimientosClase {
 
   /* Eze 4.0 */
   public calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
+    if(superTicket.honei){
+
+      const todoHonei = (superTicket.cesta.lista.every(art => art.pagado))
+      if( superTicket.paytef || superTicket.datafono3G){
+        return "HONEI + TARJETA";
+      } else if(!todoHonei){
+        return "HONEI + EFECTIVO";
+      }
+      return "HONEI";
+    } 
     if (superTicket.consumoPersonal) return "CONSUMO_PERSONAL";
     if (superTicket.datafono3G) return "DATAFONO_3G";
     if (superTicket.paytef)

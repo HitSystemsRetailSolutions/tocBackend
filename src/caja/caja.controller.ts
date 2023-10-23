@@ -18,6 +18,7 @@ export class CajaController {
       cantidad3G,
       cantidadPaytef,
       idDependienta,
+      totalHonei,
     }
   ) {
     try {
@@ -49,6 +50,8 @@ export class CajaController {
       return false;
     }
   }
+
+
 
   /* Eze 4.0 */
   @Post("abrirCaja")
