@@ -30,7 +30,7 @@ export async function getDeudaById(
   const deudas = database.collection<DeudasInterface>("deudas");
   return await deudas.findOne({ _id: new ObjectId(idDeuda) });
 }
-export async function setPagado(
+export async function setEnviado(
   idDeuda: DeudasInterface["_id"]
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
@@ -41,6 +41,38 @@ export async function setPagado(
       {
         $set: {
           enviado: true,
+        },
+      }
+    )
+  ).acknowledged;
+}
+export async function setFinalizado(
+  idDeuda: DeudasInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const deudas = database.collection<DeudasInterface>("deudas");
+  return (
+    await deudas.updateOne(
+      { _id: new ObjectId(idDeuda) },
+      {
+        $set: {
+          finalizado: true,
+        },
+      }
+    )
+  ).acknowledged;
+}
+export async function setPagado(
+  idDeuda: DeudasInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const deudas = database.collection<DeudasInterface>("deudas");
+  return (
+    await deudas.updateOne(
+      { _id: new ObjectId(idDeuda) },
+      {
+        $set: {
+          finalizado: false,
           estado: "PAGADO",
         },
       }
@@ -57,7 +89,7 @@ export async function setAnulado(
       { _id: new ObjectId(idDeuda) },
       {
         $set: {
-          enviado: true,
+          finalizado: false,
           estado: "ANULADO",
         },
       }
@@ -114,4 +146,22 @@ export async function getUpdateDeudas(): Promise<boolean> {
     throw error; // Lanza el error si ocurre un problema durante la búsqueda.
   };
   
+}
+
+export async function getDeudaCreadaMasAntiguo(): Promise<DeudasInterface>{
+  const database = (await conexion).db("tocgame");
+  const deudas = database.collection<DeudasInterface>("deudas");
+  return (await deudas.findOne(
+    { enviado: false },
+    { sort: { _id: 1 } }
+  )) as DeudasInterface ;
+}
+
+export async function getDeudaFinalizadaMasAntiguo(): Promise<DeudasInterface>{
+  const database = (await conexion).db("tocgame");
+  const deudas = database.collection<DeudasInterface>("deudas");
+  return (await deudas.findOne(
+    { finalizado: false },
+    { sort: { _id: 1 } }
+  )) as DeudasInterface ;
 }

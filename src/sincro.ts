@@ -14,9 +14,11 @@ import { tarifasInstance } from "./tarifas/tarifas.class";
 import { logger } from "./logger";
 import axios from "axios";
 import { nuevaInstancePromociones } from "./promociones/promociones.clase";
+import { deudasInstance } from "./deudas/deudas.clase";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
-
+let enProcesoDeudasCreadas = false;
+let enProcesoDeudasFinalizadas = false;
 async function sincronizarTickets() {
   try {
     if (!enProcesoTickets) {
@@ -29,7 +31,7 @@ async function sincronizarTickets() {
           const res: any = await axios
             .post("tickets/enviarTicket", { ticket })
             .catch((e) => {
-                console.log(e);
+              console.log(e);
             });
           if (res.data) {
             if (await ticketsInstance.setTicketEnviado(ticket._id)) {
@@ -163,6 +165,121 @@ function sincronizarDevoluciones() {
     });
 }
 
+async function sincronizarDeudasCreadas() {
+  try {
+    if (!enProcesoDeudasCreadas) {
+      enProcesoDeudasCreadas = true;
+      const parametros = await parametrosInstance.getParametros();
+      if (parametros != null) {
+        const deuda = await deudasInstance.getDeudaCreadaMasAntiguo();
+        if (deuda) {
+          const parametros = await parametrosInstance.getParametros();
+          const dataDeuda = await deudasInstance.getDate(deuda.timestamp);
+
+          const deuda_santAna = {
+            id: deuda.idSql,
+            timestamp: deuda.timestamp,
+            dependenta: deuda.idTrabajador,
+            cliente: deuda.idCliente,
+            data: dataDeuda,
+            estat: 0,
+            tipus: 1,
+            import: deuda.total,
+            botiga: parametros.licencia,
+            idTicket: deuda.idTicket,
+            bbdd: parametros.database,
+          };
+          const res: any = await axios
+            .post("deudas/setDeuda", deuda_santAna)
+            .catch((e) => {
+              console.log(e);
+            });
+          if (res.data && !res.data.error) {
+            if (await deudasInstance.setEnviado(deuda._id)) {
+              enProcesoDeudasCreadas = false;
+              setTimeout(sincronizarDeudasCreadas, 100);
+            } else {
+              enProcesoDeudasCreadas = false;
+            }
+          } else {
+            logger.Error(
+              153,
+              "Error: no se ha podido crear la deuda en el SantaAna"
+            );
+            enProcesoDeudasCreadas = false;
+          }
+        } else {
+          enProcesoDeudasCreadas = false;
+        }
+      } else {
+        logger.Error(4, "No hay parámetros definidos en la BBDD");
+      }
+    }
+  } catch (err) {
+    enProcesoTickets = false;
+    logger.Error(5, err);
+  }
+}
+
+async function sincronizarDeudasFinalizadas() {
+  try {
+    if (!enProcesoDeudasFinalizadas) {
+      enProcesoDeudasFinalizadas = true;
+      const parametros = await parametrosInstance.getParametros();
+      if (parametros != null) {
+        const deuda = await deudasInstance.getDeudaFinalizadaMasAntiguo();
+        if (deuda) {
+          let url = "deudas/setCertificadoDeuda";
+          if (deuda.estado == "ANULADO") {
+            url = "deudas/anularDeuda";
+          }
+          const parametros = await parametrosInstance.getParametros();
+          const dataDeuda = await deudasInstance.getDate(deuda.timestamp);
+          const certificadoDeuda = {
+            id: deuda.idSql,
+            timestamp: deuda.timestamp,
+            dependenta: deuda.idTrabajador,
+            cliente: deuda.idCliente,
+            data: dataDeuda,
+            estat: 0,
+            tipus: 1,
+            import: deuda.total,
+            botiga: parametros.licencia,
+            idTicket: deuda.idTicket,
+            bbdd: parametros.database,
+          };
+          const res: any = await axios
+            .post(url, certificadoDeuda)
+            .catch((e) => {
+              console.log(e);
+            });
+
+          if (res && !res.error) {
+            if (await deudasInstance.setFinalizado(deuda._id)) {
+              enProcesoDeudasFinalizadas = false;
+              setTimeout(sincronizarDeudasFinalizadas, 100);
+            } else {
+              enProcesoDeudasFinalizadas = false;
+            }
+          } else {
+            logger.Error(
+              153,
+              "Error: no se ha podido crear la deuda en el SantaAna"
+            );
+            enProcesoDeudasFinalizadas = false;
+          }
+        } else {
+          enProcesoDeudasFinalizadas = false;
+        }
+      } else {
+        logger.Error(4, "No hay parámetros definidos en la BBDD");
+      }
+    }
+  } catch (err) {
+    enProcesoTickets = false;
+    logger.Error(5, err);
+  }
+}
 async function actualizarTarifas() {
   try {
     await tarifasInstance.actualizarTarifas();
@@ -205,6 +322,8 @@ setInterval(sincronizarCajas, 40000);
 setInterval(sincronizarMovimientos, 50000);
 setInterval(sincronizarFichajes, 20000);
 setInterval(sincronizarDevoluciones, 10000);
+setInterval(sincronizarDeudasCreadas, 9000);
+setInterval(sincronizarDeudasFinalizadas, 10000);
 setInterval(actualizarTeclados, 3600000);
 setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);
