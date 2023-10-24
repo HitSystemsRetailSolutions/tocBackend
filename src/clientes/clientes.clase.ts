@@ -40,5 +40,7 @@ export class Clientes {
   /* Eze 4.0 */
   tieneTarifaEspecial = async (idCliente: ClientesInterface["id"]) =>
     await tarifasInstance.clienteTieneTarifa(idCliente);
+  eliminarCliente = async (idCliente: ClientesInterface["id"]) =>
+    await schClientes.eliminarCliente(idCliente);
 }
 export const clienteInstance = new Clientes();

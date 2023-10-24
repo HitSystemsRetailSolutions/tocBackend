@@ -42,6 +42,18 @@ export class MovimientosController {
       return 0;
     }
   }
+  @Get("getEntradasIntervalo")
+  async getEntradasIntervalo() {
+    try {
+      const horaApertura = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
+      const final = Date.now();
+      return await movimientosInstance.getEntradasIntervalo(horaApertura, final);
+    } catch (err) {
+      logger.Error(98, err);
+      console.log(err);
+      return 0;
+    }
+  }
   @Post("getMovimientosIntervalo")
   async getMovimientosIntervalo(@Body() { inicio, final }) {
     try {

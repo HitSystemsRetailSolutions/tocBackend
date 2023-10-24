@@ -38,6 +38,10 @@ export class MovimientosClase {
     horaApertura: CajaAbiertaInterface["inicioTime"],
     final: number
   ) => schMovimientos.getSalidasIntervalo(horaApertura, final);
+  getEntradasIntervalo = (
+    horaApertura: CajaAbiertaInterface["inicioTime"],
+    final: number
+  ) => schMovimientos.getEntradasIntervalo(horaApertura, final);
   /* Eze v23 */
   getMovimientosIntervalo = (inicioTime: number, finalTime: number) =>
     schMovimientos.getMovimientosIntervalo(inicioTime, finalTime);
