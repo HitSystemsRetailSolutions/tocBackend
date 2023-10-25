@@ -28,9 +28,7 @@ async function sincronizarTickets() {
           nuevaInstancePromociones.deshacerPromociones(ticket);
           const res: any = await axios
             .post("tickets/enviarTicket", { ticket })
-            .catch((e) => {
-                console.log(e);
-            });
+            .catch((e) => {});
           if (res.data) {
             if (await ticketsInstance.setTicketEnviado(ticket._id)) {
               enProcesoTickets = false;

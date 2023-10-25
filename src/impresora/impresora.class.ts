@@ -174,6 +174,10 @@ export class Impresora {
           dejaCuenta: ticket.dejaCuenta,
           idCliente: ticket.idCliente,
           totalSinDescuento: ticket.total,
+          mesa:
+            ticket?.cesta?.indexMesa == undefined
+              ? null
+              : ticket.cesta.indexMesa,
         };
       }
       // enviamos el objeto
@@ -510,15 +514,21 @@ export class Impresora {
       },
       { tipo: "text", payload: "Factura simplificada N: " + numFactura },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
+      {
+        tipo: "text",
+        payload: info.mesa == null ? "" : `Taula: ${info.mesa + 1}`,
+      },
       { tipo: "size", payload: [1, 0] },
       { tipo: "text", payload: clientTitle },
       { tipo: "size", payload: [0, 0] },
-      { tipo: "text", payload: detalleClienteVip },
-      { tipo: "text", payload: detalleNombreCliente },
-      { tipo: "text", payload: detallePuntosCliente },
-      { tipo: "text", payload: clienteDescuento },
-      { tipo: "control", payload: "LF" },
-      { tipo: "control", payload: "LF" },
+      {
+        tipo: "text",
+        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${
+          detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
+        }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${
+          clienteDescuento ? `${clienteDescuento} \n` : ""
+        }`,
+      },
       { tipo: "control", payload: "LF" },
       {
         tipo: "text",
@@ -566,6 +576,7 @@ export class Impresora {
       lExtra: arrayCompra.length,
     };
     // lo mandamos a la funcion enviarMQTT que se supone que imprime
+
     this.enviarMQTT(arrayImprimir, options);
   }
   async getDetallesIva(tiposIva) {
@@ -1221,7 +1232,6 @@ export class Impresora {
       let datafono3G = "";
       let textoMovimientos = "";
 
-      
       for (let i = 0; i < arrayMovimientos.length; i++) {
         const auxFecha = new Date(arrayMovimientos[i]._id);
         switch (arrayMovimientos[i].tipo) {
@@ -1258,7 +1268,9 @@ export class Impresora {
             break;
         }
       }
-      textoMovimientos += `\nTotal targeta: ${(caja.cantidadPaytef+caja.totalDatafono3G).toFixed(2)}`;
+      textoMovimientos += `\nTotal targeta: ${(
+        caja.cantidadPaytef + caja.totalDatafono3G
+      ).toFixed(2)}`;
 
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
