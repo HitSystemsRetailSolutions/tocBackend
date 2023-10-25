@@ -540,14 +540,15 @@ export class Impresora {
       { tipo: "align", payload: "LT" },
       { tipo: "text", payload: detalles },
       { tipo: "align", payload: "CT" },
-      { tipo: "text", payload: pagoTarjeta },
-      { tipo: "text", payload: pagoTkrs },
-      { tipo: "align", payload: "LT" },
-      { tipo: "text", payload: infoConsumoPersonal },
-      { tipo: "align", payload: "CT" },
       {
         tipo: "text",
         payload: "------------------------------------------",
+      },
+      {
+        tipo: "text",
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${
+          pagoTkrs != "" ? `${pagoTkrs}` : ""
+        }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
       },
       { tipo: "align", payload: "LT" },
       { tipo: "text", payload: detalleDejaCuenta },
@@ -764,6 +765,7 @@ export class Impresora {
         }   ${arrayCompra[i].subtotal.toFixed(2)}\n`;
       }
     }
+    detalles.split("\n").splice(-1, 1).join("\n");
     return detalles;
   }
   /* Eze 4.0 */
