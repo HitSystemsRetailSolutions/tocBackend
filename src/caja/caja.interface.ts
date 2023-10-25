@@ -6,6 +6,7 @@ export interface CajaAbiertaInterface {
   totalApertura: number;
   detalleApertura: DetalleMonedas;
   fichajes: number[];
+  propina?: number;
 }
 
 export interface CajaCerradaInterface {
@@ -22,6 +23,7 @@ export interface CajaCerradaInterface {
   totalTarjeta: number;
   totalDatafono3G: number;
   totalHonei: number;
+  propina: number;
   cantidadPaytef: number;
   totalTicketDatafono3G: number;
   totalDeuda: number;

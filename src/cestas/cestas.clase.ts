@@ -483,7 +483,7 @@ export class CestaClase {
         "honei"
       );
     }
-
+    this.actualizarCestas();
     return { ok: true };
   }
 

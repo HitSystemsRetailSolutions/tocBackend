@@ -1,6 +1,8 @@
 import { Controller, Post, Body, Query, Param } from "@nestjs/common";
 import { io } from "../sockets.gateway";
 import { parametrosController } from "src/parametros/parametros.controller";
+import { mesasInstance } from "src/mesas/mesas.class";
+import { cajaInstance } from "src/caja/caja.clase";
 const mqtt = require("mqtt");
 const client = mqtt.connect("mqtt://63.33.116.171:1883");
 
@@ -26,14 +28,18 @@ client.on("message", (topic, message) => {
     io.emit(`ponerImagen_${objetivo}`, JSON.parse(mensaje));
   }
 
-  if(topic.includes("hit.orders")){
+  if (topic.includes("hit.orders")) {
     const mensaje = Buffer.from(message, "binary").toString("utf-8");
     const msg = JSON.parse(mensaje);
+    // console.log(msg);
 
-    if(msg.payed){
+    if (msg.payed) {
       // TODO: manejar la orden pagada
       // avisamos al frontend del pedido
       io.emit("pedidoPagado", msg);
+      if (msg.tip) {
+        cajaInstance.aumentarPropina(msg.tip);
+      }
     } else {
       // TODO: manejar la orden no pagada
       io.emit("pedidoNoPagado", msg);

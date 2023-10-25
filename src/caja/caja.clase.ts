@@ -45,6 +45,16 @@ export class CajaClase {
   getCajaSincroMasAntigua = async () =>
     await schCajas.getCajaSincroMasAntigua();
 
+  /* Yasai :D */
+  aumentarPropina = (propina: number) => {
+    schCajas.aumentarPropina(propina);
+  };
+
+  /* Yasai :D */
+  getPropina = async () => {
+    return await schCajas.getPropina();
+  };
+
   /* Eze 4.0 */
   async abrirCaja(cajaAbierta: CajaAbiertaInterface): Promise<boolean> {
     if (
@@ -97,7 +107,10 @@ export class CajaClase {
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
 
     const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
-    const finalTime = await this.getFechaCierre(inicioTurnoCaja,cierreAutomatico);
+    const finalTime = await this.getFechaCierre(
+      inicioTurnoCaja,
+      cierreAutomatico
+    );
     const cajaCerradaActual = await this.getDatosCierre(
       cajaAbiertaActual,
       totalCierre,
@@ -106,7 +119,9 @@ export class CajaClase {
       cantidadPaytef,
       totalDatafono3G,
       finalTime.time,
-      totalHonei
+      totalHonei,
+      // TODO: Propina
+      await this.getPropina()
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
@@ -184,7 +199,10 @@ export class CajaClase {
     });
   }
 
-  getFechaCierre(inicioTime: CajaAbiertaInterface["inicioTime"],cierreAutomatico: boolean) {
+  getFechaCierre(
+    inicioTime: CajaAbiertaInterface["inicioTime"],
+    cierreAutomatico: boolean
+  ) {
     let d;
     if (inicioTime && cierreAutomatico) {
       d = new Date(inicioTime);
@@ -217,8 +235,8 @@ export class CajaClase {
       let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0][
         "_id"
       ];
-      const paytef = await parametrosController.totalPaytef()
-      let totalPaytef = paytef[0] ? paytef[0]: 0;
+      const paytef = await parametrosController.totalPaytef();
+      let totalPaytef = paytef[0] ? paytef[0] : 0;
       if (trabId == undefined) trabId = 0;
       if (fechaHoy != fechaApertura) {
         await cajaInstance.cerrarCaja(
@@ -262,7 +280,8 @@ export class CajaClase {
     cantidadPaytef: CajaCerradaInterface["cantidadPaytef"],
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
     finalTime: CajaCerradaInterface["finalTime"],
-    totalHonei: number
+    totalHonei: number,
+    propina: number
   ): Promise<CajaCerradaInterface> {
     const arrayTicketsCaja: TicketsInterface[] =
       await schTickets.getTicketsIntervalo(
@@ -352,14 +371,17 @@ export class CajaClase {
           100
       ) / 100;-*/
     const descuadre = Number(
-      (
-        (cajaAbiertaActual.totalApertura +
-          totalTickets +
-          totalEntradaDinero -
-          (totalDatafono3G + totalSalidas + totalCierre + cantidadPaytef + totalHonei)) *
+      (cajaAbiertaActual.totalApertura +
+        totalTickets +
+        totalEntradaDinero -
+        (totalDatafono3G +
+          totalSalidas +
+          totalCierre +
+          cantidadPaytef +
+          totalHonei)) *
         -1
-      ).toFixed(2)
     );
+
     recaudado = totalTickets + descuadre;
     return {
       calaixFetZ: totalTickets,
@@ -388,6 +410,7 @@ export class CajaClase {
       totalTkrsSinExceso,
       mediaTickets: totalTickets / nClientes,
       totalHonei,
+      propina,
     };
   }
 }

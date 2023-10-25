@@ -4,6 +4,7 @@ import { cajaInstance } from "./caja.clase";
 import { logger } from "../logger";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
+import { ticketsInstance } from "src/tickets/tickets.clase";
 
 @Controller("caja")
 export class CajaController {
@@ -18,7 +19,6 @@ export class CajaController {
       cantidad3G,
       cantidadPaytef,
       idDependienta,
-      totalHonei,
     }
   ) {
     try {
@@ -29,8 +29,7 @@ export class CajaController {
           infoDinero,
           cantidad3G,
           cantidadPaytef,
-          idDependienta,
-          totalHonei
+          idDependienta
         ) &&
         typeof cantidad3G === "number" &&
         typeof cantidadPaytef === "number"
@@ -43,7 +42,7 @@ export class CajaController {
           cantidadPaytef,
           idDependienta,
           false,
-          totalHonei
+          await ticketsInstance.getTotalHonei()
         );
       }
       throw Error("Error cerrarCaja > Faltan datos");
@@ -53,21 +52,22 @@ export class CajaController {
     }
   }
 
-
-
   /* Eze 4.0 */
   @Post("abrirCaja")
   async abrirCaja(@Body() { total, detalle, idDependienta }) {
     try {
-      if (total != undefined && detalle != undefined){
-        const fichados = await trabajadoresInstance.getTrabajadoresFichados()
-        const idTrabajadores = fichados.map((resultado) => resultado.idTrabajador);
+      if (total != undefined && detalle != undefined) {
+        const fichados = await trabajadoresInstance.getTrabajadoresFichados();
+        const idTrabajadores = fichados.map(
+          (resultado) => resultado.idTrabajador
+        );
         return await cajaInstance.abrirCaja({
           detalleApertura: detalle,
           idDependientaApertura: idDependienta,
           inicioTime: await cajaInstance.getComprovarFechaCierreTurno(),
           totalApertura: total,
           fichajes: idTrabajadores,
+          propina: 0,
         });
       }
       throw Error("Error abrirCaja > Faltan datos o son incorrectos");

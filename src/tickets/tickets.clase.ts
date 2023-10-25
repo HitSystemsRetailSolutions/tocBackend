@@ -91,7 +91,6 @@ export class TicketsClase {
         //   )
         // ).precioConIva * ticket.cesta.lista[i].unidades;
         cantidadRegalada += ticket.cesta.lista[i].puntos;
-          
       }
     }
     // si tenemos que descontar dinero lo hacemos
@@ -154,7 +153,7 @@ export class TicketsClase {
     datafono3G: TicketsInterface["datafono3G"],
     paytef: TicketsInterface["paytef"],
     honei: TicketsInterface["honei"],
-    dejaCuenta?: TicketsInterface["dejaCuenta"],
+    dejaCuenta?: TicketsInterface["dejaCuenta"]
   ): Promise<TicketsInterface> {
     /*const cliente = await clienteInstance.getClienteById(cesta.idCliente);
    if (cliente && cliente.descuento) {
@@ -181,14 +180,16 @@ export class TicketsClase {
     return nuevoTicket;
   }
   /* Yasai :D */
-  async getTotalHonei(){
+  async getTotalHonei() {
     // calcula el total de dinero hecho con honei
     const ticketsHonei = await schTickets.getTicketsHonei();
     let total = 0;
     ticketsHonei.forEach((ticket) => {
-      ticket.cesta.lista.forEach(item => {
-        total += item.subtotal;
-      })
+      ticket.cesta.lista.forEach((item) => {
+        if (item.pagado) {
+          total += item.subtotal;
+        }
+      });
     });
 
     return total;

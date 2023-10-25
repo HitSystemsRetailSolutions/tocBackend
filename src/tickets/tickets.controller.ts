@@ -47,16 +47,6 @@ export class TicketsController {
     }
   }
 
-  @Post("getTotalHonei")
-  async getTotalHonei() {
-    try {
-      return await ticketsInstance.getTotalHonei();
-    } catch (err) {
-      logger.Error(52, err);
-      return false;
-    }
-  }
-
   @Post("crearTicketEncargo") async crearTicketEncargo(
     @Body()
     {
@@ -76,9 +66,8 @@ export class TicketsController {
     try {
       const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
       // modifica
-      const graellaModificada = await encargosInstance.updateEncargoGraella(
-        idEncargo
-      );
+      const graellaModificada =
+        await encargosInstance.updateEncargoGraella(idEncargo);
       if (!graellaModificada) return false;
 
       const ticket = await ticketsInstance.generarNuevoTicket(
@@ -154,10 +143,11 @@ export class TicketsController {
       );
       if (descuento && descuento > 0) {
         cesta.lista.forEach((producto) => {
-          if (producto.arraySuplementos!=null) {
-            producto.subtotal=this.redondearPrecio((producto.subtotal-(producto.subtotal*descuento/100)));
-          }
-          else if (producto.promocion == null)
+          if (producto.arraySuplementos != null) {
+            producto.subtotal = this.redondearPrecio(
+              producto.subtotal - (producto.subtotal * descuento) / 100
+            );
+          } else if (producto.promocion == null)
             producto.subtotal = this.redondearPrecio(
               producto.subtotal - (producto.subtotal * descuento) / 100
             ); // Modificamos el total para añadir el descuento especial del cliente
@@ -316,7 +306,7 @@ export class TicketsController {
           tipo === "CONSUMO_PERSONAL",
           d3G,
           null,
-          tipo.includes('HONEI')
+          tipo.includes("HONEI")
         );
         if (!ticket) {
           throw Error(

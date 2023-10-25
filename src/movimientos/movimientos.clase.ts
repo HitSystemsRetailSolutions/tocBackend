@@ -215,9 +215,8 @@ export class MovimientosClase {
 
   /* Uri */
   public async getExtraData(ticket) {
-    const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
-      ticket
-    );
+    const arrayMovimientos =
+      await schMovimientos.getMovimientosDelTicket(ticket);
     if (arrayMovimientos?.length > 0) {
       return arrayMovimientos[0].ExtraData;
     }
@@ -226,16 +225,19 @@ export class MovimientosClase {
 
   /* Eze 4.0 */
   public calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
-    if(superTicket.honei){
-
-      const todoHonei = (superTicket.cesta.lista.every(art => art.pagado))
-      if( superTicket.paytef || superTicket.datafono3G){
-        return "HONEI + TARJETA";
-      } else if(!todoHonei){
-        return "HONEI + EFECTIVO";
+    if (superTicket.honei) {
+      const todoHonei = superTicket.cesta.lista.every((art) => art.pagado);
+      switch (true) {
+        case superTicket.paytef:
+          return "HONEI + TARJETA";
+        case superTicket.datafono3G:
+          return "HONEI + DATAFONO_3G";
+        case !todoHonei:
+          return "HONEI + EFECTIVO";
+        default:
+          return "HONEI";
       }
-      return "HONEI";
-    } 
+    }
     if (superTicket.consumoPersonal) return "CONSUMO_PERSONAL";
     if (superTicket.datafono3G) return "DATAFONO_3G";
     if (superTicket.paytef)

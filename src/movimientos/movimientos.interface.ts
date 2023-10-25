@@ -42,3 +42,4 @@ export type FormaPago =
   | "TKRS + HONEI"
   | "TKRS + HONEI + EFECTIVO"
   | "HONEI + TARJETA"
+  | "HONEI + DATAFONO_3G";
