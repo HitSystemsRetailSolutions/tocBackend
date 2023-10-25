@@ -25,7 +25,7 @@ async function sincronizarTickets() {
       if (parametros != null) {
         const ticket = await ticketsInstance.getTicketMasAntiguo();
         if (ticket) {
-          nuevaInstancePromociones.deshacerPromociones(ticket);
+          await nuevaInstancePromociones.deshacerPromociones(ticket);
           const res: any = await axios
             .post("tickets/enviarTicket", { ticket })
             .catch((e) => {
