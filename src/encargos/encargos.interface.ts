@@ -34,7 +34,7 @@ export interface EncargosInterface {
   _id: string | undefined;
   nombreCliente: string;
   amPm: string | null;
-  dejaACuenta: number;
+  dejaCuenta: number;
   dias: Dias[];
   fecha: string;
   hora: string | null;
@@ -46,5 +46,7 @@ export interface EncargosInterface {
   total: number;
   codigoBarras: number;
   timestamp:number;
-  recogido: boolean;
+  enviado?: boolean;
+  finalizado?: boolean;
+  estado: "SIN_RECOGER" | "RECOGIDO" | "ANULADO";
 }

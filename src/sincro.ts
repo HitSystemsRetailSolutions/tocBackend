@@ -15,10 +15,20 @@ import { logger } from "./logger";
 import axios from "axios";
 import { nuevaInstancePromociones } from "./promociones/promociones.clase";
 import { deudasInstance } from "./deudas/deudas.clase";
+import { encargosInstance } from "./encargos/encargos.clase";
+import {
+  EncargosInterface,
+  Estat,
+  OpcionRecogida,
+  Periodo,
+} from "./encargos/encargos.interface";
+import * as moment from "moment";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
 let enProcesoDeudasFinalizadas = false;
+let enProcesoEncargosCreados = false;
+let enProcesoEncargosFinalizados = false;
 async function sincronizarTickets() {
   try {
     if (!enProcesoTickets) {
@@ -175,7 +185,6 @@ async function sincronizarDeudasCreadas() {
         if (deuda) {
           const parametros = await parametrosInstance.getParametros();
           const dataDeuda = await deudasInstance.getDate(deuda.timestamp);
-
           const deuda_santAna = {
             id: deuda.idSql,
             timestamp: deuda.timestamp,
@@ -203,7 +212,7 @@ async function sincronizarDeudasCreadas() {
             }
           } else {
             logger.Error(
-              153,
+              154,
               "Error: no se ha podido crear la deuda en el SantaAna"
             );
             enProcesoDeudasCreadas = false;
@@ -212,11 +221,95 @@ async function sincronizarDeudasCreadas() {
           enProcesoDeudasCreadas = false;
         }
       } else {
+        enProcesoDeudasCreadas = false;
         logger.Error(4, "No hay parámetros definidos en la BBDD");
       }
     }
   } catch (err) {
-    enProcesoTickets = false;
+    enProcesoDeudasCreadas = false;
+    logger.Error(5, err);
+  }
+}
+
+async function sincronizarEncargosCreados() {
+  try {
+    if (!enProcesoEncargosCreados) {
+      enProcesoEncargosCreados = true;
+      const parametros = await parametrosInstance.getParametros();
+      if (parametros != null) {
+        const encargo = await encargosInstance.getEncargoCreadoMasAntiguo();
+        if (encargo) {
+          const parametros = await parametrosInstance.getParametros();
+          let fecha = await encargosInstance.getDate(
+            encargo.opcionRecogida,
+            encargo.fecha,
+            encargo.hora,
+            "YYYY-MM-DD HH:mm:ss.S",
+            encargo.amPm
+          );
+          const encargo_santAna = {
+            id: await encargosInstance.generateId(
+              await encargosInstance.getDate(
+                encargo.opcionRecogida,
+                encargo.fecha,
+                encargo.hora,
+                "YYYYMMDDHHmmss",
+                encargo.amPm
+              ),
+              encargo.idTrabajador.toString(),
+              parametros
+            ),
+            cliente: encargo.idCliente,
+            data: fecha,
+            estat: Estat.NO_BUSCADO,
+            tipus: 2,
+            anticip: encargo.dejaCuenta,
+            botiga: parametros.licencia,
+            periode:
+              encargo.opcionRecogida === OpcionRecogida.REPETICION
+                ? Periodo.PERIODO
+                : Periodo.NO_PERIODO,
+            dias:
+              encargo.opcionRecogida === OpcionRecogida.REPETICION
+                ? await encargosInstance.formatPeriode(encargo.dias)
+                : 0,
+            bbdd: parametros.database,
+            productos: encargo.productos,
+            idTrabajador: encargo.idTrabajador,
+            recogido: false,
+            timestamp: encargo.timestamp,
+            opcionEncargo: encargo.opcionRecogida,
+            codigoBarras: encargo.codigoBarras,
+          };
+          const res : any = await axios
+            .post("encargos/setEncargo", encargo_santAna)
+            .catch((e) => {
+              console.log(e);
+            });
+          if (res.data && !res.data.error) {
+            if (await encargosInstance.setEnviado(encargo._id)) {
+              enProcesoEncargosCreados = false;
+              setTimeout(sincronizarEncargosCreados, 100);
+            } else {
+              enProcesoEncargosCreados = false;
+            }
+          } else {
+            logger.Error(
+              153,
+              "Error: no se ha podido crear el encargo en el SantaAna"
+            );
+            enProcesoEncargosCreados = false;
+          }
+        } else {
+          enProcesoEncargosCreados = false;
+        }
+      } else {
+        enProcesoEncargosCreados = false;
+        logger.Error(4, "No hay parámetros definidos en la BBDD");
+      }
+    }
+  } catch (err) {
+    enProcesoEncargosCreados = false;
     logger.Error(5, err);
   }
 }
@@ -253,8 +346,7 @@ async function sincronizarDeudasFinalizadas() {
             .catch((e) => {
               console.log(e);
             });
-
-          if (res && !res.error) {
+          if (res.data && !res.data.error) {
             if (await deudasInstance.setFinalizado(deuda._id)) {
               enProcesoDeudasFinalizadas = false;
               setTimeout(sincronizarDeudasFinalizadas, 100);
@@ -263,7 +355,7 @@ async function sincronizarDeudasFinalizadas() {
             }
           } else {
             logger.Error(
-              153,
+              155,
               "Error: no se ha podido crear la deuda en el SantaAna"
             );
             enProcesoDeudasFinalizadas = false;
@@ -272,14 +364,71 @@ async function sincronizarDeudasFinalizadas() {
           enProcesoDeudasFinalizadas = false;
         }
       } else {
+        enProcesoDeudasFinalizadas = false;
         logger.Error(4, "No hay parámetros definidos en la BBDD");
       }
     }
   } catch (err) {
-    enProcesoTickets = false;
+    enProcesoDeudasFinalizadas = false;
     logger.Error(5, err);
   }
 }
+
+async function sincronizarEncargosFinalizados() {
+  try {
+    if (!enProcesoEncargosFinalizados) {
+      enProcesoEncargosFinalizados = true;
+      const parametros = await parametrosInstance.getParametros();
+      if (parametros != null) {
+        const encargo = await encargosInstance.getEncargoFinalizadoMasAntiguo();
+        if (encargo) {
+          let url = "encargos/updateEncargoGraella";
+          if (encargo.estado == "ANULADO") {
+            url = "encargos/deleteEncargoGraella";
+          }
+          let encargoGraella = {
+            tmStmp: encargo.timestamp,
+            bbdd: parametros.database,
+            data: encargo.fecha,
+            id: await encargosInstance.generateId(
+              moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+              encargo.idTrabajador.toString(),
+              parametros
+            ),
+          };
+          const res : any = await axios
+            .post(url, encargoGraella)
+            .catch((e) => {
+              console.log(e);
+            });
+          if (res.data && !res.data.error) {
+            if (await encargosInstance.setFinalizado(encargo._id)) {
+              enProcesoEncargosFinalizados = false;
+              setTimeout(sincronizarEncargosFinalizados, 100);
+            } else {
+              enProcesoEncargosFinalizados = false;
+            }
+          } else {
+            logger.Error(
+              156,
+              "Error: no se ha podido crear el encargo en el SantaAna"
+            );
+            enProcesoEncargosFinalizados = false;
+          }
+        } else {
+          enProcesoEncargosFinalizados = false;
+        }
+      } else {
+        enProcesoEncargosFinalizados = false;
+        logger.Error(4, "No hay parámetros definidos en la BBDD");
+      }
+    }
+  } catch (err) {
+    enProcesoEncargosFinalizados = false;
+    logger.Error(5, err);
+  }
+}
+
 async function actualizarTarifas() {
   try {
     await tarifasInstance.actualizarTarifas();
@@ -324,6 +473,8 @@ setInterval(sincronizarFichajes, 20000);
 setInterval(sincronizarDevoluciones, 10000);
 setInterval(sincronizarDeudasCreadas, 9000);
 setInterval(sincronizarDeudasFinalizadas, 10000);
+setInterval(sincronizarEncargosCreados, 9000);
+setInterval(sincronizarEncargosFinalizados, 10000);
 setInterval(actualizarTeclados, 3600000);
 setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);
