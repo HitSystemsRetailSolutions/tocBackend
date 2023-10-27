@@ -11,8 +11,7 @@ client.on("connect", async () => {
     const parametros = await parametrosController.getParametros();
     client.subscribe(`hit.software/imagen/${parametros.licencia}/trabajador`);
     client.subscribe(`hit.software/imagen/${parametros.licencia}/cliente`);
-    // TODO: cambiar tienda1 por el nombre de la tienda
-    client.subscribe(`hit.orders/tienda1`);
+    client.subscribe(`hit.orders/${parametros.licencia}`);
   } catch (error) {
     console.log(
       "error en imagen.controller parametros o direccion no encontrados: ",
