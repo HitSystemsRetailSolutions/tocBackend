@@ -20,6 +20,7 @@ import { buffer } from "stream/consumers";
 import * as schDeudas from "../deudas/deudas.mongodb";
 import { conexion } from "../conexion/mongodb";
 import { sprintf } from "sprintf-js";
+import { paytefInstance } from "src/paytef/paytef.class";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -1189,6 +1190,9 @@ export class Impresora {
       options
     );
   }
+  dosDigitos(n) {
+    return n < 10 ? "0" + n : n.toString();
+  }
   /* Eze 4.0 */
   async imprimirCajaAsync(caja: CajaSincro) {
     try {
@@ -1213,14 +1217,15 @@ export class Impresora {
           .nombre;
         dependientas += `${nombre}\n`;
       }
-      let sumaTarjetas = 0;
+      let paytef = "";
+      let datafono3G = "";
       let textoMovimientos = "";
 
+      
       for (let i = 0; i < arrayMovimientos.length; i++) {
         const auxFecha = new Date(arrayMovimientos[i]._id);
         switch (arrayMovimientos[i].tipo) {
           case "TARJETA":
-            sumaTarjetas += arrayMovimientos[i].valor;
             break;
           case "TKRS_CON_EXCESO":
             break;
@@ -1229,34 +1234,31 @@ export class Impresora {
           case "DEUDA":
             break;
           case "SALIDA":
-            textoMovimientos += `Salida:\n           Cantidad: -${arrayMovimientos[
+            textoMovimientos += ` Salida:\n  Cantidad: -${arrayMovimientos[
               i
             ].valor.toFixed(
               2
-            )}\n           Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()}  ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n           Concepto: ${
+            )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepto: ${
               arrayMovimientos[i].concepto
             }\n`;
             break;
           case "ENTRADA_DINERO":
-            textoMovimientos += `Entrada:\n            Cantidad: +${arrayMovimientos[
+            textoMovimientos += ` Entrada:\n  Cantidad: +${arrayMovimientos[
               i
             ].valor.toFixed(
               2
-            )}\n            Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()}  ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n            Concepto: ${
+            )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepto: ${
               arrayMovimientos[i].concepto
             }\n`;
             break;
           case "DATAFONO_3G":
-            sumaTarjetas += arrayMovimientos[i].valor;
+            datafono3G += `  Cantidad: +${arrayMovimientos[i].valor.toFixed(
+              2
+            )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             break;
         }
       }
-
-      textoMovimientos =
-        `\n` +
-        textoMovimientos +
-        `Total targeta:      ${sumaTarjetas.toFixed(2)}\n` +
-        textoMovimientos;
+      textoMovimientos += `\nTotal targeta: ${(caja.cantidadPaytef+caja.totalDatafono3G).toFixed(2)}`;
 
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
@@ -1346,8 +1348,7 @@ export class Impresora {
           },
           { tipo: "text", payload: "" },
           { tipo: "size", payload: [0, 0] },
-          { tipo: "text", payload: "Moviments de caixa" },
-          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "Moviments de caixa:" },
           { tipo: "text", payload: "" },
           { tipo: "text", payload: textoMovimientos },
           { tipo: "text", payload: "" },
@@ -1356,135 +1357,135 @@ export class Impresora {
           {
             tipo: "text",
             payload:
-              "       0.01 --> " +
+              " 0.01 ----> " +
               caja.detalleApertura[0]["valor"].toFixed(2) +
               "      " +
-              "0.01 --> " +
+              "0.01 ----> " +
               caja.detalleCierre[0]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       0.02 --> " +
+              " 0.02 ----> " +
               caja.detalleApertura[1]["valor"].toFixed(2) +
               "      " +
-              "0.02 --> " +
+              "0.02 ----> " +
               caja.detalleCierre[1]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       0.05 --> " +
+              " 0.05 ----> " +
               caja.detalleApertura[2]["valor"].toFixed(2) +
               "      " +
-              "0.05 --> " +
+              "0.05 ----> " +
               caja.detalleCierre[2]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       0.10 --> " +
+              " 0.10 ----> " +
               caja.detalleApertura[3]["valor"].toFixed(2) +
               "      " +
-              "0.10 --> " +
+              "0.10 ----> " +
               caja.detalleCierre[3]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       0.20 --> " +
+              " 0.20 ----> " +
               caja.detalleApertura[4]["valor"].toFixed(2) +
               "      " +
-              "0.20 --> " +
+              "0.20 ----> " +
               caja.detalleCierre[4]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       0.50 --> " +
+              " 0.50 ----> " +
               caja.detalleApertura[5]["valor"].toFixed(2) +
               "      " +
-              "0.50 --> " +
+              "0.50 ----> " +
               caja.detalleCierre[5]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       1.00 --> " +
+              " 1.00 ----> " +
               caja.detalleApertura[6]["valor"].toFixed(2) +
               "      " +
-              "1.00 --> " +
+              "1.00 ----> " +
               caja.detalleCierre[6]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       2.00 --> " +
+              " 2.00 ----> " +
               caja.detalleApertura[7]["valor"].toFixed(2) +
               "      " +
-              "2.00 --> " +
+              "2.00 ----> " +
               caja.detalleCierre[7]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       5.00 --> " +
+              " 5.00 ----> " +
               caja.detalleApertura[8]["valor"].toFixed(2) +
               "      " +
-              "5.00 --> " +
+              "5.00 ----> " +
               caja.detalleCierre[8]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       10.00 --> " +
+              " 10.00 ---> " +
               caja.detalleApertura[9]["valor"].toFixed(2) +
-              "     " +
-              "10.00 --> " +
+              "      " +
+              "10.00 ---> " +
               caja.detalleCierre[9]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       20.00 --> " +
+              " 20.00 ---> " +
               caja.detalleApertura[10]["valor"].toFixed(2) +
-              "    " +
-              "20.00 --> " +
+              "      " +
+              "20.00 ---> " +
               caja.detalleCierre[10]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       50.00 --> " +
+              " 50.00 ---> " +
               caja.detalleApertura[11]["valor"].toFixed(2) +
-              "    " +
-              "50.00 --> " +
+              "      " +
+              "50.00 ---> " +
               caja.detalleCierre[11]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       100.00 --> " +
+              " 100.00 --> " +
               caja.detalleApertura[12]["valor"].toFixed(2) +
-              "   " +
+              "      " +
               "100.00 --> " +
               caja.detalleCierre[12]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       200.00 --> " +
+              " 200.00 --> " +
               caja.detalleApertura[13]["valor"].toFixed(2) +
-              "   " +
+              "      " +
               "200.00 --> " +
               caja.detalleCierre[13]["valor"].toFixed(2),
           },
           {
             tipo: "text",
             payload:
-              "       500.00 --> " +
+              " 500.00 --> " +
               caja.detalleApertura[14]["valor"].toFixed(2) +
-              "   " +
+              "      " +
               "500.00 --> " +
               caja.detalleCierre[14]["valor"].toFixed(2),
           },

@@ -44,13 +44,21 @@ export class PaytefController {
   async cobrarUltimoTicket(@Body() { idTrabajador }) {
     try {
       if (idTrabajador) {
-        const ticket = await ticketsInstance.getUltimoTicket();
-        paytefInstance.iniciarTransaccion(
-          idTrabajador,
-          ticket._id,
-          ticket.total
-        );
-        return true;
+        // obtenemos el ultimo ticket recogiendolo del datafono en vez del mongo
+        // para evitar un reintento donde no coincida con el ticket deseado
+        const tickets = await paytefInstance.getLastFive();
+        if (tickets.length > 0) {
+          const ultimoTicket = tickets[tickets.length - 1];
+          const ticket = await ticketsInstance.getTicketById(
+            Number(ultimoTicket.reference)
+          );
+          paytefInstance.iniciarTransaccion(
+            idTrabajador,
+            ticket._id,
+            ticket.total
+          );
+          return true;
+        }
       }
       throw Error("Faltan datos {idTrabajador} controller");
     } catch (err) {
@@ -170,6 +178,27 @@ export class PaytefController {
       throw Error("Faltan datos {idTrabajador} controller");
     } catch (err) {
       logger.Error(131, err);
+      return false;
+    }
+  }
+
+  @Post("cobrarTicketById")
+  async cobrarTicketById(@Body() { idTrabajador, idTicket }) {
+    try {
+      // iniciamos transaccion con el ticket y trabajador obtenidos por el parametro
+      if (idTicket && idTrabajador) {
+        // recogemos ticket del mongo para obtener el precio
+        const ticket = await ticketsInstance.getTicketById(Number(idTicket));
+        paytefInstance.iniciarTransaccion(
+          idTrabajador,
+          ticket._id,
+          ticket.total
+        );
+        return true;
+      }
+      throw Error("Faltan datos {idTrabajador,idTicket} controller");
+    } catch (error) {
+      logger.Error(131, "cobrarTicketbyid" + error);
       return false;
     }
   }

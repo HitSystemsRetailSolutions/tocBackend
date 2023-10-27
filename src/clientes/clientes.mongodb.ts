@@ -66,3 +66,12 @@ export async function insertarClientes(
   const clientes = database.collection("clientes");
   return (await clientes.insertMany(arrayClientes)).acknowledged;
 }
+
+export async function eliminarCliente(
+  idCliente: ClientesInterface["id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const clientes = database.collection<ClientesInterface>("clientes");
+  const resultado = await clientes.deleteOne({ id: idCliente });
+  return resultado.acknowledged && resultado.deletedCount === 1;
+}

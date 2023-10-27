@@ -11,6 +11,7 @@ import {
 import { ticketsInstance } from "../tickets/tickets.clase";
 import { cajaInstance } from "../caja/caja.clase";
 import { impresoraInstance } from "../impresora/impresora.class";
+import { CajaAbiertaInterface } from "src/caja/caja.interface";
 
 const moment = require("moment");
 const Ean13Utils = require("ean13-lib").Ean13Utils;
@@ -32,6 +33,15 @@ function getNumeroTresDigitos(x: number) {
 }
 
 export class MovimientosClase {
+  /* Eze v23 */
+  getSalidasIntervalo = (
+    horaApertura: CajaAbiertaInterface["inicioTime"],
+    final: number
+  ) => schMovimientos.getSalidasIntervalo(horaApertura, final);
+  getEntradasIntervalo = (
+    horaApertura: CajaAbiertaInterface["inicioTime"],
+    final: number
+  ) => schMovimientos.getEntradasIntervalo(horaApertura, final);
   /* Eze v23 */
   getMovimientosIntervalo = (inicioTime: number, finalTime: number) =>
     schMovimientos.getMovimientosIntervalo(inicioTime, finalTime);

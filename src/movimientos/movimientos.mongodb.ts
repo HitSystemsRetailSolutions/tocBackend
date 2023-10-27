@@ -5,6 +5,7 @@ import {
   MovimientosInterface,
 } from "./movimientos.interface";
 import { TicketsInterface } from "../tickets/tickets.interface";
+import { CajaAbiertaInterface } from "src/caja/caja.interface";
 
 /* Eze 4.0 */
 export async function getMovimientosIntervalo(
@@ -128,4 +129,24 @@ export async function getMovimientosDelTicket(
   const movimientosCollection =
     database.collection<MovimientosInterface>("movimientos");
   return await movimientosCollection.find({ idTicket: idTicket }).toArray();
+}
+
+export async function getSalidasIntervalo(
+  horaApertura: CajaAbiertaInterface["inicioTime"],
+  final: number
+) {
+  const database = (await conexion).db("tocgame");
+  const movimientosCollection =
+    database.collection<MovimientosInterface>("movimientos");
+  return await movimientosCollection.find({  _id: { $lte: final, $gte: horaApertura },tipo: "SALIDA" }).toArray();
+}
+
+export async function getEntradasIntervalo(
+  horaApertura: CajaAbiertaInterface["inicioTime"],
+  final: number
+) {
+  const database = (await conexion).db("tocgame");
+  const movimientosCollection =
+    database.collection<MovimientosInterface>("movimientos");
+  return await movimientosCollection.find({  _id: { $lte: final, $gte: horaApertura },tipo: "ENTRADA_DINERO" }).toArray();
 }

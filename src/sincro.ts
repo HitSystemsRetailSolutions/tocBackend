@@ -29,7 +29,7 @@ async function sincronizarTickets() {
           const res: any = await axios
             .post("tickets/enviarTicket", { ticket })
             .catch((e) => {
-              //  console.log(e);
+                console.log(e);
             });
           if (res.data) {
             if (await ticketsInstance.setTicketEnviado(ticket._id)) {

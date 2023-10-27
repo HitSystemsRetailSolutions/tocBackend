@@ -53,3 +53,15 @@ export async function getIntervaloDeuda(
     .find({ timestamp: { $lte: fechaFinal, $gte: fechaInicial }, pagado: false })
     .toArray();
 }
+
+export async function borrarDeudas(): Promise<void> {
+  const database = (await conexion).db("tocgame");
+  const collectionlist = await database.listCollections().toArray();
+
+  for (let i = 0; i < collectionlist.length; i++) {
+    if (collectionlist[i].name === "deudas") {
+      await database.collection("deudas").drop();
+      break;
+    }
+  }
+}
