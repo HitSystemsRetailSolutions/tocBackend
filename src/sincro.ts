@@ -327,10 +327,11 @@ async function sincronizarDeudasFinalizadas() {
             url = "deudas/anularDeuda";
           }
           const parametros = await parametrosInstance.getParametros();
-          const dataDeuda = await deudasInstance.getDate(deuda.timestamp);
+          const timestamp = new Date().getTime();
+          const dataDeuda = await deudasInstance.getDate(timestamp);
           const certificadoDeuda = {
             id: deuda.idSql,
-            timestamp: deuda.timestamp,
+            timestamp: timestamp,
             dependenta: deuda.idTrabajador,
             cliente: deuda.idCliente,
             data: dataDeuda,
