@@ -180,6 +180,7 @@ export class CestaClase {
   ): Promise<boolean> {
     try {
       let cesta = await this.getCestaById(idCesta);
+      if (cesta.lista[index].pagado) return null;
       let productos = [];
       productos.push(cesta.lista[index]);
       await this.registroLogSantaAna(cesta, productos);
@@ -860,6 +861,11 @@ export class CestaClase {
     registroSantaAna = true
   ) {
     const cesta = await this.getCestaById(idCesta);
+
+    if (cesta.lista.some((art) => art.pagado)) {
+      return null;
+    }
+
     if (registroSantaAna) {
       this.registroLogSantaAna(cesta, cesta.lista);
     }
