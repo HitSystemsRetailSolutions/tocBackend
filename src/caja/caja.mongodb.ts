@@ -29,6 +29,7 @@ export async function resetCajaAbierta(): Promise<boolean> {
           totalApertura: null,
           detalleApertura: null,
           fichajes: null,
+          propina: 0,
         },
       }
     )
@@ -125,6 +126,29 @@ export async function getApeturaCaja(): Promise<CajaAbiertaInterface> {
   const caja = database.collection<CajaAbiertaInterface>("caja");
   const res = await caja.find().sort({ _id: -1 }).limit(1).toArray();
   return res[0];
+}
+
+/* Yasai :D */
+export async function aumentarPropina(propina: number) {
+  const database = (await conexion).db("tocgame");
+  const caja = database.collection("caja");
+  const resultado = await caja.updateOne(
+    {},
+    {
+      $inc: {
+        propina: propina,
+      },
+    }
+  );
+  return resultado.acknowledged;
+}
+
+/* Yasai :D */
+export async function getPropina(): Promise<number> {
+  const database = (await conexion).db("tocgame");
+  const caja = database.collection("caja");
+  const resultado = await caja.findOne();
+  return resultado.propina;
 }
 
 /* Eze 4.0 */

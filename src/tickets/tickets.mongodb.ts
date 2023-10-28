@@ -5,6 +5,7 @@ import { ticketsInstance } from "./tickets.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { logger } from "../logger";
 import axios from "axios";
+import * as schCaja from "../caja/caja.mongodb";
 
 /* Eze v23 */
 export async function limpiezaTickets(): Promise<boolean> {
@@ -265,6 +266,20 @@ export async function actualizarEstadoTicket(
       }
     )
   ).acknowledged;
+}
+
+export async function getTicketsHonei() {
+  const time = (await schCaja.getApeturaCaja()).inicioTime;
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+
+  const resultado = await tickets.find({
+    honei: true,
+    timestamp: { $gt: time },
+  });
+  const arrayResult = await resultado.toArray();
+
+  return arrayResult;
 }
 
 /* Eze v4 */

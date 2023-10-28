@@ -203,18 +203,15 @@ export class CestasController {
   @Post("regalarProducto")
   async regalarProducto(@Body() { idCesta, indexLista, idPromoArtSel }) {
     try {
-      if (idCesta && typeof indexLista === "number"){
-        if (idPromoArtSel!=null) {
+      if (idCesta && typeof indexLista === "number") {
+        if (idPromoArtSel != null) {
           return await cestasInstance.regalarItemPromo(
             idCesta,
             indexLista,
-            idPromoArtSel,
+            idPromoArtSel
           );
         }
-        return await cestasInstance.regalarItem(
-          idCesta,
-          indexLista,
-        );
+        return await cestasInstance.regalarItem(idCesta, indexLista);
       }
       throw Error("Error, faltan datos en regalarProducto controller");
     } catch (err) {
@@ -230,6 +227,35 @@ export class CestasController {
         return await cestasInstance.updateCesta(cesta);
       }
       throw Error("Error, faltan datos en cestas/updateCestaInverso");
+    } catch (err) {
+      logger.Error(133, err);
+    }
+  }
+
+  /* Yasai :D */
+  @Post("insertarArtsHonei")
+  async insertarArtsHonei(@Body() { idCesta, articulos }) {
+    try {
+      if (idCesta && articulos) {
+        return await cestasInstance.insertarArticulosHonei(idCesta, articulos);
+      }
+      throw Error("Error, faltan datos en cestas/insertarHonei");
+    } catch (err) {
+      logger.Error(133, err);
+    }
+  }
+
+  /* Yasai :D */
+  @Post("insertarArtsPagados")
+  async insertarArtsPagados(@Body() { idCesta, articulos }) {
+    try {
+      if (idCesta && articulos) {
+        return await cestasInstance.insertarArticulosPagados(
+          idCesta,
+          articulos
+        );
+      }
+      throw Error("Error, faltan datos en cestas/insertarArtsPagados");
     } catch (err) {
       logger.Error(133, err);
     }

@@ -1,6 +1,8 @@
 import { Controller, Post, Body, Query, Param } from "@nestjs/common";
 import { io } from "../sockets.gateway";
 import { parametrosController } from "src/parametros/parametros.controller";
+import { mesasInstance } from "src/mesas/mesas.class";
+import { cajaInstance } from "src/caja/caja.clase";
 const mqtt = require("mqtt");
 const client = mqtt.connect("mqtt://63.33.116.171:1883");
 
@@ -9,6 +11,7 @@ client.on("connect", async () => {
     const parametros = await parametrosController.getParametros();
     client.subscribe(`hit.software/imagen/${parametros.licencia}/trabajador`);
     client.subscribe(`hit.software/imagen/${parametros.licencia}/cliente`);
+    client.subscribe(`hit.orders/${parametros.licencia}`);
   } catch (error) {
     console.log(
       "error en imagen.controller parametros o direccion no encontrados: ",
@@ -22,6 +25,25 @@ client.on("message", (topic, message) => {
     const mensaje = Buffer.from(message, "binary").toString("utf-8");
     const objetivo = topic.split("/")[3];
     io.emit(`ponerImagen_${objetivo}`, JSON.parse(mensaje));
+  }
+
+  if (topic.includes("hit.orders")) {
+    const mensaje = Buffer.from(message, "binary").toString("utf-8");
+    const msg = JSON.parse(mensaje);
+    // console.log(msg);
+
+    if (msg.payed) {
+      // TODO: manejar la orden pagada
+      // avisamos al frontend del pedido
+      io.emit("pedidoPagado", msg);
+      if (msg.tip) {
+        cajaInstance.aumentarPropina(msg.tip);
+      }
+    } else {
+      // TODO: manejar la orden no pagada
+      io.emit("pedidoNoPagado", msg);
+      // TODO: manejar la insercion en la mesa o lo que sea que haya que hacer
+    }
   }
 });
 
