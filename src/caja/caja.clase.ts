@@ -284,7 +284,7 @@ export class CajaClase {
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
     finalTime: CajaCerradaInterface["finalTime"],
     totalHonei: number,
-    propina: number
+    propina: number,
     totalDeudas: CajaCerradaInterface["totalDeuda"]
   ): Promise<CajaCerradaInterface> {
     const arrayTicketsCaja: TicketsInterface[] =
