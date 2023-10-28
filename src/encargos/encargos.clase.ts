@@ -175,75 +175,14 @@ export class Encargos {
       }
     }
     encargo.producto;
-    const parametros = await parametrosInstance.getParametros();
-    let fecha = this.getDate(
-      encargo.opcionRecogida,
-      encargo.fecha,
-      encargo.hora,
-      "YYYY-MM-DD HH:mm:ss.S",
-      encargo.amPm
-    );
+
     let timestamp = new Date().getTime();
     let codigoBarras = await movimientosInstance.generarCodigoBarrasSalida();
     codigoBarras = await calculoEAN13(codigoBarras);
-    const encargo_santAna = {
-      id: await this.generateId(
-        this.getDate(
-          encargo.opcionRecogida,
-          encargo.fecha,
-          encargo.hora,
-          "YYYYMMDDHHmmss",
-          encargo.amPm
-        ),
-        encargo.idTrabajador,
-        parametros
-      ),
-      cliente: encargo.idCliente,
-      data: fecha,
-      estat: Estat.NO_BUSCADO,
-      tipus: 2,
-      anticip: encargo.dejaCuenta,
-      botiga: parametros.licencia,
-      periode:
-        encargo.opcionRecogida === OpcionRecogida.REPETICION
-          ? Periodo.PERIODO
-          : Periodo.NO_PERIODO,
-      dias:
-        encargo.opcionRecogida === OpcionRecogida.REPETICION
-          ? this.formatPeriode(encargo.dias)
-          : 0,
-      bbdd: parametros.database,
-      productos: encargo.productos,
-      idTrabajador: encargo.idTrabajador,
-      recogido: false,
-      timestamp: timestamp,
-      opcionEncargo: encargo.opcionRecogida,
-      codigoBarras: codigoBarras,
-    };
-    // Mandamos el encargo al SantaAna
-    const { data }: any = await axios
-      .post("encargos/setEncargo", encargo_santAna)
-      .catch((e) => {
-        console.log(e);
-      });
-    // Si data no existe (null, undefined, etc...) o error = true devolvemos false
-    if (!data || data.error) {
-      // He puesto el 143 pero no se cual habría que poner, no se cual es el sistema que seguís
-      logger.Error(
-        143,
-        "Error: no se ha podido crear el encargo en el SantaAna"
-      );
-      return {
-        error: true,
-        msg: data.msg,
-      };
-    }
-    // Si existe, llamámos a la función de setEncargo
-    // que devuelve un boolean.
-    // True -> Se han insertado correctamente el encargo.
-    // False -> Ha habido algún error al insertar el encargo.
+
     encargo.timestamp = timestamp;
-    encargo.recogido = false;
+    encargo.enviado = false;
+    encargo.estado = "SIN_RECOGER";
     encargo.codigoBarras = codigoBarras;
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
     await impresoraInstance.imprimirEncargo(encargoCopia);
@@ -267,25 +206,9 @@ export class Encargos {
 
     if (!encargo) return false;
 
-    let encargoGraella = {
-      tmStmp: encargo.timestamp,
-      bbdd: parametros.database,
-      data: encargo.fecha,
-      id: await this.generateId(
-        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
-        encargo.idTrabajador.toString(),
-        parametros
-      ),
-    };
-    //  se envia el encargo a bbdd para actualizar el registro
-    const { data }: any = await axios
-      .post("encargos/updateEncargoGraella", encargoGraella)
-      .catch((e) => {
-        console.log(e);
-      });
-    if (!data.error && encargo.opcionRecogida != 3) {
+    if (encargo.opcionRecogida != 3) {
       return true;
-    } else if (!data.error && encargo.opcionRecogida == 3) {
+    } else if (encargo.opcionRecogida == 3) {
       // se creara automaticamente un encargo si el que se ha recogido es la opcionRecogida 3
       let diaEnc = new Date(encargo.fecha);
       diaEnc.setDate(diaEnc.getDate() + 7);
@@ -301,9 +224,11 @@ export class Encargos {
         .padStart(2, "0")}`;
       encargo.fecha = nuevaFecha;
       encargo.timestamp = new Date().getTime();
-      // reseteamos el dejaAcuenta y la _id antes de crear el nuevo encargo
-      encargo.dejaACuenta = 0;
+      // reseteamos el dejaCuenta y la _id antes de crear el nuevo encargo
+      encargo.dejaCuenta = 0;
       encargo._id = undefined;
+      encargo.enviado = false;
+      delete encargo.finalizado;
       await this.setEncargo(encargo);
       return true;
     }
@@ -311,46 +236,34 @@ export class Encargos {
     return false;
   };
   // anula el ticket
-  anularTicket = async (idEncargo) => {
-    const encargo = await this.getEncargoById(idEncargo);
-    const parametros = await parametrosInstance.getParametros();
 
-    if (encargo) {
-      let encargoGraella = {
-        tmStmp: encargo.timestamp,
-        bbdd: parametros.database,
-        data: encargo.fecha,
-        id: await this.generateId(
-          moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
-          encargo.idTrabajador.toString(),
-          parametros
-        ),
-      };
-      // borrara el registro del encargo en la bbdd
-      const { data }: any = await axios
-        .post("encargos/deleteEncargoGraella", encargoGraella)
-        .catch((e) => {
-          console.log(e);
-        });
-      if (!data.error) return true;
-    }
-    return false;
-  };
+  setEnviado = (idEncargo: EncargosInterface["_id"]) =>
+    schEncargos.setEnviado(idEncargo);
+  setAnulado = (idEncargo: EncargosInterface["_id"]) =>
+    schEncargos.setAnulado(idEncargo);
 
-  private async generateId(
+  getEncargoCreadoMasAntiguo = async () =>
+    await schEncargos.getEncargoCreadoMasAntiguo();
+  getEncargoFinalizadoMasAntiguo = async () =>
+    await schEncargos.getEncargoFinalizadoMasAntiguo();
+
+  setFinalizado = (idDeuda: EncargosInterface["_id"]) =>
+    schEncargos.setFinalizado(idDeuda);
+
+  public async generateId(
     formatDate: string,
     idTrabajador: string,
     parametros: ParametrosInterface
   ): Promise<string> {
     return `Id_Enc_${formatDate}_${parametros.licencia}_${parametros.codigoTienda}_${idTrabajador}`;
   }
-  private getDate(
+  public async getDate(
     tipo: OpcionRecogida,
     fecha: string | null,
     hora: string | null,
     format: string,
     amPm: string | null
-  ) {
+  ): Promise<string> {
     if (tipo === OpcionRecogida.HOY && format !== "YYYYMMDDHHmmss") {
       fecha = moment(Date.now()).format("YYYY-MM-DD");
       hora = moment(Date.now())
@@ -367,7 +280,7 @@ export class Encargos {
 
     return moment(Date.now()).format(format);
   }
-  private formatPeriode(dias) {
+  public async formatPeriode(dias) {
     return dias.reduce((arr, { nDia }) => {
       arr[nDia] = 1;
       return arr;
@@ -526,7 +439,8 @@ export class Encargos {
         idTrabajador: idDependenta,
         nombreDependienta: dependenta.nombre,
         timestamp: timestamp,
-        recogido: false,
+        enviado: true,
+        estado: "SIN_RECOGER",
         codigoBarras: codigoBarras,
       };
       // se vacia la lista para no duplicar posibles productos en la siguiente creacion de un encargo
@@ -779,6 +693,9 @@ export class Encargos {
 
     // devolver cesta y comentarios
     return { cesta: cesta, comentarios: comentarios };
+  }
+  async getUpdateEncargos() {
+    return await schEncargos.getUpdateEncargos();
   }
 }
 

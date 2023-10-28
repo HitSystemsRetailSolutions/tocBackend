@@ -20,6 +20,7 @@ import { parametrosInstance } from "src/parametros/parametros.clase";
 import * as moment from "moment";
 import { parametrosController } from "src/parametros/parametros.controller";
 import { ticketsInstance } from "src/tickets/tickets.clase";
+import { deudasInstance } from "src/deudas/deudas.clase";
 
 export class CajaClase {
   postFichajesCaja = async (
@@ -105,7 +106,7 @@ export class CajaClase {
     cestasInstance.actualizarCestas();
     parametrosInstance.setContadoDatafono(1, 0);
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
-
+    const totalDeudas= await deudasInstance.getTotalMoneyStandBy();
     const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
     const finalTime = await this.getFechaCierre(
       inicioTurnoCaja,
@@ -119,9 +120,11 @@ export class CajaClase {
       cantidadPaytef,
       totalDatafono3G,
       finalTime.time,
+      totalDeudas,
       totalHonei,
       // TODO: Propina
       await this.getPropina()
+
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
@@ -282,6 +285,7 @@ export class CajaClase {
     finalTime: CajaCerradaInterface["finalTime"],
     totalHonei: number,
     propina: number
+    totalDeudas: CajaCerradaInterface["totalDeuda"]
   ): Promise<CajaCerradaInterface> {
     const arrayTicketsCaja: TicketsInterface[] =
       await schTickets.getTicketsIntervalo(
@@ -399,6 +403,7 @@ export class CajaClase {
       recaudado,
       totalCierre,
       totalDatafono3G,
+      totalDeudas,
       cantidadPaytef,
       totalTicketDatafono3G,
       totalDeuda,

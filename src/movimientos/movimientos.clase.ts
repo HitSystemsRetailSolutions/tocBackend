@@ -210,17 +210,13 @@ export class MovimientosClase {
 
   /* Eze 4.0 */
   public async getFormaPago(ticket: TicketsInterface) {
-    const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
-      ticket._id
-    );
-    if (arrayMovimientos?.length > 0) {
-      return this.calcularFormaPago({
-        ...ticket,
-        movimientos: arrayMovimientos,
-        tipoPago: null,
-      });
-    }
-    return null;
+    return ticket.paytef
+      ? "TARJETA"
+      : ticket.datafono3G
+      ? "DATAFONO_3G"
+      : ticket.consumoPersonal
+      ? "CONSUMO_PERSONAL"
+      : "EFECTIVO";
   }
 
   /* Uri */

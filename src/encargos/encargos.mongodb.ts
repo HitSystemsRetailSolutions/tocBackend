@@ -6,7 +6,7 @@ export async function getEncargos(): Promise<EncargosInterface[]> {
   const database = (await conexion).db("tocgame");
   const encargos = database.collection<EncargosInterface>("encargos");
 
-  return await encargos.find({ recogido: false }).toArray();
+  return await encargos.find({ estado: "SIN_RECOGER" }).toArray();
 }
 export async function setEncargo(encargo): Promise<boolean> {
   const database = (await conexion).db("tocgame");
@@ -37,7 +37,25 @@ export async function setEntregado(
       { _id: new ObjectId(id) },
       {
         $set: {
-          recogido: true,
+          estado: "RECOGIDO",
+          finalizado: false,
+        },
+      }
+    )
+  ).acknowledged;
+}
+export async function setAnulado(
+  id: EncargosInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  return (
+    await encargos.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          estado: "ANULADO",
+          finalizado: false,
         },
       }
     )
@@ -81,4 +99,77 @@ export async function borrarEncargos(): Promise<void> {
       break;
     }
   }
+}
+
+export async function setEnviado(
+  idEncargo: EncargosInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  return (
+    await encargos.updateOne(
+      { _id: new ObjectId(idEncargo) },
+      {
+        $set: {
+          enviado: true,
+        },
+      }
+    )
+  ).acknowledged;
+}
+
+
+export async function getEncargoCreadoMasAntiguo(): Promise<EncargosInterface>{
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  return (await encargos.findOne(
+    { enviado: false },
+    { sort: { _id: 1 } }
+  )) as EncargosInterface ;
+}
+
+
+export async function getEncargoFinalizadoMasAntiguo(): Promise<EncargosInterface>{
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  return (await encargos.findOne(
+    { finalizado: false },
+    { sort: { _id: 1 } }
+  )) as EncargosInterface ;
+}
+
+export async function setFinalizado(
+  idDeuda: EncargosInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  return (
+    await encargos.updateOne(
+      { _id: new ObjectId(idDeuda) },
+      {
+        $set: {
+          finalizado: true,
+        },
+      }
+    )
+  ).acknowledged;
+}
+
+export async function getUpdateEncargos(): Promise<boolean> {
+  try {
+    const database = (await conexion).db("tocgame");
+    const encargos = database.collection<EncargosInterface>("encargos");
+    
+    const documento = await encargos.findOne({ recogido: { $exists: true } });
+    
+    if (documento) {
+      return false; // Existe al menos una deuda, devuelve false.
+    } else {
+      return true; // No existen encargos, devuelve true.
+    }
+  } catch (error) {
+    console.error('Error al buscar documentos: ', error);
+    throw error; // Lanza el error si ocurre un problema durante la búsqueda.
+  };
+  
 }
