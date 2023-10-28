@@ -37,15 +37,17 @@ async function sincronizarTickets() {
       if (parametros != null) {
         const ticket = await ticketsInstance.getTicketMasAntiguo();
         if (ticket) {
-          nuevaInstancePromociones.deshacerPromociones(ticket);
+          await nuevaInstancePromociones.deshacerPromociones(ticket);
           const res: any = await axios
             .post("tickets/enviarTicket", { ticket })
             .catch((e) => {});
 
           if (res.data) {
             if (await ticketsInstance.setTicketEnviado(ticket._id)) {
-              enProcesoTickets = false;
-              setTimeout(sincronizarTickets, 100);
+              setTimeout(function () {
+                enProcesoTickets = false;
+                sincronizarTickets();
+              }, 100);
             } else {
               enProcesoTickets = false;
             }
