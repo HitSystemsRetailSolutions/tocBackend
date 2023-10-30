@@ -91,7 +91,7 @@ export class Deudas {
         money -= Number(arrayDeudas[i].total.toFixed(2));
       }
     }
-    return money;
+    return Number(money.toFixed(2));
   }
   async ticketPagado(data) {
     const deuda = await schDeudas.getDeudaById(data.idDeuda);
