@@ -44,6 +44,9 @@ describe("Caja", () => {
       inicioTime: null,
       mediaTickets: null,
       nClientes: null,
+      fichajes: null,
+      totalDeudas: null,
+      nClientesMesas: null,
       primerTicket: null,
       recaudado: null,
       totalApertura: null,
@@ -88,7 +91,10 @@ describe("Caja", () => {
       inicioTime: null,
       mediaTickets: null,
       nClientes: null,
+      nClientesMesas: null,
       primerTicket: null,
+      fichajes: null,
+      totalDeudas: null,
       recaudado: null,
       totalApertura: null,
       totalCierre: null,
@@ -139,6 +145,7 @@ describe("Caja", () => {
         idDependientaApertura: 1,
         inicioTime: 123456,
         totalApertura: 999,
+        fichajes: null,
       };
       if (await cajaInstance.abrirCaja(cajaTest)) {
         const getCajaAbierta = await caja.findOne();
@@ -179,6 +186,7 @@ describe("Caja", () => {
       idDependientaApertura: null,
       inicioTime: 159753,
       totalApertura: 94,
+      fichajes: null,
     };
     const objCajaCerrada: CajaCerradaInterface = {
       calaixFetZ: 15,
@@ -190,6 +198,10 @@ describe("Caja", () => {
       nClientes: 50,
       primerTicket: 1,
       recaudado: 56,
+      nClientesMesas: 0,
+      totalHonei: 0,
+      propina: 0,
+      totalDeudas: 0,
       totalCierre: 60,
       totalDatafono3G: 0,
       totalTicketDatafono3G: 0,

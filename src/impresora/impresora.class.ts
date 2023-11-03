@@ -179,6 +179,7 @@ export class Impresora {
             ticket?.cesta?.indexMesa == undefined
               ? null
               : ticket.cesta.indexMesa,
+          comensales: ticket?.cesta?.comensales || null,
         };
       }
       // enviamos el objeto
@@ -517,7 +518,10 @@ export class Impresora {
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
       {
         tipo: "text",
-        payload: info.mesa == null ? "" : `Taula: ${info.mesa + 1}`,
+        payload:
+          info.mesa == null
+            ? ""
+            : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
       },
       { tipo: "size", payload: [1, 0] },
       { tipo: "text", payload: clientTitle },
@@ -1035,7 +1039,11 @@ export class Impresora {
           tipo: "text",
           payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
         },
-        { tipo: "text", payload: "Clients atesos   :      " + caja.nClientes },
+        { tipo: "text", payload: "Cli. at. Caixa   :      " + caja.nClientes },
+        {
+          tipo: "text",
+          payload: "Cli. at. Taules  :      " + caja.nClientesMesas,
+        },
         {
           tipo: "text",
           payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
@@ -1298,7 +1306,11 @@ export class Impresora {
       }
       textoMovimientos += `\nTotal tarjeta: ${(
         caja.cantidadPaytef + caja.totalDatafono3G
-      ).toFixed(2)}\nDeudas acumuladas en la caja: ${totalDeudaCaja}\nTotal deudas acumuladas: ${caja.totalDeudas.toFixed(2)}`;
+      ).toFixed(
+        2
+      )}\nDeudas acumuladas en la caja: ${totalDeudaCaja}\nTotal deudas acumuladas: ${caja.totalDeudas.toFixed(
+        2
+      )}`;
 
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
@@ -1363,7 +1375,11 @@ export class Impresora {
           },
           {
             tipo: "text",
-            payload: "Clients atesos   :      " + caja.nClientes,
+            payload: "Cli. at. Caixa   :      " + caja.nClientes,
+          },
+          {
+            tipo: "text",
+            payload: "Cli. at. Taules  :      " + caja.nClientesMesas,
           },
           {
             tipo: "text",
