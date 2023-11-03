@@ -120,11 +120,10 @@ export class CajaClase {
       cantidadPaytef,
       totalDatafono3G,
       finalTime.time,
-      totalDeudas,
       totalHonei,
       // TODO: Propina
-      await this.getPropina()
-
+      await this.getPropina(),
+      totalDeudas,
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();

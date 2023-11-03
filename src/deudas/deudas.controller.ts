@@ -84,4 +84,13 @@ export class DeudasController {
       return null;
     }
   }
+  @Get("getTotalMoneyStandBy")
+  async getTotalMoneyStandBy(){
+    try {
+      return await deudasInstance.getTotalMoneyStandBy();
+    } catch (err) {
+      logger.Error(500, err);
+      return null;
+    }
+  }
 }
