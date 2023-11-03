@@ -258,7 +258,7 @@ export class TicketsController {
             "Falta información del tkrs o bien ninguna forma de pago es correcta"
           );
         }
-        if (tipo !== "TARJETA" || concepto == "DEUDA") {
+        if (tipo !== "TARJETA" && concepto == "DEUDA") {
           await impresoraInstance.abrirCajon();
         }
         ticketsInstance.actualizarTickets();
