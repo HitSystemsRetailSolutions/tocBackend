@@ -269,11 +269,11 @@ export class ClientesController {
   }
   @Get("getIdTrabajadorCliente")
   async getIdTrabajadorCliente(@Query() query: { idCliente: ClientesInterface["id"] }){
-    console.log("1",query,query.idCliente)
+
     if (!query || !query.idCliente) {
       return false;
     }
-    console.log("2")
+
     try {
       const params={idCliente:query.idCliente}
       const res = await axios.get("clientes/getIdTrabajadorCliente",{params})

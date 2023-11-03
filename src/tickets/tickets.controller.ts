@@ -141,7 +141,10 @@ export class TicketsController {
       let descuento: any = Number(
         (await clienteInstance.isClienteDescuento(cesta.idCliente))?.descuento
       );
-      if (descuento && descuento > 0) {
+      //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
+      // el modo de cesta debe cambiar a consumo_personal.
+      if (tipo=="CONSUMO_PERSONAL") cesta.modo="CONSUMO_PERSONAL";
+      if (tipo!=="CONSUMO_PERSONAL" && descuento && descuento > 0) {
         cesta.lista.forEach((producto) => {
           if (producto.arraySuplementos != null) {
             producto.subtotal = this.redondearPrecio(
@@ -152,7 +155,11 @@ export class TicketsController {
               producto.subtotal - (producto.subtotal * descuento) / 100
             ); // Modificamos el total para añadir el descuento especial del cliente
         });
+      }else if(tipo=="CONSUMO_PERSONAL" && descuento){
+        console.log("recalculo")
+        await cestasInstance.recalcularIvas(cesta);
       }
+      console.log("1",tipo === "CONSUMO_PERSONAL")
       const d3G = tipo === "DATAFONO_3G";
       const paytef = false;
       const ticket = await ticketsInstance.generarNuevoTicket(
@@ -171,7 +178,7 @@ export class TicketsController {
         );
       }
       if (await ticketsInstance.insertarTicket(ticket)) {
-        await cestasInstance.borrarArticulosCesta(idCesta, true);
+        await cestasInstance.borrarArticulosCesta(idCesta, true, true);
         if (tipo === "TARJETA")
           paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
         else if (
