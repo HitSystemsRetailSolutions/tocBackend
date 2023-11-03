@@ -76,11 +76,19 @@ export class CestaClase {
       indexMesa: null,
       trabajador: trabajador,
       trabajadores: [],
+      comensales: 1,
     };
   }
 
   /* Eze 4.0 */
   getAllCestas = async () => await schCestas.getAllCestas();
+
+  /* Uri */
+  setClients = async (clients, cesta) => {
+    let res = await schCestas.setClients(clients, cesta);
+    this.actualizarCestas();
+    return res;
+  };
 
   /* Uri */
 

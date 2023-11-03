@@ -163,10 +163,24 @@ export async function haveCesta(trabajador: number) {
 
 /* Eze 4.0 */
 export async function createCesta(cesta: CestasInterface): Promise<boolean> {
-  if (await haveCesta(cesta?.trabajador) && cesta.modo != "DEVOLUCION") return;
+  if ((await haveCesta(cesta?.trabajador)) && cesta.modo != "DEVOLUCION")
+    return;
   const database = (await conexion).db("tocgame");
   const cestasColeccion = database.collection<CestasInterface>("cestas");
   return (await cestasColeccion.insertOne(cesta)).acknowledged;
+}
+
+export async function setClients(
+  clients: CestasInterface["comensales"],
+  cestaId: CestasInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const cestas = database.collection("cestas");
+  const resultado = await cestas.updateOne(
+    { _id: new ObjectId(cestaId) },
+    { $set: { comensales: clients } }
+  );
+  return true;
 }
 
 export async function modificarNombreCesta(cestaId, miCesta) {

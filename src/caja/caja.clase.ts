@@ -106,7 +106,7 @@ export class CajaClase {
     cestasInstance.actualizarCestas();
     parametrosInstance.setContadoDatafono(1, 0);
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
-    const totalDeudas= await deudasInstance.getTotalMoneyStandBy();
+    const totalDeudas = await deudasInstance.getTotalMoneyStandBy();
     const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
     const finalTime = await this.getFechaCierre(
       inicioTurnoCaja,
@@ -123,7 +123,7 @@ export class CajaClase {
       totalHonei,
       // TODO: Propina
       await this.getPropina(),
-      totalDeudas,
+      totalDeudas
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
@@ -299,6 +299,8 @@ export class CajaClase {
 
     let totalTickets = 0;
     let nClientes = 0;
+    let nTickets = 0;
+    let nClientesMesas = 0;
 
     // if (arrayTicketsCaja.length <= 0)
     // throw Error("No hay tickets en esta caja");
@@ -356,7 +358,14 @@ export class CajaClase {
     let totalTicketDatafono3G = 0;
     // ESTO SERÁ PARA CALCULAR EL DESCUADRE
     for (let i = 0; i < arrayTicketsCaja.length; i++) {
-      nClientes++;
+      nTickets++;
+      if (arrayTicketsCaja[i].cesta?.indexMesa != null) {
+        let n = arrayTicketsCaja[i].cesta?.comensales;
+        if (n <= 0) n = 1;
+        nClientesMesas += n;
+      } else {
+        nClientes++;
+      }
       totalTickets += arrayTicketsCaja[i].total;
       if (arrayTicketsCaja[i].datafono3G) {
         totalTicketDatafono3G += arrayTicketsCaja[i].total;
@@ -399,6 +408,7 @@ export class CajaClase {
       finalTime,
       idDependientaCierre,
       nClientes,
+      nClientesMesas,
       recaudado,
       totalCierre,
       totalDatafono3G,
@@ -412,7 +422,7 @@ export class CajaClase {
       totalTarjeta,
       totalTkrsConExceso,
       totalTkrsSinExceso,
-      mediaTickets: totalTickets / nClientes,
+      mediaTickets: totalTickets / nTickets,
       totalHonei,
       propina,
     };
