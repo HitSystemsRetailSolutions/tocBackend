@@ -36,4 +36,10 @@ export type FormaPago =
   | "ANULADO"
   | "ERROR_DETECTADO"
   | "DATAFONO_3G"
-  | "DEUDA";
+  | "DEUDA"
+  | "HONEI"
+  | "HONEI + EFECTIVO"
+  | "TKRS + HONEI"
+  | "TKRS + HONEI + EFECTIVO"
+  | "HONEI + TARJETA"
+  | "HONEI + DATAFONO_3G";

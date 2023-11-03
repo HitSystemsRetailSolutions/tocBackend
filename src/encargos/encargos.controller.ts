@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post } from "@nestjs/common";
 import { logger } from "../logger";
 import { encargosInstance } from "./encargos.clase";
 import axios from "axios";
@@ -38,12 +38,7 @@ export class EncargosController {
           msg: "Faltan datos.",
         };
 
-      const anularEncargoSantaAna = await encargosInstance.anularTicket(
-        data.id
-      );
-      if (anularEncargoSantaAna) return encargosInstance.setEntregado(data.id);
-
-      return false;
+      return encargosInstance.setAnulado(data.id);
     } catch (err) {
       logger.Error(50, err);
       return null;
@@ -101,13 +96,24 @@ export class EncargosController {
   async descargarEncargos() {
     try {
       await encargosInstance.borrarEncargos();
-      const parametros:any = await parametrosInstance.getParametros();
-      const data:any ={database: parametros.database,
+      const parametros: any = await parametrosInstance.getParametros();
+      const data: any = {
+        database: parametros.database,
         codigoTienda: parametros.codigoTienda,
-        licencia: parametros.licencia};
+        licencia: parametros.licencia,
+      };
 
-      const res: any = await axios.post("encargos/getEncargos", data)
+      const res: any = await axios.post("encargos/getEncargos", data);
       return await encargosInstance.insertarEncargos(res.data);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+  @Get("getUpdateEncargos")
+  async getUpdateEncargos() {
+    try {
+      return await encargosInstance.getUpdateEncargos();
     } catch (err) {
       logger.Error(50, err);
       return null;

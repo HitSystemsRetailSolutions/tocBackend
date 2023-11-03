@@ -66,9 +66,8 @@ export class TicketsController {
     try {
       const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
       // modifica
-      const graellaModificada = await encargosInstance.updateEncargoGraella(
-        idEncargo
-      );
+      const graellaModificada =
+        await encargosInstance.updateEncargoGraella(idEncargo);
       if (!graellaModificada) return false;
 
       const ticket = await ticketsInstance.generarNuevoTicket(
@@ -76,6 +75,7 @@ export class TicketsController {
         idTrabajador,
         cestaEncargo.cesta,
         tipo === "CONSUMO_PERSONAL",
+        false,
         false,
         false,
         dejaCuenta
@@ -119,6 +119,7 @@ export class TicketsController {
       tipo,
       tkrsData,
       concepto,
+      honei,
     }: {
       total: number;
       idCesta: TicketsInterface["cesta"]["_id"];
@@ -129,6 +130,7 @@ export class TicketsController {
         formaPago: FormaPago;
       };
       concepto?: MovimientosInterface["concepto"];
+      honei?: boolean;
     }
   ) {
     try {
@@ -141,10 +143,11 @@ export class TicketsController {
       );
       if (descuento && descuento > 0) {
         cesta.lista.forEach((producto) => {
-          if (producto.arraySuplementos!=null) {
-            producto.subtotal=this.redondearPrecio((producto.subtotal-(producto.subtotal*descuento/100)));
-          }
-          else if (producto.promocion == null)
+          if (producto.arraySuplementos != null) {
+            producto.subtotal = this.redondearPrecio(
+              producto.subtotal - (producto.subtotal * descuento) / 100
+            );
+          } else if (producto.promocion == null)
             producto.subtotal = this.redondearPrecio(
               producto.subtotal - (producto.subtotal * descuento) / 100
             ); // Modificamos el total para añadir el descuento especial del cliente
@@ -159,7 +162,7 @@ export class TicketsController {
         tipo === "CONSUMO_PERSONAL",
         d3G,
         paytef,
-        null
+        tipo.includes("HONEI") || honei
       );
 
       if (!ticket) {
@@ -302,7 +305,8 @@ export class TicketsController {
           cesta,
           tipo === "CONSUMO_PERSONAL",
           d3G,
-          null
+          null,
+          tipo.includes("HONEI")
         );
         if (!ticket) {
           throw Error(

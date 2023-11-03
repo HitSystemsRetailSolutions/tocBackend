@@ -19,6 +19,8 @@ import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import * as moment from "moment";
 import { parametrosController } from "src/parametros/parametros.controller";
+import { ticketsInstance } from "src/tickets/tickets.clase";
+import { deudasInstance } from "src/deudas/deudas.clase";
 
 export class CajaClase {
   postFichajesCaja = async (
@@ -43,6 +45,16 @@ export class CajaClase {
   /* Eze 4.0 */
   getCajaSincroMasAntigua = async () =>
     await schCajas.getCajaSincroMasAntigua();
+
+  /* Yasai :D */
+  aumentarPropina = (propina: number) => {
+    schCajas.aumentarPropina(propina);
+  };
+
+  /* Yasai :D */
+  getPropina = async () => {
+    return await schCajas.getPropina();
+  };
 
   /* Eze 4.0 */
   async abrirCaja(cajaAbierta: CajaAbiertaInterface): Promise<boolean> {
@@ -86,6 +98,7 @@ export class CajaClase {
     cantidadPaytef: CajaCerradaInterface["cantidadPaytef"],
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cierreAutomatico: boolean = true,
+    totalHonei: number
   ): Promise<boolean> {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
@@ -93,9 +106,12 @@ export class CajaClase {
     cestasInstance.actualizarCestas();
     parametrosInstance.setContadoDatafono(1, 0);
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
-
+    const totalDeudas= await deudasInstance.getTotalMoneyStandBy();
     const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
-    const finalTime = await this.getFechaCierre(inicioTurnoCaja,cierreAutomatico);
+    const finalTime = await this.getFechaCierre(
+      inicioTurnoCaja,
+      cierreAutomatico
+    );
     const cajaCerradaActual = await this.getDatosCierre(
       cajaAbiertaActual,
       totalCierre,
@@ -103,7 +119,11 @@ export class CajaClase {
       idDependientaCierre,
       cantidadPaytef,
       totalDatafono3G,
-      finalTime.time
+      finalTime.time,
+      totalHonei,
+      // TODO: Propina
+      await this.getPropina(),
+      totalDeudas,
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
@@ -181,7 +201,10 @@ export class CajaClase {
     });
   }
 
-  getFechaCierre(inicioTime: CajaAbiertaInterface["inicioTime"],cierreAutomatico: boolean) {
+  getFechaCierre(
+    inicioTime: CajaAbiertaInterface["inicioTime"],
+    cierreAutomatico: boolean
+  ) {
     let d;
     if (inicioTime && cierreAutomatico) {
       d = new Date(inicioTime);
@@ -214,8 +237,8 @@ export class CajaClase {
       let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0][
         "_id"
       ];
-      const paytef = await parametrosController.totalPaytef()
-      let totalPaytef = paytef[0] ? paytef[0]: 0;
+      const paytef = await parametrosController.totalPaytef();
+      let totalPaytef = paytef[0] ? paytef[0] : 0;
       if (trabId == undefined) trabId = 0;
       if (fechaHoy != fechaApertura) {
         await cajaInstance.cerrarCaja(
@@ -242,6 +265,7 @@ export class CajaClase {
           totalPaytef,
           trabId,
           true,
+          await ticketsInstance.getTotalHonei()
         );
         return true;
       }
@@ -257,7 +281,10 @@ export class CajaClase {
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cantidadPaytef: CajaCerradaInterface["cantidadPaytef"],
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
-    finalTime: CajaCerradaInterface["finalTime"]
+    finalTime: CajaCerradaInterface["finalTime"],
+    totalHonei: number,
+    propina: number,
+    totalDeudas: CajaCerradaInterface["totalDeuda"]
   ): Promise<CajaCerradaInterface> {
     const arrayTicketsCaja: TicketsInterface[] =
       await schTickets.getTicketsIntervalo(
@@ -347,14 +374,17 @@ export class CajaClase {
           100
       ) / 100;-*/
     const descuadre = Number(
-      (
-        (cajaAbiertaActual.totalApertura +
-          totalTickets +
-          totalEntradaDinero -
-          (totalDatafono3G + totalSalidas + totalCierre + cantidadPaytef)) *
+      (cajaAbiertaActual.totalApertura +
+        totalTickets +
+        totalEntradaDinero -
+        (totalDatafono3G +
+          totalSalidas +
+          totalCierre +
+          cantidadPaytef +
+          totalHonei)) *
         -1
-      ).toFixed(2)
     );
+
     recaudado = totalTickets + descuadre;
     return {
       calaixFetZ: totalTickets,
@@ -372,6 +402,7 @@ export class CajaClase {
       recaudado,
       totalCierre,
       totalDatafono3G,
+      totalDeudas,
       cantidadPaytef,
       totalTicketDatafono3G,
       totalDeuda,
@@ -382,6 +413,8 @@ export class CajaClase {
       totalTkrsConExceso,
       totalTkrsSinExceso,
       mediaTickets: totalTickets / nClientes,
+      totalHonei,
+      propina,
     };
   }
 }

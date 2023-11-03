@@ -10,8 +10,9 @@ import { CestasInterface } from "src/cestas/cestas.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { articulosInstance } from "src/articulos/articulos.clase";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
+import { CajaCerradaInterface, CajaSincro } from "src/caja/caja.interface";
 export class Deudas {
-  getDate(timestamp: any) {
+  async getDate(timestamp: any) {
     var date = new Date(timestamp);
 
     // componentes de fecha
@@ -41,7 +42,7 @@ export class Deudas {
 
     return data;
   }
-  getId(codigoTienda: number, idTrabajador: any, dataDeuda: any) {
+  async getId(codigoTienda: number, idTrabajador: any, dataDeuda: any) {
     let id =
       "Deute_Boti_" +
       codigoTienda +
@@ -53,46 +54,21 @@ export class Deudas {
   }
 
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
-  borrarDeudas = async () =>{await schDeudas.borrarDeudas()};
+  borrarDeudas = async () => {
+    await schDeudas.borrarDeudas();
+  };
   setDeuda = async (deuda) => {
-
     const parametros = await parametrosInstance.getParametros();
-    const dataDeuda = this.getDate(deuda.timestamp);
-    const idSql= this.getId(parametros.codigoTienda, deuda.idTrabajador, dataDeuda)
-    const deuda_santAna = {
-      id: idSql,
-      timestamp: deuda.timestamp,
-      dependenta: deuda.idTrabajador,
-      cliente: deuda.idCliente,
-      data: dataDeuda,
-      estat: 0,
-      tipus: 1,
-      import: deuda.total,
-      botiga: parametros.licencia,
-      idTicket: deuda.idTicket,
-      bbdd: parametros.database,
-    };
-    // Mandamos la deuda al SantaAna
-    const { data }: any = await axios
-      .post("deudas/setDeuda", deuda_santAna)
-      .catch((e) => {
-        console.log(e);
-      });
+    const dataDeuda = await this.getDate(deuda.timestamp);
+    const idSql = await this.getId(
+      parametros.codigoTienda,
+      deuda.idTrabajador,
+      dataDeuda
+    );
 
-    // Si data no existe (null, undefined, etc...) o error = true devolvemos false
-    if (!data || data.error) {
-      // He puesto el 153 pero no se cual habría que poner, no se cual es el sistema que seguís
-      logger.Error(153, "Error: no se ha podido crear la deuda en el SantaAna");
-      return {
-        error: true,
-        msg: data.msg,
-      };
-    }
-    // Si existe, llamámos a la función de setDeuda
-    // que devuelve un boolean.
-    deuda.idSql= idSql;
-    deuda.pagado = false;
-
+    deuda.idSql = idSql;
+    deuda.enviado = false;
+    deuda.estado = "SIN_PAGAR";
     return schDeudas
       .setDeuda(deuda)
       .then((ok: boolean) => {
@@ -104,14 +80,26 @@ export class Deudas {
   async getDeudas() {
     return await schDeudas.getDeudas();
   }
-
+  async getAllDeudas() {
+    return await schDeudas.getAllDeudas();
+  }
+  async getTotalMoneyStandBy() {
+    const arrayDeudas = await this.getAllDeudas();
+    let money = 0;
+    for (let i = 0; i < arrayDeudas.length; i++) {
+      if (arrayDeudas[i].estado && arrayDeudas[i].estado == "SIN_PAGAR") {
+        money -= Number(arrayDeudas[i].total.toFixed(2));
+      }
+    }
+    return Number(money.toFixed(2));
+  }
   async ticketPagado(data) {
     const deuda = await schDeudas.getDeudaById(data.idDeuda);
 
     if (deuda) {
       const movimiento = {
         cantidad: deuda.total,
-        concepto: "ENTRADA",
+        concepto: "DEUDA",
         idTicket: deuda.idTicket,
         idTrabajador: deuda.idTrabajador,
         tipo: "ENTRADA_DINERO",
@@ -130,28 +118,10 @@ export class Deudas {
           .then(async (ok: boolean) => {
             if (!ok)
               return { error: true, msg: "Error al guardar deuda pagada" };
-            const parametros = await parametrosInstance.getParametros();
-            const dataDeuda = this.getDate(deuda.timestamp);
-            const certificadoDeuda = {
-              id: deuda.idSql,
-              timestamp: deuda.timestamp,
-              dependenta: deuda.idTrabajador,
-              cliente: deuda.idCliente,
-              data: dataDeuda,
-              estat: 0,
-              tipus: 1,
-              import: deuda.total,
-              botiga: parametros.licencia,
-              idTicket: deuda.idTicket,
-              bbdd: parametros.database,
+            return {
+              error: false,
+              msg: "OK!",
             };
-            // Mandamos la deuda al SantaAna
-            const { data }: any = await axios
-              .post("deudas/setCertificadoDeuda", certificadoDeuda)
-              .catch((e) => {
-                console.log(e);
-              });
-            return data;
           })
           .catch((err: string) => ({ error: true, msg: err }));
       }
@@ -165,39 +135,13 @@ export class Deudas {
   eliminarDeuda = async (idDeuda) => {
     const deuda = await schDeudas.getDeudaById(idDeuda);
     if (deuda) {
-      const parametros = await parametrosInstance.getParametros();
-      const dataDeuda = this.getDate(deuda.timestamp);
-      const certificadoDeuda = {
-        id: deuda.idSql,
-        timestamp: deuda.timestamp,
-        dependenta: deuda.idTrabajador,
-        cliente: deuda.idCliente,
-        data: dataDeuda,
-        estat: 0,
-        tipus: 1,
-        import: deuda.total,
-        botiga: parametros.licencia,
-        idTicket: deuda.idTicket,
-        bbdd: parametros.database,
-      };
-      return await axios
-        .post("deudas/anularDeuda", certificadoDeuda)
-        .then((res: any) => {
-          if (!res.data.error) {
-            return schDeudas
-              .setPagado(idDeuda)
-              .then((ok: boolean) => {
-                if (!ok)
-                  return { error: true, msg: "Error al borrar la deuda" };
-                return { error: false, msg: "Deuda borrada" };
-              })
-              .catch((err: string) => ({ error: true, msg: err }));
-          }
-          return { error: true, msg: "Error al borrar la deuda en servidor" };
+      return schDeudas
+        .setAnulado(idDeuda)
+        .then((ok: boolean) => {
+          if (!ok) return { error: true, msg: "Error al borrar la deuda" };
+          return { error: false, msg: "Deuda borrada" };
         })
-        .catch((e) => {
-          console.log(e);
-        });
+        .catch((err: string) => ({ error: true, msg: err }));
     } else {
       return {
         error: true,
@@ -205,6 +149,13 @@ export class Deudas {
       };
     }
   };
+
+  setEnviado = (idDeuda: DeudasInterface["_id"]) =>
+    schDeudas.setEnviado(idDeuda);
+
+  setFinalizado = (idDeuda: DeudasInterface["_id"]) =>
+    schDeudas.setFinalizado(idDeuda);
+
   public async insertarDeudas(deudas: any) {
     if (deudas.length == 0) return;
     let cajaAbierta = await cajaInstance.cajaAbierta();
@@ -218,7 +169,7 @@ export class Deudas {
         fichajes: [Number.parseInt(deudas[0].Dependenta)],
       });
     }
-    
+
     const grupos = {};
     let newCesta = await cestasInstance.crearCesta();
     const cesta = await cestasInstance.getCestaById(newCesta);
@@ -248,7 +199,7 @@ export class Deudas {
       await cestasInstance.deleteCestaMesa(cesta._id);
       // al acabar de insertar, borramos la cesta y la caja
       if (!cajaAbierta) {
-      await cajaInstance.borrarCaja();
+        await cajaInstance.borrarCaja();
       }
       return deudasAgrupadas;
     } catch (error) {
@@ -309,7 +260,8 @@ export class Deudas {
         nombreCliente: nombreCliente,
         total: total,
         timestamp: timestamp,
-        pagado: false,
+        enviado: true,
+        estado: "SIN_PAGAR",
       };
 
       // se vacia la lista para no duplicar posibles productos en la siguiente creacion de un encargo
@@ -358,6 +310,21 @@ export class Deudas {
 
     return cesta;
   }
+  async getDeudasCajaAsync() {
+    const ultimaCaja: CajaSincro = await cajaInstance.getUltimoCierre();
+    return await schDeudas.getDeudasCajaAsync(
+      ultimaCaja.inicioTime,
+      ultimaCaja.finalTime
+    );
+  }
+  async getUpdateDeudas() {
+    return await schDeudas.getUpdateDeudas();
+  }
+  getDeudaCreadaMasAntiguo = async () =>
+    await schDeudas.getDeudaCreadaMasAntiguo();
+
+  getDeudaFinalizadaMasAntiguo = async () =>
+    await schDeudas.getDeudaFinalizadaMasAntiguo();
 }
 const deudasInstance = new Deudas();
 export { deudasInstance };

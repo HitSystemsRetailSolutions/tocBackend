@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post } from "@nestjs/common";
 import { logger } from "../logger";
 import { deudasInstance } from "./deudas.clase";
 import { parametrosInstance } from "src/parametros/parametros.clase";
@@ -61,16 +61,35 @@ export class DeudasController {
   @Post("descargarDeudas")
   async descargarDeudas() {
     try {
-      await deudasInstance.borrarDeudas();
-      const parametros:any = await parametrosInstance.getParametros();
-      const data:any ={database: parametros.database,
+      const parametros: any = await parametrosInstance.getParametros();
+      const data: any = {
+        database: parametros.database,
         botiga: parametros.codigoTienda,
-        licencia: parametros.licencia};
-
-      const res: any = await axios.post("deudas/getDeudas", data)
+        licencia: parametros.licencia,
+      };
+      const res: any = await axios.post("deudas/getDeudas", data);
+      await deudasInstance.borrarDeudas();
       return await deudasInstance.insertarDeudas(res.data);
     } catch (err) {
       logger.Error(50, err);
+      return null;
+    }
+  }
+  @Get("getUpdateDeudas")
+  async getUpdateDeudas() {
+    try {
+      return await deudasInstance.getUpdateDeudas();
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+  @Get("getTotalMoneyStandBy")
+  async getTotalMoneyStandBy(){
+    try {
+      return await deudasInstance.getTotalMoneyStandBy();
+    } catch (err) {
+      logger.Error(500, err);
       return null;
     }
   }
