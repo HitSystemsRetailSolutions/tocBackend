@@ -1804,11 +1804,12 @@ export class Impresora {
         ).toFixed(2)}€\nDescompte total: ${(
           (encargo.total * descuento) /
           100
-        ).toFixed(2)}€ \nImport total:${encargo.total.toFixed(
-          2
-        )}\nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
+        ).toFixed(2)}€ \n`;
       }
-      importe =
+      detalleImporte+=`Import total:${encargo.total.toFixed(
+        2
+      )}\n`;
+      importe =`Import pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`+
         "Total restant:" +
         (encargo.total - encargo.dejaCuenta).toFixed(2) +
         " €";
