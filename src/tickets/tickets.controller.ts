@@ -156,10 +156,9 @@ export class TicketsController {
             ); // Modificamos el total para añadir el descuento especial del cliente
         });
       }else if(tipo=="CONSUMO_PERSONAL" && descuento){
-        console.log("recalculo")
         await cestasInstance.recalcularIvas(cesta);
       }
-      console.log("1",tipo === "CONSUMO_PERSONAL")
+
       const d3G = tipo === "DATAFONO_3G";
       const paytef = false;
       const ticket = await ticketsInstance.generarNuevoTicket(
