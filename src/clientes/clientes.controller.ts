@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get } from "@nestjs/common";
+import { Controller, Post, Body, Get, Query } from "@nestjs/common";
 import axios from "axios";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { clienteInstance } from "./clientes.clase";
@@ -266,5 +266,25 @@ export class ClientesController {
       logger.Error(135, error);
       return false;
     }
+  }
+  @Get("getIdTrabajadorCliente")
+  async getIdTrabajadorCliente(@Query() query: { idCliente: ClientesInterface["id"] }){
+
+    if (!query || !query.idCliente) {
+      return false;
+    }
+
+    try {
+      const params={idCliente:query.idCliente}
+      const res = await axios.get("clientes/getIdTrabajadorCliente",{params})
+      if (res.data) {
+        return true
+      }
+      return false;
+    } catch (error) {
+      logger.Error(136, 'En getIdTrabajadorCliente:',error);
+      return false;
+    }
+
   }
 }
