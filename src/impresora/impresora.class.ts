@@ -291,6 +291,9 @@ export class Impresora {
   public async imprimirListaEncargos(lista: string) {
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
+    const fechaImpresion = new Date();
+    const fechaFormateada = `${fechaImpresion.toLocaleDateString()} ${fechaImpresion.toLocaleTimeString()}`;
+
     const options = {
       imprimirLogo: false,
       tipo: "encargo",
@@ -303,6 +306,7 @@ export class Impresora {
         { tipo: "style", payload: "b" },
         { tipo: "size", payload: [0, 0] },
         { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: "Data d'impressió: " + fechaFormateada },
         { tipo: "text", payload: lista },
         { tipo: "cut", payload: "PAPER_FULL_CUT" },
       ],
@@ -1298,7 +1302,11 @@ export class Impresora {
       }
       textoMovimientos += `\nTotal tarjeta: ${(
         caja.cantidadPaytef + caja.totalDatafono3G
-      ).toFixed(2)}\nDeudas acumuladas en la caja: ${totalDeudaCaja}\nTotal deudas acumuladas: ${caja.totalDeudas.toFixed(2)}`;
+      ).toFixed(
+        2
+      )}\nDeudas acumuladas en la caja: ${totalDeudaCaja}\nTotal deudas acumuladas: ${caja.totalDeudas.toFixed(
+        2
+      )}`;
 
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
@@ -1804,11 +1812,11 @@ export class Impresora {
         ).toFixed(2)}€\nDescompte total: ${(
           (encargo.total * descuento) /
           100
-        ).toFixed(2)}€ \nImport total:${encargo.total.toFixed(
-          2
-        )}\nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
+        ).toFixed(2)}€ \n`;
       }
+      detalleImporte += `Import total:${encargo.total.toFixed(2)}\n`;
       importe =
+        `Import pagat: ${encargo.dejaCuenta.toFixed(2)} €\n` +
         "Total restant:" +
         (encargo.total - encargo.dejaCuenta).toFixed(2) +
         " €";
