@@ -16,6 +16,7 @@ export interface CajaCerradaInterface {
   descuadre: number;
   recaudado: number;
   nClientes: number;
+  nClientesMesas: number;
   primerTicket: number;
   totalSalidas: number;
   totalEntradas: number;
@@ -49,6 +50,7 @@ export interface CajaSincro {
   descuadre: number;
   recaudado: number;
   nClientes: number;
+  nClientesMesas: number;
   primerTicket: number;
   totalSalidas: number;
   totalEntradas: number;

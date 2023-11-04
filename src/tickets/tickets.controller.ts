@@ -66,8 +66,9 @@ export class TicketsController {
     try {
       const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
       // modifica
-      const graellaModificada =
-        await encargosInstance.updateEncargoGraella(idEncargo);
+      const graellaModificada = await encargosInstance.updateEncargoGraella(
+        idEncargo
+      );
       if (!graellaModificada) return false;
 
       const ticket = await ticketsInstance.generarNuevoTicket(
@@ -178,6 +179,7 @@ export class TicketsController {
       }
       if (await ticketsInstance.insertarTicket(ticket)) {
         await cestasInstance.borrarArticulosCesta(idCesta, true, true);
+        await cestasInstance.setClients(0, idCesta);
         if (tipo === "TARJETA")
           paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
         else if (

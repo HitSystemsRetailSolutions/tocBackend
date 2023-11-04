@@ -22,7 +22,7 @@ class PaytefClass {
     total: TicketsInterface["total"],
     type: "refund" | "sale" = "sale"
   ): Promise<void> {
-    console.log(total)
+    console.log(total);
     const parametros = await parametrosInstance.getParametros();
     const opciones = {
       pinpad: "*",
@@ -100,7 +100,11 @@ class PaytefClass {
               .then(async (respuesta: any) => {
                 if (respuesta.data.result.transactionReference == idTicket) {
                   parametrosInstance.setContadoDatafono(0, total);
-                  if((await parametrosInstance.getParametros())?.params?.TicketDFAuto=="Si") impresoraInstance.imprimirTicket(idTicket);
+                  if (
+                    (await parametrosInstance.getParametros())?.params
+                      ?.TicketDFAuto == "Si"
+                  )
+                    impresoraInstance.imprimirTicket(idTicket);
                   ticketsInstance.setPagadoPaytef(idTicket);
                   io.emit("consultaPaytef", true);
                   io.emit("procesoPaytef", { proceso: "aprobado" });
@@ -217,7 +221,6 @@ class PaytefClass {
         })
       ).data["result"]?.tcod;
     } catch (e) {
-      console.log(e);
       return "error";
     }
   }
@@ -234,9 +237,7 @@ class PaytefClass {
         startDate: startDate,
         ticket: ticket,
       })
-      .catch((e) => {
-        console.log(e);
-      });
+      .catch((e) => {});
 
     if (res) {
       ticketsInstance.setPagadoPaytef(ticket);
@@ -256,9 +257,7 @@ class PaytefClass {
         tcod: tcod,
         startDate: startDate,
       })
-      .catch((e) => {
-        console.log(e);
-      });
+      .catch((e) => {});
 
     if (res.data) return res.data;
   }
@@ -321,9 +320,7 @@ class PaytefClass {
         tcod: tcod,
         startDate: startDate,
       })
-      .catch((e) => {
-        console.log(e);
-      });
+      .catch((e) => {});
     return res.data;
   }
 }

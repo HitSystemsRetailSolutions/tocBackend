@@ -199,6 +199,17 @@ export class CestasController {
     }
   }
 
+  @Post("setClients")
+  async setClients(@Body() { clients, cesta }) {
+    try {
+      return await cestasInstance.setClients(clients, cesta);
+    } catch (err) {
+      console.log("error", err);
+      logger.Error(63, err);
+      return null;
+    }
+  }
+
   /* Eze 4.0 */
   @Post("regalarProducto")
   async regalarProducto(@Body() { idCesta, indexLista, idPromoArtSel }) {
