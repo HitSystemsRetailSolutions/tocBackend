@@ -679,9 +679,13 @@ export class CestaClase {
       importe4: 0,
       importe5: 0,
     };
-    let descuento: any = Number(
-      (await clienteInstance.isClienteDescuento(cesta.idCliente))?.descuento
-    );
+    let descuento: any =
+      cesta.modo == "CONSUMO_PERSONAL"
+        ? 0
+        : Number(
+            (await clienteInstance.isClienteDescuento(cesta.idCliente))
+              ?.descuento
+          );
     for (let i = 0; i < cesta.lista.length; i++) {
       if (cesta.lista[i].regalo) continue;
       if (cesta.lista[i].promocion) {
@@ -740,7 +744,7 @@ export class CestaClase {
           auxDetalleIva,
           cesta.detalleIva
         );
-        console.log("fusion", cesta.detalleIva);
+
         /* Detalle IVA de suplementos */
         if (
           cesta.lista[i].arraySuplementos &&
@@ -896,7 +900,10 @@ export class CestaClase {
         importe4: 0,
         importe5: 0,
       };
-      if (borrarCliente) cesta.idCliente = "";
+      if (borrarCliente) {
+        cesta.idCliente = null;
+        cesta.nombreCliente = null;
+      }
       if (borrarModo) cesta.modo = "VENTA";
 
       if (await this.updateCesta(cesta)) {
