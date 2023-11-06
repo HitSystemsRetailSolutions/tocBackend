@@ -22,7 +22,7 @@ class PaytefClass {
     total: TicketsInterface["total"],
     type: "refund" | "sale" = "sale"
   ): Promise<void> {
-    console.log(total)
+    console.log(total);
     const parametros = await parametrosInstance.getParametros();
     const opciones = {
       pinpad: "*",
@@ -100,7 +100,11 @@ class PaytefClass {
               .then(async (respuesta: any) => {
                 if (respuesta.data.result.transactionReference == idTicket) {
                   parametrosInstance.setContadoDatafono(0, total);
-                  if((await parametrosInstance.getParametros())?.params?.TicketDFAuto=="Si") impresoraInstance.imprimirTicket(idTicket);
+                  if (
+                    (await parametrosInstance.getParametros())?.params
+                      ?.TicketDFAuto == "Si"
+                  )
+                    impresoraInstance.imprimirTicket(idTicket);
                   ticketsInstance.setPagadoPaytef(idTicket);
                   io.emit("consultaPaytef", true);
                   io.emit("procesoPaytef", { proceso: "aprobado" });
@@ -267,7 +271,7 @@ class PaytefClass {
   async ComprobarReconectado(ticket): Promise<string> {
     let rnt = "2";
     try {
-      if (this.ComprobarTicketPagado(ticket)) return "4";
+      //if (this.ComprobarTicketPagado(ticket)) return "4";
       const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
       await axios
         .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
