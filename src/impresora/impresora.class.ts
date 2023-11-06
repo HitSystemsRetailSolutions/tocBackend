@@ -1562,7 +1562,7 @@ export class Impresora {
         { tipo: "text", payload: "" },
         { tipo: "cut", payload: "PAPER_FULL_CUT" },
       ]);
-      console.log(buffer)
+
       const options = { imprimirLogo: true, tipo: "cierreCaja" };
       this.enviarMQTT(buffer, options);
     } catch (err) {
