@@ -723,10 +723,7 @@ export class CestaClase {
           articulo.precioConIva * cesta.lista[i].unidades;
         if (descuento)
           articulo.precioConIva = Number(
-            (
-              articulo.precioConIva -
-              articulo.precioConIva * (descuento / 100)
-            ).toFixed(2)
+            articulo.precioConIva - articulo.precioConIva * (descuento / 100)
           );
 
         const auxDetalleIva = construirObjetoIvas(
