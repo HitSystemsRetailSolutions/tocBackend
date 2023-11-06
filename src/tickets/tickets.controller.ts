@@ -79,6 +79,7 @@ export class TicketsController {
         false,
         false,
         false,
+        false,
         dejaCuenta
       );
 
@@ -144,8 +145,8 @@ export class TicketsController {
       );
       //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
       // el modo de cesta debe cambiar a consumo_personal.
-      if (tipo=="CONSUMO_PERSONAL") cesta.modo="CONSUMO_PERSONAL";
-      if (tipo!=="CONSUMO_PERSONAL" && descuento && descuento > 0) {
+      if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
+      if (tipo !== "CONSUMO_PERSONAL" && descuento && descuento > 0) {
         cesta.lista.forEach((producto) => {
           if (producto.arraySuplementos != null) {
             producto.subtotal = this.redondearPrecio(
@@ -156,7 +157,7 @@ export class TicketsController {
               producto.subtotal - (producto.subtotal * descuento) / 100
             ); // Modificamos el total para añadir el descuento especial del cliente
         });
-      }else if(tipo=="CONSUMO_PERSONAL" && descuento){
+      } else if (tipo == "CONSUMO_PERSONAL" && descuento) {
         await cestasInstance.recalcularIvas(cesta);
       }
 
@@ -169,7 +170,8 @@ export class TicketsController {
         tipo === "CONSUMO_PERSONAL",
         d3G,
         paytef,
-        tipo.includes("HONEI") || honei
+        tipo.includes("HONEI") || honei,
+        tkrsData?.cantidadTkrs > 0
       );
 
       if (!ticket) {
@@ -314,7 +316,8 @@ export class TicketsController {
           tipo === "CONSUMO_PERSONAL",
           d3G,
           null,
-          tipo.includes("HONEI")
+          tipo.includes("HONEI"),
+          false
         );
         if (!ticket) {
           throw Error(
