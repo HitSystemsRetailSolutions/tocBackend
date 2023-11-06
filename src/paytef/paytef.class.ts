@@ -266,7 +266,7 @@ class PaytefClass {
   async ComprobarReconectado(ticket): Promise<string> {
     let rnt = "2";
     try {
-      if (this.ComprobarTicketPagado(ticket)) return "4";
+      //if (this.ComprobarTicketPagado(ticket)) return "4";
       const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
       await axios
         .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
