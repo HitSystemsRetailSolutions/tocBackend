@@ -379,6 +379,35 @@ export class Impresora {
     });
   }
 
+  public async enviarError(ticketMongo, ticket) {
+    const parametros = await parametrosInstance.getParametros();
+    // conectamos con el cliente
+
+    const client = mqtt.connect("mqtt://63.33.116.171:1883");
+    const enviar = {
+      msg: "Error, falta/n ArtículoDentroDePromoS",
+      ticketMongo: ticketMongo,
+      ticketSantaAna: ticket,
+    };
+
+    client.on("connect", function () {
+      // Tema en el que deseas publicar el mensaje
+      const topic = `hit/errores/${parametros.nombreEmpresa}/${parametros.codigoTienda}`;
+
+      // Publica el mensaje en el tema especificado
+      client.publish(topic, JSON.stringify(enviar), function (err) {
+        if (err) {
+          console.error("Error al publicar el mensaje:", err);
+        }
+      });
+    });
+    console.log("client.publish ejecutado");
+    // Manejador de eventos para errores de conexión
+    client.on("error", function (error) {
+      console.error("Error de conexión:", error);
+    });
+  }
+
   private async _venta(info, recibo = null) {
     // recojemos datos de los parametros
     const numFactura = info.numFactura;
@@ -1375,7 +1404,7 @@ export class Impresora {
         });
       }
       // concatenamos buffer con el siguiente array despues del if
-      buffer=buffer.concat([
+      buffer = buffer.concat([
         {
           tipo: "text",
           payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
@@ -1397,7 +1426,7 @@ export class Impresora {
         });
       }
 
-      buffer= buffer.concat([
+      buffer = buffer.concat([
         {
           tipo: "text",
           payload: "Datafon 3g       :      " + caja.totalDatafono3G,

@@ -14,6 +14,7 @@ import {
 } from "./promociones.interface";
 import * as schPromociones from "./promociones.mongodb";
 import { TicketsInterface } from "../tickets/tickets.interface";
+import { impresoraInstance } from "src/impresora/impresora.class";
 
 export class NuevaPromocion {
   private promosIndividuales: PromocionesInterface[] = [];
@@ -1007,10 +1008,11 @@ export class NuevaPromocion {
   /* Eze 4.0 */
   public deshacerPromociones(ticket: TicketsInterface) {
     let valor = ticket.total < 0 ? -1 : 1;
+    const ticketMongo = ticket;
     const nuevaLista = [];
     for (let i = 0; i < ticket.cesta.lista.length; i++) {
       if (ticket.cesta.lista[i].promocion) {
-        if (ticket.cesta.lista[i].promocion.tipoPromo === "COMBO") {
+        if (ticket.cesta.lista[i].promocion.tipoPromo == "COMBO") {
           nuevaLista.push({
             arraySuplementos: null,
             gramos: null,
@@ -1049,7 +1051,7 @@ export class NuevaPromocion {
             ),
             nombre: "ArtículoDentroDePromoS",
           });
-        } else if (ticket.cesta.lista[i].promocion.tipoPromo === "INDIVIDUAL") {
+        } else if (ticket.cesta.lista[i].promocion.tipoPromo == "INDIVIDUAL") {
           nuevaLista.push({
             arraySuplementos: null,
             gramos: null,
@@ -1079,6 +1081,23 @@ export class NuevaPromocion {
       }
     }
     ticket.cesta.lista = nuevaLista;
+
+    // comprovamos que se han desecho los combos correctamente
+    let cantidadPromosP = 0;
+    let cantidadPromosS = 0;
+    for (let i = 0; i < ticket.cesta.lista.length; i++) {
+      if (ticket.cesta.lista[i]?.nombre == "ArtículoDentroDePromoP") {
+        cantidadPromosP++;
+        // sumamos las cantidades cuando el valor es encontrado
+        if (ticket.cesta.lista[i + 1]?.nombre == "ArtículoDentroDePromoS") {
+          cantidadPromosS++;
+        }
+      }
+    }
+    // si no hay la misma cantidad de promosP y promosS enviamos un msg de error por mqtt
+    if (cantidadPromosP != cantidadPromosS) {
+      impresoraInstance.enviarError(ticketMongo, ticket);
+    }
   }
 }
 
