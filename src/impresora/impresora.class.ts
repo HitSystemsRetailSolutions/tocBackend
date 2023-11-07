@@ -179,6 +179,7 @@ export class Impresora {
             ticket?.cesta?.indexMesa == undefined
               ? null
               : ticket.cesta.indexMesa,
+          comensales: ticket?.cesta?.comensales || null,
         };
       }
       // enviamos el objeto
@@ -291,6 +292,9 @@ export class Impresora {
   public async imprimirListaEncargos(lista: string) {
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
+    const fechaImpresion = new Date();
+    const fechaFormateada = `${fechaImpresion.toLocaleDateString()} ${fechaImpresion.toLocaleTimeString()}`;
+
     const options = {
       imprimirLogo: false,
       tipo: "encargo",
@@ -303,6 +307,7 @@ export class Impresora {
         { tipo: "style", payload: "b" },
         { tipo: "size", payload: [0, 0] },
         { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: "Data d'impressió: " + fechaFormateada },
         { tipo: "text", payload: lista },
         { tipo: "cut", payload: "PAPER_FULL_CUT" },
       ],
@@ -517,7 +522,10 @@ export class Impresora {
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
       {
         tipo: "text",
-        payload: info.mesa == null ? "" : `Taula: ${info.mesa + 1}`,
+        payload:
+          info.mesa == null
+            ? ""
+            : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
       },
       { tipo: "size", payload: [1, 0] },
       { tipo: "text", payload: clientTitle },
@@ -1035,7 +1043,11 @@ export class Impresora {
           tipo: "text",
           payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
         },
-        { tipo: "text", payload: "Clients atesos   :      " + caja.nClientes },
+        { tipo: "text", payload: "Cli. at. Caixa   :      " + caja.nClientes },
+        {
+          tipo: "text",
+          payload: "Cli. at. Taules  :      " + caja.nClientesMesas,
+        },
         {
           tipo: "text",
           payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
@@ -1298,7 +1310,11 @@ export class Impresora {
       }
       textoMovimientos += `\nTotal tarjeta: ${(
         caja.cantidadPaytef + caja.totalDatafono3G
-      ).toFixed(2)}\nDeudas acumuladas en la caja: ${totalDeudaCaja}\nTotal deudas acumuladas: ${caja.totalDeudas.toFixed(2)}`;
+      ).toFixed(
+        2
+      )}\nDeudas acumuladas en la caja: ${totalDeudaCaja}\nTotal deudas acumuladas: ${caja.totalDeudas.toFixed(
+        2
+      )}`;
 
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
@@ -1312,230 +1328,243 @@ export class Impresora {
         "Divendres",
         "Dissabte",
       ];
+      let buffer = [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: "BOTIGA : " + parametros.nombreTienda },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Resum caixa" },
+        { tipo: "text", payload: "" },
+        { tipo: "align", payload: "LT" },
+        {
+          tipo: "text",
+          payload: "Resp. apertura   : " + trabajadorApertura.nombre,
+        },
+        {
+          tipo: "text",
+          payload: "Resp. cierre   : " + trabajadorCierre?.nombre,
+        },
+        {
+          tipo: "text",
+          payload: `Inici: ${
+            diasSemana[fechaInicio.format("d")]
+          } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
+        },
+        {
+          tipo: "text",
+          payload: `Final: ${
+            diasSemana[fechaFinal.format("d")]
+          } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
+        },
+        {
+          tipo: "text",
+          payload: "Dependents   : \n" + dependientas,
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "size", payload: [0, 1] },
+      ];
+      // si el parametro MostraTotalAcumulat es Si concatenamos buffer con el valor dentro del if
+      if (parametros.params?.MostraTotalAcumulat == "Si") {
+        buffer.push({
+          tipo: "text",
+          payload: "Calaix fet       :      " + caja.calaixFetZ.toFixed(2),
+        });
+      }
+      // concatenamos buffer con el siguiente array despues del if
+      buffer=buffer.concat([
+        {
+          tipo: "text",
+          payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "Cli. at. Caixa   :      " + caja.nClientes,
+        },
+        {
+          tipo: "text",
+          payload: "Cli. at. Taules  :      " + caja.nClientesMesas,
+        },
+      ]);
+
+      if (parametros.params?.MostraTotalAcumulat == "Si") {
+        buffer.push({
+          tipo: "text",
+          payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
+        });
+      }
+
+      buffer= buffer.concat([
+        {
+          tipo: "text",
+          payload: "Datafon 3g       :      " + caja.totalDatafono3G,
+        },
+        {
+          tipo: "text",
+          payload: "Visa             :      " + caja.cantidadPaytef.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "Canvi inicial    :      " + caja.totalApertura.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Moviments de caixa:" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: textoMovimientos },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        {
+          tipo: "text",
+          payload:
+            " 0.01 ----> " +
+            caja.detalleApertura[0]["valor"].toFixed(2) +
+            "      " +
+            "0.01 ----> " +
+            caja.detalleCierre[0]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 0.02 ----> " +
+            caja.detalleApertura[1]["valor"].toFixed(2) +
+            "      " +
+            "0.02 ----> " +
+            caja.detalleCierre[1]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 0.05 ----> " +
+            caja.detalleApertura[2]["valor"].toFixed(2) +
+            "      " +
+            "0.05 ----> " +
+            caja.detalleCierre[2]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 0.10 ----> " +
+            caja.detalleApertura[3]["valor"].toFixed(2) +
+            "      " +
+            "0.10 ----> " +
+            caja.detalleCierre[3]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 0.20 ----> " +
+            caja.detalleApertura[4]["valor"].toFixed(2) +
+            "      " +
+            "0.20 ----> " +
+            caja.detalleCierre[4]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 0.50 ----> " +
+            caja.detalleApertura[5]["valor"].toFixed(2) +
+            "      " +
+            "0.50 ----> " +
+            caja.detalleCierre[5]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 1.00 ----> " +
+            caja.detalleApertura[6]["valor"].toFixed(2) +
+            "      " +
+            "1.00 ----> " +
+            caja.detalleCierre[6]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 2.00 ----> " +
+            caja.detalleApertura[7]["valor"].toFixed(2) +
+            "      " +
+            "2.00 ----> " +
+            caja.detalleCierre[7]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 5.00 ----> " +
+            caja.detalleApertura[8]["valor"].toFixed(2) +
+            "      " +
+            "5.00 ----> " +
+            caja.detalleCierre[8]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 10.00 ---> " +
+            caja.detalleApertura[9]["valor"].toFixed(2) +
+            "      " +
+            "10.00 ---> " +
+            caja.detalleCierre[9]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 20.00 ---> " +
+            caja.detalleApertura[10]["valor"].toFixed(2) +
+            "      " +
+            "20.00 ---> " +
+            caja.detalleCierre[10]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 50.00 ---> " +
+            caja.detalleApertura[11]["valor"].toFixed(2) +
+            "      " +
+            "50.00 ---> " +
+            caja.detalleCierre[11]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 100.00 --> " +
+            caja.detalleApertura[12]["valor"].toFixed(2) +
+            "      " +
+            "100.00 --> " +
+            caja.detalleCierre[12]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 200.00 --> " +
+            caja.detalleApertura[13]["valor"].toFixed(2) +
+            "      " +
+            "200.00 --> " +
+            caja.detalleCierre[13]["valor"].toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " 500.00 --> " +
+            caja.detalleApertura[14]["valor"].toFixed(2) +
+            "      " +
+            "500.00 --> " +
+            caja.detalleCierre[14]["valor"].toFixed(2),
+        },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "" },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ]);
 
       const options = { imprimirLogo: true, tipo: "cierreCaja" };
-      this.enviarMQTT(
-        [
-          { tipo: "setCharacterCodeTable", payload: 19 },
-          { tipo: "encode", payload: "CP858" },
-          { tipo: "font", payload: "a" },
-          { tipo: "style", payload: "b" },
-          { tipo: "align", payload: "CT" },
-          { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: "BOTIGA : " + parametros.nombreTienda },
-          { tipo: "size", payload: [0, 0] },
-          { tipo: "text", payload: "Resum caixa" },
-          { tipo: "text", payload: "" },
-          { tipo: "align", payload: "LT" },
-          {
-            tipo: "text",
-            payload: "Resp. apertura   : " + trabajadorApertura.nombre,
-          },
-          {
-            tipo: "text",
-            payload: "Resp. cierre   : " + trabajadorCierre?.nombre,
-          },
-          {
-            tipo: "text",
-            payload: `Inici: ${
-              diasSemana[fechaInicio.format("d")]
-            } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
-          },
-          {
-            tipo: "text",
-            payload: `Final: ${
-              diasSemana[fechaFinal.format("d")]
-            } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
-          },
-          {
-            tipo: "text",
-            payload: "Dependents   : \n" + dependientas,
-          },
-          { tipo: "text", payload: "" },
-          { tipo: "size", payload: [0, 1] },
-          {
-            tipo: "text",
-            payload: "Calaix fet       :      " + caja.calaixFetZ.toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload: "Clients atesos   :      " + caja.nClientes,
-          },
-          {
-            tipo: "text",
-            payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload: "Datafon 3g       :      " + caja.totalDatafono3G,
-          },
-          {
-            tipo: "text",
-            payload:
-              "Visa             :      " + caja.cantidadPaytef.toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload: "Canvi inicial    :      " + caja.totalApertura.toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
-          },
-          { tipo: "text", payload: "" },
-          { tipo: "size", payload: [0, 0] },
-          { tipo: "text", payload: "Moviments de caixa:" },
-          { tipo: "text", payload: "" },
-          { tipo: "text", payload: textoMovimientos },
-          { tipo: "text", payload: "" },
-          { tipo: "text", payload: "" },
-          { tipo: "text", payload: "" },
-          {
-            tipo: "text",
-            payload:
-              " 0.01 ----> " +
-              caja.detalleApertura[0]["valor"].toFixed(2) +
-              "      " +
-              "0.01 ----> " +
-              caja.detalleCierre[0]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 0.02 ----> " +
-              caja.detalleApertura[1]["valor"].toFixed(2) +
-              "      " +
-              "0.02 ----> " +
-              caja.detalleCierre[1]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 0.05 ----> " +
-              caja.detalleApertura[2]["valor"].toFixed(2) +
-              "      " +
-              "0.05 ----> " +
-              caja.detalleCierre[2]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 0.10 ----> " +
-              caja.detalleApertura[3]["valor"].toFixed(2) +
-              "      " +
-              "0.10 ----> " +
-              caja.detalleCierre[3]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 0.20 ----> " +
-              caja.detalleApertura[4]["valor"].toFixed(2) +
-              "      " +
-              "0.20 ----> " +
-              caja.detalleCierre[4]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 0.50 ----> " +
-              caja.detalleApertura[5]["valor"].toFixed(2) +
-              "      " +
-              "0.50 ----> " +
-              caja.detalleCierre[5]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 1.00 ----> " +
-              caja.detalleApertura[6]["valor"].toFixed(2) +
-              "      " +
-              "1.00 ----> " +
-              caja.detalleCierre[6]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 2.00 ----> " +
-              caja.detalleApertura[7]["valor"].toFixed(2) +
-              "      " +
-              "2.00 ----> " +
-              caja.detalleCierre[7]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 5.00 ----> " +
-              caja.detalleApertura[8]["valor"].toFixed(2) +
-              "      " +
-              "5.00 ----> " +
-              caja.detalleCierre[8]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 10.00 ---> " +
-              caja.detalleApertura[9]["valor"].toFixed(2) +
-              "      " +
-              "10.00 ---> " +
-              caja.detalleCierre[9]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 20.00 ---> " +
-              caja.detalleApertura[10]["valor"].toFixed(2) +
-              "      " +
-              "20.00 ---> " +
-              caja.detalleCierre[10]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 50.00 ---> " +
-              caja.detalleApertura[11]["valor"].toFixed(2) +
-              "      " +
-              "50.00 ---> " +
-              caja.detalleCierre[11]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 100.00 --> " +
-              caja.detalleApertura[12]["valor"].toFixed(2) +
-              "      " +
-              "100.00 --> " +
-              caja.detalleCierre[12]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 200.00 --> " +
-              caja.detalleApertura[13]["valor"].toFixed(2) +
-              "      " +
-              "200.00 --> " +
-              caja.detalleCierre[13]["valor"].toFixed(2),
-          },
-          {
-            tipo: "text",
-            payload:
-              " 500.00 --> " +
-              caja.detalleApertura[14]["valor"].toFixed(2) +
-              "      " +
-              "500.00 --> " +
-              caja.detalleCierre[14]["valor"].toFixed(2),
-          },
-          { tipo: "text", payload: "" },
-          { tipo: "text", payload: "" },
-          { tipo: "text", payload: "" },
-          { tipo: "cut", payload: "PAPER_FULL_CUT" },
-        ],
-        options
-      );
+      this.enviarMQTT(buffer, options);
     } catch (err) {
       console.log(err);
       logger.Error(145, err);
@@ -1804,11 +1833,11 @@ export class Impresora {
         ).toFixed(2)}€\nDescompte total: ${(
           (encargo.total * descuento) /
           100
-        ).toFixed(2)}€ \nImport total:${encargo.total.toFixed(
-          2
-        )}\nImport pagat: ${encargo.dejaCuenta.toFixed(2)} €\n`;
+        ).toFixed(2)}€ \n`;
       }
+      detalleImporte += `Import total:${encargo.total.toFixed(2)}\n`;
       importe =
+        `Import pagat: ${encargo.dejaCuenta.toFixed(2)} €\n` +
         "Total restant:" +
         (encargo.total - encargo.dejaCuenta).toFixed(2) +
         " €";

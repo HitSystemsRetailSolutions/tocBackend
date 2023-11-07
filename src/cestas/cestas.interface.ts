@@ -13,6 +13,7 @@ export interface CestasInterface {
   indexMesa?: boolean;
   trabajador: number;
   trabajadores: ObjectId[];
+  comensales: number;
 }
 
 export type itemHonei = {
