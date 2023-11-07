@@ -22,6 +22,7 @@ import { conexion } from "../conexion/mongodb";
 import { sprintf } from "sprintf-js";
 import { paytefInstance } from "src/paytef/paytef.class";
 import { deudasInstance } from "src/deudas/deudas.clase";
+import { TicketsInterface } from "src/tickets/tickets.interface";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -1255,7 +1256,22 @@ export class Impresora {
             break;
         }
       }
-
+      const arrayTickets: TicketsInterface[] =
+      await ticketsInstance.getTicketsIntervalo(
+        caja.inicioTime,
+        caja.finalTime
+      );
+    if (parametros?.params?.DesgloseVisasCierreCaja) {
+      datafono3G +="Desglos Visa 3G:";
+      for (let i = 0; i < arrayTickets.length; i++) {
+        const auxFecha = new Date(arrayTickets[i]._id);
+        if (arrayTickets[i].datafono3G) {
+          datafono3G += `  Cantidad: +${arrayTickets[i].total.toFixed(
+            2
+          )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+        }
+      }
+    }
       for (let i = 0; i < arrayMovimientos.length; i++) {
         const auxFecha = new Date(arrayMovimientos[i]._id);
         switch (arrayMovimientos[i].tipo) {
