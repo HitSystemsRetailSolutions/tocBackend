@@ -36,6 +36,8 @@ export class TicketsClase {
       } else {
         return { res: false, tipo: "TARJETA" };
       }
+    }else if(ticket.datafono3G){
+      return { res: await schTickets.anularTicket(idTicket,true), tipo: "DATAFONO_3G" };
     }
     return { res: await schTickets.anularTicket(idTicket), tipo: "EFECTIVO" };
   }
