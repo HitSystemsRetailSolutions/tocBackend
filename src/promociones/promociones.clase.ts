@@ -1078,7 +1078,7 @@ export class NuevaPromocion {
         nuevaLista.push(ticket.cesta.lista[i]);
       }
     }
-    ticket.cesta.lista = nuevaLista;
+    return nuevaLista;
   }
 }
 
