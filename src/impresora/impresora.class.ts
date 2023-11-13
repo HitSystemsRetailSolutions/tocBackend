@@ -22,6 +22,7 @@ import { conexion } from "../conexion/mongodb";
 import { sprintf } from "sprintf-js";
 import { paytefInstance } from "src/paytef/paytef.class";
 import { deudasInstance } from "src/deudas/deudas.clase";
+import { TicketsInterface } from "src/tickets/tickets.interface";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -917,305 +918,6 @@ export class Impresora {
     }
   }
 
-  /* Eze 4.0 */
-  async imprimirCaja(caja: CajaSincro) {
-    const fechaInicio = new Date(caja.inicioTime);
-    const fechaFinalx = new Date(caja.finalTime);
-    const moment = require("moment-timezone");
-    const fechaFinal = moment(caja.finalTime).tz("Europe/Madrid");
-    const arrayMovimientos = await movimientosInstance.getMovimientosIntervalo(
-      caja.inicioTime,
-      caja.finalTime
-    );
-    const parametros = await parametrosInstance.getParametros();
-    const trabajadorApertura = await trabajadoresInstance.getTrabajadorById(
-      caja.idDependientaApertura
-    );
-    const trabajadorCierre = await trabajadoresInstance.getTrabajadorById(
-      caja.idDependientaCierre
-    );
-    let dependientas = "";
-    for (const item of caja.fichajes) {
-      const nombre = (await trabajadoresInstance.getTrabajadorById(item))
-        .nombre;
-      dependientas += `${nombre}\n`;
-    }
-    let sumaTarjetas = 0;
-    let textoMovimientos = "";
-    for (let i = 0; i < arrayMovimientos.length; i++) {
-      const auxFecha = new Date(arrayMovimientos[i]._id);
-      switch (arrayMovimientos[i].tipo) {
-        case "TARJETA":
-          sumaTarjetas += arrayMovimientos[i].valor;
-          break;
-        case "TKRS_CON_EXCESO":
-          break;
-        case "TKRS_SIN_EXCESO":
-          break;
-        case "DEUDA":
-          break;
-        case "ENTREGA_DIARIA":
-          textoMovimientos += `${
-            i + 1
-          }: Salida:\n           Cantidad: -${arrayMovimientos[i].valor.toFixed(
-            2
-          )}\n           Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()}  ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n           Concepto: ${
-            arrayMovimientos[i].concepto
-          }\n`;
-          break;
-        case "ENTRADA_DINERO":
-          textoMovimientos += `${
-            i + 1
-          }: Entrada:\n            Cantidad: +${arrayMovimientos[
-            i
-          ].valor.toFixed(
-            2
-          )}\n            Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()}  ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n            Concepto: ${
-            arrayMovimientos[i].concepto
-          }\n`;
-          break;
-        case "DATAFONO_3G":
-          sumaTarjetas += arrayMovimientos[i].valor;
-          break;
-      }
-    }
-
-    textoMovimientos =
-      `\nTotal targeta:      ${sumaTarjetas.toFixed(2)}\n` + textoMovimientos;
-
-    const mesInicial = fechaInicio.getMonth() + 1;
-    const mesFinal = fechaFinal.getMonth() + 1;
-    const device = new escpos.Network("localhost");
-    const printer = new escpos.Printer(device);
-    const options = {
-      imprimirLogo: true,
-      tipo: "cierreCaja",
-    };
-    this.enviarMQTT(
-      [
-        { tipo: "setCharacterCodeTable", payload: 19 },
-        { tipo: "encode", payload: "CP858" },
-        { tipo: "font", payload: "a" },
-        { tipo: "style", payload: "b" },
-        { tipo: "align", payload: "CT" },
-        { tipo: "size", payload: [1, 1] },
-        { tipo: "text", payload: "BOTIGA : " + parametros.nombreTienda },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "text", payload: "Resum caixa" },
-        { tipo: "text", payload: "" },
-        { tipo: "align", payload: "LT" },
-        {
-          tipo: "text",
-          payload: "Resp. apertura   : " + trabajadorApertura.nombre,
-        },
-        {
-          tipo: "text",
-          payload: "Resp. cierre   : " + trabajadorCierre.nombre,
-        },
-        {
-          tipo: "text",
-          payload: `Inici: ${fechaInicio.getDate()}-${mesInicial}-${fechaInicio.getFullYear()} ${
-            (fechaInicio.getHours() < 10 ? "0" : "") + fechaInicio.getHours()
-          }:${
-            (fechaInicio.getMinutes() < 10 ? "0" : "") +
-            fechaInicio.getMinutes()
-          }`,
-        },
-        {
-          tipo: "text",
-          payload: `Final: ${fechaFinal.getDate()}-${mesFinal}-${fechaFinal.getFullYear()} ${
-            (fechaFinal.getHours() < 10 ? "0" : "") + fechaFinal.getHours()
-          }:${
-            (fechaFinal.getMinutes() < 10 ? "0" : "") + fechaFinal.getMinutes()
-          }`,
-        },
-        {
-          tipo: "text",
-          payload: "Dependents   : \n" + dependientas,
-        },
-        { tipo: "text", payload: "" },
-        { tipo: "size", payload: [0, 1] },
-        {
-          tipo: "text",
-          payload: "Calaix fet       :      " + caja.calaixFetZ.toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
-        },
-        { tipo: "text", payload: "Cli. at. Caixa   :      " + caja.nClientes },
-        {
-          tipo: "text",
-          payload: "Cli. at. Taules  :      " + caja.nClientesMesas,
-        },
-        {
-          tipo: "text",
-          payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload: "Datafon 3g       :      " + caja.totalDatafono3G,
-        },
-        {
-          tipo: "text",
-          payload: "Canvi inicial    :      " + caja.totalApertura.toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
-        },
-        { tipo: "text", payload: "" },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "text", payload: "Moviments de caixa" },
-        { tipo: "text", payload: "" },
-        { tipo: "text", payload: "" },
-        { tipo: "text", payload: textoMovimientos },
-        { tipo: "text", payload: "" },
-        { tipo: "text", payload: "" },
-        { tipo: "text", payload: "" },
-        {
-          tipo: "text",
-          payload:
-            "       0.01 --> " +
-            caja.detalleApertura[0]["valor"].toFixed(2) +
-            "      " +
-            "0.01 --> " +
-            caja.detalleCierre[0]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       0.02 --> " +
-            caja.detalleApertura[1]["valor"].toFixed(2) +
-            "      " +
-            "0.02 --> " +
-            caja.detalleCierre[1]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       0.05 --> " +
-            caja.detalleApertura[2]["valor"].toFixed(2) +
-            "      " +
-            "0.05 --> " +
-            caja.detalleCierre[2]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       0.10 --> " +
-            caja.detalleApertura[3]["valor"].toFixed(2) +
-            "      " +
-            "0.10 --> " +
-            caja.detalleCierre[3]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       0.20 --> " +
-            caja.detalleApertura[4]["valor"].toFixed(2) +
-            "      " +
-            "0.20 --> " +
-            caja.detalleCierre[4]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       0.50 --> " +
-            caja.detalleApertura[5]["valor"].toFixed(2) +
-            "      " +
-            "0.50 --> " +
-            caja.detalleCierre[5]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       1.00 --> " +
-            caja.detalleApertura[6]["valor"].toFixed(2) +
-            "      " +
-            "1.00 --> " +
-            caja.detalleCierre[6]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       2.00 --> " +
-            caja.detalleApertura[7]["valor"].toFixed(2) +
-            "      " +
-            "2.00 --> " +
-            caja.detalleCierre[7]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       5.00 --> " +
-            caja.detalleApertura[8]["valor"].toFixed(2) +
-            "      " +
-            "5.00 --> " +
-            caja.detalleCierre[8]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       10.00 --> " +
-            caja.detalleApertura[9]["valor"].toFixed(2) +
-            "     " +
-            "10.00 --> " +
-            caja.detalleCierre[9]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       20.00 --> " +
-            caja.detalleApertura[10]["valor"].toFixed(2) +
-            "    " +
-            "20.00 --> " +
-            caja.detalleCierre[10]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       50.00 --> " +
-            caja.detalleApertura[11]["valor"].toFixed(2) +
-            "    " +
-            "50.00 --> " +
-            caja.detalleCierre[11]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       100.00 --> " +
-            caja.detalleApertura[12]["valor"].toFixed(2) +
-            "   " +
-            "100.00 --> " +
-            caja.detalleCierre[12]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       200.00 --> " +
-            caja.detalleApertura[13]["valor"].toFixed(2) +
-            "   " +
-            "200.00 --> " +
-            caja.detalleCierre[13]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "       500.00 --> " +
-            caja.detalleApertura[14]["valor"].toFixed(2) +
-            "   " +
-            "500.00 --> " +
-            caja.detalleCierre[14]["valor"].toFixed(2),
-        },
-        { tipo: "text", payload: "" },
-        { tipo: "text", payload: "" },
-        { tipo: "text", payload: "" },
-        { tipo: "cut", payload: "PAPER_FULL_CUT" },
-      ],
-      options
-    );
-  }
   dosDigitos(n) {
     return n < 10 ? "0" + n : n.toString();
   }
@@ -1255,7 +957,23 @@ export class Impresora {
             break;
         }
       }
-
+      const arrayTickets: TicketsInterface[] =
+      await ticketsInstance.getTicketsIntervalo(
+        caja.inicioTime,
+        caja.finalTime
+      );
+    if (parametros?.params?.DesgloseVisasCierreCaja) {
+      datafono3G +="Desglossament Vises 3G:\n";
+      for (let i = 0; i < arrayTickets.length; i++) {
+        const auxFecha = new Date(arrayTickets[i].timestamp);
+        if (arrayTickets[i].datafono3G) {
+          const signo = arrayTickets[i]?.anulado ? "" : "+";
+          datafono3G += ` Quant: ${signo}${arrayTickets[i].total.toFixed(
+            2
+          )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${this.dosDigitos(auxFecha.getHours())}:${this.dosDigitos(auxFecha.getMinutes())}\n`;
+        }
+      }
+    }
       for (let i = 0; i < arrayMovimientos.length; i++) {
         const auxFecha = new Date(arrayMovimientos[i]._id);
         switch (arrayMovimientos[i].tipo) {
@@ -1269,50 +987,50 @@ export class Impresora {
             break;
           case "SALIDA":
             if (arrayMovimientos[i].concepto == "DEUDA") {
-              textoMovimientos += ` Deuda dejada a deber:\n  Cantidad: -${arrayMovimientos[
+              textoMovimientos += ` Deute deixat a deure:\n  Quant: -${arrayMovimientos[
                 i
               ].valor.toFixed(
                 2
-              )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             } else {
-              textoMovimientos += ` Salida:\n  Cantidad: -${arrayMovimientos[
+              textoMovimientos += ` Sortida:\n  Quant: -${arrayMovimientos[
                 i
               ].valor.toFixed(
                 2
-              )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepto: ${
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
                 arrayMovimientos[i].concepto
               }\n`;
             }
             break;
           case "ENTRADA_DINERO":
             if (arrayMovimientos[i].concepto == "DEUDA") {
-              textoMovimientos += ` Deuda pagada:\n  Cantidad: +${arrayMovimientos[
+              textoMovimientos += ` Deute pagat:\n  Quant: +${arrayMovimientos[
                 i
               ].valor.toFixed(
                 2
-              )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             } else {
-              textoMovimientos += ` Entrada:\n  Cantidad: +${arrayMovimientos[
+              textoMovimientos += ` Entrada:\n  Quant: +${arrayMovimientos[
                 i
               ].valor.toFixed(
                 2
-              )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepto: ${
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
                 arrayMovimientos[i].concepto
               }\n`;
             }
             break;
           case "DATAFONO_3G":
-            datafono3G += `  Cantidad: +${arrayMovimientos[i].valor.toFixed(
+            datafono3G += `  Quant: +${arrayMovimientos[i].valor.toFixed(
               2
-            )} Fecha: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             break;
         }
       }
-      textoMovimientos += `\nTotal tarjeta: ${(
+      textoMovimientos += `\nTotal targeta: ${(
         caja.cantidadPaytef + caja.totalDatafono3G
       ).toFixed(
         2
-      )}\nDeudas acumuladas en la caja: ${totalDeudaCaja}\nTotal deudas acumuladas: ${caja.totalDeudas.toFixed(
+      )}\nDeutes acumulades en la caixa: ${totalDeudaCaja}\nTotal deutes acumulades: ${caja.totalDeudas.toFixed(
         2
       )}`;
 
@@ -1420,7 +1138,7 @@ export class Impresora {
         { tipo: "text", payload: "" },
         { tipo: "text", payload: textoMovimientos },
         { tipo: "text", payload: "" },
-        { tipo: "text", payload: "" },
+        { tipo: "text", payload: datafono3G },
         { tipo: "text", payload: "" },
         {
           tipo: "text",
@@ -1677,7 +1395,7 @@ export class Impresora {
           payload: "Tarjeta: " + data.hiddenCardNumber,
         },
         { tipo: "text", payload: "" },
-        { tipo: "text", payload: "Fecha: " + fecha },
+        { tipo: "text", payload: "Data: " + fecha },
         {
           tipo: "text",
           payload: "Nº Operación: " + data.id,
