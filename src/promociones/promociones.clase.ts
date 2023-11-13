@@ -772,6 +772,7 @@ export class NuevaPromocion {
         regalo: false,
         subtotal: Number(data.precioConIva.toFixed(2)),
         puntos: null,
+        impresora: null,
         promocion: {
           idPromocion: data.idPromocion,
           tipoPromo: "INDIVIDUAL",
@@ -813,7 +814,7 @@ export class NuevaPromocion {
         regalo: false,
         puntos: articuloPrincipal.puntos + articuloSecundario.puntos,
         subtotal: data.precioPromoUnitario * data.seAplican,
-
+        impresora: null,
         promocion: {
           idPromocion: data.idPromocion,
           tipoPromo: "COMBO",
@@ -956,6 +957,7 @@ export class NuevaPromocion {
       promocion: null,
       puntos: null,
       regalo: false,
+      impresora: null,
       subtotal: null,
       unidades: data.sobran,
     });
@@ -973,6 +975,7 @@ export class NuevaPromocion {
       promocion: null,
       puntos: null,
       regalo: false,
+      impresora: null,
       subtotal: null,
       unidades: data.sobranPrincipal,
     });
@@ -990,6 +993,7 @@ export class NuevaPromocion {
       puntos: null,
       regalo: false,
       subtotal: null,
+      impresora: null,
       unidades: data.sobranSecundario,
     });
   }
