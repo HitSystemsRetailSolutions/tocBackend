@@ -245,7 +245,7 @@ export class MovimientosClase {
       }
     }
     if (superTicket.consumoPersonal) return "CONSUMO_PERSONAL";
-    if (superTicket.datafono3G) return "DATAFONO_3G";
+    if (superTicket.datafono3G && !superTicket?.anulado) return "DATAFONO_3G";
     if (superTicket.paytef)
       if (superTicket.total < 0) {
         return "DEVUELTO";
