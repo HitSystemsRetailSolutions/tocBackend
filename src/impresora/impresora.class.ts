@@ -22,6 +22,7 @@ import { conexion } from "../conexion/mongodb";
 import { sprintf } from "sprintf-js";
 import { paytefInstance } from "src/paytef/paytef.class";
 import { deudasInstance } from "src/deudas/deudas.clase";
+import { EncargosInterface } from "src/encargos/encargos.interface";
 import { TicketsInterface } from "src/tickets/tickets.interface";
 moment.locale("es");
 const escpos = require("escpos");
@@ -1093,7 +1094,7 @@ export class Impresora {
         });
       }
       // concatenamos buffer con el siguiente array despues del if
-      buffer=buffer.concat([
+      buffer = buffer.concat([
         {
           tipo: "text",
           payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
@@ -1115,7 +1116,7 @@ export class Impresora {
         });
       }
 
-      buffer= buffer.concat([
+      buffer = buffer.concat([
         {
           tipo: "text",
           payload: "Datafon 3g       :      " + caja.totalDatafono3G,
@@ -1516,7 +1517,7 @@ export class Impresora {
     return { error: false, msg: "Good work bro" };
   }
 
-  async imprimirEncargo(encargo) {
+  async imprimirEncargo(encargo: EncargosInterface) {
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
@@ -1579,6 +1580,42 @@ export class Impresora {
         observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;
       }
     }
+    let fechaEncargo = "";
+    if (encargo.opcionRecogida == 1 && encargo.amPm == "pm") {
+      encargo.hora = encargo.fecha + "torn de tarda";
+    } else if (encargo.opcionRecogida == 1 && encargo.amPm == "am") {
+      encargo.hora = encargo.fecha + "torn de matí";
+    } else if (encargo.opcionRecogida == 3) {
+      let diaSemana = "";
+      switch (encargo.dias[0].dia) {
+        case "Lunes":
+          diaSemana = "Dilluns";
+          break;
+        case "Martes":
+          diaSemana = "Dimarts";
+          break;
+        case "Miércoles":
+          diaSemana = "Dimecres";
+          break;
+        case "Jueves":
+          diaSemana = "Dijous";
+          break;
+        case "Viernes":
+          diaSemana = "Divendres";
+          break;
+        case "Sábado":
+          diaSemana = "Dissabte";
+          break;
+        case "Domingo":
+          diaSemana = "Diumenge";
+          break;
+        default:
+          break;
+      }
+      fechaEncargo = "Cada " + diaSemana + ",\n proper "+diaSemana+" "+encargo.fecha;
+    } else {
+      fechaEncargo = encargo.fecha + " " + encargo.hora;
+    }
     try {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
@@ -1602,7 +1639,7 @@ export class Impresora {
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
-          { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
+          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
@@ -1634,7 +1671,7 @@ export class Impresora {
           { tipo: "text", payload: "ID: " + random() + " - " + random() },
           {
             tipo: "barcode",
-            payload: [encargo.codigoBarras.slice(0, 12), "EAN13", 4],
+            payload: [encargo.codigoBarras.toString().slice(0, 12), "EAN13", 4],
           },
 
           { tipo: "cut", payload: "PAPER_FULL_CUT" },
@@ -1654,7 +1691,7 @@ export class Impresora {
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
-          { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
+          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
@@ -1686,7 +1723,7 @@ export class Impresora {
           { tipo: "text", payload: "ID: " + random() + " - " + random() },
           {
             tipo: "barcode",
-            payload: [encargo.codigoBarras.slice(0, 12), "EAN13", 4],
+            payload: [encargo.codigoBarras.toString().slice(0, 12), "EAN13", 4],
           },
 
           { tipo: "cut", payload: "PAPER_FULL_CUT" },
@@ -1706,7 +1743,7 @@ export class Impresora {
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
-          { tipo: "text", payload: "Data d'entrega: " + encargo.fecha },
+          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
@@ -1738,7 +1775,7 @@ export class Impresora {
           { tipo: "text", payload: "ID: " + random() + " - " + random() },
           {
             tipo: "barcode",
-            payload: [encargo.codigoBarras.slice(0, 12), "EAN13", 4],
+            payload: [encargo.codigoBarras.toString().slice(0, 12), "EAN13", 4],
           },
 
           { tipo: "cut", payload: "PAPER_FULL_CUT" },
