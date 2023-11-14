@@ -12,6 +12,7 @@ import { paytefInstance } from "../paytef/paytef.class";
 import { cajaInstance } from "../caja/caja.clase";
 import { ClientesInterface } from "src/clientes/clientes.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
+import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -73,7 +74,20 @@ export class TicketsClase {
   /* Eze 4.0 */
   async getProximoId(): Promise<number> {
     const ultimoIdTicket = await this.getUltimoIdTicket();
-    if (typeof ultimoIdTicket === "number") return ultimoIdTicket + 1;
+    const ultimoIdAlbaran = await AlbaranesInstance.getUltimoIdAlbaran();
+
+    if (typeof ultimoIdTicket === "number" && typeof ultimoIdAlbaran === "number") {
+      return Math.max(ultimoIdTicket, ultimoIdAlbaran) + 1;
+    }
+  
+    if (typeof ultimoIdTicket === "number") {
+      return ultimoIdTicket + 1;
+    }
+  
+    if (typeof ultimoIdAlbaran === "number") {
+      return ultimoIdAlbaran + 1;
+    }
+
     throw Error("El ultimoIdTicket no es correcto");
   }
 

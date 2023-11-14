@@ -37,7 +37,7 @@ export class AlbaranesController {
             producto.subtotal - (producto.subtotal * descuento) / 100
           ); // Modificamos el total para añadir el descuento especial del cliente
       });
-      return await AlbaranesInstance.crearAlbaran(total, cesta, idTrabajador)
+      return await AlbaranesInstance.setAlbaran(total, cesta, idTrabajador)
     } catch (error) {
       logger.Error(201, error);
       return null;

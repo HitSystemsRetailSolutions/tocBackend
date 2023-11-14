@@ -23,12 +23,14 @@ import {
   Periodo,
 } from "./encargos/encargos.interface";
 import * as moment from "moment";
+import { AlbaranesInstance } from "./albaranes/albaranes.clase";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
 let enProcesoDeudasFinalizadas = false;
 let enProcesoEncargosCreados = false;
 let enProcesoEncargosFinalizados = false;
+let enProcesoAlbaranesCreados = false;
 async function sincronizarTickets() {
   try {
     if (!enProcesoTickets) {
@@ -427,6 +429,51 @@ async function sincronizarEncargosFinalizados() {
     }
   } catch (err) {
     enProcesoEncargosFinalizados = false;
+    logger.Error(5, err);
+  }
+}
+
+async function sincronizarAlbaranesCreados() {
+  try {
+    if (!enProcesoAlbaranesCreados) {
+      enProcesoAlbaranesCreados = true;
+      const parametros = await parametrosInstance.getParametros();
+      if (parametros != null) {
+        const albaran = await AlbaranesInstance.getAlbaranCreadoMasAntiguo();
+        if (albaran) {
+          const parametros = await parametrosInstance.getParametros();
+          const copiaAlbaran = albaran;
+          albaran.cesta.lista = await nuevaInstancePromociones.deshacerPromociones(copiaAlbaran);
+          const res: any = await axios
+            .post("tickets/enviarTicket", { albaran })
+            .catch((e) => {
+              console.log(e)
+            });
+          
+          if (res.data && !res.data.error) {
+            if (await AlbaranesInstance.setEnviado(albaran._id)) {
+              enProcesoAlbaranesCreados = false;
+              setTimeout(sincronizarAlbaranesCreados, 100);
+            } else {
+              enProcesoAlbaranesCreados = false;
+            }
+          } else {
+            logger.Error(
+              153,
+              "Error: no se ha podido crear el albaran en el SantaAna"
+            );
+            enProcesoAlbaranesCreados = false;
+          }
+        } else {
+          enProcesoAlbaranesCreados = false;
+        }
+      } else {
+        enProcesoAlbaranesCreados = false;
+        logger.Error(4, "No hay parámetros definidos en la BBDD");
+      }
+    }
+  } catch (err) {
+    enProcesoAlbaranesCreados = false;
     logger.Error(5, err);
   }
 }
