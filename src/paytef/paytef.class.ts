@@ -13,8 +13,16 @@ import { cajaInstance } from "src/caja/caja.clase";
 let intentosBuclePago = 0;
 let intentosBucleBucle = 0;
 
-axios.defaults.timeout = 5000; // Evitem que el client esperi...
+axios.defaults.timeout = 5000; // Evitem que el client esperi...  // ???? se modificar en instalador.controller.ts
 class PaytefClass {
+  // datos de la última inicio de transacción por si se ha de repetir en paytef.controller cobrarUltimoTicket
+  ultimaIniciarTransaccion:{
+    idTrabajador: number,
+    idTicket: TicketsInterface["_id"],
+    total: TicketsInterface["total"],
+    type: "refund" | "sale"
+  }|null=null;
+
   /* Eze 4.0 */
   async iniciarTransaccion(
     idTrabajador: number,
@@ -22,7 +30,9 @@ class PaytefClass {
     total: TicketsInterface["total"],
     type: "refund" | "sale" = "sale"
   ): Promise<void> {
-    console.log(total);
+    console.log(total)
+    this.ultimaIniciarTransaccion={idTrabajador, idTicket,total,type};
+
     const parametros = await parametrosInstance.getParametros();
     const opciones = {
       pinpad: "*",
@@ -37,14 +47,18 @@ class PaytefClass {
       transactionReference: idTicket,
       showResultSeconds: 5,
     };
-
+    
+    intentosBucleBucle = 0;
+    
     if (parametros.ipTefpay) {
       await axios({
         method: "POST",
         url: `http://${parametros.ipTefpay}:8887/transaction/start`,
         data: opciones,
+        timeout: 7000,
       })
         .then(async (respuestaPayef: any) => {
+          intentosBuclePago = 0;
           if (await respuestaPayef.data.info["started"]) {
             io.emit("procesoPaytef", { proceso: "Inicio proceso" });
             return await this.bucleComprobacion(
@@ -60,6 +74,11 @@ class PaytefClass {
           }
         })
         .catch(async (err) => {
+          /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+           * (ToDo) Si start falla por timeout (error de conexión) puede ser que el comando haya llegado al datáfono pero la respuesta se haya
+           *         perdido. Por lo tanto el datáfono habria iniciado la transacción y se iniciaria otra que daria error 500
+           * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          */
           if (intentosBuclePago >= 2) {
             intentosBuclePago = 0;
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
@@ -87,28 +106,31 @@ class PaytefClass {
       const resEstadoPaytef: any = (
         await axios.post(`http://${ipDatafono}:8887/transaction/poll`, {
           pinpad: "*",
-        })
+        }, { timeout: 5000 })
       ).data;
       io.emit("procesoPaytef", { proceso: resEstadoPaytef.info.cardStatus });
       if (resEstadoPaytef.result) {
         if (resEstadoPaytef.result.approved) {
           if (type === "sale") {
+            /*-------------------------------
+             *** la respuesta de /transaction/poll ya incluye el campo result. Asi no hay que hacer la petición a /transaction/result y tener que 
+             *** comprobar errores de conexión 
+
             await axios
               .post(`http://${ipDatafono}:8887/transaction/result`, {
                 pinpad: "*",
-              })
+              }, { timeout:5000 })
               .then(async (respuesta: any) => {
                 if (respuesta.data.result.transactionReference == idTicket) {
+            --------------------------------- */
+                if (resEstadoPaytef.result.transactionReference == idTicket) {
+
                   parametrosInstance.setContadoDatafono(0, total);
-                  if (
-                    (await parametrosInstance.getParametros())?.params
-                      ?.TicketDFAuto == "Si"
-                  )
-                    impresoraInstance.imprimirTicket(idTicket);
+                  if((await parametrosInstance.getParametros())?.params?.TicketDFAuto=="Si") impresoraInstance.imprimirTicket(idTicket);
                   ticketsInstance.setPagadoPaytef(idTicket);
                   io.emit("consultaPaytef", true);
                   io.emit("procesoPaytef", { proceso: "aprobado" });
-                  return true;
+                  /*---- return true; */
                 } else {
                   io.emit("consultaPaytefRefund", {
                     ok: false,
@@ -122,24 +144,29 @@ class PaytefClass {
                       idTrabajador,
                     ],
                   });
-                  return false;
+                  /*---- return false; */
                 }
+              /*-------------------------------
               })
               .catch((e) => {
                 console.log(e);
               });
+              --------------------------------- */
           } else if (type === "refund") {
             schTickets.anularTicket(idTicket);
+            /*-------------------------------
             await axios
               .post(`http://${ipDatafono}:8887/transaction/result`, {
                 pinpad: "*",
-              })
+              },{ timeout: 5000 })
               .then((respuesta: any) => {
                 if (respuesta.data.result.transactionReference == idTicket) {
+             --------------------------------- */
+                if (resEstadoPaytef.result.transactionReference == idTicket) {
                   parametrosInstance.setContadoDatafono(0, total * -1);
                   io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
                   this.imprimirTicket(idTicket);
-                  return true;
+                  /*---- return true; */
                 } else {
                   io.emit("consultaPaytefRefund", {
                     ok: false,
@@ -153,9 +180,11 @@ class PaytefClass {
                       idTrabajador,
                     ],
                   });
-                  return false;
+                  /*---- return false; */
                 }
+              /*-------------------------------
               });
+              --------------------------------- */
             intentosBucleBucle = 0;
             intentosBuclePago = 0;
           } else {
@@ -168,7 +197,7 @@ class PaytefClass {
         } else if (type === "refund") {
           io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
         }
-      } else {
+      } else { // poll aún no hay result
         await new Promise((r) => setTimeout(r, 1000));
         await this.bucleComprobacion(idTicket, total, idTrabajador, type);
       }
@@ -178,7 +207,7 @@ class PaytefClass {
         "error de conexión (pago ya enviado) / ",
         intentosBucleBucle
       );
-      if (intentosBucleBucle >= 0) {
+      if (intentosBucleBucle >= 2) { /* ??? */
         intentosBucleBucle = 0;
         io.emit("consultaPaytefRefund", {
           ok: false,
@@ -218,9 +247,10 @@ class PaytefClass {
       return (
         await axios.post(`http://${ip}:8887/pinpad/status`, {
           pinpad: "*",
-        })
+        },{ timeout:5000 })
       ).data["result"]?.tcod;
     } catch (e) {
+      console.log(e);
       return "error";
     }
   }
@@ -236,10 +266,12 @@ class PaytefClass {
         tcod: tcod,
         startDate: startDate,
         ticket: ticket,
-      })
-      .catch((e) => {});
+      },{ timeout:10000 })
+      .catch((e) => {
+        console.log(e);
+      });
 
-    if (res) {
+    if (res?.data?.approved) {
       ticketsInstance.setPagadoPaytef(ticket);
       io.emit("consultaPaytef", true);
       io.emit("procesoPaytef", { proceso: "aprobado" });
@@ -253,38 +285,46 @@ class PaytefClass {
     let startDate = await cajaInstance.getInicioTime();
     const res: any = await axios
       .post("paytef/getLastFive", {
-        timeout: 10000,
+        timeout: 10000, //??
         tcod: tcod,
         startDate: startDate,
-      })
-      .catch((e) => {});
+      }, {timeout: 10000})
+      .catch((e) => {
+        console.log(e);
+      });
 
     if (res.data) return res.data;
   }
 
   /* Uri */
+  /* valores retorno (string):
+       1: datáfono aprovado, pero no ha llegado al servidor de paytef
+       2: error de conexión con datáfono
+       3: datáfono denegado
+       4: transacción ha llegado al servidor de paytef
+  */
   async ComprobarReconectado(ticket): Promise<string> {
     let rnt = "2";
     try {
-      //if (this.ComprobarTicketPagado(ticket)) return "4";
+      if (await this.ComprobarTicketPagado(ticket)) return "4"; 
       const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
       await axios
         .post(`http://${ipDatafono}:8887/pinpad/getLastResult`, {
           pinpad: "*",
-        })
-        .then((datafonoLastTicket: any) => {
+        },{ timeout:5000 })
+        .then(async (datafonoLastTicket: any) => {
           if (datafonoLastTicket.data) {
             let result = datafonoLastTicket.data.result.result;
             if (String(result.approved) == "false") rnt = "3";
-            if (result.transactionReference == ticket) {
+            else if (result.transactionReference == ticket) {
               if (
-                movimientosInstance.getMovimientoTarjetaMasAntiguo(
+                await movimientosInstance.getMovimientoTarjetaMasAntiguo(  // ????????????????
                   result.transactionReference
                 ) != null
               ) {
                 rnt = "4";
               }
-              rnt = "1";
+              rnt = "1"; // ????????????????
             }
           } else {
             rnt = "2";
@@ -305,7 +345,7 @@ class PaytefClass {
     const resultado: CancelInterface = (
       await axios.post(`http://${ipDatafono}:8887/pinpad/cancel`, {
         pinpad: "*",
-      })
+      },{ timeout:5000 })
     ).data as CancelInterface;
     return resultado.info.success;
   }
@@ -319,8 +359,10 @@ class PaytefClass {
         timeout: 10000,
         tcod: tcod,
         startDate: startDate,
-      })
-      .catch((e) => {});
+      },{ timeout: 10000 })
+      .catch((e) => {
+        console.log(e);
+      });
     return res.data;
   }
 }
