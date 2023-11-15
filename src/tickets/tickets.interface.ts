@@ -12,6 +12,7 @@ export interface TicketsInterface {
   dejaCuenta?: number;
   datafono3G: boolean;
   honei?: boolean;
+  tkrs?: boolean;
   paytef: boolean;
   cesta: CestasInterface;
   idTrabajador: number;

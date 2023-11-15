@@ -36,6 +36,8 @@ export class TicketsClase {
       } else {
         return { res: false, tipo: "TARJETA" };
       }
+    }else if(ticket.datafono3G){
+      return { res: await schTickets.anularTicket(idTicket,true), tipo: "DATAFONO_3G" };
     }
     return { res: await schTickets.anularTicket(idTicket), tipo: "EFECTIVO" };
   }
@@ -153,6 +155,7 @@ export class TicketsClase {
     datafono3G: TicketsInterface["datafono3G"],
     paytef: TicketsInterface["paytef"],
     honei: TicketsInterface["honei"],
+    tkrs: boolean,
     dejaCuenta?: TicketsInterface["dejaCuenta"]
   ): Promise<TicketsInterface> {
     /*const cliente = await clienteInstance.getClienteById(cesta.idCliente);
@@ -170,6 +173,7 @@ export class TicketsClase {
       dejaCuenta: dejaCuenta,
       datafono3G: datafono3G,
       honei: !!honei,
+      tkrs: tkrs,
       paytef: paytef,
       idCliente: cesta.idCliente,
       idTrabajador,

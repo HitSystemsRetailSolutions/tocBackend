@@ -44,10 +44,13 @@ export class PaytefController {
   async cobrarUltimoTicket(@Body() { idTrabajador }) {
     try {
       if (idTrabajador) {
+        /*--------------------------
+          A esta función se puede llegar de un error de conexión con el datafono, por lo tanto es posible que la transacción no haya 
+          llegado a paytef. Se cojen los datos de la última transacción de los datos guardados en la última llamada a IniciarTransaccion
         // obtenemos el ultimo ticket recogiendolo del datafono en vez del mongo
         // para evitar un reintento donde no coincida con el ticket deseado
         const tickets = await paytefInstance.getLastFive();
-        if (tickets.length > 0) {
+        if (tickets.length > 0) { 
           const ultimoTicket = tickets[tickets.length - 1];
           const ticket = await ticketsInstance.getTicketById(
             Number(ultimoTicket.reference)
@@ -56,6 +59,15 @@ export class PaytefController {
             idTrabajador,
             ticket._id,
             ticket.total
+          );
+          return true;
+        }
+        -------------------- */
+        if (paytefInstance.ultimaIniciarTransaccion) {
+          paytefInstance.iniciarTransaccion(
+            idTrabajador,
+            paytefInstance.ultimaIniciarTransaccion.idTicket,
+            paytefInstance.ultimaIniciarTransaccion.total
           );
           return true;
         }
