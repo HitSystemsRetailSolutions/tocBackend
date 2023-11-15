@@ -39,13 +39,14 @@ export class ImpresoraController {
 
   /* Uri*/
   @Post("imprimirTicketComandero")
-  async imprimirTicketComandero(@Body() { products, table, worker }) {
+  async imprimirTicketComandero(@Body() { products, table, worker, clients }) {
     try {
-      if (products && table) {
+      if (products && table && worker && clients) {
         let sended: any = await axios.post("impresora/impresoraCola", {
           tickets: products,
           table: table,
           worker: worker,
+          clients: clients,
         });
         if (sended.data) return true;
         return false;
