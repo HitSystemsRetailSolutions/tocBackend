@@ -30,6 +30,7 @@ import { EncargosController } from "./encargos/encargos.controller";
 import { DeudasController } from "./deudas/deudas.controller";
 import { CargarImagenController } from "./imagenInvasiva/imagen.controller";
 import { checkers } from "./checkers/checkers.controller";
+import { AlbaranesController } from "./albaranes/albaranes.controller";
 @Module({
   imports: [
     ServeStaticModule.forRoot({
@@ -66,6 +67,7 @@ import { checkers } from "./checkers/checkers.controller";
     checkers,
     DeudasController,
     CargarImagenController,
+    AlbaranesController,
   ],
   // providers: [SocketGateway],
 })

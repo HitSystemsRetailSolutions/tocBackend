@@ -24,6 +24,7 @@ import { paytefInstance } from "src/paytef/paytef.class";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { EncargosInterface } from "src/encargos/encargos.interface";
 import { TicketsInterface } from "src/tickets/tickets.interface";
+import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -97,9 +98,11 @@ export class Impresora {
   }
 
   /* Eze 4.0 */
-  async imprimirTicket(idTicket: number) {
+  async imprimirTicket(idTicket: number, albaran= false) {
     // recoge el ticket por la id
-    const ticket = await ticketsInstance.getTicketById(idTicket);
+    console.log("idT",idTicket);
+    const ticket = albaran ? await AlbaranesInstance.getAlbaranById(idTicket) : await ticketsInstance.getTicketById(idTicket);
+    console.log("idTI",ticket?._id);
     const parametros = await parametrosInstance.getParametros();
     // insertamos parametro imprimir y enviado en false al ticket para enviarlo al santaAna
     if (!ticket?.imprimir) {
@@ -189,8 +192,8 @@ export class Impresora {
     }
   }
 
-  async imprimirFirma(idTicket: number) {
-    const ticket = await ticketsInstance.getTicketById(idTicket);
+  async imprimirFirma(idTicket: number,albaran = false) {
+    const ticket = albaran ? await AlbaranesInstance.getAlbaranById(idTicket) : await ticketsInstance.getTicketById(idTicket);
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);

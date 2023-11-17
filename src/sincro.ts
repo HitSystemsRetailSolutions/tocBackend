@@ -24,6 +24,7 @@ import {
 } from "./encargos/encargos.interface";
 import * as moment from "moment";
 import { AlbaranesInstance } from "./albaranes/albaranes.clase";
+import { clienteInstance } from "./clientes/clientes.clase";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
@@ -441,11 +442,10 @@ async function sincronizarAlbaranesCreados() {
       if (parametros != null) {
         const albaran = await AlbaranesInstance.getAlbaranCreadoMasAntiguo();
         if (albaran) {
-          const parametros = await parametrosInstance.getParametros();
           const copiaAlbaran = albaran;
           albaran.cesta.lista = await nuevaInstancePromociones.deshacerPromociones(copiaAlbaran);
           const res: any = await axios
-            .post("tickets/enviarTicket", { albaran })
+            .post("albaranes/enviarAlbaran", { albaran })
             .catch((e) => {
               console.log(e)
             });

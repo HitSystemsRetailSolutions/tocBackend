@@ -12,10 +12,11 @@ import axios from "axios";
 @Controller("impresora")
 export class ImpresoraController {
   @Post("imprimirTicket")
-  async imprimirTicket(@Body() { idTicket }) {
+  async imprimirTicket(@Body() { idTicket,albaran=false }) {
+    console.log("Tick",idTicket)
     try {
       if (idTicket) {
-        await impresoraInstance.imprimirTicket(idTicket);
+        await impresoraInstance.imprimirTicket(idTicket, albaran);
         return true;
       }
       throw Error("Faltan datos en impresora/imprimirTicket");
@@ -85,10 +86,10 @@ export class ImpresoraController {
   }
 
   @Post("firma")
-  async despedidaFirma(@Body() { idTicket }) {
+  async despedidaFirma(@Body() { idTicket,albaran=false }) {
     try {
       if (idTicket) {
-        await impresoraInstance.imprimirFirma(idTicket);
+        await impresoraInstance.imprimirFirma(idTicket, albaran);
         return true;
       }
       throw Error("Faltan datos en impresora/imprimirTicket");

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get } from "@nestjs/common";
+import { Controller, Post, Body, Get, Param, Query } from "@nestjs/common";
 import { AlbaranesInterface } from "./albaranes.interface";
 import { AlbaranesInstance } from "./albaranes.clase";
 import { logger } from "src/logger";
@@ -13,14 +13,16 @@ export class AlbaranesController {
       total,
       idCesta,
       idTrabajador,
+      estado,
     }: {
       total: number;
       idCesta: AlbaranesInterface["cesta"]["_id"];
       idTrabajador: AlbaranesInterface["idTrabajador"];
+      estado: AlbaranesInterface["estado"];
     }
   ) {
     try {
-      if (!total || !idCesta || !idTrabajador) {
+      if (!total || !idCesta || !idTrabajador || !estado) {
         throw Error("Error, faltan datos en crearAlbaran() controller");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
@@ -37,10 +39,45 @@ export class AlbaranesController {
             producto.subtotal - (producto.subtotal * descuento) / 100
           ); // Modificamos el total para añadir el descuento especial del cliente
       });
-      return await AlbaranesInstance.setAlbaran(total, cesta, idTrabajador)
+      return await AlbaranesInstance.setAlbaran(
+        total,
+        cesta,
+        idTrabajador,
+        estado
+      );
     } catch (error) {
       logger.Error(201, error);
       return null;
+    }
+  }
+  @Post("pagarAlbaran")
+  async pagarAlbaran(
+    @Body() { idAlbaran }: { idAlbaran: AlbaranesInterface["_id"] }
+  ) {
+    try {
+      if (!idAlbaran) {
+        throw Error("Error, faltan datos en pagarAlbaran controller");
+      }
+      return await AlbaranesInstance.pagarAlbaran(idAlbaran);
+    } catch (error) {
+      logger.Error(202, error);
+      return false;
+    }
+  }
+
+  @Post("getAlbaranById")
+  async getAlbaranById(
+    @Body() {idAlbaran} : {idAlbaran:AlbaranesInterface["_id"]}
+  ) {
+    console.log(idAlbaran)
+    try {
+      if (!idAlbaran) {
+        throw Error("Error, faltan datos en getAlbaranById controller");
+      }
+      return await AlbaranesInstance.getAlbaranById(idAlbaran);
+    } catch (error) {
+      logger.Error(202, error);
+      return false;
     }
   }
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
