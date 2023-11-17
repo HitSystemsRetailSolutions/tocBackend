@@ -34,12 +34,15 @@ export class CajaController {
         typeof cantidad3G === "number" &&
         typeof cantidadPaytef === "number"
       ) {
+        let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
         return await cajaInstance.cerrarCaja(
           total,
           detalleMonedas,
           infoDinero,
           cantidad3G,
+          await ticketsInstance.cantidadLocal3G(),
           cantidadPaytef,
+          totalLocalPaytef,
           idDependienta,
           false,
           await ticketsInstance.getTotalHonei()

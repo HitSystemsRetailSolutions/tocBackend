@@ -95,7 +95,9 @@ export class CajaClase {
     detalleCierre: CajaCerradaInterface["detalleCierre"],
     guardarInfoMonedas: MonedasInterface["array"],
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
+    cantidadLocal3G: CajaCerradaInterface["cantidadLocal3G"],
     cantidadPaytef: CajaCerradaInterface["cantidadPaytef"],
+    totalLocalPaytef: CajaCerradaInterface["totalLocalPaytef"],
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cierreAutomatico: boolean = true,
     totalHonei: number
@@ -118,6 +120,8 @@ export class CajaClase {
       detalleCierre,
       idDependientaCierre,
       cantidadPaytef,
+      totalLocalPaytef,
+      cantidadLocal3G,
       totalDatafono3G,
       finalTime.time,
       totalHonei,
@@ -239,6 +243,8 @@ export class CajaClase {
       ];
       const paytef = await parametrosController.totalPaytef();
       let totalPaytef = paytef[0] ? paytef[0] : 0;
+      let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
+      let cantidadLocal3G = await ticketsInstance.cantidadLocal3G();
       if (trabId == undefined) trabId = 0;
       if (fechaHoy != fechaApertura) {
         await cajaInstance.cerrarCaja(
@@ -262,7 +268,9 @@ export class CajaClase {
           ],
           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           0,
+          cantidadLocal3G,
           totalPaytef,
+          totalLocalPaytef,
           trabId,
           true,
           await ticketsInstance.getTotalHonei()
@@ -280,6 +288,8 @@ export class CajaClase {
     detalleCierre: CajaCerradaInterface["detalleCierre"],
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cantidadPaytef: CajaCerradaInterface["cantidadPaytef"],
+    totalLocalPaytef: CajaCerradaInterface["totalLocalPaytef"],
+    cantidadLocal3G: CajaCerradaInterface["cantidadLocal3G"],
     totalDatafono3G: CajaCerradaInterface["totalDatafono3G"],
     finalTime: CajaCerradaInterface["finalTime"],
     totalHonei: number,
@@ -414,7 +424,9 @@ export class CajaClase {
       totalDatafono3G,
       totalDeudas,
       cantidadPaytef,
+      totalLocalPaytef,
       totalTicketDatafono3G,
+      cantidadLocal3G,
       totalDeuda,
       totalEfectivo,
       totalEntradas,

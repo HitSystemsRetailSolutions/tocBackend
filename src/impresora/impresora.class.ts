@@ -959,22 +959,24 @@ export class Impresora {
         }
       }
       const arrayTickets: TicketsInterface[] =
-      await ticketsInstance.getTicketsIntervalo(
-        caja.inicioTime,
-        caja.finalTime
-      );
-    if (parametros?.params?.DesgloseVisasCierreCaja) {
-      datafono3G +="Desglossament Vises 3G:\n";
-      for (let i = 0; i < arrayTickets.length; i++) {
-        const auxFecha = new Date(arrayTickets[i].timestamp);
-        if (arrayTickets[i].datafono3G) {
-          const signo = arrayTickets[i]?.anulado ? "" : "+";
-          datafono3G += ` Quant: ${signo}${arrayTickets[i].total.toFixed(
-            2
-          )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${this.dosDigitos(auxFecha.getHours())}:${this.dosDigitos(auxFecha.getMinutes())}\n`;
+        await ticketsInstance.getTicketsIntervalo(
+          caja.inicioTime,
+          caja.finalTime
+        );
+      if (parametros?.params?.DesgloseVisasCierreCaja) {
+        datafono3G += "Desglossament Vises 3G:\n";
+        for (let i = 0; i < arrayTickets.length; i++) {
+          const auxFecha = new Date(arrayTickets[i].timestamp);
+          if (arrayTickets[i].datafono3G) {
+            const signo = arrayTickets[i]?.anulado ? "" : "+";
+            datafono3G += ` Quant: ${signo}${arrayTickets[i].total.toFixed(
+              2
+            )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${this.dosDigitos(
+              auxFecha.getHours()
+            )}:${this.dosDigitos(auxFecha.getMinutes())}\n`;
+          }
         }
       }
-    }
       for (let i = 0; i < arrayMovimientos.length; i++) {
         const auxFecha = new Date(arrayMovimientos[i]._id);
         switch (arrayMovimientos[i].tipo) {
@@ -1123,7 +1125,16 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: "Visa             :      " + caja.cantidadPaytef.toFixed(2),
+          payload: "Tickets 3G       :      " + caja.cantidadLocal3G.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "Paytef           :      " + caja.cantidadPaytef.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "Tickets Paytef   :      " + caja.totalLocalPaytef.toFixed(2),
         },
         {
           tipo: "text",
@@ -1612,7 +1623,8 @@ export class Impresora {
         default:
           break;
       }
-      fechaEncargo = "Cada " + diaSemana + ",\n proper "+diaSemana+" "+encargo.fecha;
+      fechaEncargo =
+        "Cada " + diaSemana + ",\n proper " + diaSemana + " " + encargo.fecha;
     } else {
       fechaEncargo = encargo.fecha + " " + encargo.hora;
     }
