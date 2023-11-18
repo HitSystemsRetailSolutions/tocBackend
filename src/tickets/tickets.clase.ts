@@ -36,8 +36,11 @@ export class TicketsClase {
       } else {
         return { res: false, tipo: "TARJETA" };
       }
-    }else if(ticket.datafono3G){
-      return { res: await schTickets.anularTicket(idTicket,true), tipo: "DATAFONO_3G" };
+    } else if (ticket.datafono3G) {
+      return {
+        res: await schTickets.anularTicket(idTicket, true),
+        tipo: "DATAFONO_3G",
+      };
     }
     return { res: await schTickets.anularTicket(idTicket), tipo: "EFECTIVO" };
   }
@@ -213,6 +216,9 @@ export class TicketsClase {
   /* Uri 4.0 */
   setPagadoPaytef = (idTicket: TicketsInterface["_id"]) =>
     schTickets.setPagadoPaytef(idTicket);
+
+  getTotalLocalPaytef = () => schTickets.getTotalLocalPaytef();
+  cantidadLocal3G = () => schTickets.getTotalLocal3G();
 
   actualizarTickets = async () => {
     const arrayVentas = await movimientosInstance.construirArrayVentas();

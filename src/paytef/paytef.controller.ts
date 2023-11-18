@@ -7,7 +7,6 @@ import { cajaInstance } from "src/caja/caja.clase";
 import { parametrosController } from "src/parametros/parametros.controller";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import { UtilesModule } from "src/utiles/utiles.module";
-
 const exec = require("child_process").exec;
 
 @Controller("paytef")
@@ -113,14 +112,13 @@ export class PaytefController {
           if (res == "error") return "OFFLINE";
           await parametrosInstance.setTcod(res);
           await parametrosInstance.setIpPaytef(ip);
-          let startDate = await cajaInstance.getInicioTime();
-
-          paytefInstance
-            .getRecuentoTotal(startDate)
-            .then((res) => {
-              parametrosInstance.setContadoDatafono(1, res);
-            })
-            .catch((err) => {});
+          // let startDate = await cajaInstance.getInicioTime();
+          // paytefInstance
+          //   .getRecuentoTotal(startDate)
+          //   .then((res) => {
+          //     parametrosInstance.setContadoDatafono(1, res);
+          //   })
+          //   .catch((err) => {});
           return "ONLINE";
         })
         .catch((e) => {
