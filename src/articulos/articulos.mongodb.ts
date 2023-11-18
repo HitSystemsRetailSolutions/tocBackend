@@ -48,6 +48,7 @@ export async function insertarArticulosNuevos(
       familia: menus,
       puntos: null,
       precioBase: precioBase,
+      impresora: null,
       _id: id["_id"] + 1,
       suplementos: null,
     },

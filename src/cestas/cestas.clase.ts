@@ -433,6 +433,7 @@ export class CestaClase {
           promocion: null,
           regalo: false,
           puntos: articulo.puntos,
+          impresora: articulo.impresora,
           subtotal: unidades * articulo.precioConIva,
           unidades: unidades,
           gramos: gramos,
