@@ -732,12 +732,7 @@ export class CestaClase {
           articulo.tipoIva,
           cesta.lista[i].unidades
         );
-        console.log(
-          "auxDetalleIva",
-          auxDetalleIva,
-          "cestaIva:",
-          cesta.detalleIva
-        );
+        
         cesta.detalleIva = fusionarObjetosDetalleIva(
           auxDetalleIva,
           cesta.detalleIva
