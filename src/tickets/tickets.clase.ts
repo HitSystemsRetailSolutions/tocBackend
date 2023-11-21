@@ -37,8 +37,11 @@ export class TicketsClase {
       } else {
         return { res: false, tipo: "TARJETA" };
       }
-    }else if(ticket.datafono3G){
-      return { res: await schTickets.anularTicket(idTicket,true), tipo: "DATAFONO_3G" };
+    } else if (ticket.datafono3G) {
+      return {
+        res: await schTickets.anularTicket(idTicket, true),
+        tipo: "DATAFONO_3G",
+      };
     }
     return { res: await schTickets.anularTicket(idTicket), tipo: "EFECTIVO" };
   }
@@ -74,18 +77,9 @@ export class TicketsClase {
   /* Eze 4.0 */
   async getProximoId(): Promise<number> {
     const ultimoIdTicket = await this.getUltimoIdTicket();
-    const ultimoIdAlbaran = await AlbaranesInstance.getUltimoIdAlbaran();
 
-    if (typeof ultimoIdTicket === "number" && typeof ultimoIdAlbaran === "number") {
-      return Math.max(ultimoIdTicket, ultimoIdAlbaran) + 1;
-    }
-  
     if (typeof ultimoIdTicket === "number") {
       return ultimoIdTicket + 1;
-    }
-  
-    if (typeof ultimoIdAlbaran === "number") {
-      return ultimoIdAlbaran + 1;
     }
 
     throw Error("El ultimoIdTicket no es correcto");

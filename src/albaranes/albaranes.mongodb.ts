@@ -7,7 +7,11 @@ export async function setAlbaran(albaran) {
   // insertar ticket
   return (await albaranes.insertOne(albaran)).acknowledged;
 }
-
+export async function getAlbaranes(): Promise<AlbaranesInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const albaranes = database.collection<AlbaranesInterface>("albaranes");
+  return await albaranes.find({ estado: "PAGADO" }).toArray();
+}
 export async function getUltimoAlbaran(): Promise<AlbaranesInterface> {
   const database = (await conexion).db("tocgame");
   const albaranes = database.collection<AlbaranesInterface>("albaranes");

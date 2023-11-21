@@ -67,9 +67,8 @@ export class AlbaranesController {
 
   @Post("getAlbaranById")
   async getAlbaranById(
-    @Body() {idAlbaran} : {idAlbaran:AlbaranesInterface["_id"]}
+    @Body() { idAlbaran }: { idAlbaran: AlbaranesInterface["_id"] }
   ) {
-    console.log(idAlbaran)
     try {
       if (!idAlbaran) {
         throw Error("Error, faltan datos en getAlbaranById controller");
@@ -78,6 +77,15 @@ export class AlbaranesController {
     } catch (error) {
       logger.Error(202, error);
       return false;
+    }
+  }
+  @Post("getAlbaranes")
+  async getAlbaranes() {
+    try {
+      return await AlbaranesInstance.getAlbaranes();
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
     }
   }
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;

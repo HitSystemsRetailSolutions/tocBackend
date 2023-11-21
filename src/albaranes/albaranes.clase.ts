@@ -11,12 +11,13 @@ export class AlbaranesClase {
     idTrabajador,
     estado: AlbaranesInterface["estado"]
   ) {
+    // creando json albaran
     const id = await this.getProximoId();
     const nuevoAlbaran: AlbaranesInterface = {
       _id: id,
       datafono3G: false,
       timestamp: Date.now(),
-      total: total,
+      total: Number(total.toFixed(2)),
       paytef: false,
       idCliente: cesta.idCliente,
       idTrabajador,
@@ -26,13 +27,9 @@ export class AlbaranesClase {
       estado: estado,
     };
 
-    // estos estados pasan a finalizado porque no se modificaran su registro en santaAna
-    if (estado == "NO_PAGA_EN_TIENDA" || estado == "PAGADO")
-      nuevoAlbaran.finalizado = true;
     try {
+      // devolver id cuando se haya guradado el albaran en mongodb
       if (await schAlbaranes.setAlbaran(nuevoAlbaran)) {
-        await cestasInstance.borrarArticulosCesta(cesta._id, true, true);
-        await cestasInstance.setClients(0, cesta._id);
         return nuevoAlbaran._id;
       }
 
@@ -43,6 +40,9 @@ export class AlbaranesClase {
       console.log("error setAlbaran:", error);
     }
   }
+  async getAlbaranes() {
+    return await schAlbaranes.getAlbaranes();
+  }
   async getProximoId(): Promise<number | PromiseLike<number>> {
     let id = 0;
     const parametros = await parametrosInstance.getParametros();
@@ -50,7 +50,6 @@ export class AlbaranesClase {
     let contador = 0;
     try {
       const ultimoIdMongo = await this.getUltimoIdAlbaran();
-      console.log(ultimoIdMongo);
       if (!ultimoIdMongo) {
         const params = {
           botiga: parametros.codigoTienda,
@@ -77,7 +76,6 @@ export class AlbaranesClase {
 
   async getUltimoIdAlbaran() {
     const ultimoIdMongo = (await schAlbaranes.getUltimoAlbaran())?._id;
-    console.log("ultidmon", ultimoIdMongo);
     if (ultimoIdMongo) {
       return ultimoIdMongo;
     }

@@ -285,7 +285,7 @@ async function sincronizarEncargosCreados() {
             opcionEncargo: encargo.opcionRecogida,
             codigoBarras: encargo.codigoBarras,
           };
-          const res : any = await axios
+          const res: any = await axios
             .post("encargos/setEncargo", encargo_santAna)
             .catch((e) => {
               console.log(e);
@@ -401,11 +401,9 @@ async function sincronizarEncargosFinalizados() {
               parametros
             ),
           };
-          const res : any = await axios
-            .post(url, encargoGraella)
-            .catch((e) => {
-              console.log(e);
-            });
+          const res: any = await axios.post(url, encargoGraella).catch((e) => {
+            console.log(e);
+          });
           if (res.data && !res.data.error) {
             if (await encargosInstance.setFinalizado(encargo._id)) {
               enProcesoEncargosFinalizados = false;
@@ -442,18 +440,20 @@ async function sincronizarAlbaranesCreados() {
       if (parametros != null) {
         const albaran = await AlbaranesInstance.getAlbaranCreadoMasAntiguo();
         if (albaran) {
-          const copiaAlbaran = albaran;
-          albaran.cesta.lista = await nuevaInstancePromociones.deshacerPromociones(copiaAlbaran);
+          albaran.cesta.lista =
+            await nuevaInstancePromociones.deshacerPromociones(albaran);
           const res: any = await axios
-            .post("albaranes/enviarAlbaran", { albaran })
+            .post("albaranes/setAlbaran", { albaran })
             .catch((e) => {
-              console.log(e)
+              console.log(e);
             });
-          
           if (res.data && !res.data.error) {
             if (await AlbaranesInstance.setEnviado(albaran._id)) {
               enProcesoAlbaranesCreados = false;
-              setTimeout(sincronizarAlbaranesCreados, 100);
+              setTimeout(function () {
+                enProcesoTickets = false;
+                sincronizarAlbaranesCreados();
+              }, 100);
             } else {
               enProcesoAlbaranesCreados = false;
             }
@@ -524,6 +524,7 @@ setInterval(sincronizarDeudasCreadas, 9000);
 setInterval(sincronizarDeudasFinalizadas, 10000);
 setInterval(sincronizarEncargosCreados, 9000);
 setInterval(sincronizarEncargosFinalizados, 10000);
+setInterval(sincronizarAlbaranesCreados, 11000);
 setInterval(actualizarTeclados, 3600000);
 setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);
