@@ -247,6 +247,11 @@ export class CajaClase {
       let cantidadLocal3G = await ticketsInstance.cantidadLocal3G();
       if (trabId == undefined) trabId = 0;
       if (fechaHoy != fechaApertura) {
+        // parametrosController.totalPaytef llama a paytefInstance.getRecuentoTotal que llama al server de paytef
+        // solo hay que realizar la petición cuando se cierra caja por fecha (hoy!=apertura)
+        const paytef = await parametrosController.totalPaytef();
+        let totalPaytef = paytef[0] ? paytef[0] : 0;
+
         await cajaInstance.cerrarCaja(
           0,
           [

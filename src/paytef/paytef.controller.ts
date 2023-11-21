@@ -112,13 +112,17 @@ export class PaytefController {
           if (res == "error") return "OFFLINE";
           await parametrosInstance.setTcod(res);
           await parametrosInstance.setIpPaytef(ip);
-          // let startDate = await cajaInstance.getInicioTime();
-          // paytefInstance
-          //   .getRecuentoTotal(startDate)
-          //   .then((res) => {
-          //     parametrosInstance.setContadoDatafono(1, res);
-          //   })
-          //   .catch((err) => {});
+          let startDate = await cajaInstance.getInicioTime();
+
+          if (paytefInstance.checkIfSetContadoDatafono()) {
+            paytefInstance
+              .getRecuentoTotal(startDate)
+              .then((res) => {
+                if (paytefInstance.checkIfSetContadoDatafono(true))
+                  parametrosInstance.setContadoDatafono(1, res);
+              })
+              .catch((err) => {});
+          }
           return "ONLINE";
         })
         .catch((e) => {
