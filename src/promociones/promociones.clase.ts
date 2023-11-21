@@ -14,6 +14,7 @@ import {
 } from "./promociones.interface";
 import * as schPromociones from "./promociones.mongodb";
 import { TicketsInterface } from "../tickets/tickets.interface";
+import { promises } from "dns";
 
 export class NuevaPromocion {
   private promosIndividuales: PromocionesInterface[] = [];
@@ -1009,7 +1010,7 @@ export class NuevaPromocion {
   };
 
   /* Eze 4.0 */
-  public deshacerPromociones(ticket: TicketsInterface) {
+  public deshacerPromociones(ticket: TicketsInterface):TicketsInterface['cesta']['lista'] {
     let valor = ticket.total < 0 ? -1 : 1;
     const nuevaLista = [];
     for (let i = 0; i < ticket.cesta.lista.length; i++) {
@@ -1083,6 +1084,7 @@ export class NuevaPromocion {
       }
     }
     ticket.cesta.lista = nuevaLista;
+    return ticket.cesta.lista
   }
 }
 
