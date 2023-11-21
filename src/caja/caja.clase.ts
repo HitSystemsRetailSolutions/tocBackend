@@ -241,8 +241,6 @@ export class CajaClase {
       let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0][
         "_id"
       ];
-      const paytef = await parametrosController.totalPaytef();
-      let totalPaytef = paytef[0] ? paytef[0] : 0;
       let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
       let cantidadLocal3G = await ticketsInstance.cantidadLocal3G();
       if (trabId == undefined) trabId = 0;

@@ -33,7 +33,6 @@ class PaytefClass {
     total: TicketsInterface["total"],
     type: "refund" | "sale" = "sale"
   ): Promise<void> {
-    console.log(total);
     this.ultimaIniciarTransaccion = { idTrabajador, idTicket, total, type };
 
     const parametros = await parametrosInstance.getParametros();
