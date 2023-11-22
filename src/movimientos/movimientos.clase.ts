@@ -83,7 +83,7 @@ export class MovimientosClase {
       if (await schMovimientos.existeMovimiento(idTicket, valor)) return false;
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
-      if (concepto === "Entrada") {
+      if (concepto === "Entrada" || concepto === "DEUDA") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
       } else if (
         concepto !== "Targeta" &&

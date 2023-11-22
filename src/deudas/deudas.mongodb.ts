@@ -103,7 +103,7 @@ export async function getIntervaloDeuda(
   const database = (await conexion).db("tocgame");
   const deudas = database.collection<DeudasInterface>("deudas");
   return await deudas
-    .find({ timestamp: { $lte: fechaFinal, $gte: fechaInicial }, enviado: false })
+    .find({ timestamp: { $lte: fechaFinal, $gte: fechaInicial }, estado: "SIN_PAGAR" })
     .toArray();
 }
 export async function getDeudasCajaAsync(
