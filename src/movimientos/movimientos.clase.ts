@@ -13,6 +13,7 @@ import { cajaInstance } from "../caja/caja.clase";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { CajaAbiertaInterface } from "src/caja/caja.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
+import { deudasInstance } from "src/deudas/deudas.clase";
 
 const moment = require("moment");
 const Ean13Utils = require("ean13-lib").Ean13Utils;
@@ -87,9 +88,11 @@ export class MovimientosClase {
       if (concepto === "Entrada") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
       } else if (concepto == "DEUDA") {
-        let ticketInfo = await ticketsInstance.getTicketById(idTicket);
-        let client = await clienteInstance.getClienteById(ticketInfo.idCliente);
-        impresoraInstance.imprimirDeuda(nuevoMovimiento, client.nombre);
+        let ticketInfo = await deudasInstance.getDeudaByIdTicket(idTicket);
+        impresoraInstance.imprimirDeuda(
+          nuevoMovimiento,
+          ticketInfo.nombreCliente
+        );
       } else if (
         concepto !== "Targeta" &&
         concepto !== "DEUDA" &&
