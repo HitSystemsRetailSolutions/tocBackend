@@ -433,6 +433,7 @@ export class CestaClase {
           promocion: null,
           regalo: false,
           puntos: articulo.puntos,
+          impresora: articulo.impresora,
           subtotal: unidades * articulo.precioConIva,
           unidades: unidades,
           gramos: gramos,
@@ -731,12 +732,7 @@ export class CestaClase {
           articulo.tipoIva,
           cesta.lista[i].unidades
         );
-        console.log(
-          "auxDetalleIva",
-          auxDetalleIva,
-          "cestaIva:",
-          cesta.detalleIva
-        );
+        
         cesta.detalleIva = fusionarObjetosDetalleIva(
           auxDetalleIva,
           cesta.detalleIva

@@ -14,6 +14,7 @@ import {
 } from "./promociones.interface";
 import * as schPromociones from "./promociones.mongodb";
 import { TicketsInterface } from "../tickets/tickets.interface";
+import { promises } from "dns";
 
 export class NuevaPromocion {
   private promosIndividuales: PromocionesInterface[] = [];
@@ -772,6 +773,7 @@ export class NuevaPromocion {
         regalo: false,
         subtotal: Number(data.precioConIva.toFixed(2)),
         puntos: null,
+        impresora: null,
         promocion: {
           idPromocion: data.idPromocion,
           tipoPromo: "INDIVIDUAL",
@@ -813,7 +815,7 @@ export class NuevaPromocion {
         regalo: false,
         puntos: articuloPrincipal.puntos + articuloSecundario.puntos,
         subtotal: data.precioPromoUnitario * data.seAplican,
-
+        impresora: null,
         promocion: {
           idPromocion: data.idPromocion,
           tipoPromo: "COMBO",
@@ -956,6 +958,7 @@ export class NuevaPromocion {
       promocion: null,
       puntos: null,
       regalo: false,
+      impresora: null,
       subtotal: null,
       unidades: data.sobran,
     });
@@ -973,6 +976,7 @@ export class NuevaPromocion {
       promocion: null,
       puntos: null,
       regalo: false,
+      impresora: null,
       subtotal: null,
       unidades: data.sobranPrincipal,
     });
@@ -990,6 +994,7 @@ export class NuevaPromocion {
       puntos: null,
       regalo: false,
       subtotal: null,
+      impresora: null,
       unidades: data.sobranSecundario,
     });
   }
@@ -1005,7 +1010,7 @@ export class NuevaPromocion {
   };
 
   /* Eze 4.0 */
-  public deshacerPromociones(ticket: TicketsInterface) {
+  public deshacerPromociones(ticket: TicketsInterface):TicketsInterface['cesta']['lista'] {
     let valor = ticket.total < 0 ? -1 : 1;
     const nuevaLista = [];
     for (let i = 0; i < ticket.cesta.lista.length; i++) {
@@ -1079,6 +1084,7 @@ export class NuevaPromocion {
       }
     }
     ticket.cesta.lista = nuevaLista;
+    return ticket.cesta.lista
   }
 }
 

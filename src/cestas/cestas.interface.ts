@@ -50,6 +50,7 @@ export type ItemLista = {
   };
   puntos: number;
   gramos: number;
+  impresora: string;
   regalo: boolean;
   pagado?: boolean;
 };
