@@ -87,12 +87,16 @@ export class MovimientosClase {
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrada") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
-      } else if (concepto == "DEUDA") {
+      } else if (concepto == "DEUDA" && tipo === "ENTRADA_DINERO") {
         let ticketInfo = await deudasInstance.getDeudaByIdTicket(idTicket);
         impresoraInstance.imprimirDeuda(
           nuevoMovimiento,
           ticketInfo.nombreCliente
         );
+      } else if (concepto == "DEUDA" && tipo === "SALIDA") {
+        let ticketInfo = await ticketsInstance.getTicketById(idTicket);
+        let client = await clienteInstance.getClienteById(ticketInfo.idCliente);
+        impresoraInstance.imprimirDeudaSalida(nuevoMovimiento, client.nombre);
       } else if (
         concepto !== "Targeta" &&
         concepto !== "DEUDA" &&
