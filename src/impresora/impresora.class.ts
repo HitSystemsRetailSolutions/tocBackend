@@ -24,6 +24,7 @@ import { paytefInstance } from "src/paytef/paytef.class";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { EncargosInterface } from "src/encargos/encargos.interface";
 import { TicketsInterface } from "src/tickets/tickets.interface";
+import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -97,9 +98,11 @@ export class Impresora {
   }
 
   /* Eze 4.0 */
-  async imprimirTicket(idTicket: number) {
+  async imprimirTicket(idTicket: number, albaran= false) {
     // recoge el ticket por la id
-    const ticket = await ticketsInstance.getTicketById(idTicket);
+
+    const ticket = albaran ? await AlbaranesInstance.getAlbaranById(idTicket) : await ticketsInstance.getTicketById(idTicket);
+
     const parametros = await parametrosInstance.getParametros();
     // insertamos parametro imprimir y enviado en false al ticket para enviarlo al santaAna
     if (!ticket?.imprimir) {
@@ -189,8 +192,8 @@ export class Impresora {
     }
   }
 
-  async imprimirFirma(idTicket: number) {
-    const ticket = await ticketsInstance.getTicketById(idTicket);
+  async imprimirFirma(idTicket: number,albaran = false) {
+    const ticket = albaran ? await AlbaranesInstance.getAlbaranById(idTicket) : await ticketsInstance.getTicketById(idTicket);
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
@@ -959,22 +962,24 @@ export class Impresora {
         }
       }
       const arrayTickets: TicketsInterface[] =
-      await ticketsInstance.getTicketsIntervalo(
-        caja.inicioTime,
-        caja.finalTime
-      );
-    if (parametros?.params?.DesgloseVisasCierreCaja) {
-      datafono3G +="Desglossament Vises 3G:\n";
-      for (let i = 0; i < arrayTickets.length; i++) {
-        const auxFecha = new Date(arrayTickets[i].timestamp);
-        if (arrayTickets[i].datafono3G) {
-          const signo = arrayTickets[i]?.anulado ? "" : "+";
-          datafono3G += ` Quant: ${signo}${arrayTickets[i].total.toFixed(
-            2
-          )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${this.dosDigitos(auxFecha.getHours())}:${this.dosDigitos(auxFecha.getMinutes())}\n`;
+        await ticketsInstance.getTicketsIntervalo(
+          caja.inicioTime,
+          caja.finalTime
+        );
+      if (parametros?.params?.DesgloseVisasCierreCaja) {
+        datafono3G += "Desglossament Vises 3G:\n";
+        for (let i = 0; i < arrayTickets.length; i++) {
+          const auxFecha = new Date(arrayTickets[i].timestamp);
+          if (arrayTickets[i].datafono3G) {
+            const signo = arrayTickets[i]?.anulado ? "" : "+";
+            datafono3G += ` Quant: ${signo}${arrayTickets[i].total.toFixed(
+              2
+            )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${this.dosDigitos(
+              auxFecha.getHours()
+            )}:${this.dosDigitos(auxFecha.getMinutes())}\n`;
+          }
         }
       }
-    }
       for (let i = 0; i < arrayMovimientos.length; i++) {
         const auxFecha = new Date(arrayMovimientos[i]._id);
         switch (arrayMovimientos[i].tipo) {
@@ -1123,7 +1128,16 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: "Visa             :      " + caja.cantidadPaytef.toFixed(2),
+          payload: "Tickets 3G       :      " + caja.cantidadLocal3G.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "Paytef           :      " + caja.cantidadPaytef.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "Tickets Paytef   :      " + caja.totalLocalPaytef.toFixed(2),
         },
         {
           tipo: "text",
@@ -1612,7 +1626,8 @@ export class Impresora {
         default:
           break;
       }
-      fechaEncargo = "Cada " + diaSemana + ",\n proper "+diaSemana+" "+encargo.fecha;
+      fechaEncargo =
+        "Cada " + diaSemana + ",\n proper " + diaSemana + " " + encargo.fecha;
     } else {
       fechaEncargo = encargo.fecha + " " + encargo.hora;
     }

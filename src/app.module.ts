@@ -31,6 +31,8 @@ import { DeudasController } from "./deudas/deudas.controller";
 import { CargarImagenController } from "./imagenInvasiva/imagen.controller";
 import { checkers } from "./checkers/checkers.controller";
 import { balancaController } from "./balanca/balanca.clase";
+import { AlbaranesController } from "./albaranes/albaranes.controller";
+
 @Module({
   imports: [
     ServeStaticModule.forRoot({
@@ -68,6 +70,7 @@ import { balancaController } from "./balanca/balanca.clase";
     checkers,
     DeudasController,
     CargarImagenController,
+    AlbaranesController,
   ],
   // providers: [SocketGateway],
 })

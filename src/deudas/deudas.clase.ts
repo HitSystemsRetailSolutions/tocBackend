@@ -11,6 +11,8 @@ import { clienteInstance } from "src/clientes/clientes.clase";
 import { articulosInstance } from "src/articulos/articulos.clase";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 import { CajaCerradaInterface, CajaSincro } from "src/caja/caja.interface";
+import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
+import { impresoraInstance } from "src/impresora/impresora.class";
 export class Deudas {
   async getDate(timestamp: any) {
     var date = new Date(timestamp);
@@ -97,6 +99,25 @@ export class Deudas {
     const deuda = await schDeudas.getDeudaById(data.idDeuda);
 
     if (deuda) {
+      const cliente = await clienteInstance.getClienteById(deuda.idCliente);
+      if (cliente.albaran) {
+        try {
+          const albaran = await AlbaranesInstance.setAlbaran(
+            deuda.total,
+            deuda.cesta,
+            deuda.idTrabajador,
+            "PAGADO"
+          );
+          await impresoraInstance.imprimirTicket(albaran, true);
+          await impresoraInstance.imprimirFirma(albaran, true);
+        } catch (error) {
+          // Manejar el error de acuerdo a tus necesidades
+          console.error(
+            "Error al ejecutar AlbaranesInstance.setAlbaran:",
+            error
+          );
+        }
+      }
       const movimiento = {
         cantidad: deuda.total,
         concepto: "DEUDA",

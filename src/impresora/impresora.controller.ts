@@ -12,10 +12,11 @@ import axios from "axios";
 @Controller("impresora")
 export class ImpresoraController {
   @Post("imprimirTicket")
-  async imprimirTicket(@Body() { idTicket }) {
+  async imprimirTicket(@Body() { idTicket,albaran=false }) {
+    console.log("Tick",idTicket)
     try {
       if (idTicket) {
-        await impresoraInstance.imprimirTicket(idTicket);
+        await impresoraInstance.imprimirTicket(idTicket, albaran);
         return true;
       }
       throw Error("Faltan datos en impresora/imprimirTicket");
@@ -32,6 +33,28 @@ export class ImpresoraController {
       mqttInstance.resetPapel();
       return true;
     } catch (err) {
+      logger.Error(139, err);
+      return false;
+    }
+  }
+
+  /* Uri*/
+  @Post("imprimirTicketComandero")
+  async imprimirTicketComandero(@Body() { products, table, worker, clients }) {
+    try {
+      if (products && table && worker && clients) {
+        let sended: any = await axios.post("impresora/impresoraCola", {
+          tickets: products,
+          table: table,
+          worker: worker,
+          clients: clients,
+        });
+        if (sended.data) return true;
+        return false;
+      }
+      throw Error("Faltan datos en impresora/imprimirTicketComandero");
+    } catch (err) {
+      console.log(err);
       logger.Error(139, err);
       return false;
     }
@@ -85,10 +108,10 @@ export class ImpresoraController {
   }
 
   @Post("firma")
-  async despedidaFirma(@Body() { idTicket }) {
+  async despedidaFirma(@Body() { idTicket,albaran=false }) {
     try {
       if (idTicket) {
-        await impresoraInstance.imprimirFirma(idTicket);
+        await impresoraInstance.imprimirFirma(idTicket, albaran);
         return true;
       }
       throw Error("Faltan datos en impresora/imprimirTicket");

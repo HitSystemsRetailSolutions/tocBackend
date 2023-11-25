@@ -140,6 +140,40 @@ export async function getUltimoTicket(): Promise<TicketsInterface> {
   return await tickets.findOne({}, { sort: { _id: -1 } });
 }
 
+/* Uri */
+export async function getTotalLocalPaytef(): Promise<number> {
+  const database = (await conexion).db("tocgame");
+  const time = (await schCaja.getApeturaCaja()).inicioTime;
+  const tickets = database.collection<TicketsInterface>("tickets");
+  const tkPaytef: any = await tickets.find({
+    paytef: true,
+    timestamp: { $gt: time },
+  });
+  const arrayResult = await tkPaytef.toArray();
+  let sum = 0;
+  for (const x of arrayResult) {
+    sum += x.total;
+  }
+  return sum;
+}
+
+/* Uri */
+export async function getTotalLocal3G(): Promise<number> {
+  const database = (await conexion).db("tocgame");
+  const time = (await schCaja.getApeturaCaja()).inicioTime;
+  const tickets = database.collection<TicketsInterface>("tickets");
+  const tkPaytef: any = await tickets.find({
+    datafono3G: true,
+    timestamp: { $gt: time },
+  });
+  const arrayResult = await tkPaytef.toArray();
+  let sum = 0;
+  for (const x of arrayResult) {
+    sum += x.total;
+  }
+  return sum;
+}
+
 /* Eze v23 */
 export async function nuevoTicket(ticket: TicketsInterface): Promise<boolean> {
   // conexion con mongo
@@ -313,7 +347,8 @@ export async function borrarTicket(idTicket: number): Promise<boolean> {
 
 /* Eze v23 - Solo se invoca manualmente desde la lista de tickets (frontend dependienta) */
 export async function anularTicket(
-  idTicket: TicketsInterface["_id"], datafono3G=false
+  idTicket: TicketsInterface["_id"],
+  datafono3G = false
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const ticketsAnulados = database.collection("ticketsAnulados");
@@ -322,7 +357,7 @@ export async function anularTicket(
   });
   if (resultado === null) {
     let ticket = await getTicketByID(idTicket);
-    let dt3G = datafono3G
+    let dt3G = datafono3G;
     if (ticket.total > 0) {
       const id = await ticketsInstance.getProximoId();
       ticket.enviado = false;
