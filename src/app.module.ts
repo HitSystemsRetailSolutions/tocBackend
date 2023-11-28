@@ -30,7 +30,9 @@ import { EncargosController } from "./encargos/encargos.controller";
 import { DeudasController } from "./deudas/deudas.controller";
 import { CargarImagenController } from "./imagenInvasiva/imagen.controller";
 import { checkers } from "./checkers/checkers.controller";
+import { balancaController } from "./balanca/balanca.clase";
 import { AlbaranesController } from "./albaranes/albaranes.controller";
+
 @Module({
   imports: [
     ServeStaticModule.forRoot({
@@ -62,6 +64,7 @@ import { AlbaranesController } from "./albaranes/albaranes.controller";
     TarifasController,
     MesasController,
     PromocionesController,
+    balancaController,
     TraduccionesController,
     EncargosController,
     checkers,
