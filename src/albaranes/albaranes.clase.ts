@@ -52,14 +52,15 @@ export class AlbaranesClase {
       const ultimoIdMongo = await this.getUltimoIdAlbaran();
       if (!ultimoIdMongo) {
         const params = {
-          botiga: parametros.codigoTienda,
-          database: parametros.codigoTienda,
+          codigoTienda: parametros.codigoTienda,
+          database: parametros.database,
         };
-
-        const idAlbaranSantaAna: { data: number } = await axios.get(
+        console.log("e")
+        const idAlbaranSantaAna: { data: number } = await axios.post(
           "albaranes/getLastId",
           { params }
         );
+        console.log(idAlbaranSantaAna.data);
         if (idAlbaranSantaAna.data) {
           contador = Number(idAlbaranSantaAna.data.toString().slice(3));
           contador += 1;

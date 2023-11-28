@@ -100,11 +100,12 @@ export class Impresora {
   /* Eze 4.0 */
   async imprimirTicket(idTicket: number, albaran = false) {
     // recoge el ticket por la id
-    console.log("idT", idTicket);
+
     const ticket = albaran
       ? await AlbaranesInstance.getAlbaranById(idTicket)
       : await ticketsInstance.getTicketById(idTicket);
-    console.log("idTI", ticket?._id);
+
+
     const parametros = await parametrosInstance.getParametros();
     // insertamos parametro imprimir y enviado en false al ticket para enviarlo al santaAna
     if (!ticket?.imprimir) {
