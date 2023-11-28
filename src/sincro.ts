@@ -23,12 +23,15 @@ import {
   Periodo,
 } from "./encargos/encargos.interface";
 import * as moment from "moment";
+import { AlbaranesInstance } from "./albaranes/albaranes.clase";
+import { clienteInstance } from "./clientes/clientes.clase";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
 let enProcesoDeudasFinalizadas = false;
 let enProcesoEncargosCreados = false;
 let enProcesoEncargosFinalizados = false;
+let enProcesoAlbaranesCreados = false;
 async function sincronizarTickets() {
   try {
     if (!enProcesoTickets) {
@@ -282,7 +285,7 @@ async function sincronizarEncargosCreados() {
             opcionEncargo: encargo.opcionRecogida,
             codigoBarras: encargo.codigoBarras,
           };
-          const res : any = await axios
+          const res: any = await axios
             .post("encargos/setEncargo", encargo_santAna)
             .catch((e) => {
               console.log(e);
@@ -398,11 +401,9 @@ async function sincronizarEncargosFinalizados() {
               parametros
             ),
           };
-          const res : any = await axios
-            .post(url, encargoGraella)
-            .catch((e) => {
-              console.log(e);
-            });
+          const res: any = await axios.post(url, encargoGraella).catch((e) => {
+            console.log(e);
+          });
           if (res.data && !res.data.error) {
             if (await encargosInstance.setFinalizado(encargo._id)) {
               enProcesoEncargosFinalizados = false;
@@ -427,6 +428,52 @@ async function sincronizarEncargosFinalizados() {
     }
   } catch (err) {
     enProcesoEncargosFinalizados = false;
+    logger.Error(5, err);
+  }
+}
+
+async function sincronizarAlbaranesCreados() {
+  try {
+    if (!enProcesoAlbaranesCreados) {
+      enProcesoAlbaranesCreados = true;
+      const parametros = await parametrosInstance.getParametros();
+      if (parametros != null) {
+        const albaran = await AlbaranesInstance.getAlbaranCreadoMasAntiguo();
+        if (albaran) {
+          albaran.cesta.lista =
+            await nuevaInstancePromociones.deshacerPromociones(albaran);
+          const res: any = await axios
+            .post("albaranes/setAlbaran", { albaran })
+            .catch((e) => {
+              console.log(e);
+            });
+          if (res.data && !res.data.error) {
+            if (await AlbaranesInstance.setEnviado(albaran._id)) {
+              enProcesoAlbaranesCreados = false;
+              setTimeout(function () {
+                enProcesoTickets = false;
+                sincronizarAlbaranesCreados();
+              }, 100);
+            } else {
+              enProcesoAlbaranesCreados = false;
+            }
+          } else {
+            logger.Error(
+              153,
+              "Error: no se ha podido crear el albaran en el SantaAna"
+            );
+            enProcesoAlbaranesCreados = false;
+          }
+        } else {
+          enProcesoAlbaranesCreados = false;
+        }
+      } else {
+        enProcesoAlbaranesCreados = false;
+        logger.Error(4, "No hay parámetros definidos en la BBDD");
+      }
+    }
+  } catch (err) {
+    enProcesoAlbaranesCreados = false;
     logger.Error(5, err);
   }
 }
@@ -477,6 +524,7 @@ setInterval(sincronizarDeudasCreadas, 9000);
 setInterval(sincronizarDeudasFinalizadas, 10000);
 setInterval(sincronizarEncargosCreados, 9000);
 setInterval(sincronizarEncargosFinalizados, 10000);
+setInterval(sincronizarAlbaranesCreados, 11000);
 setInterval(actualizarTeclados, 3600000);
 setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);

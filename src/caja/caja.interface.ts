@@ -23,10 +23,12 @@ export interface CajaCerradaInterface {
   totalEfectivo: number;
   totalTarjeta: number;
   totalDatafono3G: number;
+  cantidadLocal3G: number;
   totalHonei: number;
   propina: number;
   totalDeudas: number;
   cantidadPaytef: number;
+  totalLocalPaytef: number;
   totalTicketDatafono3G: number;
   totalDeuda: number;
   totalTkrsSinExceso: number;
@@ -56,6 +58,8 @@ export interface CajaSincro {
   totalEntradas: number;
   totalEfectivo: number;
   totalTarjeta: number;
+  totalLocalPaytef: number;
+  cantidadLocal3G: number;
   totalDatafono3G: number;
   totalDeudas: number;
   cantidadPaytef: number;

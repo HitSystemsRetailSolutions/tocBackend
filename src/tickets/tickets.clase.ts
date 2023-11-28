@@ -12,6 +12,7 @@ import { paytefInstance } from "../paytef/paytef.class";
 import { cajaInstance } from "../caja/caja.clase";
 import { ClientesInterface } from "src/clientes/clientes.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
+import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -36,8 +37,11 @@ export class TicketsClase {
       } else {
         return { res: false, tipo: "TARJETA" };
       }
-    }else if(ticket.datafono3G){
-      return { res: await schTickets.anularTicket(idTicket,true), tipo: "DATAFONO_3G" };
+    } else if (ticket.datafono3G) {
+      return {
+        res: await schTickets.anularTicket(idTicket, true),
+        tipo: "DATAFONO_3G",
+      };
     }
     return { res: await schTickets.anularTicket(idTicket), tipo: "EFECTIVO" };
   }
@@ -73,7 +77,11 @@ export class TicketsClase {
   /* Eze 4.0 */
   async getProximoId(): Promise<number> {
     const ultimoIdTicket = await this.getUltimoIdTicket();
-    if (typeof ultimoIdTicket === "number") return ultimoIdTicket + 1;
+
+    if (typeof ultimoIdTicket === "number") {
+      return ultimoIdTicket + 1;
+    }
+
     throw Error("El ultimoIdTicket no es correcto");
   }
 
@@ -213,6 +221,9 @@ export class TicketsClase {
   /* Uri 4.0 */
   setPagadoPaytef = (idTicket: TicketsInterface["_id"]) =>
     schTickets.setPagadoPaytef(idTicket);
+
+  getTotalLocalPaytef = () => schTickets.getTotalLocalPaytef();
+  cantidadLocal3G = () => schTickets.getTotalLocal3G();
 
   actualizarTickets = async () => {
     const arrayVentas = await movimientosInstance.construirArrayVentas();
