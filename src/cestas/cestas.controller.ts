@@ -235,11 +235,11 @@ export class CestasController {
   async updateCestaInverso(@Body() { cesta }) {
     try {
       if (cesta) {
-        const res= await cestasInstance.updateCesta(cesta);
+        const res = await cestasInstance.updateCesta(cesta);
         if (res) {
           cestasInstance.actualizarCestas();
         }
-        return res
+        return res;
       }
       throw Error("Error, faltan datos en cestas/updateCestaInverso");
     } catch (err) {
@@ -277,31 +277,32 @@ export class CestasController {
   }
 
   @Post("recalcularIvasDescuentoToGo")
-  async recalcularIvasDescuentoToGo(@Body() {idCesta}){
+  async recalcularIvasDescuentoToGo(@Body() { idCesta }) {
     try {
       if (!idCesta) {
-        throw Error ("faltan datos en recalcularIvasDescuentoToGo")
+        throw Error("faltan datos en recalcularIvasDescuentoToGo");
       }
-      console.log("ok",idCesta)
-      const cesta= await cestasInstance.getCestaById(idCesta)
+      const cesta = await cestasInstance.getCestaById(idCesta);
       await cestasInstance.recalcularIvasDescuentoToGo(cesta);
     } catch (error) {
-      logger.Error(134,error)
+      logger.Error(134, error);
     }
   }
 
   @Post("recalcularIvas")
-  async recalcularIvas(@Body() {idCesta}){
+  async recalcularIvas(@Body() { idCesta }) {
     try {
       if (!idCesta) {
-        throw Error ("faltan datos en recalcularIvas")
+        throw Error("faltan datos en recalcularIvas");
       }
-      console.log("ok2",idCesta)
-      const cesta= await cestasInstance.getCestaById(idCesta)
+      const cesta = await cestasInstance.getCestaById(idCesta);
       await cestasInstance.recalcularIvas(cesta);
-      await cestasInstance.actualizarCestas();
+      if (await cestasInstance.updateCesta(cesta)) {
+        await cestasInstance.actualizarCestas();
+        return true;
+      }
     } catch (error) {
-      logger.Error(135,error)
+      logger.Error(135, error);
     }
   }
   // @Post("addSuplementos")
