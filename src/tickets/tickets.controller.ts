@@ -20,6 +20,7 @@ import { mqttInstance } from "src/mqtt";
 import axios from "axios";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { getClienteById } from "src/clientes/clientes.mongodb";
+import descuentoEspecial from "src/clientes/clientes.interface";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -145,8 +146,11 @@ export class TicketsController {
       );
       //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
       // el modo de cesta debe cambiar a consumo_personal.
+      const clienteDescEsp = descuentoEspecial.find(
+        (cliente) => cliente.idCliente === cesta.idCliente
+      );
       if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
-      if (tipo !== "CONSUMO_PERSONAL" && descuento && descuento > 0) {
+      if (tipo !== "CONSUMO_PERSONAL" && descuento && descuento > 0 && (!clienteDescEsp || clienteDescEsp.precio==total)) {
         cesta.lista.forEach((producto) => {
           if (producto.arraySuplementos != null) {
             producto.subtotal = this.redondearPrecio(

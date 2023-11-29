@@ -13,7 +13,7 @@ import axios from "axios";
 export class ImpresoraController {
   @Post("imprimirTicket")
   async imprimirTicket(@Body() { idTicket,albaran=false }) {
-    console.log("Tick",idTicket)
+
     try {
       if (idTicket) {
         await impresoraInstance.imprimirTicket(idTicket, albaran);

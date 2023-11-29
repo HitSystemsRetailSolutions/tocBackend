@@ -6,7 +6,9 @@ import { clienteInstance } from "../clientes/clientes.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import axios from "axios";
 import { mqttInstance } from "../mqtt";
-import { ClientesInterface } from "../clientes/clientes.interface";
+import descuentoEspecial, {
+  ClientesInterface,
+} from "../clientes/clientes.interface";
 import { ItemLista } from "../cestas/cestas.interface";
 import { devolucionesInstance } from "../devoluciones/devoluciones.clase";
 import { ObjectId } from "mongodb";
@@ -98,14 +100,16 @@ export class Impresora {
   }
 
   /* Eze 4.0 */
-  async imprimirTicket(idTicket: number, albaran= false) {
+  async imprimirTicket(idTicket: number, albaran = false) {
     // recoge el ticket por la id
 
-    const ticket = albaran ? await AlbaranesInstance.getAlbaranById(idTicket) : await ticketsInstance.getTicketById(idTicket);
+    const ticket = albaran
+      ? await AlbaranesInstance.getAlbaranById(idTicket)
+      : await ticketsInstance.getTicketById(idTicket);
 
     const parametros = await parametrosInstance.getParametros();
     // insertamos parametro imprimir y enviado en false al ticket para enviarlo al santaAna
-    if (!ticket?.imprimir) {
+    if (!ticket?.imprimir && !albaran) {
       // solo entramos si nunca antes se habia imprimido antes el ticket
       await ticketsInstance.insertImprimir(idTicket);
     }
@@ -155,6 +159,7 @@ export class Impresora {
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: informacionVip, // Mirar bien para terminar todo
           infoCliente: {
+            idCliente: infoCliente.id,
             nombre: infoCliente.nombre,
             puntos: puntos,
             descuento,
@@ -192,8 +197,10 @@ export class Impresora {
     }
   }
 
-  async imprimirFirma(idTicket: number,albaran = false) {
-    const ticket = albaran ? await AlbaranesInstance.getAlbaranById(idTicket) : await ticketsInstance.getTicketById(idTicket);
+  async imprimirFirma(idTicket: number, albaran = false) {
+    const ticket = albaran
+      ? await AlbaranesInstance.getAlbaranById(idTicket)
+      : await ticketsInstance.getTicketById(idTicket);
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
@@ -233,6 +240,7 @@ export class Impresora {
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: informacionVip, // Mirar bien para terminar todo
           infoCliente: {
+            idCliente: infoCliente.id,
             nombre: infoCliente.nombre,
             puntos: puntos,
             descuento,
@@ -389,7 +397,7 @@ export class Impresora {
     const numFactura = info.numFactura;
     const arrayCompra: ItemLista[] = info.arrayCompra;
     const dejaCuenta = info?.dejaCuenta > 0 ? info?.dejaCuenta : 0;
-    const total = info.total;
+    const total = Number(info.total.toFixed(2));
     const tipoPago = info.visa;
     //   mqttInstance.loggerMQTT(tipoPago)
     const tiposIva = info.tiposIva;
@@ -426,6 +434,9 @@ export class Impresora {
         detalleClienteVip += `\n${infoClienteVip.direccion}`;
     }
     // recojemos datos del cliente si nos los han mandado
+    const clienteDescEsp = descuentoEspecial.find(
+      (cliente) => cliente.idCliente === infoCliente?.idCliente
+    );
     if (infoCliente != null) {
       clientTitle = "\nCLIENT:";
       detalleNombreCliente = infoCliente.nombre;
@@ -433,14 +444,26 @@ export class Impresora {
       detallePuntosCliente =
         "Punts restants: " +
           (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
-      clienteDescuento =
-        "Descompte de client: " +
-        (infoCliente.descuento ?? "0") +
-        " %" +
-        "\nVenta registrada.";
-      if (infoCliente.descuento == 0) clienteDescuento = "Venta registrada.";
+      if (!clienteDescEsp || clienteDescEsp.precio != total) {
+        clienteDescuento =
+          "Descompte de client: " +
+          (infoCliente.descuento ?? "0") +
+          " %" +
+          "\nVenta registrada.";
+        if (infoCliente.descuento == 0) clienteDescuento = "Venta registrada.";
+      } else if (clienteDescEsp.precio == total) {
+        const activacionDescEsp =
+          clienteDescEsp?.activacion && clienteDescEsp?.activacion
+            ? "Total >= " + clienteDescEsp.activacion
+            : infoCliente.nombre;
+        clienteDescuento = "Descompte Especial " + activacionDescEsp;
+      }
     }
-    if (infoCliente?.descuento && infoCliente.descuento != 0) {
+    if (
+      infoCliente?.descuento &&
+      infoCliente.descuento != 0 &&
+      (!clienteDescEsp || clienteDescEsp.precio != total)
+    ) {
       detalleDescuento += detalleDescuento += `Total sense descompte: ${(
         (total + dejaCuenta) /
         (1 - infoCliente.descuento / 100)
@@ -449,6 +472,8 @@ export class Impresora {
           infoCliente.descuento) /
         100
       ).toFixed(2)}€\n`;
+    } else if (clienteDescEsp && clienteDescEsp.precio == total) {
+      detalleDescuento += "nuevo precio total: " + clienteDescEsp.precio;
     }
 
     const moment = require("moment-timezone");
@@ -504,6 +529,7 @@ export class Impresora {
       (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
     }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
     // declaramos el dispositivo y la impresora escpos
+    console.log(detalleDescuento,clienteDescuento)
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
     const database = (await conexion).db("tocgame");

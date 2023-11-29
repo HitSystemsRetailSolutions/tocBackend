@@ -287,4 +287,23 @@ export class ClientesController {
     }
 
   }
+
+  @Get("getEsClient")
+  async getEsClient(@Query() query: { idCliente: ClientesInterface["id"] }){
+
+    if (!query || !query.idCliente) {
+      return false;
+    }
+    try {
+      const params={idCliente:query.idCliente}
+      const res = await axios.get("clientes/getEsClient",{params})
+      if (res.data) {
+        return true
+      }
+      return false;
+    } catch (error) {
+      logger.Error(137, 'En getEsClient:',error);
+      return false;
+    }
+  }
 }
