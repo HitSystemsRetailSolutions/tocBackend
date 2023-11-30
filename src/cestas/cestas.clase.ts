@@ -13,7 +13,9 @@ import {
 import { Articulos, articulosInstance } from "../articulos/articulos.clase";
 import { cajaInstance } from "../caja/caja.clase";
 import { ArticulosInterface } from "../articulos/articulos.interface";
-import { ClientesInterface } from "../clientes/clientes.interface";
+import descuentoEspecial, {
+  ClientesInterface,
+} from "../clientes/clientes.interface";
 import { ObjectId } from "mongodb";
 import { logger } from "../logger";
 import { io } from "../sockets.gateway";
@@ -27,8 +29,19 @@ import { tarifasInstance } from "src/tarifas/tarifas.class";
 
 export class CestaClase {
   async recalcularIvasDescuentoToGo(cesta: CestasInterface) {
-    const totalDeseado = 3.99;
+    let totalDeseado = 3.99;
+    // Busca el objeto con el idCliente específico
+    const clienteEspecial = descuentoEspecial.find(
+      (cliente) =>
+        cliente.idCliente ===
+        "CliBoti_000_{7A6EA7B0-3229-4A94-81EA-232F4666A7BE}"
+    );
 
+    // Añade el precio al totalDeseado si se encuentra el cliente especial
+    // por si mas adelante se modifica el totalDeseado de toGo
+    if (clienteEspecial) {
+      totalDeseado = clienteEspecial.precio;
+    }
     // Calcular la suma actual de los importes
     const sumaActualImportes =
       cesta.detalleIva.importe1 +
@@ -80,8 +93,8 @@ export class CestaClase {
             total += cesta.lista[i].subtotal;
           }
           impresoraInstance.mostrarVisor({
-            total: "3.99",
-            precio: "3.99",
+            total: totalDeseado,
+            precio: totalDeseado,
             texto: cesta.lista[cesta.lista.length - 1].nombre,
             numProductos: numProductos,
           });

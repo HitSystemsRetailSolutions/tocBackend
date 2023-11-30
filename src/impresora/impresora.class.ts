@@ -473,7 +473,7 @@ export class Impresora {
         100
       ).toFixed(2)}€\n`;
     } else if (clienteDescEsp && clienteDescEsp.precio == total) {
-      detalleDescuento += "nuevo precio total: " + clienteDescEsp.precio;
+      detalleDescuento += "Nou preu total: " + clienteDescEsp.precio;
     }
 
     const moment = require("moment-timezone");
@@ -529,7 +529,7 @@ export class Impresora {
       (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
     }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
     // declaramos el dispositivo y la impresora escpos
-    console.log(detalleDescuento,clienteDescuento)
+
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
     const database = (await conexion).db("tocgame");

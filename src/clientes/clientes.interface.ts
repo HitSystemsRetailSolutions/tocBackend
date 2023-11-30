@@ -7,6 +7,8 @@ export interface ClientesInterface {
   descuento: number;
 }
 
+// array de descuentosEspeciales dependiendo del cliente
+// guarda la idCLiente, a que precio se activa y el precio final
 const descuentoEspecial = [
   {
     idCliente: "CliBoti_000_{7A6EA7B0-3229-4A94-81EA-232F4666A7BE}",
