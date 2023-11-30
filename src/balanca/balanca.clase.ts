@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Query, Param } from "@nestjs/common";
 import { io } from "../sockets.gateway";
 const mqtt = require("mqtt");
-const client = mqtt.connect("mqtt://localhost:1883");
+const client = mqtt.connect(process.env.MQTT_URL) || mqtt.connect("mqtt://localhost");
 client.on("connect", async () => {
   try {
     client.subscribe(`hit/hardware/pes`);
