@@ -85,6 +85,9 @@ export class Deudas {
   async getAllDeudas() {
     return await schDeudas.getAllDeudas();
   }
+  async getDeudaByIdTicket(deudaID) {
+    return await schDeudas.getDeudaByIdTicket(deudaID);
+  }
   async getTotalMoneyStandBy() {
     const arrayDeudas = await this.getAllDeudas();
     let money = 0;
