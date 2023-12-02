@@ -43,7 +43,7 @@ async function sincronizarTickets() {
           await nuevaInstancePromociones.deshacerPromociones(ticket);
           const res: any = await axios
             .post("tickets/enviarTicket", { ticket })
-            .catch((e) => {});
+            .catch((e) => {console.log("error",e)});
 
           if (res.data) {
             if (await ticketsInstance.setTicketEnviado(ticket._id)) {
