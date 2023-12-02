@@ -107,6 +107,7 @@ export class Impresora {
       ? await AlbaranesInstance.getAlbaranById(idTicket)
       : await ticketsInstance.getTicketById(idTicket);
 
+
     const parametros = await parametrosInstance.getParametros();
     // insertamos parametro imprimir y enviado en false al ticket para enviarlo al santaAna
     if (!ticket?.imprimir && !albaran) {
@@ -892,6 +893,118 @@ export class Impresora {
         },
         { tipo: "size", payload: [1, 1] },
         { tipo: "text", payload: movimiento.valor + "€" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Concepto" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.concepto },
+      ];
+
+      if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
+        buffer.push({
+          tipo: "barcode",
+          payload: [movimiento.codigoBarras.slice(0, 12), "EAN13", 4],
+        });
+      }
+      buffer.push({
+        tipo: "text",
+        payload: "\n\n\n",
+      });
+      buffer.push({
+        tipo: "cut",
+        payload: "PAPER_FULL_CUT",
+      });
+
+      const options = {
+        imprimirLogo: false,
+        tipo: "entrada",
+      };
+      this.enviarMQTT(buffer, options);
+    } catch (err) {
+      console.log(err);
+      mqttInstance.loggerMQTT(err);
+    }
+  }
+
+  async imprimirDeuda(movimiento: MovimientosInterface, client: string) {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      const moment = require("moment-timezone");
+      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
+      const trabajador = await trabajadoresInstance.getTrabajadorById(
+        movimiento.idTrabajador
+      );
+      let buffer = [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: parametros.nombreTienda },
+        { tipo: "text", payload: fechaStr.format("DD-MM-YYYY HH:mm") },
+        { tipo: "text", payload: "Cliente: " + client },
+        {
+          tipo: "text",
+          payload: "Total pagado:",
+        },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.valor + "€" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Concepto" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.concepto },
+      ];
+
+      if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
+        buffer.push({
+          tipo: "barcode",
+          payload: [movimiento.codigoBarras.slice(0, 12), "EAN13", 4],
+        });
+      }
+      buffer.push({
+        tipo: "text",
+        payload: "\n\n\n",
+      });
+      buffer.push({
+        tipo: "cut",
+        payload: "PAPER_FULL_CUT",
+      });
+
+      const options = {
+        imprimirLogo: false,
+        tipo: "entrada",
+      };
+      this.enviarMQTT(buffer, options);
+    } catch (err) {
+      console.log(err);
+      mqttInstance.loggerMQTT(err);
+    }
+  }
+
+  async imprimirDeudaSalida(movimiento: MovimientosInterface, client: string) {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      const moment = require("moment-timezone");
+      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
+      const trabajador = await trabajadoresInstance.getTrabajadorById(
+        movimiento.idTrabajador
+      );
+      let buffer = [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: parametros.nombreTienda },
+        { tipo: "text", payload: fechaStr.format("DD-MM-YYYY HH:mm") },
+        { tipo: "text", payload: "Cliente: " + client },
+        {
+          tipo: "text",
+          payload: "Total deuda:",
+        },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: -1 * movimiento.valor + "€" },
         { tipo: "size", payload: [0, 0] },
         { tipo: "text", payload: "Concepto" },
         { tipo: "size", payload: [1, 1] },

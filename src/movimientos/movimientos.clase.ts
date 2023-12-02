@@ -12,6 +12,8 @@ import { ticketsInstance } from "../tickets/tickets.clase";
 import { cajaInstance } from "../caja/caja.clase";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { CajaAbiertaInterface } from "src/caja/caja.interface";
+import { clienteInstance } from "src/clientes/clientes.clase";
+import { deudasInstance } from "src/deudas/deudas.clase";
 
 const moment = require("moment");
 const Ean13Utils = require("ean13-lib").Ean13Utils;
@@ -85,6 +87,16 @@ export class MovimientosClase {
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       if (concepto === "Entrada") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
+      } else if (concepto == "DEUDA" && tipo === "ENTRADA_DINERO") {
+        let ticketInfo = await deudasInstance.getDeudaByIdTicket(idTicket);
+        impresoraInstance.imprimirDeuda(
+          nuevoMovimiento,
+          ticketInfo.nombreCliente
+        );
+      } else if (concepto == "DEUDA" && tipo === "SALIDA") {
+        let ticketInfo = await ticketsInstance.getTicketById(idTicket);
+        let client = await clienteInstance.getClienteById(ticketInfo.idCliente);
+        impresoraInstance.imprimirDeudaSalida(nuevoMovimiento, client.nombre);
       } else if (
         concepto !== "Targeta" &&
         concepto !== "DEUDA" &&
@@ -221,8 +233,9 @@ export class MovimientosClase {
 
   /* Uri */
   public async getExtraData(ticket) {
-    const arrayMovimientos =
-      await schMovimientos.getMovimientosDelTicket(ticket);
+    const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
+      ticket
+    );
     if (arrayMovimientos?.length > 0) {
       return arrayMovimientos[0].ExtraData;
     }

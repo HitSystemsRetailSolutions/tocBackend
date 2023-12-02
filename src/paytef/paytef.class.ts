@@ -155,7 +155,7 @@ class PaytefClass {
               )
                 impresoraInstance.imprimirTicket(idTicket);
               ticketsInstance.setPagadoPaytef(idTicket);
-              io.emit("consultaPaytef", true);
+              io.emit("consultaPaytef", { valid: true, ticket: idTicket });
               io.emit("procesoPaytef", { proceso: "aprobado" });
               transaccionFinalizada = true;
               /*---- return true; */
@@ -230,7 +230,7 @@ class PaytefClass {
         } else {
           // result.approved = false
           if (type === "sale") {
-            io.emit("consultaPaytef", false);
+            io.emit("consultaPaytef", { valid: false, ticket: idTicket });
           } else if (type === "refund") {
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
           }
@@ -352,7 +352,7 @@ class PaytefClass {
 
     if (res?.data?.approved) {
       ticketsInstance.setPagadoPaytef(ticket);
-      io.emit("consultaPaytef", true);
+      io.emit("consultaPaytef", { valid: true, ticket: ticket });
       io.emit("procesoPaytef", { proceso: "aprobado" });
       return true;
     }
