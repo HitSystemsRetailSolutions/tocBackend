@@ -37,6 +37,7 @@ export interface CajaCerradaInterface {
   calaixFetZ: number;
   detalleCierre: DetalleMonedas;
   mediaTickets: number;
+  cambioEmergencia: number;
 }
 
 export interface CajaSincro {
