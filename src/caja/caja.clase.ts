@@ -129,7 +129,7 @@ export class CajaClase {
       // TODO: Propina
       await this.getPropina(),
       totalDeudas,
-      cambioEmergencia,
+      Number(cambioEmergencia.toFixed(2)),
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
