@@ -33,7 +33,7 @@ export class AlbaranesController {
       const clienteDescEsp = descuentoEspecial.find(
         (cliente) => cliente.idCliente === cesta.idCliente
       );
-      if ((!clienteDescEsp || clienteDescEsp.precio!=total)) {
+      if ((!clienteDescEsp || clienteDescEsp.precio!=total) &&  descuento && descuento > 0) {
         cesta.lista.forEach((producto) => {
           if (producto.arraySuplementos != null) {
             producto.subtotal = this.redondearPrecio(

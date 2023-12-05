@@ -19,6 +19,7 @@ export class CajaController {
       cantidad3G,
       cantidadPaytef,
       idDependienta,
+      cambioEmergencia,
     }
   ) {
     try {
@@ -45,7 +46,8 @@ export class CajaController {
           totalLocalPaytef,
           idDependienta,
           false,
-          await ticketsInstance.getTotalHonei()
+          await ticketsInstance.getTotalHonei(),
+          cambioEmergencia,
         );
       }
       throw Error("Error cerrarCaja > Faltan datos");

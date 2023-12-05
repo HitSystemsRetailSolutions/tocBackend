@@ -107,7 +107,6 @@ export class Impresora {
       ? await AlbaranesInstance.getAlbaranById(idTicket)
       : await ticketsInstance.getTicketById(idTicket);
 
-
     const parametros = await parametrosInstance.getParametros();
     // insertamos parametro imprimir y enviado en false al ticket para enviarlo al santaAna
     if (!ticket?.imprimir && !albaran) {
@@ -1251,6 +1250,10 @@ export class Impresora {
           tipo: "text",
           payload: "Cli. at. Taules  :      " + caja.nClientesMesas,
         },
+        {
+          tipo: "text",
+          payload: "Canvi d'emergencia  :      " + caja.cambioEmergencia,
+        },
       ]);
 
       if (parametros.params?.MostraTotalAcumulat == "Si") {
@@ -1674,9 +1677,14 @@ export class Impresora {
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
-    const descuento: any = Number(
-      (await clienteInstance.isClienteDescuento(encargo.idCliente))?.descuento
+    const cliente: ClientesInterface = await clienteInstance.isClienteDescuento(
+      encargo.idCliente
     );
+    const descuento: any = Number(cliente?.descuento);
+    const telefono: ClientesInterface["telefono"] =
+    cliente?.telefono && cliente?.telefono.length > 1
+      ? cliente.telefono
+      : "No en té";
     const cabecera = parametros?.header == undefined ? "" : parametros.header;
     const moment = require("moment-timezone");
     const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
@@ -1793,6 +1801,7 @@ export class Impresora {
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },
           {
@@ -1845,6 +1854,7 @@ export class Impresora {
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },
           {
@@ -1897,6 +1907,7 @@ export class Impresora {
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },
           {

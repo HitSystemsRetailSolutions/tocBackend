@@ -100,7 +100,8 @@ export class CajaClase {
     totalLocalPaytef: CajaCerradaInterface["totalLocalPaytef"],
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cierreAutomatico: boolean = true,
-    totalHonei: number
+    totalHonei: number,
+    cambioEmergencia : number
   ): Promise<boolean> {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
@@ -127,7 +128,8 @@ export class CajaClase {
       totalHonei,
       // TODO: Propina
       await this.getPropina(),
-      totalDeudas
+      totalDeudas,
+      Number(cambioEmergencia.toFixed(2)),
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
@@ -276,7 +278,8 @@ export class CajaClase {
           totalLocalPaytef,
           trabId,
           true,
-          await ticketsInstance.getTotalHonei()
+          await ticketsInstance.getTotalHonei(),
+          0,
         );
         return true;
       }
@@ -297,7 +300,8 @@ export class CajaClase {
     finalTime: CajaCerradaInterface["finalTime"],
     totalHonei: number,
     propina: number,
-    totalDeudas: CajaCerradaInterface["totalDeuda"]
+    totalDeudas: CajaCerradaInterface["totalDeuda"],
+    cambioEmergencia: CajaCerradaInterface["cambioEmergencia"]
   ): Promise<CajaCerradaInterface> {
     const arrayTicketsCaja: TicketsInterface[] =
       await schTickets.getTicketsIntervalo(
@@ -440,6 +444,7 @@ export class CajaClase {
       mediaTickets: totalTickets / nTickets,
       totalHonei,
       propina,
+      cambioEmergencia,
     };
   }
 }
