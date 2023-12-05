@@ -101,7 +101,7 @@ export class CajaClase {
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cierreAutomatico: boolean = true,
     totalHonei: number,
-    cambioEmergencia : number
+    cambioEmergencia: number
   ): Promise<boolean> {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
@@ -129,7 +129,7 @@ export class CajaClase {
       // TODO: Propina
       await this.getPropina(),
       totalDeudas,
-      Number(cambioEmergencia.toFixed(2)),
+      Number(cambioEmergencia.toFixed(2))
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
@@ -279,7 +279,7 @@ export class CajaClase {
           trabId,
           true,
           await ticketsInstance.getTotalHonei(),
-          0,
+          0
         );
         return true;
       }
@@ -399,13 +399,24 @@ export class CajaClase {
           totalDatafono3G) *
           100
       ) / 100;-*/
+
+    let res = await schCajas.getApeturaCaja();
+
+    let cambioEmInicial = res.cambioEmergencia;
+
+    console.log({ cambioEmInicial });
+
+    if (!cambioEmInicial) cambioEmInicial = 0;
+
     const descuadre = Number(
       (cajaAbiertaActual.totalApertura +
         totalTickets +
+        cambioEmInicial +
         totalEntradaDinero -
         (totalDatafono3G +
           totalSalidas +
           totalCierre +
+          cambioEmergencia +
           cantidadPaytef +
           totalHonei)) *
         -1

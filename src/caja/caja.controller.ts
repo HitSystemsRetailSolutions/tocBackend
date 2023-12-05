@@ -47,7 +47,7 @@ export class CajaController {
           idDependienta,
           false,
           await ticketsInstance.getTotalHonei(),
-          cambioEmergencia,
+          cambioEmergencia
         );
       }
       throw Error("Error cerrarCaja > Faltan datos");
@@ -59,7 +59,7 @@ export class CajaController {
 
   /* Eze 4.0 */
   @Post("abrirCaja")
-  async abrirCaja(@Body() { total, detalle, idDependienta }) {
+  async abrirCaja(@Body() { total, detalle, idDependienta, cambioEmergencia }) {
     try {
       if (total != undefined && detalle != undefined) {
         const fichados = await trabajadoresInstance.getTrabajadoresFichados();
@@ -73,6 +73,7 @@ export class CajaController {
           totalApertura: total,
           fichajes: idTrabajadores,
           propina: 0,
+          cambioEmergencia,
         });
       }
       throw Error("Error abrirCaja > Faltan datos o son incorrectos");
