@@ -71,6 +71,7 @@ export interface CajaSincro {
   calaixFetZ: number;
   detalleCierre: DetalleMonedas;
   mediaTickets: number;
+  cambioEmergencia: number;
   enviado: boolean;
 }
 

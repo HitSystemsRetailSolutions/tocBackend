@@ -5,6 +5,7 @@ export interface ClientesInterface {
   albaran: boolean;
   noPagaEnTienda: boolean;
   descuento: number;
+  telefono: string;
 }
 
 // array de descuentosEspeciales dependiendo del cliente
