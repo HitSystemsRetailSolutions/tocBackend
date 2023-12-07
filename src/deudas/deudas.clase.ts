@@ -187,6 +187,7 @@ export class Deudas {
     if (!cajaAbierta) {
       await cajaInstance.abrirCaja({
         detalleApertura: [{ _id: "0", valor: 0, unidades: 0 }],
+        cambioEmergenciaApertura: 0,
         idDependientaApertura: Number.parseInt(deudas[0].Dependenta),
         inicioTime: Number(new Date().getDate()),
         totalApertura: 0,
