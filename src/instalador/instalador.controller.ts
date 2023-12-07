@@ -324,7 +324,11 @@ export class InstaladorController {
         let monedas = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let monedasCaja = [];
         let totalMonedas = 0;
+        let cambioEmergencia=0;
         if (res.data.UltimoCierre.length > 0) {
+          if(res.data.ultimoCambEmCierre.length>0){
+            cambioEmergencia=res.data.ultimoCambEmCierre[0].Import
+          }
           monedas = [];
           res.data.UltimoCierre.forEach((element) => {
             monedas.push(
@@ -341,6 +345,7 @@ export class InstaladorController {
           });
           const UltimoCierre = await cajaInstance.guardarMonedas(
             monedas,
+            cambioEmergencia,
             "CLAUSURA"
           );
           totalMonedas += monedas[0] * 0.01;
@@ -389,6 +394,7 @@ export class InstaladorController {
           await cajaInstance.abrirCaja({
             detalleApertura: monedasCaja,
             idDependientaApertura: Number.parseInt(Dependenta),
+            cambioEmergenciaApertura: Number(cambioEmergencia),
             inicioTime: Date.parse(date.toString()),
             totalApertura: totalMonedas,
             fichajes: [Number.parseInt(Dependenta)],

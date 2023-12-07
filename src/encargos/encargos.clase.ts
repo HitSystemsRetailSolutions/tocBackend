@@ -295,6 +295,7 @@ export class Encargos {
       await cajaInstance.abrirCaja({
         detalleApertura: [{ _id: "0", valor: 0, unidades: 0 }],
         idDependientaApertura: Number.parseInt(encargos[0].Dependenta),
+        cambioEmergenciaApertura: 0,
         inicioTime: Number(new Date().getDate()),
         totalApertura: 0,
         fichajes: [Number.parseInt(encargos[0].Dependenta)],

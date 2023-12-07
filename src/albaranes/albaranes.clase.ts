@@ -44,35 +44,27 @@ export class AlbaranesClase {
     return await schAlbaranes.getAlbaranes();
   }
   async getProximoId(): Promise<number | PromiseLike<number>> {
-    let id = 0;
     const parametros = await parametrosInstance.getParametros();
-    const codigoTienda = parametros.codigoTienda;
-    let contador = 0;
-    try {
-      const ultimoIdMongo = await this.getUltimoIdAlbaran();
-      if (!ultimoIdMongo) {
-        const params = {
-          codigoTienda: parametros.codigoTienda,
-          database: parametros.database,
-        };
-        console.log("e")
-        const idAlbaranSantaAna: { data: number } = await axios.post(
-          "albaranes/getLastId",
-          { params }
-        );
-        console.log(idAlbaranSantaAna.data);
-        if (idAlbaranSantaAna.data) {
-          contador = Number(idAlbaranSantaAna.data.toString().slice(3));
-          contador += 1;
-          return Number(codigoTienda + contador.toString().padStart(4, "0"));
-        }
-      }
-      contador = Number(ultimoIdMongo.toString().slice(3));
-      contador += 1;
+  const codigoTienda = parametros.codigoTienda;
+
+  try {
+    const params = { codigoTienda: parametros.codigoTienda, database: parametros.database };
+    const idAlbaranSantaAna = await axios.post("albaranes/getLastId", { params });
+
+    if (idAlbaranSantaAna?.data) {
+      const contador = Number(idAlbaranSantaAna.data.toString().slice(3)) + 1;
       return Number(codigoTienda + contador.toString().padStart(4, "0"));
-    } catch (error) {
-      return Number(codigoTienda + "0001");
     }
+  } catch (error) {
+    // Si hay algún error, manejarlo, pero no interrumpe la ejecución para intentar otra estrategia
+    console.error("Error al obtener el próximo IDAlbaran en santaana:", error);
+  }
+
+  // Si no se obtuvo el ID de la primera manera, intentar con la segunda
+  const ultimoIdMongo = await this.getUltimoIdAlbaran();
+  const contador = ultimoIdMongo ? Number(ultimoIdMongo.toString().slice(3)) + 1 : 1;
+
+  return Number(codigoTienda + contador.toString().padStart(4, "0"));
   }
 
   async getUltimoIdAlbaran() {

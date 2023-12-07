@@ -13,7 +13,9 @@ import {
 import { Articulos, articulosInstance } from "../articulos/articulos.clase";
 import { cajaInstance } from "../caja/caja.clase";
 import { ArticulosInterface } from "../articulos/articulos.interface";
-import { ClientesInterface } from "../clientes/clientes.interface";
+import descuentoEspecial, {
+  ClientesInterface,
+} from "../clientes/clientes.interface";
 import { ObjectId } from "mongodb";
 import { logger } from "../logger";
 import { io } from "../sockets.gateway";
@@ -26,6 +28,80 @@ import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 import { tarifasInstance } from "src/tarifas/tarifas.class";
 
 export class CestaClase {
+  async recalcularIvasDescuentoToGo(cesta: CestasInterface) {
+    let totalDeseado = 3.99;
+    // Busca el objeto con el idCliente específico
+    const clienteEspecial = descuentoEspecial.find(
+      (cliente) =>
+        cliente.idCliente ===
+        "CliBoti_000_{7A6EA7B0-3229-4A94-81EA-232F4666A7BE}"
+    );
+
+    // Añade el precio al totalDeseado si se encuentra el cliente especial
+    // por si mas adelante se modifica el totalDeseado de toGo
+    if (clienteEspecial) {
+      totalDeseado = clienteEspecial.precio;
+    }
+    // Calcular la suma actual de los importes
+    const sumaActualImportes =
+      cesta.detalleIva.importe1 +
+      cesta.detalleIva.importe2 +
+      cesta.detalleIva.importe3 +
+      cesta.detalleIva.importe4 +
+      cesta.detalleIva.importe5;
+
+    // Calcular el factor de escala para ajustar la suma actual a la deseada
+    const factorEscala = totalDeseado / sumaActualImportes;
+
+    // Aplicar el factor de escala a las bases y valores de IVA
+    cesta.detalleIva.base1 *= factorEscala;
+    cesta.detalleIva.base2 *= factorEscala;
+    cesta.detalleIva.base3 *= factorEscala;
+    cesta.detalleIva.base4 *= factorEscala;
+    cesta.detalleIva.base5 *= factorEscala;
+
+    cesta.detalleIva.valorIva1 *= factorEscala;
+    cesta.detalleIva.valorIva2 *= factorEscala;
+    cesta.detalleIva.valorIva3 *= factorEscala;
+    cesta.detalleIva.valorIva4 *= factorEscala;
+    cesta.detalleIva.valorIva5 *= factorEscala;
+
+    // Recalcular los importes según las nuevas bases y valores de IVA
+    cesta.detalleIva.importe1 =
+      cesta.detalleIva.base1 + cesta.detalleIva.valorIva1;
+    cesta.detalleIva.importe2 =
+      cesta.detalleIva.base2 + cesta.detalleIva.valorIva2;
+    cesta.detalleIva.importe3 =
+      cesta.detalleIva.base3 + cesta.detalleIva.valorIva3;
+    cesta.detalleIva.importe4 =
+      cesta.detalleIva.base4 + cesta.detalleIva.valorIva4;
+    cesta.detalleIva.importe5 =
+      cesta.detalleIva.base5 + cesta.detalleIva.valorIva5;
+
+    if (await this.updateCesta(cesta)) {
+      this.actualizarCestas();
+
+      if (cesta.lista.length > 0) {
+        if (
+          cesta.lista[cesta.lista.length - 1].arraySuplementos &&
+          cesta.lista[cesta.lista.length - 1].arraySuplementos.length > 0
+        ) {
+          let numProductos = 0;
+          let total = 0;
+          for (let i = 0; i < cesta.lista.length; i++) {
+            numProductos += cesta.lista[i].unidades;
+            total += cesta.lista[i].subtotal;
+          }
+          impresoraInstance.mostrarVisor({
+            total: totalDeseado,
+            precio: totalDeseado,
+            texto: cesta.lista[cesta.lista.length - 1].nombre,
+            numProductos: numProductos,
+          });
+        }
+      }
+    }
+  }
   /* Eze 4.0 */
   async actualizarCestas() {
     const arrayCestas = await cestasInstance.getAllCestas();
@@ -662,7 +738,10 @@ export class CestaClase {
   }
 
   /* Eze 4.0 */
-  async recalcularIvas(cesta: CestasInterface, menu: string = "") {
+  async recalcularIvas(
+    cesta: CestasInterface,
+    menu: string = ""
+  ): Promise<CestasInterface> {
     cesta.detalleIva = {
       base1: 0,
       base2: 0,
@@ -732,7 +811,7 @@ export class CestaClase {
           articulo.tipoIva,
           cesta.lista[i].unidades
         );
-        
+
         cesta.detalleIva = fusionarObjetosDetalleIva(
           auxDetalleIva,
           cesta.detalleIva
@@ -790,6 +869,7 @@ export class CestaClase {
         });
       }
     }
+    return cesta;
   }
 
   /* Uri */

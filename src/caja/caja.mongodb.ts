@@ -2,6 +2,7 @@ import { UtilesModule } from "../utiles/utiles.module";
 import { conexion } from "../conexion/mongodb";
 import {
   CajaAbiertaInterface,
+  CajaCerradaInterface,
   CajaSincro,
   MonedasInterface,
   TiposInfoMoneda,
@@ -30,6 +31,7 @@ export async function resetCajaAbierta(): Promise<boolean> {
           detalleApertura: null,
           fichajes: null,
           propina: 0,
+          cambioEmergenciaApertura: 0,
         },
       }
     )
@@ -56,13 +58,14 @@ export async function limpiezaCajas(): Promise<boolean> {
 /* Eze 4.0 */
 export async function guardarMonedas(
   arrayMonedas: MonedasInterface["array"],
+  cambioEmergencia: CajaCerradaInterface["cambioEmergenciaCierre"],
   tipo: TiposInfoMoneda
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const infoMonedas = database.collection<MonedasInterface>("infoMonedas");
   const resultado = await infoMonedas.updateOne(
     { _id: tipo },
-    { $set: { array: arrayMonedas } },
+    { $set: { array: arrayMonedas, cambioEmergencia: cambioEmergencia } },
     { upsert: true }
   );
   return resultado.acknowledged;
@@ -164,6 +167,7 @@ export async function getMonedas(
 export async function setInfoCaja(data: CajaAbiertaInterface) {
   const database = (await conexion).db("tocgame");
   const caja = database.collection<CajaAbiertaInterface>("caja");
+  console.log(data);
   const resultado = await caja.updateMany({}, { $set: data }, { upsert: true });
   return (
     resultado.acknowledged &&

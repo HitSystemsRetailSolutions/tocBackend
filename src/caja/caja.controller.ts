@@ -19,6 +19,7 @@ export class CajaController {
       cantidad3G,
       cantidadPaytef,
       idDependienta,
+      cambioEmergencia,
     }
   ) {
     try {
@@ -45,7 +46,8 @@ export class CajaController {
           totalLocalPaytef,
           idDependienta,
           false,
-          await ticketsInstance.getTotalHonei()
+          await ticketsInstance.getTotalHonei(),
+          cambioEmergencia,
         );
       }
       throw Error("Error cerrarCaja > Faltan datos");
@@ -57,7 +59,7 @@ export class CajaController {
 
   /* Eze 4.0 */
   @Post("abrirCaja")
-  async abrirCaja(@Body() { total, detalle, idDependienta }) {
+  async abrirCaja(@Body() { total, detalle, cambioEmergencia, idDependienta }) {
     try {
       if (total != undefined && detalle != undefined) {
         const fichados = await trabajadoresInstance.getTrabajadoresFichados();
@@ -67,6 +69,7 @@ export class CajaController {
         return await cajaInstance.abrirCaja({
           detalleApertura: detalle,
           idDependientaApertura: idDependienta,
+          cambioEmergenciaApertura: cambioEmergencia,
           inicioTime: await cajaInstance.getComprovarFechaCierreTurno(),
           totalApertura: total,
           fichajes: idTrabajadores,

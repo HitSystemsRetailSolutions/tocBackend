@@ -4,6 +4,7 @@ import { AlbaranesInstance } from "./albaranes.clase";
 import { logger } from "src/logger";
 import { cestasInstance } from "src/cestas/cestas.clase";
 import { clienteInstance } from "src/clientes/clientes.clase";
+import descuentoEspecial from "src/clientes/clientes.interface";
 @Controller("albaranes")
 export class AlbaranesController {
   @Post("crearAlbaran")
@@ -29,16 +30,21 @@ export class AlbaranesController {
       let descuento: any = Number(
         (await clienteInstance.isClienteDescuento(cesta.idCliente))?.descuento
       );
-      cesta.lista.forEach((producto) => {
-        if (producto.arraySuplementos != null) {
-          producto.subtotal = this.redondearPrecio(
-            producto.subtotal - (producto.subtotal * descuento) / 100
-          );
-        } else if (producto.promocion == null)
-          producto.subtotal = this.redondearPrecio(
-            producto.subtotal - (producto.subtotal * descuento) / 100
-          ); // Modificamos el total para añadir el descuento especial del cliente
-      });
+      const clienteDescEsp = descuentoEspecial.find(
+        (cliente) => cliente.idCliente === cesta.idCliente
+      );
+      if ((!clienteDescEsp || clienteDescEsp.precio!=total) &&  descuento && descuento > 0) {
+        cesta.lista.forEach((producto) => {
+          if (producto.arraySuplementos != null) {
+            producto.subtotal = this.redondearPrecio(
+              producto.subtotal - (producto.subtotal * descuento) / 100
+            );
+          } else if (producto.promocion == null)
+            producto.subtotal = this.redondearPrecio(
+              producto.subtotal - (producto.subtotal * descuento) / 100
+            ); // Modificamos el total para añadir el descuento especial del cliente
+        });
+      };
       return await AlbaranesInstance.setAlbaran(
         total,
         cesta,
