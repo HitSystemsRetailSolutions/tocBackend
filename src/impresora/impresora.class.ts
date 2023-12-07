@@ -1236,6 +1236,8 @@ export class Impresora {
           payload: "Calaix fet       :      " + caja.calaixFetZ.toFixed(2),
         });
       }
+      const cambioEmergenciaApertura = caja.cambioEmergenciaApertura ?? 0;
+      const cambioEmergenciaCierre = caja.cambioEmergenciaCierre ?? 0;
       // concatenamos buffer con el siguiente array despues del if
       buffer = buffer.concat([
         {
@@ -1252,7 +1254,15 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: "Canvi d'emergencia  :      " + caja.cambioEmergencia,
+          payload:
+            "Canvi d'emergencia Apertura  :      " +
+            cambioEmergenciaApertura,
+        },
+        {
+          tipo: "text",
+          payload:
+            "Canvi d'emergencia tancament  :      " +
+            cambioEmergenciaCierre,
         },
       ]);
 
@@ -1682,9 +1692,9 @@ export class Impresora {
     );
     const descuento: any = Number(cliente?.descuento);
     const telefono: ClientesInterface["telefono"] =
-    cliente?.telefono && cliente?.telefono.length > 1
-      ? cliente.telefono
-      : "No en té";
+      cliente?.telefono && cliente?.telefono.length > 1
+        ? cliente.telefono
+        : "No en té";
     const cabecera = parametros?.header == undefined ? "" : parametros.header;
     const moment = require("moment-timezone");
     const fecha = moment(encargo.timestamp).tz("Europe/Madrid");

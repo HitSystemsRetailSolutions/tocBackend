@@ -69,8 +69,9 @@ export class CajaClase {
   /* Eze 4.0 */
   guardarMonedas = async (
     arrayMonedas: MonedasInterface["array"],
+    cambioEmergencia: CajaCerradaInterface["cambioEmergenciaCierre"],
     tipo: TiposInfoMoneda
-  ) => await schCajas.guardarMonedas(arrayMonedas, tipo);
+  ) => await schCajas.guardarMonedas(arrayMonedas, cambioEmergencia, tipo);
 
   /* Eze 4.0 */
   getMonedas = async (tipo: TiposInfoMoneda) => await schCajas.getMonedas(tipo);
@@ -101,7 +102,7 @@ export class CajaClase {
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cierreAutomatico: boolean = true,
     totalHonei: number,
-    cambioEmergencia : number
+    cambioEmergenciaCierre : number
   ): Promise<boolean> {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
@@ -129,7 +130,7 @@ export class CajaClase {
       // TODO: Propina
       await this.getPropina(),
       totalDeudas,
-      Number(cambioEmergencia.toFixed(2)),
+      Number(cambioEmergenciaCierre.toFixed(2)),
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
@@ -139,7 +140,7 @@ export class CajaClase {
           io.emit("cargarVentas", []);
         }
         cajaInstance
-          .guardarMonedas(guardarInfoMonedas, "CLAUSURA")
+          .guardarMonedas(guardarInfoMonedas, cambioEmergenciaCierre,"CLAUSURA")
           .then((res2) => {
             if (res2) {
               return true;
@@ -301,7 +302,7 @@ export class CajaClase {
     totalHonei: number,
     propina: number,
     totalDeudas: CajaCerradaInterface["totalDeuda"],
-    cambioEmergencia: CajaCerradaInterface["cambioEmergencia"]
+    cambioEmergenciaCierre: CajaCerradaInterface["cambioEmergenciaCierre"]
   ): Promise<CajaCerradaInterface> {
     const arrayTicketsCaja: TicketsInterface[] =
       await schTickets.getTicketsIntervalo(
@@ -444,7 +445,7 @@ export class CajaClase {
       mediaTickets: totalTickets / nTickets,
       totalHonei,
       propina,
-      cambioEmergencia,
+      cambioEmergenciaCierre,
     };
   }
 }
