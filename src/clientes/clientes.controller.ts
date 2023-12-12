@@ -2,7 +2,7 @@ import { Controller, Post, Body, Get, Query } from "@nestjs/common";
 import axios from "axios";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { clienteInstance } from "./clientes.clase";
-import { ClientesInterface } from "./clientes.interface";
+import { ClientesInterface, arrayClientesFacturacion } from "./clientes.interface";
 import { logger } from "../logger";
 import { conexion } from "src/conexion/mongodb";
 
@@ -303,6 +303,18 @@ export class ClientesController {
       return false;
     } catch (error) {
       logger.Error(137, 'En getEsClient:',error);
+      return false;
+    }
+  }
+
+  @Get("getEsClienteFacturacion")
+  async getEsClienteFacturacion(){
+    try {
+      
+      return arrayClientesFacturacion;
+
+    } catch (error) {
+      logger.Error(138, 'En getEsClientFacturacion:',error);
       return false;
     }
   }
