@@ -14,12 +14,12 @@ import {
 } from "./promociones.interface";
 import * as schPromociones from "./promociones.mongodb";
 import { TicketsInterface } from "../tickets/tickets.interface";
+import {arrayClientesFacturacion} from "../clientes/clientes.interface"
 import { promises } from "dns";
 
 export class NuevaPromocion {
   private promosIndividuales: PromocionesInterface[] = [];
   private promosCombo: PromocionesInterface[] = [];
-
   constructor() {
     schPromociones
       .getPromosCombo()
@@ -89,6 +89,8 @@ export class NuevaPromocion {
       const cliente = await clienteInstance.getClienteById(cesta.idCliente);
       if (cliente.albaran === true) {
         // No se les hace promociones a estos clientes
+        return false;
+      }else if (arrayClientesFacturacion.includes(cesta.idCliente)) {
         return false;
       }
     }

@@ -13,7 +13,7 @@ import {
 import { Articulos, articulosInstance } from "../articulos/articulos.clase";
 import { cajaInstance } from "../caja/caja.clase";
 import { ArticulosInterface } from "../articulos/articulos.interface";
-import descuentoEspecial, {
+import  { descuentoEspecial,
   ClientesInterface,
 } from "../clientes/clientes.interface";
 import { ObjectId } from "mongodb";
