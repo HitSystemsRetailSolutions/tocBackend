@@ -20,7 +20,7 @@ import { mqttInstance } from "src/mqtt";
 import axios from "axios";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { getClienteById } from "src/clientes/clientes.mongodb";
-import descuentoEspecial from "src/clientes/clientes.interface";
+import {descuentoEspecial} from "src/clientes/clientes.interface";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */

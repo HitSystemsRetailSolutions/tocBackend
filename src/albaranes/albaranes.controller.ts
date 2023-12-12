@@ -4,7 +4,7 @@ import { AlbaranesInstance } from "./albaranes.clase";
 import { logger } from "src/logger";
 import { cestasInstance } from "src/cestas/cestas.clase";
 import { clienteInstance } from "src/clientes/clientes.clase";
-import descuentoEspecial from "src/clientes/clientes.interface";
+import {descuentoEspecial} from "src/clientes/clientes.interface";
 @Controller("albaranes")
 export class AlbaranesController {
   @Post("crearAlbaran")
