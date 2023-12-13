@@ -190,7 +190,7 @@ export class TicketsController {
           paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
         else if (
           (tipo === "TKRS" && tkrsData) ||
-          (tkrsData?.cantidadTkrs > 0 && tipo === "EFECTIVO")
+          (tkrsData?.cantidadTkrs > 0 && (tipo === "EFECTIVO" || tipo === "DATAFONO_3G"))
         ) {
           if (tkrsData.cantidadTkrs > total) {
             await movimientosInstance.nuevoMovimiento(

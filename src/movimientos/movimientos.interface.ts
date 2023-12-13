@@ -32,6 +32,7 @@ export type FormaPago =
   | "TKRS"
   | "CONSUMO_PERSONAL"
   | "TKRS + EFECTIVO"
+  | "TKRS + DATAFONO_3G"
   | "DEVUELTO"
   | "ANULADO"
   | "ERROR_DETECTADO"

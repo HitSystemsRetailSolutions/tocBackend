@@ -223,7 +223,43 @@ export class TicketsClase {
     schTickets.setPagadoPaytef(idTicket);
 
   getTotalLocalPaytef = () => schTickets.getTotalLocalPaytef();
-  cantidadLocal3G = () => schTickets.getTotalLocal3G();
+  cantidadLocal3G = async () => {
+    const cajaAbiertaActual = await cajaInstance.getInfoCajaAbierta();
+    const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
+    const finalTime = Date.now();
+    const array3G = await schTickets.getTotalLocal3G();
+    const tkrs = await movimientosInstance.getMovTkrsSinExcIntervalo(
+      inicioTurnoCaja,
+      finalTime
+    );
+
+    const tkrsIndexado = tkrs.reduce((acc, el) => {
+      acc[el.idTicket] = el;
+      return acc;
+    }, {});
+    let total3G = 0;
+    array3G.forEach((ticket) => {
+      const idTicketVenta = ticket._id;
+      const entradaCorrespondiente = tkrsIndexado[idTicketVenta];
+      if (entradaCorrespondiente) {
+        total3G += ticket.total - entradaCorrespondiente.valor;
+        console.log(
+          ticket.total,
+          entradaCorrespondiente.valor,
+          ticket.total - entradaCorrespondiente.valor,
+          total3G
+        );
+      } else {
+        for (const item of ticket.cesta.lista) {
+          if (!item?.pagado) {
+            total3G += item.subtotal;
+          }
+        }
+      }
+    });
+
+    return total3G;
+  };
 
   actualizarTickets = async () => {
     const arrayVentas = await movimientosInstance.construirArrayVentas();

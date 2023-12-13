@@ -30,7 +30,6 @@ export interface CajaCerradaInterface {
   totalDeudas: number;
   cantidadPaytef: number;
   totalLocalPaytef: number;
-  totalTicketDatafono3G: number;
   totalDeuda: number;
   totalTkrsSinExceso: number;
   totalTkrsConExceso: number;

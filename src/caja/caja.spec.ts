@@ -208,7 +208,6 @@ describe("Caja", () => {
       totalDeudas: 0,
       totalCierre: 60,
       totalDatafono3G: 0,
-      totalTicketDatafono3G: 0,
       totalLocalPaytef: 0,
       cantidadLocal3G: 0,
       cantidadPaytef: 0,
