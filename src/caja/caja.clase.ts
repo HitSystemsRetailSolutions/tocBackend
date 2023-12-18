@@ -448,6 +448,10 @@ export class CajaClase {
       cambioEmergenciaCierre,
     };
   }
+  setCambioEmActual= async (valor) =>
+  await schCajas.setCambioEmActual(valor);
+  getCambioEmActual= async () =>
+  await schCajas.getCambioEmActual();
 }
 
 export const cajaInstance = new CajaClase();

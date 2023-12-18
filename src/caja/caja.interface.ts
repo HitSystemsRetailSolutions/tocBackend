@@ -6,6 +6,7 @@ export interface CajaAbiertaInterface {
   totalApertura: number;
   detalleApertura: DetalleMonedas;
   cambioEmergenciaApertura: number;
+  cambioEmergenciaActual: number;
   fichajes: number[];
   propina?: number;
 }
