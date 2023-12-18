@@ -94,5 +94,19 @@ export class AlbaranesController {
       return null;
     }
   }
+  @Post("setPagado")
+  async setPagado(@Body() data) {
+    try {
+      if (!data)
+        return {
+          error: true,
+          msg: "Faltan datos.",
+        };
+      return AlbaranesInstance.setPagado(data.idAlbaran);
+    } catch (err) {
+      logger.Error(510, err);
+      return null;
+    }
+  }
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
 }

@@ -35,6 +35,7 @@ export class ClientesController {
   @Post("getClienteById")
   async getClienteById(@Body() { idCliente }) {
     try {
+      console.log(idCliente)
       if (idCliente) return await clienteInstance.getClienteById(idCliente);
       throw Error("Error, faltan datos en getClienteById");
     } catch (err) {

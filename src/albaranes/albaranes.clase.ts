@@ -45,26 +45,36 @@ export class AlbaranesClase {
   }
   async getProximoId(): Promise<number | PromiseLike<number>> {
     const parametros = await parametrosInstance.getParametros();
-  const codigoTienda = parametros.codigoTienda;
+    const codigoTienda = parametros.codigoTienda;
 
-  try {
-    const params = { codigoTienda: parametros.codigoTienda, database: parametros.database };
-    const idAlbaranSantaAna = await axios.post("albaranes/getLastId", { params });
+    try {
+      const params = {
+        codigoTienda: parametros.codigoTienda,
+        database: parametros.database,
+      };
+      const idAlbaranSantaAna = await axios.post("albaranes/getLastId", {
+        params,
+      });
 
-    if (idAlbaranSantaAna?.data) {
-      const contador = Number(idAlbaranSantaAna.data.toString().slice(3)) + 1;
-      return Number(codigoTienda + contador.toString().padStart(4, "0"));
+      if (idAlbaranSantaAna?.data) {
+        const contador = Number(idAlbaranSantaAna.data.toString().slice(3)) + 1;
+        return Number(codigoTienda + contador.toString().padStart(4, "0"));
+      }
+    } catch (error) {
+      // Si hay algún error, manejarlo, pero no interrumpe la ejecución para intentar otra estrategia
+      console.error(
+        "Error al obtener el próximo IDAlbaran en santaana:",
+        error
+      );
     }
-  } catch (error) {
-    // Si hay algún error, manejarlo, pero no interrumpe la ejecución para intentar otra estrategia
-    console.error("Error al obtener el próximo IDAlbaran en santaana:", error);
-  }
 
-  // Si no se obtuvo el ID de la primera manera, intentar con la segunda
-  const ultimoIdMongo = await this.getUltimoIdAlbaran();
-  const contador = ultimoIdMongo ? Number(ultimoIdMongo.toString().slice(3)) + 1 : 1;
+    // Si no se obtuvo el ID de la primera manera, intentar con la segunda
+    const ultimoIdMongo = await this.getUltimoIdAlbaran();
+    const contador = ultimoIdMongo
+      ? Number(ultimoIdMongo.toString().slice(3)) + 1
+      : 1;
 
-  return Number(codigoTienda + contador.toString().padStart(4, "0"));
+    return Number(codigoTienda + contador.toString().padStart(4, "0"));
   }
 
   async getUltimoIdAlbaran() {
@@ -73,13 +83,19 @@ export class AlbaranesClase {
       return ultimoIdMongo;
     }
   }
+  setPagado = async (idAlbaran: AlbaranesInterface["_id"]) =>
+    await schAlbaranes.setPagado(idAlbaran);
+  getDeudas = async () => await schAlbaranes.getDeudas();
   getAlbaranById = async (idAlbaran: AlbaranesInterface["_id"]) =>
     await schAlbaranes.getAlbaranById(idAlbaran);
   getAlbaranCreadoMasAntiguo = async () =>
     await schAlbaranes.getAlbaranCreadoMasAntiguo();
-
+  getAlbaranFinalizadoMasAntiguo = async () =>
+    await schAlbaranes.getAlbaranFinalizadoMasAntiguo();
   setEnviado = (idAlbaran: AlbaranesInterface["_id"]) =>
     schAlbaranes.setAlbaranEnviado(idAlbaran);
+  setFinalizado = (idAlbaran: AlbaranesInterface["_id"]) =>
+    schAlbaranes.setFinalizado(idAlbaran);
 
   pagarAlbaran = (idAlbaran: AlbaranesInterface["_id"]) =>
     schAlbaranes.pagarAlbaran(idAlbaran);

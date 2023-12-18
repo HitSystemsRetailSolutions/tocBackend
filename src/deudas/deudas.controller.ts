@@ -3,6 +3,9 @@ import { logger } from "../logger";
 import { deudasInstance } from "./deudas.clase";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import axios from "axios";
+import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
+import { DeudasInterface } from "./deudas.interface";
+import { AlbaranesInterface } from "src/albaranes/albaranes.interface";
 
 @Controller("deudas")
 export class DeudasController {
@@ -23,7 +26,10 @@ export class DeudasController {
   @Post("getDeudas")
   async getDeudas() {
     try {
-      return await deudasInstance.getDeudas();
+      const deudasAlbaran = await AlbaranesInstance.getDeudas();
+      const deudas = await deudasInstance.getDeudas();
+      const deudasCombinadas: (DeudasInterface | AlbaranesInterface)[] =[...deudasAlbaran,...deudas];
+      return deudasCombinadas;
     } catch (err) {
       logger.Error(50, err);
       return null;
