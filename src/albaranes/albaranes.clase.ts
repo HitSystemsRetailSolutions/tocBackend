@@ -4,13 +4,14 @@ import * as schAlbaranes from "./albaranes.mongodb";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import axios from "axios";
 import { cestasInstance } from "src/cestas/cestas.clase";
+import { movimientosInstance } from "src/movimientos/movimientos.clase";
+import { deudasInstance } from "src/deudas/deudas.clase";
 export class AlbaranesClase {
   async setAlbaran(
     total,
     cesta,
-    idTrabajador,
-    estado: AlbaranesInterface["estado"]
-  ) {
+    idTrabajador
+  ):Promise<boolean> {
     // creando json albaran
     const id = await this.getProximoId();
     const nuevoAlbaran: AlbaranesInterface = {
@@ -24,13 +25,13 @@ export class AlbaranesClase {
       cesta,
       consumoPersonal: false,
       enviado: false,
-      estado: estado,
     };
 
     try {
       // devolver id cuando se haya guradado el albaran en mongodb
       if (await schAlbaranes.setAlbaran(nuevoAlbaran)) {
-        return nuevoAlbaran._id;
+
+        return true;
       }
 
       throw Error(

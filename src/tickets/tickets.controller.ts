@@ -20,7 +20,7 @@ import { mqttInstance } from "src/mqtt";
 import axios from "axios";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { getClienteById } from "src/clientes/clientes.mongodb";
-import {descuentoEspecial} from "src/clientes/clientes.interface";
+import { descuentoEspecial } from "src/clientes/clientes.interface";
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -150,7 +150,12 @@ export class TicketsController {
         (cliente) => cliente.idCliente === cesta.idCliente
       );
       if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
-      if (tipo !== "CONSUMO_PERSONAL" && descuento && descuento > 0 && (!clienteDescEsp || clienteDescEsp.precio==total)) {
+      if (
+        tipo !== "CONSUMO_PERSONAL" &&
+        descuento &&
+        descuento > 0 &&
+        (!clienteDescEsp || clienteDescEsp.precio == total)
+      ) {
         cesta.lista.forEach((producto) => {
           if (producto.arraySuplementos != null) {
             producto.subtotal = this.redondearPrecio(
@@ -246,14 +251,6 @@ export class TicketsController {
               timestamp: ticket.timestamp,
             };
             await deudasInstance.setDeuda(deuda);
-          } else if (cliente.albaran) {
-            await movimientosInstance.nuevoMovimiento(
-              total,
-              "Albaran",
-              "DEUDA",
-              ticket._id,
-              idTrabajador
-            );
           } else {
             await movimientosInstance.nuevoMovimiento(
               total,

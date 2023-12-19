@@ -14,16 +14,14 @@ export class AlbaranesController {
       total,
       idCesta,
       idTrabajador,
-      estado,
     }: {
       total: number;
       idCesta: AlbaranesInterface["cesta"]["_id"];
       idTrabajador: AlbaranesInterface["idTrabajador"];
-      estado: AlbaranesInterface["estado"];
     }
   ) {
     try {
-      if (!total || !idCesta || !idTrabajador || !estado) {
+      if (!total || !idCesta || !idTrabajador) {
         throw Error("Error, faltan datos en crearAlbaran() controller");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
@@ -49,7 +47,6 @@ export class AlbaranesController {
         total,
         cesta,
         idTrabajador,
-        estado
       );
     } catch (error) {
       logger.Error(201, error);

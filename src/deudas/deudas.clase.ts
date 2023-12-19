@@ -96,6 +96,11 @@ export class Deudas {
         money -= Number(arrayDeudas[i].total.toFixed(2));
       }
     }
+    const deudasAlbaranes = await AlbaranesInstance.getDeudas()
+    for (let i = 0; i < deudasAlbaranes.length; i++) {
+      money -= Number(deudasAlbaranes[i].total.toFixed(2));
+      
+    }
     return Number(money.toFixed(2));
   }
   async ticketPagado(data) {
