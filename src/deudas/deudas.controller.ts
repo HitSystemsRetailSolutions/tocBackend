@@ -26,10 +26,8 @@ export class DeudasController {
   @Post("getDeudas")
   async getDeudas() {
     try {
-      const deudasAlbaran = await AlbaranesInstance.getDeudas();
-      const deudas = await deudasInstance.getDeudas();
-      const deudasCombinadas: (DeudasInterface | AlbaranesInterface)[] =[...deudasAlbaran,...deudas];
-      return deudasCombinadas;
+      const deudas: DeudasInterface[] = await deudasInstance.getDeudas();
+      return deudas;
     } catch (err) {
       logger.Error(50, err);
       return null;

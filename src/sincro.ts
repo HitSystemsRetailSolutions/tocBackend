@@ -32,7 +32,6 @@ let enProcesoDeudasFinalizadas = false;
 let enProcesoEncargosCreados = false;
 let enProcesoEncargosFinalizados = false;
 let enProcesoAlbaranesCreados = false;
-let enProcesoAlbaranesFinalizados = false;
 async function sincronizarTickets() {
   try {
     if (!enProcesoTickets) {
@@ -476,52 +475,6 @@ async function sincronizarAlbaranesCreados() {
     }
   } catch (err) {
     enProcesoAlbaranesCreados = false;
-    logger.Error(5, err);
-  }
-}
-
-async function sincronizarAlbaranesFinalizados() {
-  try {
-    if (!enProcesoAlbaranesFinalizados) {
-      enProcesoAlbaranesFinalizados = true;
-      const parametros = await parametrosInstance.getParametros();
-      if (parametros != null) {
-        const albaran =
-          await AlbaranesInstance.getAlbaranFinalizadoMasAntiguo();
-        if (albaran) {
-          albaran.cesta.lista =
-            await nuevaInstancePromociones.deshacerPromociones(albaran);
-          const res: any = await axios
-            .post("albaranes/updateAlbaran", { albaran })
-            .catch((e) => {
-              console.log(e);
-            });
-          if (res.data && !res.data.error) {
-            if (await AlbaranesInstance.setFinalizado(albaran._id)) {
-              setTimeout(function () {
-                enProcesoAlbaranesFinalizados = false;
-                sincronizarAlbaranesFinalizados();
-              }, 100);
-            } else {
-              enProcesoAlbaranesFinalizados = false;
-            }
-          } else {
-            logger.Error(
-              154,
-              "Error: no se ha podido actualizar el albaran en el SantaAna"
-            );
-            enProcesoAlbaranesFinalizados = false;
-          }
-        } else {
-          enProcesoAlbaranesFinalizados = false;
-        }
-      } else {
-        enProcesoAlbaranesFinalizados = false;
-        logger.Error(4, "No hay parámetros definidos en la BBDD");
-      }
-    }
-  } catch (err) {
-    enProcesoAlbaranesFinalizados = false;
     logger.Error(5, err);
   }
 }

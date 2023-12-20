@@ -14,6 +14,7 @@ import { impresoraInstance } from "../impresora/impresora.class";
 import { CajaAbiertaInterface } from "src/caja/caja.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { deudasInstance } from "src/deudas/deudas.clase";
+import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 
 const moment = require("moment");
 const Ean13Utils = require("ean13-lib").Ean13Utils;
@@ -94,9 +95,7 @@ export class MovimientosClase {
           ticketInfo.nombreCliente
         );
       } else if (concepto == "DEUDA" && tipo === "SALIDA") {
-        let ticketInfo = await ticketsInstance.getTicketById(idTicket);
-        let client = await clienteInstance.getClienteById(ticketInfo.idCliente);
-        impresoraInstance.imprimirDeudaSalida(nuevoMovimiento, client.nombre);
+        await this.imprimirDeudaSalida(nuevoMovimiento, idTicket);
       } else if (
         concepto !== "Targeta" &&
         concepto !== "DEUDA" &&
@@ -108,6 +107,27 @@ export class MovimientosClase {
       return true;
     }
     return false;
+  }
+  async imprimirDeudaSalida(
+    nuevoMovimiento: MovimientosInterface,
+    idTicket: number
+  ) {
+    try {
+      let ticketInfo = await ticketsInstance.getTicketById(idTicket);
+      let client = await clienteInstance.getClienteById(ticketInfo.idCliente);
+      impresoraInstance.imprimirDeudaSalida(nuevoMovimiento, client.nombre);
+    } catch (error) {
+      try {
+        const albaranInfo = await AlbaranesInstance.getAlbaranById(idTicket);
+        const client = await clienteInstance.getClienteById(
+          albaranInfo.idCliente
+        );
+        impresoraInstance.imprimirDeudaSalida(nuevoMovimiento, client.nombre);
+      } catch (innerError) {
+        console.error("Error al obtener información del albarán:", innerError);
+        // Puedes decidir cómo manejar este error, lanzar una excepción o hacer algo más.
+      }
+    }
   }
   /* uri */
   public async insertMovimientos(

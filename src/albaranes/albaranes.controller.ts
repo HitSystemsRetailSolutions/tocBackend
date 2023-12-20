@@ -14,14 +14,16 @@ export class AlbaranesController {
       total,
       idCesta,
       idTrabajador,
+      estado,
     }: {
       total: number;
       idCesta: AlbaranesInterface["cesta"]["_id"];
       idTrabajador: AlbaranesInterface["idTrabajador"];
+      estado: AlbaranesInterface["estado"];
     }
   ) {
     try {
-      if (!total || !idCesta || !idTrabajador) {
+      if (!total || !idCesta || !idTrabajador || !estado) {
         throw Error("Error, faltan datos en crearAlbaran() controller");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
@@ -47,6 +49,7 @@ export class AlbaranesController {
         total,
         cesta,
         idTrabajador,
+        estado
       );
     } catch (error) {
       logger.Error(201, error);
@@ -88,20 +91,6 @@ export class AlbaranesController {
       return await AlbaranesInstance.getAlbaranes();
     } catch (err) {
       logger.Error(50, err);
-      return null;
-    }
-  }
-  @Post("setPagado")
-  async setPagado(@Body() data) {
-    try {
-      if (!data)
-        return {
-          error: true,
-          msg: "Faltan datos.",
-        };
-      return AlbaranesInstance.setPagado(data.idAlbaran);
-    } catch (err) {
-      logger.Error(510, err);
       return null;
     }
   }
