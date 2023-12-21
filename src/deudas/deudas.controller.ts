@@ -42,7 +42,7 @@ export class DeudasController {
           error: true,
           msg: "Faltan datos.",
         };
-      return deudasInstance.ticketPagado(data);
+      return deudasInstance.ticketPagado(data.idDeuda, data.albaran);
     } catch (err) {
       logger.Error(510, err);
       return null;
@@ -56,7 +56,7 @@ export class DeudasController {
           error: true,
           msg: "Faltan datos.",
         };
-      return await deudasInstance.eliminarDeuda(data.idDeuda);
+      return await deudasInstance.eliminarDeuda(data.idDeuda,data.albaran);
     } catch (err) {
       logger.Error(510, err);
       return null;

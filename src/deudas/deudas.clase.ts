@@ -98,13 +98,14 @@ export class Deudas {
     }
     return Number(money.toFixed(2));
   }
-  async ticketPagado(data) {
-    const deuda = await schDeudas.getDeudaById(data.idDeuda);
+  async ticketPagado(idDeuda, albaran) {
+    const deuda = await schDeudas.getDeudaById(idDeuda);
 
     if (deuda) {
+      const concepto= albaran?"DEUDA ALBARAN":"DEUDA";
       const movimiento = {
         cantidad: deuda.total,
-        concepto: "DEUDA",
+        concepto: concepto,
         idTicket: deuda.idTicket,
         idTrabajador: deuda.idTrabajador,
         tipo: "ENTRADA_DINERO",
@@ -137,21 +138,32 @@ export class Deudas {
       };
     }
   }
-  eliminarDeuda = async (idDeuda) => {
-    const deuda = await schDeudas.getDeudaById(idDeuda);
-    if (deuda) {
-      return schDeudas
-        .setAnulado(idDeuda)
-        .then((ok: boolean) => {
-          if (!ok) return { error: true, msg: "Error al borrar la deuda" };
+  eliminarDeuda = async (idDeuda, albaran) => {
+    try {
+      const deuda = await schDeudas.getDeudaById(idDeuda);
+      if (deuda) {
+        const res = await schDeudas.setAnulado(idDeuda);
+        if (!res) {
+          return { error: true, msg: "Error al borrar la deuda" };
+        } else {
+          if (albaran) {
+            await movimientosInstance.nuevoMovimiento(
+              deuda.total,
+              "Dependienta anula deuda",
+              "ENTRADA_DINERO",
+              Number(deuda.idTicket),
+              Number(deuda.idTrabajador)
+            );
+          }
           return { error: false, msg: "Deuda borrada" };
-        })
-        .catch((err: string) => ({ error: true, msg: err }));
-    } else {
+        }
+      }
       return {
         error: true,
         msg: "Deuda no encontrada",
       };
+    } catch (error) {
+      return null;
     }
   };
 

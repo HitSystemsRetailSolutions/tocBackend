@@ -17,7 +17,7 @@ export class AlbaranesClase {
   ) {
     // creando json albaran
     const id = await this.getProximoId();
-    const timestamp = Date.now()
+    const timestamp = Date.now();
     const nuevoAlbaran: AlbaranesInterface = {
       _id: id,
       datafono3G: false,
@@ -40,7 +40,7 @@ export class AlbaranesClase {
             const cliente = await clienteInstance.getClienteById(
               cesta.idCliente
             );
-           
+
             const deuda = {
               idTicket: id,
               cesta: cesta,
@@ -51,7 +51,22 @@ export class AlbaranesClase {
               timestamp: timestamp,
             };
             await deudasInstance.setDeuda(deuda);
-            await movimientosInstance.nuevoMovimiento(total,"DEUDA","SALIDA",id,idTrabajador)
+            await movimientosInstance.nuevoMovimiento(
+              total,
+              "DEUDA",
+              "SALIDA",
+              id,
+              idTrabajador
+            );
+            break;
+          case "PAGADO":
+            await movimientosInstance.nuevoMovimiento(
+              total,
+              "Albara",
+              "ENTRADA_DINERO",
+              id,
+              idTrabajador
+            );
             break;
           default:
             break;
