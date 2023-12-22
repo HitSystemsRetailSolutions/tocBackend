@@ -48,6 +48,9 @@ export class MovimientosClase {
   getMovimientosIntervalo = (inicioTime: number, finalTime: number) =>
     schMovimientos.getMovimientosIntervalo(inicioTime, finalTime);
 
+  getMovTkrsSinExcIntervalo = async (inicioTime: number, finalTime: number) => 
+  await schMovimientos.getMovTkrsSinExcIntervalo(inicioTime, finalTime);
+
   /* Uri */
   /* Yasai :D */
   public async existeMovimiento(
@@ -258,7 +261,6 @@ export class MovimientosClase {
       }
     }
     if (superTicket.consumoPersonal) return "CONSUMO_PERSONAL";
-    if (superTicket.datafono3G && !superTicket?.anulado) return "DATAFONO_3G";
     if (superTicket.paytef)
       if (superTicket.total < 0) {
         return "DEVUELTO";
@@ -273,8 +275,16 @@ export class MovimientosClase {
           return "TARJETA";
         }
       } else if (superTicket.movimientos[0].tipo === "TKRS_SIN_EXCESO") {
-        if (superTicket.total > superTicket.movimientos[0].valor)
+        if (
+          superTicket.total > superTicket.movimientos[0].valor &&
+          !superTicket.datafono3G
+        )
           return "TKRS + EFECTIVO";
+        else if (
+          superTicket.total > superTicket.movimientos[0].valor &&
+          superTicket.datafono3G
+        )
+          return "TKRS + DATAFONO_3G";
         else return "TKRS";
       } else if (superTicket.movimientos[0].tipo === "DEUDA") {
         return "DEUDA";
@@ -284,6 +294,8 @@ export class MovimientosClase {
         return "EFECTIVO";
         throw Error("Forma de pago desconocida");
       }
+    } else if (superTicket.datafono3G && !superTicket?.anulado) {
+      return "DATAFONO_3G";
     } else if (superTicket.movimientos.length === 0 && superTicket.total > 0) {
       return "EFECTIVO";
     } else if (superTicket.movimientos.length === 0 && superTicket.total < 0) {
