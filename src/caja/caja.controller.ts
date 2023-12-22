@@ -47,7 +47,7 @@ export class CajaController {
           idDependienta,
           false,
           await ticketsInstance.getTotalHonei(),
-          cambioEmergencia,
+          cambioEmergencia
         );
       }
       throw Error("Error cerrarCaja > Faltan datos");
@@ -70,6 +70,7 @@ export class CajaController {
           detalleApertura: detalle,
           idDependientaApertura: idDependienta,
           cambioEmergenciaApertura: cambioEmergencia,
+          cambioEmergenciaActual: 0,
           inicioTime: await cajaInstance.getComprovarFechaCierreTurno(),
           totalApertura: total,
           fichajes: idTrabajadores,
@@ -200,5 +201,27 @@ export class CajaController {
           mensaje: "Backend: Error en caja/getAnularTurno > CATCH",
         };
       });
+  }
+  // guarda el cambio que introduce la dep hasta que se cierre caja
+  @Post("setCambioEmActual")
+  async setCambioEmActual(@Body() { valor }) {
+    try {
+      if (valor) {
+        return await cajaInstance.setCambioEmActual(valor);
+      }
+    } catch (error) {
+      logger.Error(141, error);
+      
+    }
+  }
+  // recoge cambioEmActual de la caja abierta
+  @Get("getCambioEmActual")
+  async getCambioEmActual() {
+    try {
+      return await cajaInstance.getCambioEmActual();
+    } catch (error) {
+      logger.Error(142, error);
+      
+    }
   }
 }

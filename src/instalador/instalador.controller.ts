@@ -395,6 +395,7 @@ export class InstaladorController {
             detalleApertura: monedasCaja,
             idDependientaApertura: Number.parseInt(Dependenta),
             cambioEmergenciaApertura: Number(cambioEmergencia),
+            cambioEmergenciaActual: 0,
             inicioTime: Date.parse(date.toString()),
             totalApertura: totalMonedas,
             fichajes: [Number.parseInt(Dependenta)],
