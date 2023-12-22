@@ -2,11 +2,11 @@ import axios from "axios";
 import { clienteInstance } from "../clientes/clientes.clase";
 import { articulosInstance } from "../articulos/articulos.clase";
 import { ArticulosInterface } from "../articulos/articulos.interface";
-import { CestasInterface } from "../cestas/cestas.interface";
+import { CestasInterface, ItemLista } from "../cestas/cestas.interface";
 import { logger } from "../logger";
 import {
   PromocionesInterface,
-  InfoPromocionIndividual,
+  //InfoPromocionIndividual,
   InfoPromocionCombo,
   PreciosReales,
   MediaPromoEncontrada,
@@ -14,8 +14,9 @@ import {
 } from "./promociones.interface";
 import * as schPromociones from "./promociones.mongodb";
 import { TicketsInterface } from "../tickets/tickets.interface";
-import {arrayClientesFacturacion} from "../clientes/clientes.interface"
+import { arrayClientesFacturacion } from "../clientes/clientes.interface";
 import { promises } from "dns";
+import { unwatchFile } from "fs";
 
 export class NuevaPromocion {
   private promosIndividuales: PromocionesInterface[] = [];
@@ -90,7 +91,7 @@ export class NuevaPromocion {
       if (cliente.albaran === true) {
         // No se les hace promociones a estos clientes
         return false;
-      }else if (arrayClientesFacturacion.includes(cesta.idCliente)) {
+      } else if (arrayClientesFacturacion.includes(cesta.idCliente)) {
         return false;
       }
     }
@@ -104,7 +105,8 @@ export class NuevaPromocion {
     }
 
     /* INDIVIDUALES */
-    const promoIndividual = await this.buscarPromocionesIndividuales(
+
+    /*    const promoIndividual = await this.buscarPromocionesIndividuales(
       idArticulo,
       unidadesTotales
     );
@@ -115,6 +117,11 @@ export class NuevaPromocion {
         this.aplicarSobraIndividual(cesta, idArticulo, promoIndividual);
       return true;
     }
+*/
+    if (
+      await this.intentarAplicarPromocionIndividual(cesta, idArticulo, unidades)
+    )
+      return true;
 
     /* COMBO */
     // const mediaPromo = this.buscarPromo(idArticulo, unidadesTotales);
@@ -198,9 +205,8 @@ export class NuevaPromocion {
                 mediaPromo,
                 otraMediaPartePromo
               );
-              const articuloPrincipal = await articulosInstance.getInfoArticulo(
-                idArticulo
-              );
+              const articuloPrincipal =
+                await articulosInstance.getInfoArticulo(idArticulo);
               const articuloSecundario =
                 await articulosInstance.getInfoArticulo(
                   cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
@@ -324,9 +330,8 @@ export class NuevaPromocion {
                 mediaPromo,
                 otraMediaPartePromo
               );
-              const articuloPrincipal = await articulosInstance.getInfoArticulo(
-                idArticulo
-              );
+              const articuloPrincipal =
+                await articulosInstance.getInfoArticulo(idArticulo);
               const articuloSecundario =
                 await articulosInstance.getInfoArticulo(
                   cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
@@ -399,46 +404,42 @@ export class NuevaPromocion {
     return { seAplican: unidadesPromo, sobranPrincipal, sobranSecundario };
   }
 
+  // mssql datetime no tiene timezone, al pasar a JSON la date se pasa a string con timezone Z (UTC)
+  // las fechas en la tabla del sql del WEB productespromocionats se refieren a la timezone local de la tienda (mirar documentación de HIT)
+  private mssqlDateToJsDate(strdate: string) {
+    // quitar timezone Z, si la fecha no tiene timezone se usa la local (si la fecha es fecha-hora)
+    if (strdate.endsWith("Z")) strdate = strdate.slice(0, -1);
+    return new Date(strdate);
+  }
+
   private async comprovarIntervaloFechas(promocion) {
     let fechaInicio = promocion.fechaInicio;
     let fechaFinal = promocion.fechaFinal;
-    let diaInicio = await this.obtenerDiaSemana(fechaInicio);
-    let diaFinal = await this.obtenerDiaSemana(fechaFinal);
-    let anoPromocion = await this.obtenerAno(fechaInicio);
+    let diaInicio = this.obtenerDiaSemana(fechaInicio);
+    let diaFinal = this.obtenerDiaSemana(fechaFinal);
+    let anoPromocion = this.obtenerAno(fechaInicio);
     let fechaActual = new Date();
     var diaActual = fechaActual.getDay();
 
-    var dateInicio = new Date(fechaInicio);
-    var dateFinal = new Date(fechaFinal);
+    var dateInicio = this.mssqlDateToJsDate(fechaInicio);
+    var dateFinal = this.mssqlDateToJsDate(fechaFinal);
 
     // condicion para saber si la promocion es de una fecha en especifico
     if (anoPromocion == 2007) {
       // si da 7, la promocion esta activa todos los dias
       if (
         (diaActual == diaInicio && diaActual == diaFinal) ||
-        (diaFinal == 7 && diaFinal == 7)
+        diaInicio == 7 ||
+        diaFinal == 7 // diaInicio puede ser diferente a diaFinal ?
       ) {
-        var FIH = dateInicio.getUTCHours(); // Obtener la hora de fechaInicio
-        var FIM = dateInicio.getUTCMinutes();
-        var FIS = dateInicio.getUTCSeconds();
+        // En los casos en los que solo se mira la hora, los segundos son 00 en la base de datos, solo comprobar hora y minutos
+        // la hora final se entiende que es inclusiva <=
+        var m_inicio = dateInicio.getHours() * 60 + dateInicio.getMinutes(); // minutos desde las 00:00 de fechaInicio
+        var m_final = dateFinal.getHours() * 60 + dateFinal.getMinutes(); // minutos de fechaFinal
 
-        var FFH = dateFinal.getUTCHours(); // Obtener la hora de fechaFinal
-        var FFM = dateFinal.getUTCMinutes();
-        var FFS = dateFinal.getUTCSeconds();
+        var m_actual = fechaActual.getHours() * 60 + fechaActual.getMinutes(); // minutos de fechaActual
 
-        var horaActual = fechaActual.getHours();
-        var minutoActual = fechaActual.getMinutes();
-        var segundoActual = fechaActual.getSeconds();
-        if (
-          (horaActual > FIH ||
-            (horaActual === FIH &&
-              minutoActual >= FIM &&
-              segundoActual >= FIS)) &&
-          (horaActual < FFH ||
-            (horaActual === FFH && minutoActual <= FFM && segundoActual <= FFS))
-        ) {
-          return true;
-        }
+        if (m_inicio <= m_actual && m_actual <= m_final) return true;
       }
       // comprovacion si la fecha de hoy esta en el intervalo utilizado.
     } else if (
@@ -450,7 +451,7 @@ export class NuevaPromocion {
     // devolvemos false si la promocion no esta activa hoy.
     return false;
   }
-  private async obtenerDiaSemana(fecha) {
+  private obtenerDiaSemana(fecha) {
     var dia = parseInt(fecha.slice(8, 10), 10);
 
     // Ajustar el día de la semana para que 08 sea lunes, 09 sea martes, etc.
@@ -475,12 +476,177 @@ export class NuevaPromocion {
         return -1; // Valor inválido
     }
   }
-  private async obtenerAno(fecha) {
+  private obtenerAno(fecha) {
     var ano = parseInt(fecha.slice(0, 4), 10);
 
     // Ajustar el día de la semana para que 08 sea lunes, 09 sea martes, etc.
     return ano;
   }
+
+  /*
+    intentar aplicar una promo individual nueva con las unidades de idArticulo a añadir,
+    false: si no se ha se han modificado las promos individuales que ya estaban aplicadas, las unidades se tendran que añadir a la cesta despues,
+    true: las unidades de articulo han modificado las promos y ya se han añadido.
+  */
+  private async intentarAplicarPromocionIndividual(
+    cesta: CestasInterface,
+    idArticulo: ArticulosInterface["_id"],
+    unidades: number
+  ): Promise<boolean> {
+    // itemsCestaPromo: Map con los items de la cesta que son promos individuales del articulo (key:id promocion)
+    let itemsCestaPromo = new Map<string, ItemLista>();
+    let itemCestaSinPromo: ItemLista; // item de la cesta del articulo normal (sin promo)
+
+    // calcular las unidadesTotales del articulo en los items de la cesta (promos indiciduales y item sin promo) + unidades a añadir
+    let unidadesTotales = unidades;
+
+    for (let itemCesta of cesta.lista) {
+      if (!itemCesta.regalo) {
+        // no contar para la promo los items de la cesta de regalo
+        if (itemCesta.idArticulo === idArticulo) {
+          unidadesTotales += itemCesta.unidades;
+          itemCestaSinPromo = itemCesta;
+        } else if (
+          itemCesta.promocion &&
+          itemCesta.promocion.tipoPromo == "INDIVIDUAL" &&
+          itemCesta.promocion.idArticuloPrincipal === idArticulo
+        ) {
+          unidadesTotales +=
+            itemCesta.unidades * itemCesta.promocion.cantidadArticuloPrincipal;
+          itemsCestaPromo.set(itemCesta.promocion.idPromocion, itemCesta);
+        }
+      }
+    }
+
+    // promos individuales que contienen el articulo y que se pueden aplicar (número de unidades<=totales e intervalo de fecha promo)
+    let promosArt: {
+      unidadesPorPromo: number;
+      promoInd: PromocionesInterface;
+    }[] = [];
+    for (let promoInd of this.promosIndividuales) {
+      let idsArticulos: number[];
+      let unidadesPorPromo: number;
+
+      if (promoInd.principal?.length > 0) {
+        idsArticulos = promoInd.principal;
+        unidadesPorPromo = promoInd.cantidadPrincipal;
+      } else if (promoInd.secundario?.length > 0) {
+        idsArticulos = promoInd.secundario;
+        unidadesPorPromo = promoInd.cantidadSecundario;
+      } else {
+        continue;
+      }
+
+      for (let idArt of idsArticulos) {
+        if (
+          idArt === idArticulo &&
+          unidadesTotales >= unidadesPorPromo &&
+          (await this.comprovarIntervaloFechas(promoInd))
+        ) {
+          promosArt.push({ unidadesPorPromo, promoInd });
+        }
+      }
+    }
+    promosArt.sort((a, b) => b.unidadesPorPromo - a.unidadesPorPromo); // ordenar por unidadesPorPromo descendiente
+
+    const articulo = await articulosInstance.getInfoArticulo(idArticulo);
+
+    let cambioEnPromos = false; // modificar, añadir o eliminar alguna promo de las que estaban aplicadas
+    let unidadesRestantes = unidadesTotales;
+
+    for (let promoArt of promosArt) {
+      let cantidadPromos = Math.trunc(
+        unidadesRestantes / promoArt.unidadesPorPromo
+      );
+      if (cantidadPromos > 0) {
+        let precioUnidad = promoArt.promoInd.precioFinal;
+        unidadesRestantes -= cantidadPromos * promoArt.unidadesPorPromo;
+        let itemCesta = itemsCestaPromo.get(promoArt.promoInd._id);
+        if (itemCesta) {
+          // promo ya existe en la cesta
+          if (itemCesta.unidades != cantidadPromos) {
+            // se ha modificado la cantidad de promos de esta promo
+            cambioEnPromos = true;
+            itemCesta.unidades = cantidadPromos;
+            itemCesta.subtotal = Number(
+              (
+                cantidadPromos *
+                promoArt.unidadesPorPromo *
+                precioUnidad
+              ).toFixed(2)
+            );
+            itemCesta.promocion.unidadesOferta = cantidadPromos;
+          }
+          itemsCestaPromo.delete(promoArt.promoInd._id); // promo ya procesada, eliminar de los items por procesar
+        } else {
+          // promo no existe en la cesta, crear item y añadirlo a la cesta
+          cambioEnPromos = true;
+          //let promoMenosCantidad = (promosArt[promosArt.length-1] == promoArt);
+          cesta.lista.push({
+            arraySuplementos: null,
+            gramos: 0,
+            idArticulo: -1,
+            unidades: cantidadPromos,
+            nombre:
+              "Promo. " +
+              articulo.nombre /*+ (promoMenosCantidad ? "" : " ("+promoArt.cantidad+")")*/,
+            impresora: null,
+            regalo: false,
+            subtotal: Number(
+              (
+                cantidadPromos *
+                promoArt.unidadesPorPromo *
+                precioUnidad
+              ).toFixed(2)
+            ),
+            puntos: null,
+            promocion: {
+              idPromocion: promoArt.promoInd._id,
+              tipoPromo: "INDIVIDUAL",
+              unidadesOferta: cantidadPromos,
+              idArticuloPrincipal: idArticulo,
+              cantidadArticuloPrincipal: promoArt.unidadesPorPromo,
+              cantidadArticuloSecundario: null,
+              idArticuloSecundario: null,
+              precioRealArticuloPrincipal: precioUnidad,
+              precioRealArticuloSecundario: null,
+            },
+          });
+        }
+      }
+    }
+
+    // borrar de la cesta los items de promo que ahora tienen 0 unidades
+    for (let itemCesta of itemsCestaPromo.values()) {
+      cambioEnPromos = true;
+      cesta.lista.splice(cesta.lista.indexOf(itemCesta), 1);
+    }
+    if (!cambioEnPromos) return false; // No han habido promociones nuevas, los articulos se añadiran como un item de la cesta normal(sin promo)
+
+    // borrar item cesta sin promo y crear nueva si es necesaria
+    if (itemCestaSinPromo)
+      cesta.lista.splice(cesta.lista.indexOf(itemCestaSinPromo), 1);
+    if (unidadesRestantes) {
+      cesta.lista.push({
+        arraySuplementos: null,
+        gramos: null,
+        idArticulo,
+        nombre: articulo.nombre,
+        promocion: null,
+        puntos: articulo.puntos,
+        impresora: articulo.impresora,
+        regalo: false,
+        subtotal: Number(
+          (unidadesRestantes * articulo.precioConIva).toFixed(2)
+        ),
+        unidades: unidadesRestantes,
+      });
+    }
+    return true;
+  }
+
+  /*
+
   private async buscarPromocionesIndividuales(
     idArticulo: ArticulosInterface["_id"],
     unidadesTotales: number
@@ -560,7 +726,7 @@ export class NuevaPromocion {
     }
     return null;
   }
-
+*/
   private async buscarPromo(
     idArticulo: ArticulosInterface["_id"],
     unidadesTotales: number,
@@ -746,7 +912,7 @@ export class NuevaPromocion {
     }
     return null;
   }
-
+  /*
   private aplicarPromoIndividual(
     cesta: CestasInterface,
     data: InfoPromocionIndividual
@@ -790,7 +956,7 @@ export class NuevaPromocion {
       });
     }
   }
-
+*/
   private aplicarPromoCombo(
     cesta: CestasInterface,
     data: InfoPromocionCombo,
@@ -947,6 +1113,7 @@ export class NuevaPromocion {
     }
   }
 
+  /*
   private aplicarSobraIndividual(
     cesta: CestasInterface,
     idArticulo: ArticulosInterface["_id"],
@@ -965,7 +1132,7 @@ export class NuevaPromocion {
       unidades: data.sobran,
     });
   }
-
+*/
   private aplicarSobraComboPrincipal(
     cesta: CestasInterface,
     data: InfoPromocionCombo
@@ -1012,7 +1179,9 @@ export class NuevaPromocion {
   };
 
   /* Eze 4.0 */
-  public deshacerPromociones(ticket: TicketsInterface):TicketsInterface['cesta']['lista'] {
+  public deshacerPromociones(
+    ticket: TicketsInterface
+  ): TicketsInterface["cesta"]["lista"] {
     let valor = ticket.total < 0 ? -1 : 1;
     const nuevaLista = [];
     for (let i = 0; i < ticket.cesta.lista.length; i++) {
@@ -1086,7 +1255,7 @@ export class NuevaPromocion {
       }
     }
     ticket.cesta.lista = nuevaLista;
-    return ticket.cesta.lista
+    return ticket.cesta.lista;
   }
 }
 

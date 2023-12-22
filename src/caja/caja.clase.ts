@@ -244,14 +244,16 @@ export class CajaClase {
       let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0][
         "_id"
       ];
-      let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
-      let cantidadLocal3G = await ticketsInstance.cantidadLocal3G();
+
       if (trabId == undefined) trabId = 0;
       if (fechaHoy != fechaApertura) {
         // parametrosController.totalPaytef llama a paytefInstance.getRecuentoTotal que llama al server de paytef
         // solo hay que realizar la petición cuando se cierra caja por fecha (hoy!=apertura)
         const paytef = await parametrosController.totalPaytef();
         let totalPaytef = paytef[0] ? paytef[0] : 0;
+
+        let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
+        let cantidadLocal3G = await ticketsInstance.cantidadLocal3G();
 
         await cajaInstance.cerrarCaja(
           0,
@@ -373,7 +375,7 @@ export class CajaClase {
     }
 
     // totalEfectivo -= totalDatafono3G;
-    let totalTicketDatafono3G = 0;
+
     // ESTO SERÁ PARA CALCULAR EL DESCUADRE
     for (let i = 0; i < arrayTicketsCaja.length; i++) {
       nTickets++;
@@ -385,9 +387,7 @@ export class CajaClase {
         nClientes++;
       }
       totalTickets += arrayTicketsCaja[i].total;
-      if (arrayTicketsCaja[i].datafono3G) {
-        totalTicketDatafono3G += arrayTicketsCaja[i].total;
-      }
+      
     }
 
     /*const descuadre =
@@ -433,7 +433,6 @@ export class CajaClase {
       totalDeudas,
       cantidadPaytef,
       totalLocalPaytef,
-      totalTicketDatafono3G,
       cantidadLocal3G,
       totalDeuda,
       totalEfectivo,
@@ -448,6 +447,10 @@ export class CajaClase {
       cambioEmergenciaCierre,
     };
   }
+  setCambioEmActual= async (valor) =>
+  await schCajas.setCambioEmActual(valor);
+  getCambioEmActual= async () =>
+  await schCajas.getCambioEmActual();
 }
 
 export const cajaInstance = new CajaClase();

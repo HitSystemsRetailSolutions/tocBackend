@@ -158,7 +158,7 @@ export async function getTotalLocalPaytef(): Promise<number> {
 }
 
 /* Uri */
-export async function getTotalLocal3G(): Promise<number> {
+export async function getTotalLocal3G(){
   const database = (await conexion).db("tocgame");
   const time = (await schCaja.getApeturaCaja()).inicioTime;
   const tickets = database.collection<TicketsInterface>("tickets");
@@ -166,12 +166,7 @@ export async function getTotalLocal3G(): Promise<number> {
     datafono3G: true,
     timestamp: { $gt: time },
   });
-  const arrayResult = await tkPaytef.toArray();
-  let sum = 0;
-  for (const x of arrayResult) {
-    sum += x.total;
-  }
-  return sum;
+  return tkPaytef.toArray();
 }
 
 /* Eze v23 */

@@ -238,3 +238,28 @@ export async function postfichajesCaja(
     )
   ).acknowledged;
 }
+
+export async function setCambioEmActual(
+  valor:number
+):Promise <boolean>{
+  const database = (await conexion).db("tocgame");
+  const caja = database.collection("caja");
+  return (
+    await caja.updateOne(
+      {},
+      {
+        $set: {
+          cambioEmergenciaActual: valor,
+        },
+      }
+    )
+  ).acknowledged;
+}
+
+export async function getCambioEmActual(
+):Promise <number>{
+  const database = (await conexion).db("tocgame");
+  const caja = database.collection<CajaAbiertaInterface>("caja");
+  const buscar =await caja.findOne();
+  return buscar.cambioEmergenciaActual;
+}

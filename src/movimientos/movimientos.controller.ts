@@ -47,7 +47,10 @@ export class MovimientosController {
     try {
       const horaApertura = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
       const final = Date.now();
-      return await movimientosInstance.getEntradasIntervalo(horaApertura, final);
+      return await movimientosInstance.getEntradasIntervalo(
+        horaApertura,
+        final
+      );
     } catch (err) {
       logger.Error(98, err);
       console.log(err);
@@ -79,5 +82,17 @@ export class MovimientosController {
         prediccion = -1;
       });
     return prediccion;
+  }
+  @Get("getMovTkrsSinExcIntervalo")
+  async getMovTkrsSinExcIntervalo() {
+    try {
+      const inicioTime = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
+    const finalTime = Date.now();
+      return await movimientosInstance.getMovTkrsSinExcIntervalo(inicioTime, finalTime);
+    } catch (err) {
+      logger.Error(99, err);
+      console.log(err);
+      return 0;
+    }
   }
 }

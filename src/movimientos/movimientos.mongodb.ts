@@ -150,3 +150,13 @@ export async function getEntradasIntervalo(
     database.collection<MovimientosInterface>("movimientos");
   return await movimientosCollection.find({  _id: { $lte: final, $gte: horaApertura },tipo: "ENTRADA_DINERO" }).toArray();
 }
+
+export async function getMovTkrsSinExcIntervalo(
+  horaApertura: CajaAbiertaInterface["inicioTime"],
+  final: number
+) {
+  const database = (await conexion).db("tocgame");
+  const movimientosCollection =
+    database.collection<MovimientosInterface>("movimientos");
+  return await movimientosCollection.find({  _id: { $lte: final, $gte: horaApertura },tipo: "TKRS_SIN_EXCESO" }).toArray();
+}

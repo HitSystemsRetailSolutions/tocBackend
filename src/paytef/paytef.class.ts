@@ -15,6 +15,8 @@ let intentosBuclePollResult = 0;
 
 axios.defaults.timeout = 5000; // Evitem que el client esperi...  // ???? se modifica en instalador.controller.ts
 class PaytefClass {
+  transaccionFinalizada = false;
+
   // datos de la última inicio de transacción por si se ha de repetir en paytef.controller cobrarUltimoTicket
   ultimaIniciarTransaccion: {
     idTrabajador: number;
@@ -32,7 +34,8 @@ class PaytefClass {
     idTicket: TicketsInterface["_id"],
     total: TicketsInterface["total"],
     type: "refund" | "sale" = "sale"
-  ): Promise<void> {
+  ): Promise<boolean> {
+    this.transaccionFinalizada = false;
     this.ultimaIniciarTransaccion = { idTrabajador, idTicket, total, type };
 
     const parametros = await parametrosInstance.getParametros();
@@ -56,12 +59,12 @@ class PaytefClass {
       io.emit("procesoPaytef", { proceso: "" });
       this.dentroIniciarTransaccion = true;
       let salirBucleStart = false;
-      // transaccionFinalizada = transacción completada sin errores de conexión
+      // this.transaccionFinalizada = transacción completada sin errores de conexión
       // si es false no se sabe el estado de la transacción puede estar en proceso, finalizada, o incluso, que no se haya iniciado
-      let transaccionFinalizada: boolean | undefined;
+
       let intentosBucleStart = 0;
       while (!salirBucleStart) {
-        transaccionFinalizada = await axios({
+        await axios({
           method: "POST",
           url: `http://${parametros.ipTefpay}:8887/transaction/start`,
           data: opciones,
@@ -72,12 +75,13 @@ class PaytefClass {
             if (await respuestaPayef.data.info["started"]) {
               io.emit("procesoPaytef", { proceso: "Inicio proceso" });
               intentosBuclePollResult = 0;
-              return await this.bucleComprobacion(
+              let xy: boolean = await this.bucleComprobacion(
                 idTicket,
                 total,
                 idTrabajador,
                 type
               );
+              return xy;
             } else {
               io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
               io.emit("procesoPaytef", { proceso: "Denegado" });
@@ -99,18 +103,19 @@ class PaytefClass {
               await new Promise((r) => setTimeout(r, 100));
               intentosBucleStart += 1;
               //this.iniciarTransaccion(idTrabajador, idTicket, total, type); // se realiza en el siguiente bucleStart
-              return;
+              return false;
             }
             //io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
           });
       } // while !salirBucleStart
       this.dentroIniciarTransaccion = false;
-      if (!transaccionFinalizada) {
+      if (!this.transaccionFinalizada) {
         this.timeUltimaTransaccionNoFinalizada = Date.now();
       }
     } else {
       io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
     }
+    return this.transaccionFinalizada;
   }
 
   /* Eze 4.0 */
@@ -120,7 +125,6 @@ class PaytefClass {
     idTrabajador: TicketsInterface["idTrabajador"],
     type: "refund" | "sale" = "sale"
   ): Promise<boolean> {
-    let transaccionFinalizada: boolean | undefined;
     try {
       const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
       const resEstadoPaytef: any = (
@@ -157,7 +161,7 @@ class PaytefClass {
               ticketsInstance.setPagadoPaytef(idTicket);
               io.emit("consultaPaytef", { valid: true, ticket: idTicket });
               io.emit("procesoPaytef", { proceso: "aprobado" });
-              transaccionFinalizada = true;
+              this.transaccionFinalizada = true;
               /*---- return true; */
             } else {
               // transactionReference != idTicket
@@ -174,7 +178,7 @@ class PaytefClass {
                   idTrabajador,
                 ],
               });
-              transaccionFinalizada = false;
+              this.transaccionFinalizada = false;
               /*---- return false; */
             }
             /*-------------------------------
@@ -197,7 +201,7 @@ class PaytefClass {
               parametrosInstance.setContadoDatafono(0, total * -1);
               io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
               this.imprimirTicket(idTicket);
-              transaccionFinalizada = true;
+              this.transaccionFinalizada = true;
               /*---- return true; */
             } else {
               // transactionReference != idTicket
@@ -213,7 +217,7 @@ class PaytefClass {
                   idTrabajador,
                 ],
               });
-              transaccionFinalizada = false;
+              this.transaccionFinalizada = false;
               /*---- return false; */
             }
             /*-------------------------------
@@ -222,7 +226,7 @@ class PaytefClass {
             intentosBuclePollResult = 0;
           } else {
             // no pasa por aqui, type == sale,refund
-            transaccionFinalizada = true;
+            // this.transaccionFinalizada = true;
           }
 
           ticketsInstance.actualizarTickets();
@@ -234,17 +238,12 @@ class PaytefClass {
           } else if (type === "refund") {
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
           }
-          transaccionFinalizada = true;
+          //this.transaccionFinalizada = true;
         }
       } else {
         // poll aún no hay result
         await new Promise((r) => setTimeout(r, 1000));
-        transaccionFinalizada = await this.bucleComprobacion(
-          idTicket,
-          total,
-          idTrabajador,
-          type
-        );
+        await this.bucleComprobacion(idTicket, total, idTrabajador, type);
       }
     } catch (e) {
       logger.Error(e);
@@ -261,19 +260,14 @@ class PaytefClass {
           id: idTicket,
           datos: [total * -1, "Targeta", "TARJETA", idTicket + 1, idTrabajador],
         });
-        transaccionFinalizada = false;
+        this.transaccionFinalizada = false;
       } else {
         await new Promise((r) => setTimeout(r, 100));
         intentosBuclePollResult += 1;
-        transaccionFinalizada = await this.bucleComprobacion(
-          idTicket,
-          total,
-          idTrabajador,
-          type
-        );
+        await this.bucleComprobacion(idTicket, total, idTrabajador, type);
       }
     }
-    return transaccionFinalizada; // false=error de conexión
+    return this.transaccionFinalizada; // false=error de conexión
   }
   /*
   En la función comprobarDisponibilidad en paytef.controller se llama al servidor paytef para guardar el contado por Datafono a la base de datos
