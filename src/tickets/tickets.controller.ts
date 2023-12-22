@@ -111,6 +111,49 @@ export class TicketsController {
   }
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
 
+  @Post("crearTicketPaytef")
+  async crearTicketPaytef(
+    @Body()
+    {
+      total,
+      idCesta,
+      idTrabajador,
+      tipo,
+      tkrsData,
+      concepto,
+      honei,
+    }: {
+      total: number;
+      idCesta: TicketsInterface["cesta"]["_id"];
+      idTrabajador: TicketsInterface["idTrabajador"];
+      tipo: FormaPago;
+      tkrsData: {
+        cantidadTkrs: number;
+        formaPago: FormaPago;
+      };
+      concepto?: MovimientosInterface["concepto"];
+      honei?: boolean;
+    }
+  ) {
+    let nextID = await ticketsInstance.getProximoId();
+    return await paytefInstance
+      .iniciarTransaccion(idTrabajador, nextID, total)
+      .then(async (x) => {
+        if (x)
+          await this.crearTicket({
+            total,
+            idCesta,
+            idTrabajador,
+            tipo,
+            tkrsData,
+            concepto,
+            honei,
+          });
+        console.log(x);
+        return x;
+      });
+  }
+
   /* Eze 4.0 */
   @Post("crearTicket")
   async crearTicket(
@@ -150,7 +193,12 @@ export class TicketsController {
         (cliente) => cliente.idCliente === cesta.idCliente
       );
       if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
-      if (tipo !== "CONSUMO_PERSONAL" && descuento && descuento > 0 && (!clienteDescEsp || clienteDescEsp.precio==total)) {
+      if (
+        tipo !== "CONSUMO_PERSONAL" &&
+        descuento &&
+        descuento > 0 &&
+        (!clienteDescEsp || clienteDescEsp.precio == total)
+      ) {
         cesta.lista.forEach((producto) => {
           if (producto.arraySuplementos != null) {
             producto.subtotal = this.redondearPrecio(
@@ -186,9 +234,10 @@ export class TicketsController {
       if (await ticketsInstance.insertarTicket(ticket)) {
         await cestasInstance.borrarArticulosCesta(idCesta, true, true);
         await cestasInstance.setClients(0, idCesta);
-        if (tipo === "TARJETA")
-          paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
-        else if (
+        if (tipo === "TARJETA") {
+          // paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
+          ticketsInstance.setPagadoPaytef(ticket._id);
+        } else if (
           (tipo === "TKRS" && tkrsData) ||
           (tkrsData?.cantidadTkrs > 0 && (tipo === "EFECTIVO" || tipo === "DATAFONO_3G"))
         ) {
