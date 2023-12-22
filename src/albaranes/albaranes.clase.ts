@@ -9,6 +9,7 @@ import { DeudasInterface } from "src/deudas/deudas.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
 export class AlbaranesClase {
+  // crea el albaran y devuelve la id
   async setAlbaran(
     total,
     cesta,

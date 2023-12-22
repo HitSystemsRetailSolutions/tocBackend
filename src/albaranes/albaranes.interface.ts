@@ -1,5 +1,5 @@
 import { TicketsInterface } from "src/tickets/tickets.interface";
 
 export interface AlbaranesInterface extends TicketsInterface {
-  estado?: "NO_PAGA_EN_TIENDA" | "PAGADO" | "DEUDA";
+  estado?: "NO_PAGA_EN_TIENDA" | "PAGADO" | "DEUDA" | "V_ALB_ANTIGUO";
 }

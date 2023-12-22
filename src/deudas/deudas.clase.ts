@@ -13,6 +13,7 @@ import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 import { CajaCerradaInterface, CajaSincro } from "src/caja/caja.interface";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { impresoraInstance } from "src/impresora/impresora.class";
+import { Timestamp } from "mongodb";
 export class Deudas {
   async getDate(timestamp: any) {
     var date = new Date(timestamp);
@@ -102,11 +103,22 @@ export class Deudas {
     const deuda = await schDeudas.getDeudaById(idDeuda);
 
     if (deuda) {
-      const concepto= albaran?"DEUDA ALBARAN":"DEUDA";
+      let id = deuda.idTicket;
+      if (await this.comprobarVersDeudaAlbaran(deuda, albaran)) {
+        // creamos un albaran e insertamos al nuevoMovimiento la idAlbaran
+        const idAlbarnan = await AlbaranesInstance.setAlbaran(
+          deuda.total,
+          deuda.cesta,
+          deuda.idTrabajador,
+          "V_ALB_ANTIGUO"
+        );
+        id = idAlbarnan.toString();
+      }
+      const concepto = albaran ? "DEUDA ALBARAN" : "DEUDA";
       const movimiento = {
         cantidad: deuda.total,
         concepto: concepto,
-        idTicket: deuda.idTicket,
+        idTicket: id,
         idTrabajador: deuda.idTrabajador,
         tipo: "ENTRADA_DINERO",
       };
@@ -137,6 +149,18 @@ export class Deudas {
         msg: "Deuda no encontrada",
       };
     }
+  }
+  async comprobarVersDeudaAlbaran(deuda: DeudasInterface, albaran: any) {
+    if (!albaran) {
+      return false;
+    }
+    const fechaVersion = new Date("2024-01-03T12:00:00");
+    const timestamp = fechaVersion.getTime();
+    // detectamos que deuda albaran es anterior a la nueva version de los albaranes
+    if (deuda.timestamp < timestamp) {
+      return true;
+    }
+    return false;
   }
   eliminarDeuda = async (idDeuda, albaran) => {
     try {
