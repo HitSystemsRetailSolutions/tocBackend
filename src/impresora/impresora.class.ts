@@ -1104,7 +1104,7 @@ export class Impresora {
           caja.inicioTime,
           caja.finalTime
         );
-      if (parametros?.params?.DesgloseVisasCierreCaja) {
+      if (parametros?.params?.DesgloseVisasCierreCaja=="Si") {
         datafono3G += "Desglossament Vises 3G:\n";
         for (let i = 0; i < arrayTickets.length; i++) {
           const auxFecha = new Date(arrayTickets[i].timestamp);
