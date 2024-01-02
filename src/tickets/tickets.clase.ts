@@ -215,8 +215,10 @@ export class TicketsClase {
     schTickets.actualizarEstadoTicket(ticket);
 
   /* Eze 4.0 */
-  setTicketEnviado = (idTicket: TicketsInterface["_id"]) =>
-    schTickets.setTicketEnviado(idTicket);
+  setTicketEnviado = (
+    idTicket: TicketsInterface["_id"],
+    enviado: boolean = true
+  ) => schTickets.setTicketEnviado(idTicket, enviado);
 
   /* Uri 4.0 */
   setPagadoPaytef = (idTicket: TicketsInterface["_id"]) =>
