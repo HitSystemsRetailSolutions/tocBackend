@@ -6,7 +6,8 @@ import { clienteInstance } from "../clientes/clientes.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import axios from "axios";
 import { mqttInstance } from "../mqtt";
-import  { descuentoEspecial,
+import {
+  descuentoEspecial,
   ClientesInterface,
 } from "../clientes/clientes.interface";
 import { ItemLista } from "../cestas/cestas.interface";
@@ -1104,7 +1105,7 @@ export class Impresora {
           caja.inicioTime,
           caja.finalTime
         );
-      if (parametros?.params?.DesgloseVisasCierreCaja=="Si") {
+      if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
         datafono3G += "Desglossament Vises 3G:\n";
         for (let i = 0; i < arrayTickets.length; i++) {
           const auxFecha = new Date(arrayTickets[i].timestamp);
@@ -1255,14 +1256,12 @@ export class Impresora {
         {
           tipo: "text",
           payload:
-            "Canvi d'emergencia Apertura  :      " +
-            cambioEmergenciaApertura,
+            "Canvi d'emergencia Apertura  :      " + cambioEmergenciaApertura,
         },
         {
           tipo: "text",
           payload:
-            "Canvi d'emergencia tancament  :      " +
-            cambioEmergenciaCierre,
+            "Canvi d'emergencia tancament  :      " + cambioEmergenciaCierre,
         },
       ]);
 
