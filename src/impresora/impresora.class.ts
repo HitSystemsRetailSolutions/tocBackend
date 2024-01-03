@@ -6,7 +6,8 @@ import { clienteInstance } from "../clientes/clientes.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import axios from "axios";
 import { mqttInstance } from "../mqtt";
-import  { descuentoEspecial,
+import {
+  descuentoEspecial,
   ClientesInterface,
 } from "../clientes/clientes.interface";
 import { ItemLista } from "../cestas/cestas.interface";
@@ -1091,6 +1092,7 @@ export class Impresora {
       let datafono3G = "";
       let textoMovimientos = "";
       let totalDeudaCaja = 0;
+      const mediaTickets = caja.mediaTickets;
       const arrayDeudasCaja = await deudasInstance.getDeudasCajaAsync();
       for (let i = 0; i < arrayDeudasCaja.length; i++) {
         switch (arrayDeudasCaja[i].estado) {
@@ -1255,14 +1257,16 @@ export class Impresora {
         {
           tipo: "text",
           payload:
-            "Canvi d'emergencia Apertura  :      " +
-            cambioEmergenciaApertura,
+            "Canvi d'emergencia Apertura  :      " + cambioEmergenciaApertura,
         },
         {
           tipo: "text",
           payload:
-            "Canvi d'emergencia tancament  :      " +
-            cambioEmergenciaCierre,
+            "Canvi d'emergencia tancament  :      " + cambioEmergenciaCierre,
+        },
+        {
+          tipo: "text",
+          payload: "Mitjana de tickets:      " + mediaTickets,
         },
       ]);
 

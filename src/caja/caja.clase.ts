@@ -102,7 +102,7 @@ export class CajaClase {
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cierreAutomatico: boolean = true,
     totalHonei: number,
-    cambioEmergenciaCierre : number
+    cambioEmergenciaCierre: number
   ): Promise<boolean> {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
@@ -130,7 +130,7 @@ export class CajaClase {
       // TODO: Propina
       await this.getPropina(),
       totalDeudas,
-      Number(cambioEmergenciaCierre.toFixed(2)),
+      Number(cambioEmergenciaCierre.toFixed(2))
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
@@ -140,7 +140,11 @@ export class CajaClase {
           io.emit("cargarVentas", []);
         }
         cajaInstance
-          .guardarMonedas(guardarInfoMonedas, cambioEmergenciaCierre,"CLAUSURA")
+          .guardarMonedas(
+            guardarInfoMonedas,
+            cambioEmergenciaCierre,
+            "CLAUSURA"
+          )
           .then((res2) => {
             if (res2) {
               return true;
@@ -282,7 +286,7 @@ export class CajaClase {
           trabId,
           true,
           await ticketsInstance.getTotalHonei(),
-          0,
+          0
         );
         return true;
       }
@@ -387,7 +391,6 @@ export class CajaClase {
         nClientes++;
       }
       totalTickets += arrayTicketsCaja[i].total;
-      
     }
 
     /*const descuadre =
@@ -447,10 +450,14 @@ export class CajaClase {
       cambioEmergenciaCierre,
     };
   }
-  setCambioEmActual= async (valor) =>
-  await schCajas.setCambioEmActual(valor);
-  getCambioEmActual= async () =>
-  await schCajas.getCambioEmActual();
+  setCambioEmActual = async (valor) => await schCajas.setCambioEmActual(valor);
+
+  getCambioEmActual = async () => await schCajas.getCambioEmActual();
+
+  setDetalleActual = async (detalleActual) =>
+    await schCajas.setDetalleActual(detalleActual);
+
+  getDetalleActual = async () => await schCajas.getDetalleActual();
 }
 
 export const cajaInstance = new CajaClase();
