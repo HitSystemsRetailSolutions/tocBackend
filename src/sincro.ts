@@ -43,7 +43,9 @@ async function sincronizarTickets() {
           await nuevaInstancePromociones.deshacerPromociones(ticket);
           const res: any = await axios
             .post("tickets/enviarTicket", { ticket })
-            .catch((e) => {console.log("error",e)});
+            .catch((e) => {
+              console.log("error", e);
+            });
 
           if (res.data) {
             if (await ticketsInstance.setTicketEnviado(ticket._id)) {
@@ -449,9 +451,8 @@ async function sincronizarAlbaranesCreados() {
             });
           if (res.data && !res.data.error) {
             if (await AlbaranesInstance.setEnviado(albaran._id)) {
-              enProcesoAlbaranesCreados = false;
               setTimeout(function () {
-                enProcesoTickets = false;
+                enProcesoAlbaranesCreados = false;
                 sincronizarAlbaranesCreados();
               }, 100);
             } else {

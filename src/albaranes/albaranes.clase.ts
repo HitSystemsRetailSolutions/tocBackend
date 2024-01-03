@@ -4,7 +4,12 @@ import * as schAlbaranes from "./albaranes.mongodb";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import axios from "axios";
 import { cestasInstance } from "src/cestas/cestas.clase";
+import { deudasInstance } from "src/deudas/deudas.clase";
+import { DeudasInterface } from "src/deudas/deudas.interface";
+import { clienteInstance } from "src/clientes/clientes.clase";
+import { movimientosInstance } from "src/movimientos/movimientos.clase";
 export class AlbaranesClase {
+  // crea el albaran y devuelve la id
   async setAlbaran(
     total,
     cesta,
@@ -13,10 +18,11 @@ export class AlbaranesClase {
   ) {
     // creando json albaran
     const id = await this.getProximoId();
+    const timestamp = Date.now();
     const nuevoAlbaran: AlbaranesInterface = {
       _id: id,
       datafono3G: false,
-      timestamp: Date.now(),
+      timestamp: timestamp,
       total: Number(total.toFixed(2)),
       paytef: false,
       idCliente: cesta.idCliente,
@@ -30,6 +36,42 @@ export class AlbaranesClase {
     try {
       // devolver id cuando se haya guradado el albaran en mongodb
       if (await schAlbaranes.setAlbaran(nuevoAlbaran)) {
+        switch (estado) {
+          case "DEUDA":
+            const cliente = await clienteInstance.getClienteById(
+              cesta.idCliente
+            );
+
+            const deuda = {
+              idTicket: id,
+              cesta: cesta,
+              idTrabajador: idTrabajador,
+              idCliente: cesta.idCliente,
+              nombreCliente: cliente.nombre,
+              total: total,
+              timestamp: timestamp,
+            };
+            await deudasInstance.setDeuda(deuda);
+            await movimientosInstance.nuevoMovimiento(
+              total,
+              "DEUDA",
+              "SALIDA",
+              id,
+              idTrabajador
+            );
+            break;
+          case "PAGADO":
+            await movimientosInstance.nuevoMovimiento(
+              total,
+              "Albara",
+              "ENTRADA_DINERO",
+              id,
+              idTrabajador
+            );
+            break;
+          default:
+            break;
+        }
         return nuevoAlbaran._id;
       }
 
@@ -45,26 +87,36 @@ export class AlbaranesClase {
   }
   async getProximoId(): Promise<number | PromiseLike<number>> {
     const parametros = await parametrosInstance.getParametros();
-  const codigoTienda = parametros.codigoTienda;
+    const codigoTienda = parametros.codigoTienda;
 
-  try {
-    const params = { codigoTienda: parametros.codigoTienda, database: parametros.database };
-    const idAlbaranSantaAna = await axios.post("albaranes/getLastId", { params });
+    try {
+      const params = {
+        codigoTienda: parametros.codigoTienda,
+        database: parametros.database,
+      };
+      const idAlbaranSantaAna = await axios.post("albaranes/getLastId", {
+        params,
+      });
 
-    if (idAlbaranSantaAna?.data) {
-      const contador = Number(idAlbaranSantaAna.data.toString().slice(3)) + 1;
-      return Number(codigoTienda + contador.toString().padStart(4, "0"));
+      if (idAlbaranSantaAna?.data) {
+        const contador = Number(idAlbaranSantaAna.data.toString().slice(3)) + 1;
+        return Number(codigoTienda + contador.toString().padStart(4, "0"));
+      }
+    } catch (error) {
+      // Si hay algún error, manejarlo, pero no interrumpe la ejecución para intentar otra estrategia
+      try {
+        const ultimoIdMongo = await this.getUltimoIdAlbaran();
+        const contador = ultimoIdMongo
+          ? Number(ultimoIdMongo.toString().slice(3)) + 1
+          : 1;
+
+        return Number(codigoTienda + contador.toString().padStart(4, "0"));
+      } catch (error) {
+        console.error("Error al obtener el último ID de albarán:", error);
+      }
     }
-  } catch (error) {
-    // Si hay algún error, manejarlo, pero no interrumpe la ejecución para intentar otra estrategia
-    console.error("Error al obtener el próximo IDAlbaran en santaana:", error);
-  }
 
-  // Si no se obtuvo el ID de la primera manera, intentar con la segunda
-  const ultimoIdMongo = await this.getUltimoIdAlbaran();
-  const contador = ultimoIdMongo ? Number(ultimoIdMongo.toString().slice(3)) + 1 : 1;
-
-  return Number(codigoTienda + contador.toString().padStart(4, "0"));
+    // Si no se obtuvo el ID de la primera manera, intentar con la segunda
   }
 
   async getUltimoIdAlbaran() {
