@@ -26,7 +26,14 @@ export async function getAlbaranCreadoMasAntiguo(): Promise<AlbaranesInterface> 
     { sort: { _id: 1 } }
   )) as AlbaranesInterface;
 }
-
+export async function getAlbaranFinalizadoMasAntiguo(): Promise<AlbaranesInterface> {
+  const database = (await conexion).db("tocgame");
+  const albaranes = database.collection<AlbaranesInterface>("albaranes");
+  return (await albaranes.findOne(
+    { finalizado: false },
+    { sort: { _id: 1 } }
+  )) as AlbaranesInterface;
+}
 export async function setAlbaranEnviado(
   idAlbaran: AlbaranesInterface["_id"]
 ): Promise<boolean> {
@@ -84,3 +91,25 @@ export async function getAlbaranById(idAlbaran: AlbaranesInterface["_id"]) {
   const albaranes = database.collection<AlbaranesInterface>("albaranes");
   return await albaranes.findOne({ _id: idAlbaran });
 }
+
+export async function getDeudas(){
+  const database = (await conexion).db("tocgame");
+  const albaranes = database.collection<AlbaranesInterface>("albaranes");
+  return await albaranes.find({ estado: "DEUDA" }).toArray();
+}
+export async function setPagado(idAlbaran: number) {
+  const database = (await conexion).db("tocgame");
+  const albaranes = database.collection<AlbaranesInterface>("albaranes");
+  return (
+    await albaranes.updateOne(
+      { _id: idAlbaran },
+      {
+        $set: {
+          estado: "PAGADO",
+          finalizado: false,
+        },
+      }
+    )
+  ).acknowledged;
+}
+
