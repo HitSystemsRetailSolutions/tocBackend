@@ -102,7 +102,7 @@ export class CajaClase {
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cierreAutomatico: boolean = true,
     totalHonei: number,
-    cambioEmergenciaCierre : number
+    cambioEmergenciaCierre: number
   ): Promise<boolean> {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
@@ -130,7 +130,7 @@ export class CajaClase {
       // TODO: Propina
       await this.getPropina(),
       totalDeudas,
-      Number(cambioEmergenciaCierre.toFixed(2)),
+      Number(cambioEmergenciaCierre.toFixed(2))
     );
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
@@ -140,7 +140,11 @@ export class CajaClase {
           io.emit("cargarVentas", []);
         }
         cajaInstance
-          .guardarMonedas(guardarInfoMonedas, cambioEmergenciaCierre,"CLAUSURA")
+          .guardarMonedas(
+            guardarInfoMonedas,
+            cambioEmergenciaCierre,
+            "CLAUSURA"
+          )
           .then((res2) => {
             if (res2) {
               return true;
@@ -282,7 +286,7 @@ export class CajaClase {
           trabId,
           true,
           await ticketsInstance.getTotalHonei(),
-          0,
+          0
         );
         return true;
       }
@@ -387,7 +391,6 @@ export class CajaClase {
         nClientes++;
       }
       totalTickets += arrayTicketsCaja[i].total;
-      
     }
 
     /*const descuadre =
@@ -413,44 +416,46 @@ export class CajaClase {
     );
 
     recaudado = totalTickets + descuadre;
+    const mediaTickets = totalTickets / nTickets;
     return {
-      calaixFetZ: totalTickets,
+      calaixFetZ: Number(totalTickets.toFixed(2)),
       primerTicket:
         arrayTicketsCaja[0]?._id == undefined ? -1 : arrayTicketsCaja[0]._id,
       ultimoTicket:
         arrayTicketsCaja[arrayTicketsCaja.length - 1]?._id == undefined
           ? -1
           : arrayTicketsCaja[arrayTicketsCaja.length - 1]._id,
-      descuadre,
+      descuadre: this.redondeoNoIntegrado(descuadre),
       detalleCierre,
       finalTime,
       idDependientaCierre,
       nClientes,
       nClientesMesas,
-      recaudado,
-      totalCierre,
-      totalDatafono3G,
-      totalDeudas,
-      cantidadPaytef,
-      totalLocalPaytef,
-      cantidadLocal3G,
-      totalDeuda,
-      totalEfectivo,
+      recaudado: this.redondeoNoIntegrado(recaudado),
+      totalCierre: this.redondeoNoIntegrado(totalCierre),
+      totalDatafono3G: this.redondeoNoIntegrado(totalDatafono3G),
+      totalDeudas: this.redondeoNoIntegrado(totalDeudas),
+      cantidadPaytef: this.redondeoNoIntegrado(cantidadPaytef),
+      totalLocalPaytef: this.redondeoNoIntegrado(totalLocalPaytef),
+      cantidadLocal3G: this.redondeoNoIntegrado(cantidadLocal3G),
+      totalDeuda: this.redondeoNoIntegrado(totalDeuda),
+      totalEfectivo: this.redondeoNoIntegrado(totalEfectivo),
       totalEntradas,
       totalSalidas,
-      totalTarjeta,
-      totalTkrsConExceso,
-      totalTkrsSinExceso,
-      mediaTickets: totalTickets / nTickets,
-      totalHonei,
-      propina,
+      totalTarjeta: this.redondeoNoIntegrado(totalTarjeta),
+      totalTkrsConExceso: this.redondeoNoIntegrado(totalTkrsConExceso),
+      totalTkrsSinExceso: this.redondeoNoIntegrado(totalTkrsSinExceso),
+      mediaTickets: this.redondeoNoIntegrado(mediaTickets),
+      totalHonei: this.redondeoNoIntegrado(totalHonei),
+      propina: this.redondeoNoIntegrado(propina),
       cambioEmergenciaCierre,
     };
   }
-  setCambioEmActual= async (valor) =>
-  await schCajas.setCambioEmActual(valor);
-  getCambioEmActual= async () =>
-  await schCajas.getCambioEmActual();
+  private redondeoNoIntegrado(valor: number): number {
+    return valor % 1 === 0 ? valor : Number(valor.toFixed(2));
+  }
+  setCambioEmActual = async (valor) => await schCajas.setCambioEmActual(valor);
+  getCambioEmActual = async () => await schCajas.getCambioEmActual();
 }
 
 export const cajaInstance = new CajaClase();

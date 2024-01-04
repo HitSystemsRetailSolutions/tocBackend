@@ -177,7 +177,7 @@ export class TicketsClase {
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),
-      total: consumoPersonal ? 0 : total,
+      total: consumoPersonal ? 0 : Number(total.toFixed(2)),
       dejaCuenta: dejaCuenta,
       datafono3G: datafono3G,
       honei: !!honei,
