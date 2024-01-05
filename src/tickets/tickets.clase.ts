@@ -243,12 +243,6 @@ export class TicketsClase {
       const entradaCorrespondiente = tkrsIndexado[idTicketVenta];
       if (entradaCorrespondiente) {
         total3G += ticket.total - entradaCorrespondiente.valor;
-        console.log(
-          ticket.total,
-          entradaCorrespondiente.valor,
-          ticket.total - entradaCorrespondiente.valor,
-          total3G
-        );
       } else {
         for (const item of ticket.cesta.lista) {
           if (!item?.pagado) {
