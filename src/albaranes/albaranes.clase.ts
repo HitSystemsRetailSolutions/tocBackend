@@ -8,16 +8,22 @@ import { deudasInstance } from "src/deudas/deudas.clase";
 import { DeudasInterface } from "src/deudas/deudas.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
+import { CestasInterface } from "src/cestas/cestas.interface";
 export class AlbaranesClase {
   // crea el albaran y devuelve la id
   async setAlbaran(
     total,
-    cesta,
+    cesta:CestasInterface,
     idTrabajador,
     estado: AlbaranesInterface["estado"]
   ) {
     // creando json albaran
     const id = await this.getProximoId();
+    if (!id) {
+      throw Error(
+        "Error, no se ha podido generar el idAlbaran en setAlbaran, albaranes.clase"
+      );
+    }
     const timestamp = Date.now();
     const nuevoAlbaran: AlbaranesInterface = {
       _id: id,
@@ -76,7 +82,7 @@ export class AlbaranesClase {
       }
 
       throw Error(
-        "Error, no se ha podido crear el ticket en crearTicket() controller 2"
+        "Error, no se ha podido crear el albaran en el mongo"
       );
     } catch (error) {
       console.log("error setAlbaran:", error);

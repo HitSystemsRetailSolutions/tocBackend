@@ -348,7 +348,7 @@ export class Deudas {
         }
       }
     } catch (error) {
-      console.log("error crear cesta de encargo", error);
+      console.log("error crear cesta de deuda", error);
     }
 
     return cesta;
