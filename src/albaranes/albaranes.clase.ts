@@ -14,7 +14,7 @@ export class AlbaranesClase {
   // crea el albaran y devuelve la id
   async setAlbaran(
     total,
-    cesta:CestasInterface,
+    cesta: CestasInterface,
     idTrabajador,
     estado: AlbaranesInterface["estado"]
   ) {
@@ -82,9 +82,7 @@ export class AlbaranesClase {
         return nuevoAlbaran._id;
       }
 
-      throw Error(
-        "Error, no se ha podido crear el albaran en el mongo"
-      );
+      throw Error("Error, no se ha podido crear el albaran en el mongo");
     } catch (error) {
       logger.Error(201, error);
       console.log("error setAlbaran:", error);
@@ -107,7 +105,15 @@ export class AlbaranesClase {
       });
 
       if (idAlbaranSantaAna?.data) {
-        const contador = Number(idAlbaranSantaAna.data.toString().slice(3)) + 1;
+        const contadorSantaAna =
+          Number(idAlbaranSantaAna.data.toString().slice(3)) + 1;
+        const ultimoIdMongo = await this.getUltimoIdAlbaran();
+        const contadorMongo = ultimoIdMongo
+          ? Number(ultimoIdMongo.toString().slice(3)) + 1
+          : 1;
+        const contador =
+          contadorSantaAna >= contadorMongo ? contadorSantaAna : contadorMongo;
+
         return Number(codigoTienda + contador.toString().padStart(4, "0"));
       }
     } catch (error) {
