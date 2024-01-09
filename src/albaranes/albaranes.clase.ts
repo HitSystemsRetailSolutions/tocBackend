@@ -9,6 +9,7 @@ import { DeudasInterface } from "src/deudas/deudas.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
 import { CestasInterface } from "src/cestas/cestas.interface";
+import { logger } from "src/logger";
 export class AlbaranesClase {
   // crea el albaran y devuelve la id
   async setAlbaran(
@@ -85,6 +86,7 @@ export class AlbaranesClase {
         "Error, no se ha podido crear el albaran en el mongo"
       );
     } catch (error) {
+      logger.Error(201, error);
       console.log("error setAlbaran:", error);
     }
   }
