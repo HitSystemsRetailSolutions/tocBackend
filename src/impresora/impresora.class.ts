@@ -6,7 +6,8 @@ import { clienteInstance } from "../clientes/clientes.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import axios from "axios";
 import { mqttInstance } from "../mqtt";
-import  { descuentoEspecial,
+import {
+  descuentoEspecial,
   ClientesInterface,
 } from "../clientes/clientes.interface";
 import { ItemLista } from "../cestas/cestas.interface";
@@ -35,7 +36,10 @@ const mqtt = require("mqtt");
 escpos.Network = require("escpos-network");
 const TIPO_ENTRADA_DINERO = "ENTRADA";
 const TIPO_SALIDA_DINERO = "SALIDA";
-
+let imprimirTimeout = null;
+// array que enviara los mensajes generados en un corto periodo de tiempo a impresora
+// Y evitar el fallo de que algunos mensajes no se imprimían
+let mensajesPendientes = [];
 function random() {
   const numero = Math.floor(10000000 + Math.random() * 999999999);
   return numero.toString(16).slice(0, 8);
@@ -378,20 +382,35 @@ export class Impresora {
   }
   // recovimos los datos de la impresion
   private enviarMQTT(encodedData, options) {
-    // conectamos con el cliente
-    var client =
-      mqtt.connect(process.env.MQTT_URL) ||
-      mqtt.connect("mqtt://127.0.0.1:1883", {
-        username: "ImpresoraMQTT",
+    // si el array de encodedData es mayor que 0 los añadimos al array de mensajes pendientes
+    if (encodedData.length > 0) {
+      mensajesPendientes.push(...encodedData);
+    }
+    // iniciamos un timeout, si se vuelve a llamar
+    // a la funcion antes de que se cumpla el timeout
+    // se cancela el timeout y se vuelve a iniciar
+    if (imprimirTimeout) {
+      console.log("entro para cancelar el timeout");
+      clearTimeout(imprimirTimeout);
+    }
+    // al terminar el timeout se envian los datos con el array de mensajes pendientes
+    imprimirTimeout = setTimeout(() => {
+      var client =
+        mqtt.connect(process.env.MQTT_URL) ||
+        mqtt.connect("mqtt://127.0.0.1:1883", {
+          username: "ImpresoraMQTT",
+        });
+      const enviar = {
+        arrayImprimir: mensajesPendientes,
+        options: options,
+      };
+      // cuando se conecta enviamos los datos
+      client.on("connect", function () {
+        client.publish("hit.hardware/printer", JSON.stringify(enviar));
       });
-    const enviar = {
-      arrayImprimir: encodedData,
-      options: options,
-    };
-    // cuando se conecta enviamos los datos
-    client.on("connect", function () {
-      client.publish("hit.hardware/printer", JSON.stringify(enviar));
-    });
+      mensajesPendientes = [];
+      clearTimeout(imprimirTimeout);
+    }, 300);
   }
 
   private async _venta(info, recibo = null) {
@@ -1226,6 +1245,7 @@ export class Impresora {
   }
 
   async imprimirDeuda(movimiento: MovimientosInterface, client: string) {
+    console.log("imprimirMovDeudaEntrada");
     try {
       const parametros = await parametrosInstance.getParametros();
       const moment = require("moment-timezone");
@@ -1556,14 +1576,12 @@ export class Impresora {
         {
           tipo: "text",
           payload:
-            "Canvi d'emergencia Apertura  :      " +
-            cambioEmergenciaApertura,
+            "Canvi d'emergencia Apertura  :      " + cambioEmergenciaApertura,
         },
         {
           tipo: "text",
           payload:
-            "Canvi d'emergencia tancament  :      " +
-            cambioEmergenciaCierre,
+            "Canvi d'emergencia tancament  :      " + cambioEmergenciaCierre,
         },
       ]);
 
