@@ -451,11 +451,16 @@ export class CajaClase {
       cambioEmergenciaCierre,
     };
   }
+
   private redondeoNoIntegrado(valor: number): number {
     return valor % 1 === 0 ? valor : Number(valor.toFixed(2));
   }
   setCambioEmActual = async (valor) => await schCajas.setCambioEmActual(valor);
   getCambioEmActual = async () => await schCajas.getCambioEmActual();
+  setDetalleActual = async (detalleActual) =>
+    await schCajas.setDetalleActual(detalleActual);
+
+  getDetalleActual = async () => await schCajas.getDetalleActual();
 }
 
 export const cajaInstance = new CajaClase();
