@@ -5,6 +5,7 @@ import { logger } from "../logger";
 import { impresoraInstance } from "../impresora/impresora.class";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 import { ticketsInstance } from "src/tickets/tickets.clase";
+import { CajaAbiertaInterface } from "./caja.interface";
 
 @Controller("caja")
 export class CajaController {
@@ -206,12 +207,11 @@ export class CajaController {
   @Post("setCambioEmActual")
   async setCambioEmActual(@Body() { valor }) {
     try {
-      if (valor) {
+      if (valor || valor === 0) {
         return await cajaInstance.setCambioEmActual(valor);
       }
     } catch (error) {
       logger.Error(141, error);
-      
     }
   }
   // recoge cambioEmActual de la caja abierta
@@ -221,7 +221,33 @@ export class CajaController {
       return await cajaInstance.getCambioEmActual();
     } catch (error) {
       logger.Error(142, error);
-      
+    }
+  }
+
+  @Post("setDetalleActual")
+  async setDetalleActual(
+    @Body()
+    {
+      detalleActual,
+    }: {
+      detalleActual: CajaAbiertaInterface["detalleApertura"];
+    }
+  ) {
+    try {
+      if (detalleActual) {
+        return await cajaInstance.setDetalleActual(detalleActual);
+      }
+    } catch (error) {
+      logger.Error(143, error);
+    }
+  }
+
+  @Get("getDetalleActual")
+  async getDetalleActual() {
+    try {
+      return await cajaInstance.getDetalleActual();
+    } catch (error) {
+      logger.Error(144, error);
     }
   }
 }

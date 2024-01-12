@@ -149,7 +149,6 @@ export class TicketsController {
             concepto,
             honei,
           });
-        console.log(x);
         return x;
       });
   }
