@@ -1,11 +1,22 @@
 import axios from "axios";
 import { archivosInstance } from "./archivos/archivos.clase";
 import { parametrosInstance } from "./parametros/parametros.clase";
+import { Client } from "mqtt";
 
 // import mqtt from "mqtt";
 const mqtt = require("mqtt");
 const client =
   mqtt.connect(process.env.MQTT_URL) || mqtt.connect("mqtt://localhost");
+
+client.on("connect", function () {
+  client.subscribe("hit.hardware/getShopInfo"); // MQTT subshopinfo
+});
+
+client.on("message", async function (topic, message) {
+  const parametros = await parametrosInstance.getParametros();
+  const shopInfo = { emp: parametros.nombreEmpresa, lic: parametros.licencia };
+  client.publish("hit.hardware/shopinfo", JSON.stringify(shopInfo));
+});
 
 class Mqtt {
   public loggerMQTT(txt: string) {
@@ -58,7 +69,7 @@ class Mqtt {
       const logo = logoMongo.archivo;
       client.publish("hit.hardware/logo", JSON.stringify({ logo }));
     } catch (error) {
-      console.log("error mandarLogo: ",error.message)
+      console.log("error mandarLogo: ", error.message);
     }
   }
 }
