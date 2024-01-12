@@ -5,6 +5,7 @@ export interface CajaAbiertaInterface {
   idDependientaApertura: number;
   totalApertura: number;
   detalleApertura: DetalleMonedas;
+  detalleActual?: DetalleMonedas;
   cambioEmergenciaApertura: number;
   cambioEmergenciaActual: number;
   fichajes: number[];

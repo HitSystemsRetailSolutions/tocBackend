@@ -1410,6 +1410,7 @@ export class Impresora {
       let datafono3G = "";
       let textoMovimientos = "";
       let totalDeudaCaja = 0;
+      const mediaTickets = caja.mediaTickets;
       const arrayDeudasCaja = await deudasInstance.getDeudasCajaAsync();
       for (let i = 0; i < arrayDeudasCaja.length; i++) {
         switch (arrayDeudasCaja[i].estado) {
@@ -1423,7 +1424,7 @@ export class Impresora {
           caja.inicioTime,
           caja.finalTime
         );
-      if (parametros?.params?.DesgloseVisasCierreCaja) {
+      if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
         datafono3G += "Desglossament Vises 3G:\n";
         for (let i = 0; i < arrayTickets.length; i++) {
           const auxFecha = new Date(arrayTickets[i].timestamp);
@@ -1593,6 +1594,10 @@ export class Impresora {
           tipo: "text",
           payload:
             "Canvi d'emergencia tancament  :      " + cambioEmergenciaCierre,
+        },
+        {
+          tipo: "text",
+          payload: "Mitjana de tickets:      " + mediaTickets,
         },
       ]);
 

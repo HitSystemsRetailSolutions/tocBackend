@@ -3,6 +3,7 @@ import { TicketsInterface, TicketsInterfaceBackUp } from "./tickets.interface";
 import { UtilesModule } from "../utiles/utiles.module";
 import { ticketsInstance } from "./tickets.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
+import { reenviarTicket } from "src/sincro";
 import { logger } from "../logger";
 import axios from "axios";
 import * as schCaja from "../caja/caja.mongodb";
@@ -158,7 +159,7 @@ export async function getTotalLocalPaytef(): Promise<number> {
 }
 
 /* Uri */
-export async function getTotalLocal3G(){
+export async function getTotalLocal3G() {
   const database = (await conexion).db("tocgame");
   const time = (await schCaja.getApeturaCaja()).inicioTime;
   const tickets = database.collection<TicketsInterface>("tickets");
@@ -212,7 +213,10 @@ export async function actualizarTotalArticulo(existTicketId, total, sum) {
   ).acknowledged;
 }
 /* yasai :D */
-export async function toggle3G(existTicketId, oldValue = false) {
+export async function toggle3G(
+  existTicketId: TicketsInterface["_id"],
+  oldValue = false
+) {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
   const result = await tickets.updateOne(
@@ -223,7 +227,8 @@ export async function toggle3G(existTicketId, oldValue = false) {
       },
     }
   );
-  const ticket = await tickets.findOne({ _id: existTicketId });
+  await reenviarTicket(existTicketId);
+  /*  const ticket = await tickets.findOne({ _id: existTicketId });
   const santaAnaResult = await axios
     .post("/tickets/enviarTicket", {
       ticket,
@@ -231,23 +236,25 @@ export async function toggle3G(existTicketId, oldValue = false) {
     .catch((e) => {
       //  console.log(e);
     });
-
+*/
   return result.acknowledged;
 }
 
 /* Uri */
-export async function setPagadoPaytef(Ticket) {
+export async function setPagadoPaytef(idTicket: TicketsInterface["_id"]) {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
   const result = await tickets.updateOne(
-    { _id: Ticket },
+    { _id: idTicket },
     {
       $set: {
         paytef: true,
       },
     }
   );
-  const ticket = await tickets.findOne({ _id: Ticket });
+  await reenviarTicket(idTicket);
+  /*  
+  const ticket = await tickets.findOne({ _id: idTicket });
   const santaAnaResult = await axios
     .post("/tickets/enviarTicket", {
       ticket,
@@ -255,7 +262,7 @@ export async function setPagadoPaytef(Ticket) {
     .catch((e) => {
       //  console.log(e);
     });
-
+*/
   return result.acknowledged;
 }
 
@@ -313,7 +320,8 @@ export async function getTicketsHonei() {
 
 /* Eze v4 */
 export async function setTicketEnviado(
-  idTicket: TicketsInterface["_id"]
+  idTicket: TicketsInterface["_id"],
+  enviado: boolean = true
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
@@ -322,7 +330,7 @@ export async function setTicketEnviado(
       { _id: idTicket },
       {
         $set: {
-          enviado: true,
+          enviado: enviado,
         },
       }
     )
