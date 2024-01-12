@@ -167,7 +167,6 @@ export async function getMonedas(
 export async function setInfoCaja(data: CajaAbiertaInterface) {
   const database = (await conexion).db("tocgame");
   const caja = database.collection<CajaAbiertaInterface>("caja");
-  console.log(data);
   const resultado = await caja.updateMany({}, { $set: data }, { upsert: true });
   return (
     resultado.acknowledged &&
