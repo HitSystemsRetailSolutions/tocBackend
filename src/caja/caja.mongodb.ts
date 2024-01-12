@@ -167,7 +167,6 @@ export async function getMonedas(
 export async function setInfoCaja(data: CajaAbiertaInterface) {
   const database = (await conexion).db("tocgame");
   const caja = database.collection<CajaAbiertaInterface>("caja");
-  console.log(data);
   const resultado = await caja.updateMany({}, { $set: data }, { upsert: true });
   return (
     resultado.acknowledged &&
@@ -239,9 +238,7 @@ export async function postfichajesCaja(
   ).acknowledged;
 }
 
-export async function setCambioEmActual(
-  valor:number
-):Promise <boolean>{
+export async function setCambioEmActual(valor: number): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const caja = database.collection("caja");
   return (
@@ -256,10 +253,38 @@ export async function setCambioEmActual(
   ).acknowledged;
 }
 
-export async function getCambioEmActual(
-):Promise <number>{
+export async function getCambioEmActual(): Promise<number> {
   const database = (await conexion).db("tocgame");
   const caja = database.collection<CajaAbiertaInterface>("caja");
-  const buscar =await caja.findOne();
+  const buscar = await caja.findOne();
   return buscar.cambioEmergenciaActual;
+}
+
+export async function setDetalleActual(detalleActual): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const caja = database.collection("caja");
+  return (
+    await caja.updateOne(
+      {},
+      {
+        $set: {
+          detalleActual: detalleActual,
+        },
+      }
+    )
+  ).acknowledged;
+}
+
+export async function getDetalleActual(): Promise<
+  CajaAbiertaInterface["detalleActual"] | false
+> {
+  const database = (await conexion).db("tocgame");
+  const caja = database.collection<CajaAbiertaInterface>("caja");
+  const buscar = await caja.findOne();
+  if (buscar && "detalleActual" in buscar) {
+    return buscar.detalleActual;
+  } else {
+    // Devuelve false si no se encuentra el parámetro detalleActual
+    return false;
+  }
 }

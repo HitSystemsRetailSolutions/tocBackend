@@ -177,7 +177,7 @@ export class TicketsClase {
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),
-      total: consumoPersonal ? 0 : total,
+      total: consumoPersonal ? 0 : Number(total.toFixed(2)),
       dejaCuenta: dejaCuenta,
       datafono3G: datafono3G,
       honei: !!honei,
@@ -245,12 +245,6 @@ export class TicketsClase {
       const entradaCorrespondiente = tkrsIndexado[idTicketVenta];
       if (entradaCorrespondiente) {
         total3G += ticket.total - entradaCorrespondiente.valor;
-        console.log(
-          ticket.total,
-          entradaCorrespondiente.valor,
-          ticket.total - entradaCorrespondiente.valor,
-          total3G
-        );
       } else {
         for (const item of ticket.cesta.lista) {
           if (!item?.pagado) {

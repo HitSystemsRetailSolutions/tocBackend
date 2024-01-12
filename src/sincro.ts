@@ -67,6 +67,7 @@ async function sincronizarTickets() {
           const res = await axios.post("tickets/enviarTicket", { ticket });
           //.catch((e) => {console.log("error",e)});
 
+
           if (res.data) {
             if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
               // si el ticket no se va ha reenviar marcarlo como enviado
@@ -469,9 +470,8 @@ async function sincronizarAlbaranesCreados() {
             });
           if (res.data && !res.data.error) {
             if (await AlbaranesInstance.setEnviado(albaran._id)) {
-              enProcesoAlbaranesCreados = false;
               setTimeout(function () {
-                enProcesoTickets = false;
+                enProcesoAlbaranesCreados = false;
                 sincronizarAlbaranesCreados();
               }, 100);
             } else {

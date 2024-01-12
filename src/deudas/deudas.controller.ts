@@ -3,6 +3,9 @@ import { logger } from "../logger";
 import { deudasInstance } from "./deudas.clase";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import axios from "axios";
+import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
+import { DeudasInterface } from "./deudas.interface";
+import { AlbaranesInterface } from "src/albaranes/albaranes.interface";
 
 @Controller("deudas")
 export class DeudasController {
@@ -23,7 +26,8 @@ export class DeudasController {
   @Post("getDeudas")
   async getDeudas() {
     try {
-      return await deudasInstance.getDeudas();
+      const deudas: DeudasInterface[] = await deudasInstance.getDeudas();
+      return deudas;
     } catch (err) {
       logger.Error(50, err);
       return null;
@@ -38,7 +42,7 @@ export class DeudasController {
           error: true,
           msg: "Faltan datos.",
         };
-      return deudasInstance.ticketPagado(data);
+      return deudasInstance.ticketPagado(data.idDeuda, data.albaran);
     } catch (err) {
       logger.Error(510, err);
       return null;
@@ -52,7 +56,7 @@ export class DeudasController {
           error: true,
           msg: "Faltan datos.",
         };
-      return await deudasInstance.eliminarDeuda(data.idDeuda);
+      return await deudasInstance.eliminarDeuda(data.idDeuda,data.albaran);
     } catch (err) {
       logger.Error(510, err);
       return null;
