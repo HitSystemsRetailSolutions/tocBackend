@@ -390,7 +390,6 @@ export class Impresora {
     // a la funcion antes de que se cumpla el timeout
     // se cancela el timeout y se vuelve a iniciar
     if (imprimirTimeout) {
-      console.log("entro para cancelar el timeout");
       clearTimeout(imprimirTimeout);
     }
     // al terminar el timeout se envian los datos con el array de mensajes pendientes
@@ -410,7 +409,7 @@ export class Impresora {
       });
       mensajesPendientes = [];
       clearTimeout(imprimirTimeout);
-    }, 300);
+    }, 500);
   }
 
   private async _venta(info, recibo = null) {
@@ -1245,7 +1244,6 @@ export class Impresora {
   }
 
   async imprimirDeuda(movimiento: MovimientosInterface, client: string) {
-    console.log("imprimirMovDeudaEntrada");
     try {
       const parametros = await parametrosInstance.getParametros();
       const moment = require("moment-timezone");
@@ -1457,6 +1455,12 @@ export class Impresora {
               ].valor.toFixed(
                 2
               )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            } else if (arrayMovimientos[i].concepto == "DEUDA ALBARAN") {
+              textoMovimientos += ` Deute albara deixat a deure:\n  Quant: -${arrayMovimientos[
+                i
+              ].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             } else {
               textoMovimientos += ` Sortida:\n  Quant: -${arrayMovimientos[
                 i
@@ -1474,7 +1478,14 @@ export class Impresora {
               ].valor.toFixed(
                 2
               )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
-            } else {
+            } else if (arrayMovimientos[i].concepto == "DEUDA ALBARAN") {
+              textoMovimientos += ` Deute albara pagat:\n  Quant: +${arrayMovimientos[
+                i
+              ].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            }
+            {
               textoMovimientos += ` Entrada:\n  Quant: +${arrayMovimientos[
                 i
               ].valor.toFixed(
@@ -1617,6 +1628,11 @@ export class Impresora {
         {
           tipo: "text",
           payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "total Albarans      :      " + caja.totalAlbaranes.toFixed(2),
         },
         { tipo: "text", payload: "" },
         { tipo: "size", payload: [0, 0] },

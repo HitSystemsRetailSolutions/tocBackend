@@ -107,7 +107,7 @@ export class Deudas {
       if (await this.comprobarVersDeudaAlbaran(deuda, albaran)) {
         // creamos un albaran e insertamos al nuevoMovimiento la idAlbaran
         const idAlbarnan = await AlbaranesInstance.setAlbaran(
-          deuda.total,
+          Number(deuda.total.toFixed(2)),
           deuda.cesta,
           deuda.idTrabajador,
           "V_ALB_ANTIGUO"
@@ -173,8 +173,8 @@ export class Deudas {
           if (albaran) {
             await movimientosInstance.nuevoMovimiento(
               deuda.total,
-              "Dependienta anula deuda",
-              "ENTRADA_DINERO",
+              "DEUDA ALBARAN ANULADO",
+              "SALIDA",
               Number(deuda.idTicket),
               Number(deuda.idTrabajador)
             );
