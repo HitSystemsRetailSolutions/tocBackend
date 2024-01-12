@@ -26,7 +26,12 @@ export class AlbaranesController {
       if (!total || !idCesta || !idTrabajador || !estado) {
         throw Error("Error, faltan datos en crearAlbaran() controller");
       }
+
       const cesta = await cestasInstance.getCestaById(idCesta);
+      if (!cesta) {
+        throw Error("Error, cesta no encontrada en crearAlbaran() controller");
+        
+      }
       let descuento: any = Number(
         (await clienteInstance.isClienteDescuento(cesta.idCliente))?.descuento
       );
@@ -34,6 +39,7 @@ export class AlbaranesController {
         (cliente) => cliente.idCliente === cesta.idCliente
       );
       if ((!clienteDescEsp || clienteDescEsp.precio!=total) &&  descuento && descuento > 0) {
+        console.log("entra en descuento")
         cesta.lista.forEach((producto) => {
           if (producto.arraySuplementos != null) {
             producto.subtotal = this.redondearPrecio(
@@ -52,6 +58,7 @@ export class AlbaranesController {
         estado
       );
     } catch (error) {
+      console.log(error)
       logger.Error(201, error);
       return null;
     }

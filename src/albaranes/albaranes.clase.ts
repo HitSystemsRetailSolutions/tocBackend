@@ -8,16 +8,23 @@ import { deudasInstance } from "src/deudas/deudas.clase";
 import { DeudasInterface } from "src/deudas/deudas.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
+import { CestasInterface } from "src/cestas/cestas.interface";
+import { logger } from "src/logger";
 export class AlbaranesClase {
   // crea el albaran y devuelve la id
   async setAlbaran(
     total,
-    cesta,
+    cesta: CestasInterface,
     idTrabajador,
     estado: AlbaranesInterface["estado"]
   ) {
     // creando json albaran
     const id = await this.getProximoId();
+    if (!id) {
+      throw Error(
+        "Error, no se ha podido generar el idAlbaran en setAlbaran, albaranes.clase"
+      );
+    }
     const timestamp = Date.now();
     const nuevoAlbaran: AlbaranesInterface = {
       _id: id,
@@ -75,10 +82,9 @@ export class AlbaranesClase {
         return nuevoAlbaran._id;
       }
 
-      throw Error(
-        "Error, no se ha podido crear el ticket en crearTicket() controller 2"
-      );
+      throw Error("Error, no se ha podido crear el albaran en el mongo");
     } catch (error) {
+      logger.Error(201, error);
       console.log("error setAlbaran:", error);
     }
   }
@@ -99,7 +105,15 @@ export class AlbaranesClase {
       });
 
       if (idAlbaranSantaAna?.data) {
-        const contador = Number(idAlbaranSantaAna.data.toString().slice(3)) + 1;
+        const contadorSantaAna =
+          Number(idAlbaranSantaAna.data.toString().slice(3)) + 1;
+        const ultimoIdMongo = await this.getUltimoIdAlbaran();
+        const contadorMongo = ultimoIdMongo
+          ? Number(ultimoIdMongo.toString().slice(3)) + 1
+          : 1;
+        const contador =
+          contadorSantaAna >= contadorMongo ? contadorSantaAna : contadorMongo;
+
         return Number(codigoTienda + contador.toString().padStart(4, "0"));
       }
     } catch (error) {
