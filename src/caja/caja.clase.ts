@@ -416,44 +416,47 @@ export class CajaClase {
     );
 
     recaudado = totalTickets + descuadre;
+    const mediaTickets = totalTickets / nTickets;
     return {
-      calaixFetZ: totalTickets,
+      calaixFetZ: Number(totalTickets.toFixed(2)),
       primerTicket:
         arrayTicketsCaja[0]?._id == undefined ? -1 : arrayTicketsCaja[0]._id,
       ultimoTicket:
         arrayTicketsCaja[arrayTicketsCaja.length - 1]?._id == undefined
           ? -1
           : arrayTicketsCaja[arrayTicketsCaja.length - 1]._id,
-      descuadre,
+      descuadre: this.redondeoNoIntegrado(descuadre),
       detalleCierre,
       finalTime,
       idDependientaCierre,
       nClientes,
       nClientesMesas,
-      recaudado,
-      totalCierre,
-      totalDatafono3G,
-      totalDeudas,
-      cantidadPaytef,
-      totalLocalPaytef,
-      cantidadLocal3G,
-      totalDeuda,
-      totalEfectivo,
-      totalEntradas,
-      totalSalidas,
-      totalTarjeta,
-      totalTkrsConExceso,
-      totalTkrsSinExceso,
-      mediaTickets: totalTickets / nTickets,
-      totalHonei,
-      propina,
+      recaudado: this.redondeoNoIntegrado(recaudado),
+      totalCierre: this.redondeoNoIntegrado(totalCierre),
+      totalDatafono3G: this.redondeoNoIntegrado(totalDatafono3G),
+      totalDeudas: this.redondeoNoIntegrado(totalDeudas),
+      cantidadPaytef: this.redondeoNoIntegrado(cantidadPaytef),
+      totalLocalPaytef: this.redondeoNoIntegrado(totalLocalPaytef),
+      cantidadLocal3G: this.redondeoNoIntegrado(cantidadLocal3G),
+      totalDeuda: this.redondeoNoIntegrado(totalDeuda),
+      totalEfectivo: this.redondeoNoIntegrado(totalEfectivo),
+      totalEntradas: this.redondeoNoIntegrado(totalEntradas),
+      totalSalidas: this.redondeoNoIntegrado(totalSalidas),
+      totalTarjeta: this.redondeoNoIntegrado(totalTarjeta),
+      totalTkrsConExceso: this.redondeoNoIntegrado(totalTkrsConExceso),
+      totalTkrsSinExceso: this.redondeoNoIntegrado(totalTkrsSinExceso),
+      mediaTickets: this.redondeoNoIntegrado(mediaTickets),
+      totalHonei: this.redondeoNoIntegrado(totalHonei),
+      propina: this.redondeoNoIntegrado(propina),
       cambioEmergenciaCierre,
     };
   }
+
+  private redondeoNoIntegrado(valor: number): number {
+    return valor % 1 === 0 ? valor : Number(valor.toFixed(2));
+  }
   setCambioEmActual = async (valor) => await schCajas.setCambioEmActual(valor);
-
   getCambioEmActual = async () => await schCajas.getCambioEmActual();
-
   setDetalleActual = async (detalleActual) =>
     await schCajas.setDetalleActual(detalleActual);
 
