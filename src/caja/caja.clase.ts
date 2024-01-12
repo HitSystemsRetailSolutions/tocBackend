@@ -340,7 +340,8 @@ export class CajaClase {
     let totalEntregaDiaria = 0;
     let totalEntradaDinero = 0;
     let totalConsumoPersonal = 0;
-
+    let entradasAlbaran = 0;
+    let salidasAlbaran = 0;
     /* RECUERDA QUE SE DEBE HACER UN MOVIMIENTO DE SALIDA PARA LA CANTIDAD 3G ANTES DE CERRAR LA CAJA, EN ESTE MOMENTO NO SE HACE */
     for (let i = 0; i < arrayMovimientos.length; i++) {
       switch (arrayMovimientos[i].tipo) {
@@ -364,6 +365,12 @@ export class CajaClase {
           totalEntregaDiaria += arrayMovimientos[i].valor;
           break;
         case "ENTRADA_DINERO":
+          if (
+            arrayMovimientos[i].concepto == "DEUDA ALBARAN" ||
+            arrayMovimientos[i].concepto == "Albara"
+          ) {
+            entradasAlbaran += arrayMovimientos[i].valor;
+          }
           totalEntradas += arrayMovimientos[i].valor;
           totalEntradaDinero += arrayMovimientos[i].valor;
           break;
@@ -371,12 +378,23 @@ export class CajaClase {
           totalTarjeta += arrayMovimientos[i].valor;
           break;
         case "SALIDA":
+          if (
+            arrayMovimientos[i].concepto === "DEUDA ALBARAN" ||
+            arrayMovimientos[i].concepto === "DEUDA ALBARAN ANULADO"
+          ) {
+            salidasAlbaran += arrayMovimientos[i].valor;
+          }
           totalSalidas += arrayMovimientos[i].valor;
           break;
         default:
           logger.Error(51, "Error, tipo de movimiento desconocido");
       }
     }
+
+    // totalAlbaranes
+    const totalAlbaranes = Number(
+      (entradasAlbaran - salidasAlbaran).toFixed(2)
+    );
 
     // totalEfectivo -= totalDatafono3G;
 
@@ -435,6 +453,7 @@ export class CajaClase {
       totalCierre: this.redondeoNoIntegrado(totalCierre),
       totalDatafono3G: this.redondeoNoIntegrado(totalDatafono3G),
       totalDeudas: this.redondeoNoIntegrado(totalDeudas),
+      totalAlbaranes,
       cantidadPaytef: this.redondeoNoIntegrado(cantidadPaytef),
       totalLocalPaytef: this.redondeoNoIntegrado(totalLocalPaytef),
       cantidadLocal3G: this.redondeoNoIntegrado(cantidadLocal3G),

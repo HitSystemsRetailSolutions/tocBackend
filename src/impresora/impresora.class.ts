@@ -36,7 +36,10 @@ const mqtt = require("mqtt");
 escpos.Network = require("escpos-network");
 const TIPO_ENTRADA_DINERO = "ENTRADA";
 const TIPO_SALIDA_DINERO = "SALIDA";
-
+let imprimirTimeout = null;
+// array que enviara los mensajes generados en un corto periodo de tiempo a impresora
+// Y evitar el fallo de que algunos mensajes no se imprimían
+let mensajesPendientes = [];
 function random() {
   const numero = Math.floor(10000000 + Math.random() * 999999999);
   return numero.toString(16).slice(0, 8);
@@ -379,20 +382,34 @@ export class Impresora {
   }
   // recovimos los datos de la impresion
   private enviarMQTT(encodedData, options) {
-    // conectamos con el cliente
-    var client =
-      mqtt.connect(process.env.MQTT_URL) ||
-      mqtt.connect("mqtt://127.0.0.1:1883", {
-        username: "ImpresoraMQTT",
+    // si el array de encodedData es mayor que 0 los añadimos al array de mensajes pendientes
+    if (encodedData.length > 0) {
+      mensajesPendientes.push(...encodedData);
+    }
+    // iniciamos un timeout, si se vuelve a llamar
+    // a la funcion antes de que se cumpla el timeout
+    // se cancela el timeout y se vuelve a iniciar
+    if (imprimirTimeout) {
+      clearTimeout(imprimirTimeout);
+    }
+    // al terminar el timeout se envian los datos con el array de mensajes pendientes
+    imprimirTimeout = setTimeout(() => {
+      var client =
+        mqtt.connect(process.env.MQTT_URL) ||
+        mqtt.connect("mqtt://127.0.0.1:1883", {
+          username: "ImpresoraMQTT",
+        });
+      const enviar = {
+        arrayImprimir: mensajesPendientes,
+        options: options,
+      };
+      // cuando se conecta enviamos los datos
+      client.on("connect", function () {
+        client.publish("hit.hardware/printer", JSON.stringify(enviar));
       });
-    const enviar = {
-      arrayImprimir: encodedData,
-      options: options,
-    };
-    // cuando se conecta enviamos los datos
-    client.on("connect", function () {
-      client.publish("hit.hardware/printer", JSON.stringify(enviar));
-    });
+      mensajesPendientes = [];
+      clearTimeout(imprimirTimeout);
+    }, 500);
   }
 
   private async _venta(info, recibo = null) {
@@ -1439,6 +1456,12 @@ export class Impresora {
               ].valor.toFixed(
                 2
               )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            } else if (arrayMovimientos[i].concepto == "DEUDA ALBARAN") {
+              textoMovimientos += ` Deute albara deixat a deure:\n  Quant: -${arrayMovimientos[
+                i
+              ].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             } else {
               textoMovimientos += ` Sortida:\n  Quant: -${arrayMovimientos[
                 i
@@ -1456,7 +1479,14 @@ export class Impresora {
               ].valor.toFixed(
                 2
               )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
-            } else {
+            } else if (arrayMovimientos[i].concepto == "DEUDA ALBARAN") {
+              textoMovimientos += ` Deute albara pagat:\n  Quant: +${arrayMovimientos[
+                i
+              ].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            }
+            {
               textoMovimientos += ` Entrada:\n  Quant: +${arrayMovimientos[
                 i
               ].valor.toFixed(
@@ -1568,7 +1598,6 @@ export class Impresora {
         {
           tipo: "text",
           payload: "Mitjana de tickets:      " + mediaTickets,
-
         },
       ]);
 
@@ -1604,6 +1633,11 @@ export class Impresora {
         {
           tipo: "text",
           payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "total Albarans      :      " + caja.totalAlbaranes.toFixed(2),
         },
         { tipo: "text", payload: "" },
         { tipo: "size", payload: [0, 0] },
