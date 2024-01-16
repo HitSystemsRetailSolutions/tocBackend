@@ -6,6 +6,7 @@ export interface MovimientosInterface {
   idTrabajador: number;
   codigoBarras: string;
   idTicket: number;
+  nombreCliente?: string;
   enviado: boolean;
   ExtraData: object;
 }
