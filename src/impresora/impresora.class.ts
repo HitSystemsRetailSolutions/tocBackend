@@ -6,7 +6,8 @@ import { clienteInstance } from "../clientes/clientes.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import axios from "axios";
 import { mqttInstance } from "../mqtt";
-import  { descuentoEspecial,
+import {
+  descuentoEspecial,
   ClientesInterface,
 } from "../clientes/clientes.interface";
 import { ItemLista } from "../cestas/cestas.interface";
@@ -35,7 +36,10 @@ const mqtt = require("mqtt");
 escpos.Network = require("escpos-network");
 const TIPO_ENTRADA_DINERO = "ENTRADA";
 const TIPO_SALIDA_DINERO = "SALIDA";
-
+let imprimirTimeout = null;
+// array que enviara los mensajes generados en un corto periodo de tiempo a impresora
+// Y evitar el fallo de que algunos mensajes no se imprimían
+let mensajesPendientes = [];
 function random() {
   const numero = Math.floor(10000000 + Math.random() * 999999999);
   return numero.toString(16).slice(0, 8);
@@ -265,7 +269,9 @@ export class Impresora {
           firma: true,
         };
       }
-      await this._venta(sendObject);
+      // funcion parecida a _venta pero imprime dos veces el ticket una de las dos con firma
+      // por que existe esta guarrada? para evitar que se imprima solo una de dos.
+      await this.imprimirAlbaran(sendObject);
     }
   }
 
@@ -376,20 +382,34 @@ export class Impresora {
   }
   // recovimos los datos de la impresion
   private enviarMQTT(encodedData, options) {
-    // conectamos con el cliente
-    var client =
-      mqtt.connect(process.env.MQTT_URL) ||
-      mqtt.connect("mqtt://127.0.0.1:1883", {
-        username: "ImpresoraMQTT",
+    // si el array de encodedData es mayor que 0 los añadimos al array de mensajes pendientes
+    if (encodedData.length > 0) {
+      mensajesPendientes.push(...encodedData);
+    }
+    // iniciamos un timeout, si se vuelve a llamar
+    // a la funcion antes de que se cumpla el timeout
+    // se cancela el timeout y se vuelve a iniciar
+    if (imprimirTimeout) {
+      clearTimeout(imprimirTimeout);
+    }
+    // al terminar el timeout se envian los datos con el array de mensajes pendientes
+    imprimirTimeout = setTimeout(() => {
+      var client =
+        mqtt.connect(process.env.MQTT_URL) ||
+        mqtt.connect("mqtt://127.0.0.1:1883", {
+          username: "ImpresoraMQTT",
+        });
+      const enviar = {
+        arrayImprimir: mensajesPendientes,
+        options: options,
+      };
+      // cuando se conecta enviamos los datos
+      client.on("connect", function () {
+        client.publish("hit.hardware/printer", JSON.stringify(enviar));
       });
-    const enviar = {
-      arrayImprimir: encodedData,
-      options: options,
-    };
-    // cuando se conecta enviamos los datos
-    client.on("connect", function () {
-      client.publish("hit.hardware/printer", JSON.stringify(enviar));
-    });
+      mensajesPendientes = [];
+      clearTimeout(imprimirTimeout);
+    }, 500);
   }
 
   private async _venta(info, recibo = null) {
@@ -618,6 +638,305 @@ export class Impresora {
     };
     // lo mandamos a la funcion enviarMQTT que se supone que imprime
 
+    this.enviarMQTT(arrayImprimir, options);
+  }
+
+  private async imprimirAlbaran(info, recibo = null) {
+    // recojemos datos de los parametros
+    const numFactura = info.numFactura;
+    const arrayCompra: ItemLista[] = info.arrayCompra;
+    const dejaCuenta = info?.dejaCuenta > 0 ? info?.dejaCuenta : 0;
+    const total = Number(info.total.toFixed(2));
+    const tipoPago = info.visa;
+    //   mqttInstance.loggerMQTT(tipoPago)
+    const tiposIva = info.tiposIva;
+    const cabecera = info.cabecera;
+    const firmaText = !info.firma ? "" : "\n\n\n\n\n";
+    const copiaText = !info.firma ? "-- ES COPIA --" : "-- FIRMA CLIENTE --";
+    const pie = info.pie;
+    const nombreDependienta = info.nombreTrabajador;
+    const tipoImpresora = info.impresora;
+    const infoClienteVip = info.infoClienteVip;
+    const infoCliente = info.infoCliente;
+    let strRecibo = "";
+    if (recibo) {
+      strRecibo = recibo;
+    }
+
+    let detalles = await this.precioUnitario(arrayCompra);
+    let pagoTarjeta = "";
+    let pagoTkrs = "";
+    let detalleClienteVip = "";
+    let detalleNombreCliente = "";
+    let detallePuntosCliente = "";
+    let detalleEncargo = "";
+    let detalleDejaCuenta = "";
+    let detalleDescuento = "";
+    let clienteDescuento = "";
+    let clientTitle = "";
+    if (infoClienteVip) {
+      clientTitle = "\nCLIENT:";
+      detalleClienteVip = `\n${infoClienteVip.nombre}`;
+      if (infoClienteVip.nif)
+        detalleClienteVip += `\nNIF: ${infoClienteVip.nif}`;
+      if (infoClienteVip.direccion)
+        detalleClienteVip += `\n${infoClienteVip.direccion}`;
+    }
+    // recojemos datos del cliente si nos los han mandado
+    const clienteDescEsp = descuentoEspecial.find(
+      (cliente) => cliente.idCliente === infoCliente?.idCliente
+    );
+    if (infoCliente != null) {
+      clientTitle = "\nCLIENT:";
+      detalleNombreCliente = infoCliente.nombre;
+      if (infoClienteVip) detalleNombreCliente = "";
+      detallePuntosCliente =
+        "Punts restants: " +
+          (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+      if (!clienteDescEsp || clienteDescEsp.precio != total) {
+        clienteDescuento =
+          "Descompte de client: " +
+          (infoCliente.descuento ?? "0") +
+          " %" +
+          "\nVenta registrada.";
+        if (infoCliente.descuento == 0) clienteDescuento = "Venta registrada.";
+      } else if (clienteDescEsp.precio == total) {
+        const activacionDescEsp =
+          clienteDescEsp?.activacion && clienteDescEsp?.activacion
+            ? "Total >= " + clienteDescEsp.activacion
+            : infoCliente.nombre;
+        clienteDescuento = "Descompte Especial " + activacionDescEsp;
+      }
+    }
+    if (
+      infoCliente?.descuento &&
+      infoCliente.descuento != 0 &&
+      (!clienteDescEsp || clienteDescEsp.precio != total)
+    ) {
+      detalleDescuento += detalleDescuento += `Total sense descompte: ${(
+        (total + dejaCuenta) /
+        (1 - infoCliente.descuento / 100)
+      ).toFixed(2)}€\nDescompte total: ${(
+        (((total + dejaCuenta) / (1 - infoCliente.descuento / 100)) *
+          infoCliente.descuento) /
+        100
+      ).toFixed(2)}€\n`;
+    } else if (clienteDescEsp && clienteDescEsp.precio == total) {
+      detalleDescuento += "Nou preu total: " + clienteDescEsp.precio;
+    }
+
+    const moment = require("moment-timezone");
+    const fecha = new Date(info.timestamp);
+    //const offset = fecha.getTimezoneOffset() * 60000; // Obtener el desplazamiento de la zona horaria en minutos y convertirlo a milisegundos
+    // recojemos el tipo de pago
+    const fechaEspaña = moment(info.timestamp).tz("Europe/Madrid");
+    if (tipoPago == "TARJETA") {
+      pagoTarjeta = "----------- PAGADO CON TARJETA ---------\n";
+    }
+    if (tipoPago == "TICKET_RESTAURANT") {
+      pagoTkrs = "----- PAGADO CON TICKET RESTAURANT -----\n";
+    }
+    let pagoDevolucion: string = "";
+
+    if (tipoPago == "DEVOLUCION") {
+      //   mqttInstance.loggerMQTT('Entramos en tipo pago devolucion')
+      pagoDevolucion = "-- ES DEVOLUCION --\n";
+    }
+
+    if (info.dejaCuenta > 0) {
+      detalleDejaCuenta = "Pagament rebut: " + info.dejaCuenta;
+    }
+
+    const detallesIva = await this.getDetallesIva(tiposIva);
+
+    let detalleIva = "";
+    detalleIva =
+      detallesIva.detalleIva0 +
+      detallesIva.detalleIva4 +
+      detallesIva.detalleIva5 +
+      detallesIva.detalleIva10 +
+      detallesIva.detalleIva21;
+
+    let infoConsumoPersonal = "";
+    if (tipoPago == "CONSUMO_PERSONAL") {
+      infoConsumoPersonal = "---------------- Dte. 100% --------------";
+      detalleIva = "";
+    }
+
+    const diasSemana = [
+      "Diumenge",
+      "Dilluns",
+      "Dimarts",
+      "Dimecres",
+      "Dijous",
+      "Divendres",
+      "Dissabte",
+    ];
+    /*`Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
+      fecha.getMonth() + 1
+    }-${fecha.getFullYear()}  ${
+      (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
+    }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
+    // declaramos el dispositivo y la impresora escpos
+
+    const device = new escpos.Network("localhost");
+    const printer = new escpos.Printer(device);
+    const database = (await conexion).db("tocgame");
+    const coleccion = database.collection("parametros");
+    const preuU =
+      (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
+      "Si";
+    const arrayImprimir = [
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "encode", payload: "cp858" },
+      { tipo: "font", payload: "A" },
+      { tipo: "text", payload: cabecera },
+      {
+        tipo: "text",
+        payload: `Data: ${
+          diasSemana[fechaEspaña.format("d")]
+        } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+      },
+      { tipo: "text", payload: "Factura simplificada N: " + numFactura },
+      { tipo: "text", payload: "Ates per: " + nombreDependienta },
+      {
+        tipo: "text",
+        payload:
+          info.mesa == null
+            ? ""
+            : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
+      },
+      { tipo: "size", payload: [1, 0] },
+      { tipo: "text", payload: clientTitle },
+      { tipo: "size", payload: [0, 0] },
+      {
+        tipo: "text",
+        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${
+          detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
+        }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${
+          clienteDescuento ? `${clienteDescuento} \n` : ""
+        }`,
+      },
+      { tipo: "control", payload: "LF" },
+      {
+        tipo: "text",
+        payload: `Quant      Article       ${
+          preuU ? "  Preu U." : ""
+        }   Import (€)`,
+      },
+      { tipo: "text", payload: "-----------------------------------------" },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: detalles },
+      { tipo: "align", payload: "CT" },
+      {
+        tipo: "text",
+        payload: "------------------------------------------",
+      },
+      {
+        tipo: "text",
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${
+          pagoTkrs != "" ? `${pagoTkrs}` : ""
+        }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
+      },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: detalleDejaCuenta },
+      { tipo: "text", payload: detalleDescuento },
+      { tipo: "size", payload: [1, 1] },
+      { tipo: "text", payload: pagoDevolucion },
+      { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "size", payload: [0, 0] },
+      { tipo: "align", payload: "CT" },
+      { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+      { tipo: "text", payload: detalleIva },
+      { tipo: "text", payload: copiaText },
+      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: "ID: " + random() + " - " + random() },
+      { tipo: "text", payload: pie },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "setCharacterCodeTable", payload: 19 },
+      { tipo: "encode", payload: "cp858" },
+      { tipo: "font", payload: "A" },
+      { tipo: "text", payload: cabecera },
+      {
+        tipo: "text",
+        payload: `Data: ${
+          diasSemana[fechaEspaña.format("d")]
+        } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+      },
+      { tipo: "text", payload: "Factura simplificada N: " + numFactura },
+      { tipo: "text", payload: "Ates per: " + nombreDependienta },
+      {
+        tipo: "text",
+        payload:
+          info.mesa == null
+            ? ""
+            : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
+      },
+      { tipo: "size", payload: [1, 0] },
+      { tipo: "text", payload: clientTitle },
+      { tipo: "size", payload: [0, 0] },
+      {
+        tipo: "text",
+        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${
+          detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
+        }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${
+          clienteDescuento ? `${clienteDescuento} \n` : ""
+        }`,
+      },
+      { tipo: "control", payload: "LF" },
+      {
+        tipo: "text",
+        payload: `Quant      Article       ${
+          preuU ? "  Preu U." : ""
+        }   Import (€)`,
+      },
+      { tipo: "text", payload: "-----------------------------------------" },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: detalles },
+      { tipo: "align", payload: "CT" },
+      {
+        tipo: "text",
+        payload: "------------------------------------------",
+      },
+      {
+        tipo: "text",
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${
+          pagoTkrs != "" ? `${pagoTkrs}` : ""
+        }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
+      },
+      { tipo: "align", payload: "LT" },
+      { tipo: "text", payload: detalleDejaCuenta },
+      { tipo: "text", payload: detalleDescuento },
+      { tipo: "size", payload: [1, 1] },
+      { tipo: "text", payload: pagoDevolucion },
+      { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "size", payload: [0, 0] },
+      { tipo: "align", payload: "CT" },
+      { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+      { tipo: "text", payload: detalleIva },
+      { tipo: "text", payload: copiaText },
+      { tipo: "text", payload: firmaText },
+      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: "ID: " + random() + " - " + random() },
+      { tipo: "text", payload: pie },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "control", payload: "LF" },
+      { tipo: "cut", payload: "PAPER_FULL_CUT" },
+    ];
+    const options = {
+      imprimirLogo: true,
+      tipo: "venta",
+      lExtra: arrayCompra.length,
+    };
+    // lo mandamos a la funcion enviarMQTT que se supone que imprime
     this.enviarMQTT(arrayImprimir, options);
   }
   async getDetallesIva(tiposIva) {
@@ -1091,6 +1410,7 @@ export class Impresora {
       let datafono3G = "";
       let textoMovimientos = "";
       let totalDeudaCaja = 0;
+      const mediaTickets = caja.mediaTickets;
       const arrayDeudasCaja = await deudasInstance.getDeudasCajaAsync();
       for (let i = 0; i < arrayDeudasCaja.length; i++) {
         switch (arrayDeudasCaja[i].estado) {
@@ -1104,7 +1424,7 @@ export class Impresora {
           caja.inicioTime,
           caja.finalTime
         );
-      if (parametros?.params?.DesgloseVisasCierreCaja) {
+      if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
         datafono3G += "Desglossament Vises 3G:\n";
         for (let i = 0; i < arrayTickets.length; i++) {
           const auxFecha = new Date(arrayTickets[i].timestamp);
@@ -1136,6 +1456,12 @@ export class Impresora {
               ].valor.toFixed(
                 2
               )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            } else if (arrayMovimientos[i].concepto == "DEUDA ALBARAN") {
+              textoMovimientos += ` Deute albara deixat a deure:\n  Quant: -${arrayMovimientos[
+                i
+              ].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             } else {
               textoMovimientos += ` Sortida:\n  Quant: -${arrayMovimientos[
                 i
@@ -1153,7 +1479,14 @@ export class Impresora {
               ].valor.toFixed(
                 2
               )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
-            } else {
+            } else if (arrayMovimientos[i].concepto == "DEUDA ALBARAN") {
+              textoMovimientos += ` Deute albara pagat:\n  Quant: +${arrayMovimientos[
+                i
+              ].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            }
+            {
               textoMovimientos += ` Entrada:\n  Quant: +${arrayMovimientos[
                 i
               ].valor.toFixed(
@@ -1255,14 +1588,16 @@ export class Impresora {
         {
           tipo: "text",
           payload:
-            "Canvi d'emergencia Apertura  :      " +
-            cambioEmergenciaApertura,
+            "Canvi d'emergencia Apertura  :      " + cambioEmergenciaApertura,
         },
         {
           tipo: "text",
           payload:
-            "Canvi d'emergencia tancament  :      " +
-            cambioEmergenciaCierre,
+            "Canvi d'emergencia tancament  :      " + cambioEmergenciaCierre,
+        },
+        {
+          tipo: "text",
+          payload: "Mitjana de tickets:      " + mediaTickets,
         },
       ]);
 
@@ -1298,6 +1633,11 @@ export class Impresora {
         {
           tipo: "text",
           payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "total Albarans      :      " + caja.totalAlbaranes.toFixed(2),
         },
         { tipo: "text", payload: "" },
         { tipo: "size", payload: [0, 0] },

@@ -25,6 +25,7 @@ import {
 import * as moment from "moment";
 import { AlbaranesInstance } from "./albaranes/albaranes.clase";
 import { clienteInstance } from "./clientes/clientes.clase";
+import { TicketsInterface } from "./tickets/tickets.interface";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
@@ -32,44 +33,64 @@ let enProcesoDeudasFinalizadas = false;
 let enProcesoEncargosCreados = false;
 let enProcesoEncargosFinalizados = false;
 let enProcesoAlbaranesCreados = false;
+
+let idsTicketsReenviar: TicketsInterface["_id"][] = [];
+
+// reenviar ticket, pone el ticket en una lista para que sincronizarTickets ponga el ticket en no enviado, y lo envie.
+// si se pone ahora sincronizarTickets podria volver a ponerlo en enviado cuando envia una versión antigua del tickets.
+// Los tickets pueden modificarse después de insertarse en la base de datos por la forma en que se hace el pago con tarjeta paytef,
+// esto tendria que arreglarse.
+async function reenviarTicket(idTicket: TicketsInterface["_id"]) {
+  // se pone el ticket en no enviado por si se apaga el programa antes de sincronizarTickets
+  await ticketsInstance.setTicketEnviado(idTicket, false);
+  idsTicketsReenviar.push(idTicket);
+}
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function sincronizarTickets() {
+  if (enProcesoTickets) return; // salir si ya hay un proceso sincronizando
   try {
-    if (!enProcesoTickets) {
-      enProcesoTickets = true;
-      const parametros = await parametrosInstance.getParametros();
-      if (parametros != null) {
+    enProcesoTickets = true; // try-finally volvera a poner enProcesoTickets=false al salir
+    const parametros = await parametrosInstance.getParametros();
+    if (parametros != null) {
+      let enviarMasTickets = true;
+      while (enviarMasTickets) {
+        while (idsTicketsReenviar.length) {
+          let idTicket = idsTicketsReenviar.shift();
+          await ticketsInstance.setTicketEnviado(idTicket, false);
+        }
         const ticket = await ticketsInstance.getTicketMasAntiguo();
         if (ticket) {
           await nuevaInstancePromociones.deshacerPromociones(ticket);
-          const res: any = await axios
-            .post("tickets/enviarTicket", { ticket })
-            .catch((e) => {console.log("error",e)});
+          const res = await axios.post("tickets/enviarTicket", { ticket });
+          //.catch((e) => {console.log("error",e)});
+
 
           if (res.data) {
-            if (await ticketsInstance.setTicketEnviado(ticket._id)) {
-              setTimeout(function () {
-                enProcesoTickets = false;
-                sincronizarTickets();
-              }, 100);
-            } else {
-              enProcesoTickets = false;
+            if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
+              // si el ticket no se va ha reenviar marcarlo como enviado
+              await ticketsInstance.setTicketEnviado(ticket._id, true);
             }
-          } else {
-            enProcesoTickets = false;
-          }
+          } else enviarMasTickets = false; // si error en server salir y esperar a la siguiente sincronización
         } else {
-          enProcesoTickets = false;
+          // no hay ticket mas antiguo
+          if (idsTicketsReenviar.length == 0)
+            // no hay mas tickets que reenviar
+            enviarMasTickets = false;
         }
-      } else {
-        logger.Error(4, "No hay parámetros definidos en la BBDD");
+        if (enviarMasTickets) await sleep(100);
       }
+    } else {
+      logger.Error(4, "No hay parámetros definidos en la BBDD");
     }
   } catch (err) {
-    enProcesoTickets = false;
     logger.Error(5, err);
+  } finally {
+    enProcesoTickets = false;
   }
 }
-
 async function sincronizarCajas() {
   try {
     const caja = await cajaInstance.getCajaSincroMasAntigua();
@@ -449,9 +470,8 @@ async function sincronizarAlbaranesCreados() {
             });
           if (res.data && !res.data.error) {
             if (await AlbaranesInstance.setEnviado(albaran._id)) {
-              enProcesoAlbaranesCreados = false;
               setTimeout(function () {
-                enProcesoTickets = false;
+                enProcesoAlbaranesCreados = false;
                 sincronizarAlbaranesCreados();
               }, 100);
             } else {
@@ -532,7 +552,8 @@ setInterval(actualizarTrabajadores, 3600000);
 // setInterval(actualizarMesas, 3600000);
 
 export {
-  sincronizarTickets,
+  reenviarTicket,
+  // sincronizarTickets,
   // sincronizarCajas,
   // sincronizarMovimientos,
   // sincronizarFichajes,

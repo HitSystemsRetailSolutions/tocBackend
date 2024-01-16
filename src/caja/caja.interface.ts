@@ -5,6 +5,7 @@ export interface CajaAbiertaInterface {
   idDependientaApertura: number;
   totalApertura: number;
   detalleApertura: DetalleMonedas;
+  detalleActual?: DetalleMonedas;
   cambioEmergenciaApertura: number;
   cambioEmergenciaActual: number;
   fichajes: number[];
@@ -28,6 +29,7 @@ export interface CajaCerradaInterface {
   cantidadLocal3G: number;
   totalHonei: number;
   propina: number;
+  totalAlbaranes: number;
   totalDeudas: number;
   cantidadPaytef: number;
   totalLocalPaytef: number;
@@ -63,6 +65,7 @@ export interface CajaSincro {
   totalLocalPaytef: number;
   cantidadLocal3G: number;
   totalDatafono3G: number;
+  totalAlbaranes: number;
   totalDeudas: number;
   cantidadPaytef: number;
   totalDeuda: number;
@@ -72,7 +75,7 @@ export interface CajaSincro {
   calaixFetZ: number;
   detalleCierre: DetalleMonedas;
   mediaTickets: number;
-  cambioEmergenciaApertura: number,
+  cambioEmergenciaApertura: number;
   cambioEmergenciaCierre: number;
   enviado: boolean;
 }

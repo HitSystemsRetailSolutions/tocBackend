@@ -17,6 +17,8 @@ import { TicketsInterface } from "../tickets/tickets.interface";
 import { arrayClientesFacturacion } from "../clientes/clientes.interface";
 import { promises } from "dns";
 import { unwatchFile } from "fs";
+import { impresoraInstance } from "src/impresora/impresora.class";
+import { cestasInstance } from "src/cestas/cestas.clase";
 
 export class NuevaPromocion {
   private promosIndividuales: PromocionesInterface[] = [];
@@ -205,8 +207,9 @@ export class NuevaPromocion {
                 mediaPromo,
                 otraMediaPartePromo
               );
-              const articuloPrincipal =
-                await articulosInstance.getInfoArticulo(idArticulo);
+              const articuloPrincipal = await articulosInstance.getInfoArticulo(
+                idArticulo
+              );
               const articuloSecundario =
                 await articulosInstance.getInfoArticulo(
                   cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
@@ -330,8 +333,9 @@ export class NuevaPromocion {
                 mediaPromo,
                 otraMediaPartePromo
               );
-              const articuloPrincipal =
-                await articulosInstance.getInfoArticulo(idArticulo);
+              const articuloPrincipal = await articulosInstance.getInfoArticulo(
+                idArticulo
+              );
               const articuloSecundario =
                 await articulosInstance.getInfoArticulo(
                   cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
@@ -642,6 +646,19 @@ export class NuevaPromocion {
         unidades: unidadesRestantes,
       });
     }
+    let numProductos = 0;
+    let total = 0;
+    for (let i = 0; i < cesta.lista.length; i++) {
+      numProductos += cesta.lista[i].unidades;
+      total += cesta.lista[i].subtotal;
+    }
+
+    impresoraInstance.mostrarVisor({
+      total: total.toFixed(2),
+      precio: articulo.precioConIva.toFixed(2),
+      texto: articulo.nombre,
+      numProductos: numProductos,
+    });
     return true;
   }
 

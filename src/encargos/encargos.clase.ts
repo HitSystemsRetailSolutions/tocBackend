@@ -373,7 +373,7 @@ export class Encargos {
       let client = await clienteInstance.getClienteById(idCliente);
       let total = 0;
       cesta.idCliente = idCliente;
-      cesta.nombreCliente = client.nombre;
+      cesta.nombreCliente = client?.nombre;
       cesta.trabajador = idDependenta;
       await cestasInstance.updateCesta(cesta);
       // conseguimos la cesta con los articulos y un array de sus comentarios con el mismo orden de la lista cesta

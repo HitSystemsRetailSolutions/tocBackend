@@ -13,6 +13,7 @@ import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 import { CajaCerradaInterface, CajaSincro } from "src/caja/caja.interface";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { impresoraInstance } from "src/impresora/impresora.class";
+import { Timestamp } from "mongodb";
 export class Deudas {
   async getDate(timestamp: any) {
     var date = new Date(timestamp);
@@ -98,33 +99,26 @@ export class Deudas {
     }
     return Number(money.toFixed(2));
   }
-  async ticketPagado(data) {
-    const deuda = await schDeudas.getDeudaById(data.idDeuda);
+  async ticketPagado(idDeuda, albaran) {
+    const deuda = await schDeudas.getDeudaById(idDeuda);
 
     if (deuda) {
-      const cliente = await clienteInstance.getClienteById(deuda.idCliente);
-      if (cliente.albaran) {
-        try {
-          const albaran = await AlbaranesInstance.setAlbaran(
-            deuda.total,
-            deuda.cesta,
-            deuda.idTrabajador,
-            "PAGADO"
-          );
-          await impresoraInstance.imprimirTicket(albaran, true);
-          await impresoraInstance.imprimirFirma(albaran, true);
-        } catch (error) {
-          // Manejar el error de acuerdo a tus necesidades
-          console.error(
-            "Error al ejecutar AlbaranesInstance.setAlbaran:",
-            error
-          );
-        }
+      let id = deuda.idTicket;
+      if (await this.comprobarVersDeudaAlbaran(deuda, albaran)) {
+        // creamos un albaran e insertamos al nuevoMovimiento la idAlbaran
+        const idAlbarnan = await AlbaranesInstance.setAlbaran(
+          Number(deuda.total.toFixed(2)),
+          deuda.cesta,
+          deuda.idTrabajador,
+          "V_ALB_ANTIGUO"
+        );
+        id = idAlbarnan.toString();
       }
+      const concepto = albaran ? "DEUDA ALBARAN" : "DEUDA";
       const movimiento = {
         cantidad: deuda.total,
-        concepto: "DEUDA",
-        idTicket: deuda.idTicket,
+        concepto: concepto,
+        idTicket: id,
         idTrabajador: deuda.idTrabajador,
         tipo: "ENTRADA_DINERO",
       };
@@ -156,21 +150,44 @@ export class Deudas {
       };
     }
   }
-  eliminarDeuda = async (idDeuda) => {
-    const deuda = await schDeudas.getDeudaById(idDeuda);
-    if (deuda) {
-      return schDeudas
-        .setAnulado(idDeuda)
-        .then((ok: boolean) => {
-          if (!ok) return { error: true, msg: "Error al borrar la deuda" };
+  async comprobarVersDeudaAlbaran(deuda: DeudasInterface, albaran: any) {
+    if (!albaran) {
+      return false;
+    }
+    const fechaVersion = new Date("2024-01-03T12:00:00");
+    const timestamp = fechaVersion.getTime();
+    // detectamos que deuda albaran es anterior a la nueva version de los albaranes
+    if (deuda.timestamp < timestamp) {
+      return true;
+    }
+    return false;
+  }
+  eliminarDeuda = async (idDeuda, albaran) => {
+    try {
+      const deuda = await schDeudas.getDeudaById(idDeuda);
+      if (deuda) {
+        const res = await schDeudas.setAnulado(idDeuda);
+        if (!res) {
+          return { error: true, msg: "Error al borrar la deuda" };
+        } else {
+          if (albaran) {
+            await movimientosInstance.nuevoMovimiento(
+              deuda.total,
+              "DEUDA ALBARAN ANULADO",
+              "SALIDA",
+              Number(deuda.idTicket),
+              Number(deuda.idTrabajador)
+            );
+          }
           return { error: false, msg: "Deuda borrada" };
-        })
-        .catch((err: string) => ({ error: true, msg: err }));
-    } else {
+        }
+      }
       return {
         error: true,
         msg: "Deuda no encontrada",
       };
+    } catch (error) {
+      return null;
     }
   };
 
@@ -331,7 +348,7 @@ export class Deudas {
         }
       }
     } catch (error) {
-      console.log("error crear cesta de encargo", error);
+      console.log("error crear cesta de deuda", error);
     }
 
     return cesta;
