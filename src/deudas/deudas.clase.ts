@@ -289,7 +289,7 @@ export class Deudas {
 
       for (const key in cestaDeuda.detalleIva) {
         if (key.startsWith("importe")) {
-          total += cestaDeuda.detalleIva[key];
+          total += Math.round(cestaDeuda.detalleIva[key] * 100) / 100 ;
         }
       }
 
