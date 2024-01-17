@@ -49,8 +49,8 @@ export class MovimientosClase {
   getMovimientosIntervalo = (inicioTime: number, finalTime: number) =>
     schMovimientos.getMovimientosIntervalo(inicioTime, finalTime);
 
-  getMovTkrsSinExcIntervalo = async (inicioTime: number, finalTime: number) => 
-  await schMovimientos.getMovTkrsSinExcIntervalo(inicioTime, finalTime);
+  getMovTkrsSinExcIntervalo = async (inicioTime: number, finalTime: number) =>
+    await schMovimientos.getMovTkrsSinExcIntervalo(inicioTime, finalTime);
 
   /* Uri */
   /* Yasai :D */
@@ -87,9 +87,8 @@ export class MovimientosClase {
     };
     if (tipo === "TARJETA")
       if (await schMovimientos.existeMovimiento(idTicket, valor)) return false;
-
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
-      if (concepto === "Entrada") {
+      if (tipo === "ENTRADA_DINERO" && concepto != "DEUDA") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
       } else if (concepto == "DEUDA" && tipo === "ENTRADA_DINERO") {
         let ticketInfo = await deudasInstance.getDeudaByIdTicket(idTicket);
