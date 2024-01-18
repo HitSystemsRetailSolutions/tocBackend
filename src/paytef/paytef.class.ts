@@ -15,7 +15,9 @@ let intentosBuclePollResult = 0;
 
 axios.defaults.timeout = 5000; // Evitem que el client esperi...  // ???? se modifica en instalador.controller.ts
 class PaytefClass {
-  transaccionFinalizada = false;
+  // transaccionFinalizada ahora es se refiere a que la transaccion esta finalizada y aprobada
+  // antes era transaccion finalizada aprobada o denegada ( o sea sin error de conexión )
+  transaccionFinalizada = false; 
 
   // datos de la última inicio de transacción por si se ha de repetir en paytef.controller cobrarUltimoTicket
   ultimaIniciarTransaccion: {
@@ -53,6 +55,8 @@ class PaytefClass {
       showResultSeconds: 5,
     };
 
+    logger.Info(`Transaccion (${idTicket}) inicio type:${type}`, "paytef.class");
+
     if (parametros.ipTefpay) {
       if (this.dentroIniciarTransaccion)
         logger.Warn("dentroIniciarTransaccion==true", "paytef.class");
@@ -68,7 +72,7 @@ class PaytefClass {
           method: "POST",
           url: `http://${parametros.ipTefpay}:8887/transaction/start`,
           data: opciones,
-          timeout: 7000,
+          timeout: 10000,
         })
           .then(async (respuestaPayef: any) => {
             salirBucleStart = true;
@@ -83,6 +87,7 @@ class PaytefClass {
               );
               return xy;
             } else {
+              logger.Error(`Transaccion (${idTicket}) not started`, "paytef.class");
               io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
               io.emit("procesoPaytef", { proceso: "Denegado" });
               return false;
@@ -90,16 +95,21 @@ class PaytefClass {
           })
           .catch(async (err) => {
             /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-             * (ToDo) Si start falla por timeout (error de conexión) puede ser que el comando haya llegado al datáfono pero la respuesta se haya
-             *         perdido. Por lo tanto el datáfono habria iniciado la transacción y se iniciaria otra que daria error 500
+             * Si start falla por timeout (error de conexión) puede ser que el comando haya llegado al datáfono pero la respuesta se haya
+             * perdido. Por lo tanto el datáfono habria iniciado la transacción y se iniciaria otra que daria error 500
+             ** (Arreglado) no se envia 2 veces la misma start transaction
+             **             si la primera petición no responde dar error de conexión ya que no se puede saber el estado de la transacción
+             **             por lo que el bucle 'while (!salirBucleStart)' solo se hace una vez y podria quitarse
              * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
              */
-            if (intentosBucleStart >= 1) {
+            if (intentosBucleStart >= 0) { 
+              logger.Error(`Transaccion (${idTicket}) start error conexion`, "paytef.class");
               intentosBucleStart = 0;
               io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
               salirBucleStart = true;
               return false;
             } else {
+              // esta parte ya no se ejecuta porque solo se envia una vez el coando start transaction
               await new Promise((r) => setTimeout(r, 100));
               intentosBucleStart += 1;
               //this.iniciarTransaccion(idTrabajador, idTicket, total, type); // se realiza en el siguiente bucleStart
@@ -113,8 +123,11 @@ class PaytefClass {
         this.timeUltimaTransaccionNoFinalizada = Date.now();
       }
     } else {
+      // no hay parametros.ipTefpay ( no tendria que pasar por aqui )
+      logger.Info(`Transaccion (${idTicket}) no hay parametros.ipTefpay`, "paytef.class");
       io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
     }
+    logger.Info(`Transaccion (${idTicket}) fin type:${type}`, "paytef.class");
     return this.transaccionFinalizada;
   }
 
@@ -144,21 +157,22 @@ class PaytefClass {
              *** la respuesta de /transaction/poll ya incluye el campo result. Asi no hay que hacer la petición a /transaction/result y tener que 
              *** comprobar errores de conexión 
 
-            await axios
-              .post(`http://${ipDatafono}:8887/transaction/result`, {
-                pinpad: "*",
-              }, { timeout:5000 })
-              .then(async (respuesta: any) => {
-                if (respuesta.data.result.transactionReference == idTicket) {
+             *** (old) await axios.post(`http://${ipDatafono}:8887/transaction/result`, { pinpad: "*",})
             --------------------------------- */
             if (resEstadoPaytef.result.transactionReference == idTicket) {
+              logger.Info(`Transaccion (${idTicket}) venta aprobada`, "paytef.class");
               parametrosInstance.setContadoDatafono(0, total);
-              if (
-                (await parametrosInstance.getParametros())?.params
-                  ?.TicketDFAuto == "Si"
-              )
-                impresoraInstance.imprimirTicket(idTicket);
-              ticketsInstance.setPagadoPaytef(idTicket);
+              // el ticket ahora se puede generar despues de terminar la transacción en crearTicketPaytef (tickets.controller.ts)
+              // se comprueba si el ticket existe y despues se imprime y se marca como paytef
+              // sino se tendra que hacer cuando se genere el ticket
+              if (await ticketsInstance.getTicketById(idTicket)) {
+                if (
+                  (await parametrosInstance.getParametros())?.params
+                    ?.TicketDFAuto == "Si"
+                )
+                  impresoraInstance.imprimirTicket(idTicket);
+                ticketsInstance.setPagadoPaytef(idTicket);
+              }
               io.emit("consultaPaytef", { valid: true, ticket: idTicket });
               io.emit("procesoPaytef", { proceso: "aprobado" });
               this.transaccionFinalizada = true;
@@ -166,6 +180,7 @@ class PaytefClass {
             } else {
               // transactionReference != idTicket
               // No tendria que pasar, pero si pasa se da error y que la dependienta compruebe que ha pasado
+              logger.Error(`Transaccion (${idTicket}) transactionReference error ${resEstadoPaytef.result.transactionReference}`, "paytef.class");
               io.emit("consultaPaytefRefund", {
                 ok: false,
                 errorconex: true,
@@ -181,23 +196,13 @@ class PaytefClass {
               this.transaccionFinalizada = false;
               /*---- return false; */
             }
-            /*-------------------------------
-              })
-              .catch((e) => {
-                console.log(e);
-              });
-              --------------------------------- */
           } else if (type === "refund") {
             schTickets.anularTicket(idTicket);
             /*-------------------------------
-            await axios
-              .post(`http://${ipDatafono}:8887/transaction/result`, {
-                pinpad: "*",
-              },{ timeout: 5000 })
-              .then((respuesta: any) => {
-                if (respuesta.data.result.transactionReference == idTicket) {
-             --------------------------------- */
+             * (old) await axios.post(`http://${ipDatafono}:8887/transaction/result`, { pinpad: "*", })
+             * --------------------------------- */
             if (resEstadoPaytef.result.transactionReference == idTicket) {
+              logger.Info(`Transaccion (${idTicket}) refund aprobada`, "paytef.class");
               parametrosInstance.setContadoDatafono(0, total * -1);
               io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
               this.imprimirTicket(idTicket);
@@ -205,6 +210,7 @@ class PaytefClass {
               /*---- return true; */
             } else {
               // transactionReference != idTicket
+              logger.Error(`Transaccion (${idTicket}) transactionReference error ${resEstadoPaytef.result.transactionReference}`, "paytef.class");
               io.emit("consultaPaytefRefund", {
                 ok: false,
                 errorconex: true,
@@ -220,9 +226,6 @@ class PaytefClass {
               this.transaccionFinalizada = false;
               /*---- return false; */
             }
-            /*-------------------------------
-              });
-              --------------------------------- */
             intentosBuclePollResult = 0;
           } else {
             // no pasa por aqui, type == sale,refund
@@ -234,11 +237,13 @@ class PaytefClass {
         } else {
           // result.approved = false
           if (type === "sale") {
+            logger.Info(`Transaccion (${idTicket}) venta denegada`, "paytef.class");
             io.emit("consultaPaytef", { valid: false, ticket: idTicket });
           } else if (type === "refund") {
+            logger.Info(`Transaccion (${idTicket}) refund denegada`, "paytef.class");
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
           }
-          //this.transaccionFinalizada = true;
+          //this.transaccionFinalizada = true; // ahora transaccionFinaliza es finalizada y aprobada
         }
       } else {
         // poll aún no hay result
@@ -246,13 +251,14 @@ class PaytefClass {
         await this.bucleComprobacion(idTicket, total, idTrabajador, type);
       }
     } catch (e) {
-      logger.Error(e);
+      logger.Error(`Transaccion (${idTicket}) catch ${e}`, "paytef.class");
       console.error(
         "error de conexión (pago ya enviado) / ",
         intentosBuclePollResult
       );
       if (intentosBuclePollResult >= 2) {
         /* ??? */
+        logger.Error(`Transaccion (${idTicket}) poll no respuesta`, "paytef.class");
         intentosBuclePollResult = 0;
         io.emit("consultaPaytefRefund", {
           ok: false,
