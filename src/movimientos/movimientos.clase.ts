@@ -49,8 +49,8 @@ export class MovimientosClase {
   getMovimientosIntervalo = (inicioTime: number, finalTime: number) =>
     schMovimientos.getMovimientosIntervalo(inicioTime, finalTime);
 
-  getMovTkrsSinExcIntervalo = async (inicioTime: number, finalTime: number) => 
-  await schMovimientos.getMovTkrsSinExcIntervalo(inicioTime, finalTime);
+  getMovTkrsSinExcIntervalo = async (inicioTime: number, finalTime: number) =>
+    await schMovimientos.getMovTkrsSinExcIntervalo(inicioTime, finalTime);
 
   /* Uri */
   /* Yasai :D */
@@ -87,9 +87,8 @@ export class MovimientosClase {
     };
     if (tipo === "TARJETA")
       if (await schMovimientos.existeMovimiento(idTicket, valor)) return false;
-
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
-      if (concepto === "Entrada") {
+      if (tipo === "ENTRADA_DINERO" && concepto != "DEUDA") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
       } else if (concepto == "DEUDA" && tipo === "ENTRADA_DINERO") {
         let ticketInfo = await deudasInstance.getDeudaByIdTicket(idTicket);
@@ -233,7 +232,7 @@ export class MovimientosClase {
       }
 
       for (let i = 0; i < arrayFinalTickets.length; i++) {
-        arrayFinalTickets[i].tipoPago = this.calcularFormaPago(
+        arrayFinalTickets[i].tipoPago = await this.calcularFormaPago(
           arrayFinalTickets[i]
         );
       }
@@ -256,6 +255,7 @@ export class MovimientosClase {
 
   /* Uri */
   public async getExtraData(ticket) {
+    console.log(ticket);
     const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
       ticket
     );
@@ -265,8 +265,61 @@ export class MovimientosClase {
     return null;
   }
 
+  /* Uri */
+  public async getMovimentOfTicket(ticket) {
+    const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
+      ticket
+    );
+    if (arrayMovimientos?.length > 0) {
+      return arrayMovimientos[0];
+    }
+    return null;
+  }
+
+  public async payWithCash(idTicket: TicketsInterface["_id"]) {
+    let movimiento = await this.getMovimentOfTicket(idTicket);
+    movimiento.valor = movimiento.valor * -1;
+    movimiento._id = Date.now();
+
+    if (await schMovimientos.nuevoMovimiento(movimiento)) {
+      return true;
+    }
+    return false;
+  }
+
+  public async PayWith3G(idTicket: TicketsInterface["_id"]) {
+    let movimiento = await this.getMovimentOfTicket(idTicket);
+    if (movimiento) {
+      if (movimiento.valor < 0) movimiento.valor = movimiento.valor * -1;
+      movimiento._id = Date.now();
+      if (await schMovimientos.nuevoMovimiento(movimiento)) {
+        return true;
+      }
+    } else {
+      let ticket = await ticketsInstance.getTicketById(idTicket);
+      let nuevoMovimiento: MovimientosInterface = {
+        _id: Date.now(),
+        codigoBarras: "",
+        concepto: "",
+        enviado: false,
+        idTicket,
+        idTrabajador: ticket.idTrabajador,
+        tipo: "DATAFONO_3G",
+        valor: ticket.total,
+        ExtraData: [],
+      };
+      if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /* Eze 4.0 */
-  public calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
+  public async calcularFormaPago(
+    superTicket: SuperTicketInterface
+  ): Promise<FormaPago> {
+    // let movTicket = (await this.getMovimentOfTicket(superTicket._id)) || null;
     if (superTicket.honei) {
       const todoHonei = superTicket.cesta.lista.every((art) => art.pagado);
       switch (true) {
@@ -310,17 +363,17 @@ export class MovimientosClase {
         return "DEUDA";
       } else if (superTicket.movimientos[0].tipo === "SALIDA") {
         return "DEUDA";
+      } else if (superTicket.movimientos[0].tipo === "DATAFONO_3G") {
+        return "DATAFONO_3G";
       } else {
         return "EFECTIVO";
         throw Error("Forma de pago desconocida");
       }
-    } else if (superTicket.datafono3G && !superTicket?.anulado) {
-      return "DATAFONO_3G";
     } else if (superTicket.movimientos.length === 0 && superTicket.total > 0) {
       return "EFECTIVO";
     } else if (superTicket.movimientos.length === 0 && superTicket.total < 0) {
       return "ANULADO";
-    } else if (superTicket.movimientos.length === 2) {
+    } else if (superTicket.movimientos.length > 1) {
       // CASO TARJETA ANULADA
       if (
         superTicket.movimientos[0].tipo === "TARJETA" &&
@@ -339,6 +392,19 @@ export class MovimientosClase {
           superTicket.movimientos[0].valor - superTicket.movimientos[1].valor;
         if (debeSerCero === 0) return "EFECTIVO";
         return "ERROR_DETECTADO";
+      }
+      if (
+        superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G")
+          .length === superTicket.movimientos.length
+      ) {
+        if (
+          superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G")
+            .length %
+            2 ===
+          0
+        )
+          return "EFECTIVO";
+        else return "DATAFONO_3G";
       } else {
         let tkrsSinExceso = false;
         let tkrsConExceso = false;

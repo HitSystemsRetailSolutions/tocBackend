@@ -28,10 +28,8 @@ export class AlbaranesClase {
     const timestamp = Date.now();
     const nuevoAlbaran: AlbaranesInterface = {
       _id: id,
-      datafono3G: false,
       timestamp: timestamp,
       total: Number(total.toFixed(2)),
-      paytef: false,
       idCliente: cesta.idCliente,
       idTrabajador,
       cesta,

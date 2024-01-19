@@ -21,6 +21,7 @@ export class TicketsClase {
   /* Eze 4.0 */
   async anularTicket(idTicket: TicketsInterface["_id"]) {
     const ticket = await schTickets.getTicketByID(idTicket);
+    let movimientos = await schMovimientos.getMovimientosDelTicket(idTicket);
     if (ticket.paytef) {
       let xy = await schTickets.getAnulado(idTicket);
       if (xy?.anulado?.idTicketPositivo == idTicket)
@@ -37,7 +38,7 @@ export class TicketsClase {
       } else {
         return { res: false, tipo: "TARJETA" };
       }
-    } else if (ticket.datafono3G) {
+    } else if (ticket.datafono3G || movimientos[0].tipo === "DATAFONO_3G") {
       return {
         res: await schTickets.anularTicket(idTicket, true),
         tipo: "DATAFONO_3G",
@@ -160,8 +161,6 @@ export class TicketsClase {
     idTrabajador: TicketsInterface["idTrabajador"],
     cesta: CestasInterface,
     consumoPersonal: boolean,
-    datafono3G: TicketsInterface["datafono3G"],
-    paytef: TicketsInterface["paytef"],
     honei: TicketsInterface["honei"],
     tkrs: boolean,
     dejaCuenta?: TicketsInterface["dejaCuenta"]
@@ -179,10 +178,8 @@ export class TicketsClase {
       timestamp: Date.now(),
       total: consumoPersonal ? 0 : Number(total.toFixed(2)),
       dejaCuenta: dejaCuenta,
-      datafono3G: datafono3G,
       honei: !!honei,
       tkrs: tkrs,
-      paytef: paytef,
       idCliente: cesta.idCliente,
       idTrabajador,
       cesta,
@@ -221,8 +218,17 @@ export class TicketsClase {
   ) => schTickets.setTicketEnviado(idTicket, enviado);
 
   /* Uri 4.0 */
-  setPagadoPaytef = (idTicket: TicketsInterface["_id"]) =>
-    schTickets.setPagadoPaytef(idTicket);
+  setPagadoPaytef = async (idTicket: TicketsInterface["_id"]) => {
+    let ticket = await schTickets.getTicketByID(idTicket);
+    if (ticket)
+      return movimientosInstance.nuevoMovimiento(
+        ticket.total,
+        "Paytef",
+        "TARJETA",
+        idTicket,
+        ticket.idTrabajador
+      );
+  };
 
   getTotalLocalPaytef = () => schTickets.getTotalLocalPaytef();
   cantidadLocal3G = async () => {
