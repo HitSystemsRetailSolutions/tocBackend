@@ -76,6 +76,7 @@ export class CajaController {
           totalApertura: total,
           fichajes: idTrabajadores,
           propina: 0,
+          detalleActual: null,
         });
       }
       throw Error("Error abrirCaja > Faltan datos o son incorrectos");
