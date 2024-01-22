@@ -279,7 +279,7 @@ export class CajaClase {
             { _id: "500", valor: 0, unidades: 0 },
           ],
           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          0,
+          await ticketsInstance.cantidadLocal3G(),
           cantidadLocal3G,
           totalPaytef,
           totalLocalPaytef,
