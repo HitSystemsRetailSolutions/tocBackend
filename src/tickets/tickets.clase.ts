@@ -34,11 +34,25 @@ export class TicketsClase {
       );
       const devolucionCreada = await schTickets.getUltimoTicket();
       if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
+        await movimientosInstance.nuevoMovimiento(
+          movimientos[0].valor,
+          movimientos[0].concepto,
+          "DEV_DATAFONO_PAYTEF",
+          movimientos[0].idTicket,
+          movimientos[0].idTrabajador
+        );
         return { res: true, tipo: "TARJETA" };
       } else {
         return { res: false, tipo: "TARJETA" };
       }
     } else if (ticket.datafono3G || movimientos[0].tipo === "DATAFONO_3G") {
+      await movimientosInstance.nuevoMovimiento(
+        movimientos[0].valor,
+        movimientos[0].concepto,
+        "DEV_DATAFONO_3G",
+        movimientos[0].idTicket,
+        movimientos[0].idTrabajador
+      );
       return {
         res: await schTickets.anularTicket(idTicket, true),
         tipo: "DATAFONO_3G",

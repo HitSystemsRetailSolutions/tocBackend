@@ -394,6 +394,11 @@ export class MovimientosClase {
         return "ERROR_DETECTADO";
       }
       if (
+        superTicket.movimientos.filter((e) => e.tipo === "DEV_DATAFONO_3G")
+          .length > 0
+      )
+        return "DEV_DATAFONO_3G";
+      if (
         superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G")
           .length === superTicket.movimientos.length
       ) {
