@@ -21,6 +21,8 @@ import axios from "axios";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { getClienteById } from "src/clientes/clientes.mongodb";
 import { descuentoEspecial } from "src/clientes/clientes.interface";
+import { parametrosInstance } from "../parametros/parametros.clase";
+
 @Controller("tickets")
 export class TicketsController {
   /* Eze 4.0 */
@@ -136,10 +138,11 @@ export class TicketsController {
     }
   ) {
     let nextID = await ticketsInstance.getProximoId();
+    logger.Info(`crearTicketPaytef entrada (${nextID})`, "tickets.controller")
     return await paytefInstance
       .iniciarTransaccion(idTrabajador, nextID, total)
       .then(async (x) => {
-        if (x)
+        if (x) {
           await this.crearTicket({
             total,
             idCesta,
@@ -149,6 +152,16 @@ export class TicketsController {
             concepto,
             honei,
           });
+          let idTicket= await ticketsInstance.getUltimoIdTicket();
+          if (idTicket!=nextID) {
+            logger.Error(`idTicket!=nextID (${idTicket}!=${nextID})`, "tickets.controller");
+          }
+          if ( (await parametrosInstance.getParametros())?.params?.TicketDFAuto == "Si" ) {
+            impresoraInstance.imprimirTicket(idTicket);
+          }
+          ticketsInstance.setPagadoPaytef(idTicket);
+        }
+        logger.Info(`crearTicketPaytef salida (${nextID}, ${x})`, "tickets.controller")
         return x;
       });
   }
