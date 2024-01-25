@@ -59,7 +59,8 @@ export async function insertarArticulosNuevos(
     nombreArticulo,
     id["_id"] + 1,
     posicion,
-    precioConIva
+    precioConIva,
+    precioBase,
   );
   if ((await articulos.insertMany(valors)).acknowledged) return id["_id"] + 1;
   return -1;
@@ -72,7 +73,8 @@ export async function insertarTeclasNuevos(
   Nombre,
   idArt,
   pos,
-  preuIva
+  preuIva,
+  preuBase,
 ) {
   const database = (await conexion).db("tocgame");
   const articulos = database.collection<TeclasInterface>("teclas");
@@ -86,6 +88,7 @@ export async function insertarTeclasNuevos(
       color: 16769279,
       esSumable: esSumable,
       precioConIva: preuIva,
+      precioBase: preuBase,
     },
   ];
   return await articulos.insertMany(valors);

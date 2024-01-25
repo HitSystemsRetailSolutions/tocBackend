@@ -6,9 +6,10 @@ const redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
 
 /* Eze 4.0 */
 export function construirObjetoIvas(
-  precioConIva: number,
+  precio: number,
   tipoIva: TiposIva,
-  unidades: number
+  unidades: number,
+  albaran: boolean = false
 ): DetalleIvaInterface {
   let base1 = 0,
     base2 = 0,
@@ -26,31 +27,33 @@ export function construirObjetoIvas(
     importe4 = 0,
     importe5 = 0;
 
+// si es albaran, parametro precio viene sin el iva.
+// En caso contrario, al precio se le quita el iva para calcular las bases y valores
   switch (tipoIva) {
     case 1:
-      base1 = (precioConIva / 1.04) * unidades;
-      valor1 = (precioConIva / 1.04) * 0.04 * unidades;
-      importe1 = precioConIva * unidades;
+      base1 = albaran ? precio * unidades : (precio / 1.04) * unidades;
+      valor1 = (precio / 1.04) * 0.04 * unidades;
+      importe1 = albaran ? base1 + valor1 : precio * unidades;
       break;
     case 2:
-      base2 = (precioConIva / 1.1) * unidades;
-      valor2 = (precioConIva / 1.1) * 0.1 * unidades;
-      importe2 = precioConIva * unidades;
+      base2 = albaran ? precio * unidades : (precio / 1.1) * unidades;
+      valor2 = (precio / 1.1) * 0.1 * unidades;
+      importe2 = albaran ? base2 + valor2 : precio * unidades;
       break;
     case 3:
-      base3 = (precioConIva / 1.21) * unidades;
-      valor3 = (precioConIva / 1.21) * 0.21 * unidades;
-      importe3 = precioConIva * unidades;
+      base3 = albaran ? precio * unidades : (precio / 1.21) * unidades;
+      valor3 = (precio / 1.21) * 0.21 * unidades;
+      importe3 = albaran ? base3 + valor3 : precio * unidades;
       break;
     case 4:
-      base4 = (precioConIva / 1) * unidades;
-      valor4 = (precioConIva / 1) * 0 * unidades;
-      importe4 = precioConIva * unidades;
+      base4 = albaran ? precio * unidades : (precio / 1) * unidades;
+      valor4 = (precio / 1) * 0 * unidades;
+      importe4 = albaran ? base4 + valor4 : precio * unidades;
       break;
     case 5:
-      base5 = (precioConIva / 1.05) * unidades;
-      valor5 = (precioConIva / 1.05) * 0.05 * unidades;
-      importe5 = precioConIva * unidades;
+      base5 = albaran ? precio * unidades : (precio / 1.05) * unidades;
+      valor5 = (precio / 1.05) * 0.05 * unidades;
+      importe5 = albaran ? base5 + valor5 : precio * unidades;
       break;
     default:
       break;

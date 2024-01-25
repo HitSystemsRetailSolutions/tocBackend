@@ -228,7 +228,8 @@ export class ArticulosController {
             params.nombreArticulo,
             params.idArticulo,
             params.posicion,
-            params.precioConIva
+            params.precioConIva,
+            params.precioBase
           );
         } else {
           id = await articulosInstance.insertarArticulosNuevos(
