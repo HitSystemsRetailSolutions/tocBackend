@@ -343,7 +343,7 @@ export class Deudas {
             1,
             arraySuplementos,
             "",
-            ""
+            "descargas"
           );
         }
       }
