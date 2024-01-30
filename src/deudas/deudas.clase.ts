@@ -86,9 +86,6 @@ export class Deudas {
   async getAllDeudas() {
     return await schDeudas.getAllDeudas();
   }
-  async getDeudaByIdTicket(deudaID) {
-    return await schDeudas.getDeudaByIdTicket(deudaID);
-  }
   async getTotalMoneyStandBy() {
     const arrayDeudas = await this.getAllDeudas();
     let money = 0;
@@ -127,7 +124,8 @@ export class Deudas {
         movimiento.concepto,
         "ENTRADA_DINERO",
         Number(movimiento.idTicket),
-        Number(movimiento.idTrabajador)
+        Number(movimiento.idTrabajador),
+        deuda.nombreCliente,
       );
       // sera false cuando se encuentre un movimiento existente de idTicket
       if (pagado) {
@@ -176,7 +174,8 @@ export class Deudas {
               "DEUDA ALBARAN ANULADO",
               "SALIDA",
               Number(deuda.idTicket),
-              Number(deuda.idTrabajador)
+              Number(deuda.idTrabajador),
+              deuda.nombreCliente,
             );
           }
           return { error: false, msg: "Deuda borrada" };
@@ -290,10 +289,10 @@ export class Deudas {
 
       for (const key in cestaDeuda.detalleIva) {
         if (key.startsWith("importe")) {
-          total += cestaDeuda.detalleIva[key];
+          total += Math.round(cestaDeuda.detalleIva[key] * 100) / 100 ;
         }
       }
-
+      total = Number((Math.round(total * 100) / 100).toFixed(2));
       const mongodbDeuda = {
         idTicket: idTicket,
         idSql: idSql,
@@ -343,7 +342,7 @@ export class Deudas {
             1,
             arraySuplementos,
             "",
-            ""
+            "descargas"
           );
         }
       }
@@ -368,6 +367,8 @@ export class Deudas {
 
   getDeudaFinalizadaMasAntiguo = async () =>
     await schDeudas.getDeudaFinalizadaMasAntiguo();
+    getDeudaByIdTicket = async (idTicket: DeudasInterface["idTicket"],timestamp:DeudasInterface["timestamp"]) =>
+    await schDeudas.getDeudaByIdTicket(idTicket,timestamp);
 }
 const deudasInstance = new Deudas();
 export { deudasInstance };
