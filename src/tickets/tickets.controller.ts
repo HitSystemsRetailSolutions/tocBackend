@@ -159,7 +159,7 @@ export class TicketsController {
           if ( (await parametrosInstance.getParametros())?.params?.TicketDFAuto == "Si" ) {
             impresoraInstance.imprimirTicket(idTicket);
           }
-          ticketsInstance.setPagadoPaytef(idTicket);
+          //ticketsInstance.setPagadoPaytef(idTicket);
         }
         logger.Info(`crearTicketPaytef salida (${nextID}, ${x})`, "tickets.controller")
         return x;
