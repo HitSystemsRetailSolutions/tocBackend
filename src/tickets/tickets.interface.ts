@@ -10,10 +10,10 @@ export interface TicketsInterface {
   timestamp: number;
   total: number;
   dejaCuenta?: number;
-  datafono3G: boolean;
+  datafono3G?: boolean;
   honei?: boolean;
   tkrs?: boolean;
-  paytef: boolean;
+  paytef?: boolean;
   cesta: CestasInterface;
   idTrabajador: number;
   idCliente: ClientesInterface["id"];

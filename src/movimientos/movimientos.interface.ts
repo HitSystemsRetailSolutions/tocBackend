@@ -19,7 +19,9 @@ export type TiposMovientos =
   | "ENTREGA_DIARIA"
   | "ENTRADA_DINERO"
   | "SALIDA" // Para el resto de salidas (genéricas)
-  | "DATAFONO_3G";
+  | "DATAFONO_3G"
+  | "DEV_DATAFONO_3G"
+  | "DEV_DATAFONO_PAYTEF";
 
 export interface CuentaCodigoBarras {
   _id: "CUENTA";
@@ -44,4 +46,6 @@ export type FormaPago =
   | "TKRS + HONEI"
   | "TKRS + HONEI + EFECTIVO"
   | "HONEI + TARJETA"
-  | "HONEI + DATAFONO_3G";
+  | "HONEI + DATAFONO_3G"
+  | "DEV_DATAFONO_3G"
+  | "DEV_DATAFONO_PAYTEF";
