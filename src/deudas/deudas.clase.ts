@@ -293,7 +293,7 @@ export class Deudas {
           total += cestaDeuda.detalleIva[key];
         }
       }
-
+      total = Number((Math.round(total * 100) / 100).toFixed(2));
       const mongodbDeuda = {
         idTicket: idTicket,
         idSql: idSql,
@@ -343,7 +343,7 @@ export class Deudas {
             1,
             arraySuplementos,
             "",
-            ""
+            "descargas"
           );
         }
       }
