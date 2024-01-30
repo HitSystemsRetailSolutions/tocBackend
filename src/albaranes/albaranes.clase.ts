@@ -44,12 +44,14 @@ export class AlbaranesClase {
       // devolver id cuando se haya guradado el albaran en mongodb
       if (await schAlbaranes.setAlbaran(nuevoAlbaran)) {
         // Siempre se genera una entrada de dinero en caja al ser albaran
+        const cliente = await clienteInstance.getClienteById(cesta.idCliente);
         await movimientosInstance.nuevoMovimiento(
           total,
           "Albara",
           "ENTRADA_DINERO",
           id,
-          idTrabajador
+          idTrabajador,
+          cliente.nombre
         );
         switch (estado) {
           // si albaran es deuda se genera una deuda y un movimiento de salida de dinero
@@ -73,7 +75,8 @@ export class AlbaranesClase {
               "DEUDA ALBARAN",
               "SALIDA",
               id,
-              idTrabajador
+              idTrabajador,
+              cliente.nombre
             );
             break;
           default:

@@ -67,6 +67,7 @@ export class MovimientosClase {
     tipo: MovimientosInterface["tipo"],
     idTicket: MovimientosInterface["idTicket"],
     idTrabajador: MovimientosInterface["idTrabajador"],
+    nombreCliente?: MovimientosInterface["nombreCliente"],
     ExtraData: MovimientosInterface["ExtraData"] = []
   ) {
     let codigoBarras = "";
@@ -82,7 +83,8 @@ export class MovimientosClase {
       idTicket,
       idTrabajador,
       tipo,
-      valor,
+      valor: this.redondeoNoIntegrado(valor),
+      nombreCliente,
       ExtraData,
     };
     if (tipo === "TARJETA")
@@ -91,11 +93,11 @@ export class MovimientosClase {
       if (tipo === "ENTRADA_DINERO" && concepto != "DEUDA") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
       } else if (concepto == "DEUDA" && tipo === "ENTRADA_DINERO") {
-        let ticketInfo = await deudasInstance.getDeudaByIdTicket(idTicket);
-        impresoraInstance.imprimirDeuda(
-          nuevoMovimiento,
-          ticketInfo.nombreCliente
+        const ticketInfo = await ticketsInstance.getTicketById(idTicket);
+        const cliente = await clienteInstance.getClienteById(
+          ticketInfo.idCliente
         );
+        impresoraInstance.imprimirDeuda(nuevoMovimiento, cliente.nombre);
       } else if (concepto == "DEUDA" && tipo === "SALIDA") {
         await this.imprimirDeudaSalida(nuevoMovimiento, idTicket);
       } else if (
@@ -369,6 +371,9 @@ export class MovimientosClase {
         );
       }
     }
+  }
+  private redondeoNoIntegrado(valor: number): number {
+    return valor % 1 === 0 ? valor : Number(valor.toFixed(2));
   }
 }
 

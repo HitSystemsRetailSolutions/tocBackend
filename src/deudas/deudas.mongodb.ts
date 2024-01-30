@@ -1,6 +1,8 @@
 import { ObjectId } from "mongodb";
 import { conexion } from "../conexion/mongodb";
 import { DeudasInterface } from "./deudas.interface";
+import { log } from "console";
+import { logger } from "src/logger";
 
 export async function setDeuda(deuda): Promise<boolean> {
   const database = (await conexion).db("tocgame");
@@ -29,13 +31,6 @@ export async function getDeudaById(
   const database = (await conexion).db("tocgame");
   const deudas = database.collection<DeudasInterface>("deudas");
   return await deudas.findOne({ _id: new ObjectId(idDeuda) });
-}
-export async function getDeudaByIdTicket(
-  idDeuda: DeudasInterface["_id"]
-): Promise<DeudasInterface> {
-  const database = (await conexion).db("tocgame");
-  const deudas = database.collection<DeudasInterface>("deudas");
-  return await deudas.findOne({ idTicket: idDeuda });
 }
 export async function setEnviado(
   idDeuda: DeudasInterface["_id"]
@@ -172,4 +167,24 @@ export async function getDeudaFinalizadaMasAntiguo(): Promise<DeudasInterface> {
     { finalizado: false },
     { sort: { _id: 1 } }
   )) as DeudasInterface;
+}
+
+export async function getDeudaByIdTicket(
+  idTicket: DeudasInterface["idTicket"],
+  timestamp: DeudasInterface["timestamp"]
+): Promise<DeudasInterface> {
+  try {
+    const database = (await conexion).db("tocgame");
+    const deudas = database.collection<DeudasInterface>("deudas");
+    const deuda = await deudas.findOne({
+      idTicket: idTicket,
+      timestamp: timestamp,
+    });
+    if (!deuda) {
+      throw new Error("Deuda no encontrada en mongodb.");
+    }
+    return deuda;
+  } catch (error) {
+    logger.Error(501, error);
+  }
 }

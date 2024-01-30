@@ -427,7 +427,7 @@ export class Encargos {
 
       for (const key in cestaEncargo.detalleIva) {
         if (key.startsWith("importe")) {
-          total += cestaEncargo.detalleIva[key];
+          total += Math.round( cestaEncargo.detalleIva[key] * 100) / 100;
         }
       }
       total = Number((Math.round(total * 100) / 100).toFixed(2));

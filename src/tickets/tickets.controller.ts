@@ -295,7 +295,8 @@ export class TicketsController {
               "DEUDA",
               "SALIDA",
               ticket._id,
-              idTrabajador
+              idTrabajador,
+              cliente.nombre,
             );
             var deuda = {
               idTicket: ticket._id,
