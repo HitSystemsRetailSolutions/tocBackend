@@ -102,7 +102,9 @@ export class MovimientosClase {
         concepto !== "dejaACuenta" &&
         concepto !== "Albaran" &&
         concepto !== "Paytef" &&
-        tipo !== "DATAFONO_3G"
+        tipo !== "DATAFONO_3G" &&
+        tipo !== "DEV_DATAFONO_PAYTEF"&&
+        tipo !== "DEV_DATAFONO_3G"
       ) {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
