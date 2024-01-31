@@ -233,7 +233,6 @@ class PaytefClass {
                 await schTickets.anularTicket(idTicket);
                 parametrosInstance.setContadoDatafono(0, total * -1);
                 io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
-                this.imprimirTicket(idTicket).catch(()=>{});
                 transaccionAprobada = true;
                 /*---- return true; */
               } else {
