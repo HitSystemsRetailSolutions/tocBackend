@@ -56,7 +56,7 @@ export class DeudasController {
           error: true,
           msg: "Faltan datos.",
         };
-      return await deudasInstance.eliminarDeuda(data.idDeuda,data.albaran);
+      return await deudasInstance.eliminarDeuda(data.idDeuda, data.albaran);
     } catch (err) {
       logger.Error(510, err);
       return null;
@@ -89,12 +89,38 @@ export class DeudasController {
     }
   }
   @Get("getTotalMoneyStandBy")
-  async getTotalMoneyStandBy(){
+  async getTotalMoneyStandBy() {
     try {
       return await deudasInstance.getTotalMoneyStandBy();
     } catch (err) {
       logger.Error(500, err);
       return null;
+    }
+  }
+  @Post("getDeudaByIdTicket")
+  /**
+   * @param {DeudasInterface["idTicket"]} idTicket
+   * @param {DeudasInterface["timestamp"]}timestamp
+   * @returns {DeudasInterface}
+   * @description Devuelve la deuda utilizando el idTicket y el timestamp.
+   */
+  async getDeudaByIdTicket(
+    @Body()
+    {
+      idTicket,
+      timestamp,
+    }: {
+      idTicket: DeudasInterface["idTicket"];
+      timestamp: DeudasInterface["timestamp"];
+    }
+  ) {
+    try {
+      if (!idTicket || !timestamp) {
+        throw new Error("Faltan datos.");
+      }
+      return await deudasInstance.getDeudaByIdTicket(idTicket, timestamp);
+    } catch (err) {
+      logger.Error(501, err);
     }
   }
 }

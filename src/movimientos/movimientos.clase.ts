@@ -49,8 +49,8 @@ export class MovimientosClase {
   getMovimientosIntervalo = (inicioTime: number, finalTime: number) =>
     schMovimientos.getMovimientosIntervalo(inicioTime, finalTime);
 
-  getMovTkrsSinExcIntervalo = async (inicioTime: number, finalTime: number) => 
-  await schMovimientos.getMovTkrsSinExcIntervalo(inicioTime, finalTime);
+  getMovTkrsSinExcIntervalo = async (inicioTime: number, finalTime: number) =>
+    await schMovimientos.getMovTkrsSinExcIntervalo(inicioTime, finalTime);
 
   /* Uri */
   /* Yasai :D */
@@ -67,6 +67,7 @@ export class MovimientosClase {
     tipo: MovimientosInterface["tipo"],
     idTicket: MovimientosInterface["idTicket"],
     idTrabajador: MovimientosInterface["idTrabajador"],
+    nombreCliente?: MovimientosInterface["nombreCliente"],
     ExtraData: MovimientosInterface["ExtraData"] = []
   ) {
     let codigoBarras = "";
@@ -82,28 +83,26 @@ export class MovimientosClase {
       idTicket,
       idTrabajador,
       tipo,
-      valor,
+      valor: this.redondeoNoIntegrado(valor),
+      nombreCliente,
       ExtraData,
     };
     if (tipo === "TARJETA")
       if (await schMovimientos.existeMovimiento(idTicket, valor)) return false;
-
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
-      if (concepto === "Entrada") {
+      if (tipo === "ENTRADA_DINERO" && concepto != "DEUDA") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
       } else if (concepto == "DEUDA" && tipo === "ENTRADA_DINERO") {
-        let ticketInfo = await deudasInstance.getDeudaByIdTicket(idTicket);
-        impresoraInstance.imprimirDeuda(
-          nuevoMovimiento,
-          ticketInfo.nombreCliente
-        );
+        impresoraInstance.imprimirDeuda(nuevoMovimiento, nombreCliente);
       } else if (concepto == "DEUDA" && tipo === "SALIDA") {
         await this.imprimirDeudaSalida(nuevoMovimiento, idTicket);
       } else if (
         concepto !== "Targeta" &&
         concepto !== "DEUDA" &&
         concepto !== "dejaACuenta" &&
-        concepto !== "Albaran"
+        concepto !== "Albaran" &&
+        concepto !== "Paytef" &&
+        tipo !== "DATAFONO_3G"
       ) {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
@@ -233,7 +232,7 @@ export class MovimientosClase {
       }
 
       for (let i = 0; i < arrayFinalTickets.length; i++) {
-        arrayFinalTickets[i].tipoPago = this.calcularFormaPago(
+        arrayFinalTickets[i].tipoPago = await this.calcularFormaPago(
           arrayFinalTickets[i]
         );
       }
@@ -245,13 +244,25 @@ export class MovimientosClase {
 
   /* Eze 4.0 */
   public async getFormaPago(ticket: TicketsInterface) {
-    return ticket.paytef
-      ? "TARJETA"
-      : ticket.datafono3G
-      ? "DATAFONO_3G"
-      : ticket.consumoPersonal
-      ? "CONSUMO_PERSONAL"
-      : "EFECTIVO";
+    const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
+      ticket._id
+    );
+    if (arrayMovimientos?.length > 0) {
+      if (
+        arrayMovimientos[0].tipo === "TARJETA" ||
+        arrayMovimientos[0].tipo === "DEV_DATAFONO_PAYTEF"
+      ) {
+        return "TARJETA";
+      } else if (
+        arrayMovimientos[0].tipo === "DATAFONO_3G" ||
+        arrayMovimientos[0].tipo === "DEV_DATAFONO_3G"
+      ) {
+        return "DEV_DATAFONO_PAYTEF";
+      }
+    } else if (ticket.consumoPersonal) {
+      return "CONSUMO_PERSONAL";
+    }
+    return "EFECTIVO";
   }
 
   /* Uri */
@@ -265,14 +276,67 @@ export class MovimientosClase {
     return null;
   }
 
+  /* Uri */
+  public async getMovimentOfTicket(ticket) {
+    const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
+      ticket
+    );
+    if (arrayMovimientos?.length > 0) {
+      return arrayMovimientos[0];
+    }
+    return null;
+  }
+
+  public async payWithCash(idTicket: TicketsInterface["_id"]) {
+    let movimiento = await this.getMovimentOfTicket(idTicket);
+    movimiento.valor = movimiento.valor * -1;
+    movimiento._id = Date.now();
+
+    if (await schMovimientos.nuevoMovimiento(movimiento)) {
+      return true;
+    }
+    return false;
+  }
+
+  public async PayWith3G(idTicket: TicketsInterface["_id"]) {
+    let movimiento = await this.getMovimentOfTicket(idTicket);
+    if (movimiento) {
+      if (movimiento.valor < 0) movimiento.valor = movimiento.valor * -1;
+      movimiento._id = Date.now();
+      if (await schMovimientos.nuevoMovimiento(movimiento)) {
+        return true;
+      }
+    } else {
+      let ticket = await ticketsInstance.getTicketById(idTicket);
+      let nuevoMovimiento: MovimientosInterface = {
+        _id: Date.now(),
+        codigoBarras: "",
+        concepto: "",
+        enviado: false,
+        idTicket,
+        idTrabajador: ticket.idTrabajador,
+        tipo: "DATAFONO_3G",
+        valor: ticket.total,
+        ExtraData: [],
+      };
+      if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /* Eze 4.0 */
-  public calcularFormaPago(superTicket: SuperTicketInterface): FormaPago {
+  public async calcularFormaPago(
+    superTicket: SuperTicketInterface
+  ): Promise<FormaPago> {
+    // let movTicket = (await this.getMovimentOfTicket(superTicket._id)) || null;
     if (superTicket.honei) {
       const todoHonei = superTicket.cesta.lista.every((art) => art.pagado);
       switch (true) {
-        case superTicket.paytef:
+        case superTicket.movimientos?.[0]?.tipo === "TARJETA":
           return "HONEI + TARJETA";
-        case superTicket.datafono3G:
+        case superTicket.movimientos?.[0]?.tipo === "DATAFONO_3G":
           return "HONEI + DATAFONO_3G";
         case !todoHonei:
           return "HONEI + EFECTIVO";
@@ -294,6 +358,10 @@ export class MovimientosClase {
         } else {
           return "TARJETA";
         }
+      } else if (superTicket.movimientos[0].tipo === "DEV_DATAFONO_PAYTEF") {
+        return "DEV_DATAFONO_PAYTEF";
+      } else if (superTicket.movimientos[0].tipo === "DEV_DATAFONO_3G") {
+        return "DEV_DATAFONO_3G";
       } else if (superTicket.movimientos[0].tipo === "TKRS_SIN_EXCESO") {
         if (
           superTicket.total > superTicket.movimientos[0].valor &&
@@ -310,17 +378,17 @@ export class MovimientosClase {
         return "DEUDA";
       } else if (superTicket.movimientos[0].tipo === "SALIDA") {
         return "DEUDA";
+      } else if (superTicket.movimientos[0].tipo === "DATAFONO_3G") {
+        return "DATAFONO_3G";
       } else {
         return "EFECTIVO";
         throw Error("Forma de pago desconocida");
       }
-    } else if (superTicket.datafono3G && !superTicket?.anulado) {
-      return "DATAFONO_3G";
     } else if (superTicket.movimientos.length === 0 && superTicket.total > 0) {
       return "EFECTIVO";
     } else if (superTicket.movimientos.length === 0 && superTicket.total < 0) {
       return "ANULADO";
-    } else if (superTicket.movimientos.length === 2) {
+    } else if (superTicket.movimientos.length > 1) {
       // CASO TARJETA ANULADA
       if (
         superTicket.movimientos[0].tipo === "TARJETA" &&
@@ -339,6 +407,31 @@ export class MovimientosClase {
           superTicket.movimientos[0].valor - superTicket.movimientos[1].valor;
         if (debeSerCero === 0) return "EFECTIVO";
         return "ERROR_DETECTADO";
+      }
+      if (
+        superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G").length >
+          0 &&
+        superTicket.movimientos.filter((e) => e.tipo === "TKRS_SIN_EXCESO")
+          .length > 0
+      )
+        return "TKRS + DATAFONO_3G";
+      if (
+        superTicket.movimientos.filter((e) => e.tipo === "DEV_DATAFONO_3G")
+          .length > 0
+      )
+        return "DEV_DATAFONO_3G";
+      if (
+        superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G")
+          .length === superTicket.movimientos.length
+      ) {
+        if (
+          superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G")
+            .length %
+            2 ===
+          0
+        )
+          return "EFECTIVO";
+        else return "DATAFONO_3G";
       } else {
         let tkrsSinExceso = false;
         let tkrsConExceso = false;
@@ -370,6 +463,9 @@ export class MovimientosClase {
         );
       }
     }
+  }
+  private redondeoNoIntegrado(valor: number): number {
+    return valor % 1 === 0 ? valor : Number(valor.toFixed(2));
   }
 }
 

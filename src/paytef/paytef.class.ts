@@ -69,14 +69,16 @@ class PaytefClass {
       showResultSeconds: 5,
     };
 
-    logger.Info(`Transaccion (${idTicket}) inicio type:${type}`, "paytef.class");
+    logger.Info(
+      `Transaccion (${idTicket}) inicio type:${type}`,
+      "paytef.class"
+    );
 
     if (parametros.ipTefpay) {
       io.emit("procesoPaytef", { proceso: "" });
       try {
         this.dentroIniciarTransaccion = true;
         let salirBucleStart = false;
-
         let intentosBucleStart = 0;
         while (!salirBucleStart) {
           [ transaccionAprobada, errorConexion ] =
@@ -139,7 +141,10 @@ class PaytefClass {
       }
     } else {
       // no hay parametros.ipTefpay ( no tendria que pasar por aqui )
-      logger.Info(`Transaccion (${idTicket}) no hay parametros.ipTefpay`, "paytef.class");
+      logger.Info(
+        `Transaccion (${idTicket}) no hay parametros.ipTefpay`,
+        "paytef.class"
+      );
       io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
       errorConexion = true;
     }
@@ -293,6 +298,7 @@ class PaytefClass {
       } // catch
     } // while(!salirBucleComprobacion)
     return [ transaccionAprobada, errorConexion ];
+
   }
   /*
   En la función comprobarDisponibilidad en paytef.controller se llama al servidor paytef para guardar el contado por Datafono a la base de datos
