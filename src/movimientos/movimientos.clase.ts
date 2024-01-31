@@ -93,18 +93,16 @@ export class MovimientosClase {
       if (tipo === "ENTRADA_DINERO" && concepto != "DEUDA") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
       } else if (concepto == "DEUDA" && tipo === "ENTRADA_DINERO") {
-        const ticketInfo = await ticketsInstance.getTicketById(idTicket);
-        const cliente = await clienteInstance.getClienteById(
-          ticketInfo.idCliente
-        );
-        impresoraInstance.imprimirDeuda(nuevoMovimiento, cliente.nombre);
+        impresoraInstance.imprimirDeuda(nuevoMovimiento, nombreCliente);
       } else if (concepto == "DEUDA" && tipo === "SALIDA") {
         await this.imprimirDeudaSalida(nuevoMovimiento, idTicket);
       } else if (
         concepto !== "Targeta" &&
         concepto !== "DEUDA" &&
         concepto !== "dejaACuenta" &&
-        concepto !== "Albaran"
+        concepto !== "Albaran" &&
+        concepto !== "Paytef" &&
+        tipo !== "DATAFONO_3G"
       ) {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
@@ -246,18 +244,29 @@ export class MovimientosClase {
 
   /* Eze 4.0 */
   public async getFormaPago(ticket: TicketsInterface) {
-    return ticket.paytef
-      ? "TARJETA"
-      : ticket.datafono3G
-      ? "DATAFONO_3G"
-      : ticket.consumoPersonal
-      ? "CONSUMO_PERSONAL"
-      : "EFECTIVO";
+    const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
+      ticket._id
+    );
+    if (arrayMovimientos?.length > 0) {
+      if (
+        arrayMovimientos[0].tipo === "TARJETA" ||
+        arrayMovimientos[0].tipo === "DEV_DATAFONO_PAYTEF"
+      ) {
+        return "TARJETA";
+      } else if (
+        arrayMovimientos[0].tipo === "DATAFONO_3G" ||
+        arrayMovimientos[0].tipo === "DEV_DATAFONO_3G"
+      ) {
+        return "DEV_DATAFONO_PAYTEF";
+      }
+    } else if (ticket.consumoPersonal) {
+      return "CONSUMO_PERSONAL";
+    }
+    return "EFECTIVO";
   }
 
   /* Uri */
   public async getExtraData(ticket) {
-    console.log(ticket);
     const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
       ticket
     );
@@ -325,9 +334,9 @@ export class MovimientosClase {
     if (superTicket.honei) {
       const todoHonei = superTicket.cesta.lista.every((art) => art.pagado);
       switch (true) {
-        case superTicket.paytef:
+        case superTicket.movimientos?.[0]?.tipo === "TARJETA":
           return "HONEI + TARJETA";
-        case superTicket.datafono3G:
+        case superTicket.movimientos?.[0]?.tipo === "DATAFONO_3G":
           return "HONEI + DATAFONO_3G";
         case !todoHonei:
           return "HONEI + EFECTIVO";
@@ -349,6 +358,10 @@ export class MovimientosClase {
         } else {
           return "TARJETA";
         }
+      } else if (superTicket.movimientos[0].tipo === "DEV_DATAFONO_PAYTEF") {
+        return "DEV_DATAFONO_PAYTEF";
+      } else if (superTicket.movimientos[0].tipo === "DEV_DATAFONO_3G") {
+        return "DEV_DATAFONO_3G";
       } else if (superTicket.movimientos[0].tipo === "TKRS_SIN_EXCESO") {
         if (
           superTicket.total > superTicket.movimientos[0].valor &&
@@ -395,6 +408,13 @@ export class MovimientosClase {
         if (debeSerCero === 0) return "EFECTIVO";
         return "ERROR_DETECTADO";
       }
+      if (
+        superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G").length >
+          0 &&
+        superTicket.movimientos.filter((e) => e.tipo === "TKRS_SIN_EXCESO")
+          .length > 0
+      )
+        return "TKRS + DATAFONO_3G";
       if (
         superTicket.movimientos.filter((e) => e.tipo === "DEV_DATAFONO_3G")
           .length > 0

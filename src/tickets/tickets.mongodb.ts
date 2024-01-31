@@ -367,7 +367,6 @@ export async function anularTicket(
       ticket._id = id;
       ticket.timestamp = Date.now();
       ticket.total = ticket.total * -1;
-      ticket.datafono3G = dt3G;
       ticket.cesta.lista.forEach((element) => {
         element.subtotal = element.subtotal * -1;
         element.unidades = element.unidades * -1;
