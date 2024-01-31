@@ -22,7 +22,7 @@ export class TicketsClase {
   async anularTicket(idTicket: TicketsInterface["_id"]) {
     const ticket = await schTickets.getTicketByID(idTicket);
     let movimientos = await schMovimientos.getMovimientosDelTicket(idTicket);
-    if (ticket.paytef) {
+    if (ticket.paytef || movimientos[0].tipo === "TARJETA") {
       let xy = await schTickets.getAnulado(idTicket);
       if (xy?.anulado?.idTicketPositivo == idTicket)
         return { res: false, tipo: "TARJETA" };
@@ -38,7 +38,7 @@ export class TicketsClase {
           movimientos[0].valor,
           movimientos[0].concepto,
           "DEV_DATAFONO_PAYTEF",
-          movimientos[0].idTicket,
+          devolucionCreada._id,
           movimientos[0].idTrabajador
         );
         return { res: true, tipo: "TARJETA" };
@@ -46,15 +46,22 @@ export class TicketsClase {
         return { res: false, tipo: "TARJETA" };
       }
     } else if (ticket.datafono3G || movimientos[0].tipo === "DATAFONO_3G") {
-      await movimientosInstance.nuevoMovimiento(
-        movimientos[0].valor,
-        movimientos[0].concepto,
-        "DEV_DATAFONO_3G",
-        movimientos[0].idTicket,
-        movimientos[0].idTrabajador
-      );
+      if (await schTickets.anularTicket(idTicket, true)) {
+        const devolucionCreada = await schTickets.getUltimoTicket();
+        if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
+          await movimientosInstance.nuevoMovimiento(
+            movimientos[0].valor,
+            movimientos[0].concepto,
+            "DEV_DATAFONO_3G",
+            devolucionCreada._id,
+            movimientos[0].idTrabajador
+          );
+          return { res: true, tipo: "DATAFONO_3G" };
+        }
+      }
+
       return {
-        res: await schTickets.anularTicket(idTicket, true),
+        res: false,
         tipo: "DATAFONO_3G",
       };
     }
@@ -245,38 +252,47 @@ export class TicketsClase {
   };
 
   getTotalLocalPaytef = () => schTickets.getTotalLocalPaytef();
-  cantidadLocal3G = async () => {
-    const cajaAbiertaActual = await cajaInstance.getInfoCajaAbierta();
-    const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
-    const finalTime = Date.now();
-    const array3G = await schTickets.getTotalLocal3G();
-    const tkrs = await movimientosInstance.getMovTkrsSinExcIntervalo(
-      inicioTurnoCaja,
-      finalTime
-    );
 
-    const tkrsIndexado = tkrs.reduce((acc, el) => {
-      acc[el.idTicket] = el;
-      return acc;
-    }, {});
+  getTotalDatafono3G = async () => {
+    const superTicket = await movimientosInstance.construirArrayVentas();
     let total3G = 0;
-    array3G.forEach((ticket) => {
-      const idTicketVenta = ticket._id;
-      const entradaCorrespondiente = tkrsIndexado[idTicketVenta];
-      if (entradaCorrespondiente) {
-        total3G += ticket.total - entradaCorrespondiente.valor;
-      } else {
-        for (const item of ticket.cesta.lista) {
-          if (!item?.pagado) {
-            total3G += item.subtotal;
+    if (superTicket && superTicket.length > 0) {
+      const cajaAbiertaActual = await cajaInstance.getInfoCajaAbierta();
+      const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
+      const finalTime = Date.now();
+      const tkrs = await movimientosInstance.getMovTkrsSinExcIntervalo(
+        inicioTurnoCaja,
+        finalTime
+      );
+
+      const tkrsIndexado = tkrs.reduce((acc, el) => {
+        acc[el.idTicket] = el;
+        return acc;
+      }, {});
+
+      superTicket.forEach((ticket) => {
+        const idTicketVenta = ticket._id;
+        const entradaCorrespondiente = tkrsIndexado[idTicketVenta];
+        if (
+          entradaCorrespondiente &&
+          (ticket.tipoPago.includes("DATAFONO_3G") || ticket.datafono3G)
+        ) {
+          total3G += ticket.total - entradaCorrespondiente.valor;
+        } else if (
+          ticket.tipoPago.includes("DATAFONO_3G") ||
+          (ticket.anulado && ticket.datafono3G)
+        ) {
+          for (const item of ticket.cesta.lista) {
+            if (!item?.pagado) {
+              total3G += item.subtotal;
+              total3G = Math.round(total3G * 100) / 100;
+            }
           }
         }
-      }
-    });
-
+      });
+    }
     return total3G;
   };
-
   actualizarTickets = async () => {
     const arrayVentas = await movimientosInstance.construirArrayVentas();
     if (arrayVentas) io.emit("cargarVentas", arrayVentas.reverse());

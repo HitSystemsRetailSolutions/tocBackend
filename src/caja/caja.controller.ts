@@ -58,12 +58,13 @@ export class CajaController {
           );
         }
         let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
+        let cantidadLocal3G = cantidad3G;
         return await cajaInstance.cerrarCaja(
           total,
           detalleMonedas,
           infoDinero,
           cantidad3G,
-          await ticketsInstance.cantidadLocal3G(),
+          cantidadLocal3G,
           cantidadPaytef,
           totalLocalPaytef,
           idDependienta,

@@ -265,6 +265,16 @@ export class TicketsController {
               idTrabajador
             );
           } else if (tkrsData.cantidadTkrs < total) {
+            if (tipo === "DATAFONO_3G") {
+              let total3G = Math.round((total-tkrsData.cantidadTkrs) *100)/100;
+              await movimientosInstance.nuevoMovimiento(
+                total3G,
+                "",
+                "DATAFONO_3G",
+                ticket._id,
+                idTrabajador,
+              )
+            }
             await movimientosInstance.nuevoMovimiento(
               tkrsData.cantidadTkrs,
               "",
@@ -471,5 +481,16 @@ export class TicketsController {
       caja.inicioTime,
       Date.now()
     );
+  }
+  @Get("getTotalDatafono3G")
+  async getTotalDatafono3G() {
+    try {
+      return await ticketsInstance.getTotalDatafono3G();
+      return null;
+    } catch (err) {
+      logger.Error(99, err);
+      console.log(err);
+      return 0;
+    }
   }
 }

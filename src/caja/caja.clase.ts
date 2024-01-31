@@ -257,8 +257,8 @@ export class CajaClase {
         let totalPaytef = paytef[0] ? paytef[0] : 0;
 
         let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
-        let cantidadLocal3G = await ticketsInstance.cantidadLocal3G();
-
+        let totalDatafono3G = await ticketsInstance.getTotalDatafono3G();
+        let cantidadLocal3G = totalDatafono3G;
         await cajaInstance.cerrarCaja(
           0,
           [
@@ -279,7 +279,7 @@ export class CajaClase {
             { _id: "500", valor: 0, unidades: 0 },
           ],
           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          await ticketsInstance.cantidadLocal3G(),
+          totalDatafono3G,
           cantidadLocal3G,
           totalPaytef,
           totalLocalPaytef,
@@ -377,6 +377,8 @@ export class CajaClase {
         case "DATAFONO_3G":
           totalTarjeta += arrayMovimientos[i].valor;
           break;
+        case "DEV_DATAFONO_3G":
+          totalTarjeta -= arrayMovimientos[i].valor;
         case "SALIDA":
           if (
             arrayMovimientos[i].concepto === "DEUDA ALBARAN" ||

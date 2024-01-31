@@ -17,7 +17,7 @@ axios.defaults.timeout = 5000; // Evitem que el client esperi...  // ???? se mod
 class PaytefClass {
   // transaccionFinalizada ahora es se refiere a que la transaccion esta finalizada y aprobada
   // antes era transaccion finalizada aprobada o denegada ( o sea sin error de conexión )
-  transaccionFinalizada = false; 
+  transaccionFinalizada = false;
 
   // datos de la última inicio de transacción por si se ha de repetir en paytef.controller cobrarUltimoTicket
   ultimaIniciarTransaccion: {
@@ -55,7 +55,10 @@ class PaytefClass {
       showResultSeconds: 5,
     };
 
-    logger.Info(`Transaccion (${idTicket}) inicio type:${type}`, "paytef.class");
+    logger.Info(
+      `Transaccion (${idTicket}) inicio type:${type}`,
+      "paytef.class"
+    );
 
     if (parametros.ipTefpay) {
       if (this.dentroIniciarTransaccion)
@@ -87,7 +90,10 @@ class PaytefClass {
               );
               return xy;
             } else {
-              logger.Error(`Transaccion (${idTicket}) not started`, "paytef.class");
+              logger.Error(
+                `Transaccion (${idTicket}) not started`,
+                "paytef.class"
+              );
               io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
               io.emit("procesoPaytef", { proceso: "Denegado" });
               return false;
@@ -102,8 +108,11 @@ class PaytefClass {
              **             por lo que el bucle 'while (!salirBucleStart)' solo se hace una vez y podria quitarse
              * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
              */
-            if (intentosBucleStart >= 0) { 
-              logger.Error(`Transaccion (${idTicket}) start error conexion`, "paytef.class");
+            if (intentosBucleStart >= 0) {
+              logger.Error(
+                `Transaccion (${idTicket}) start error conexion`,
+                "paytef.class"
+              );
               intentosBucleStart = 0;
               io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
               salirBucleStart = true;
@@ -124,7 +133,10 @@ class PaytefClass {
       }
     } else {
       // no hay parametros.ipTefpay ( no tendria que pasar por aqui )
-      logger.Info(`Transaccion (${idTicket}) no hay parametros.ipTefpay`, "paytef.class");
+      logger.Info(
+        `Transaccion (${idTicket}) no hay parametros.ipTefpay`,
+        "paytef.class"
+      );
       io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
     }
     logger.Info(`Transaccion (${idTicket}) fin type:${type}`, "paytef.class");
@@ -160,7 +172,10 @@ class PaytefClass {
              *** (old) await axios.post(`http://${ipDatafono}:8887/transaction/result`, { pinpad: "*",})
             --------------------------------- */
             if (resEstadoPaytef.result.transactionReference == idTicket) {
-              logger.Info(`Transaccion (${idTicket}) venta aprobada`, "paytef.class");
+              logger.Info(
+                `Transaccion (${idTicket}) venta aprobada`,
+                "paytef.class"
+              );
               parametrosInstance.setContadoDatafono(0, total);
               // el ticket ahora se puede generar despues de terminar la transacción en crearTicketPaytef (tickets.controller.ts)
               // se comprueba si el ticket existe y despues se imprime y se marca como paytef
@@ -180,7 +195,10 @@ class PaytefClass {
             } else {
               // transactionReference != idTicket
               // No tendria que pasar, pero si pasa se da error y que la dependienta compruebe que ha pasado
-              logger.Error(`Transaccion (${idTicket}) transactionReference error ${resEstadoPaytef.result.transactionReference}`, "paytef.class");
+              logger.Error(
+                `Transaccion (${idTicket}) transactionReference error ${resEstadoPaytef.result.transactionReference}`,
+                "paytef.class"
+              );
               io.emit("consultaPaytefRefund", {
                 ok: false,
                 errorconex: true,
@@ -197,12 +215,15 @@ class PaytefClass {
               /*---- return false; */
             }
           } else if (type === "refund") {
-            schTickets.anularTicket(idTicket);
+            await schTickets.anularTicket(idTicket);
             /*-------------------------------
              * (old) await axios.post(`http://${ipDatafono}:8887/transaction/result`, { pinpad: "*", })
              * --------------------------------- */
             if (resEstadoPaytef.result.transactionReference == idTicket) {
-              logger.Info(`Transaccion (${idTicket}) refund aprobada`, "paytef.class");
+              logger.Info(
+                `Transaccion (${idTicket}) refund aprobada`,
+                "paytef.class"
+              );
               parametrosInstance.setContadoDatafono(0, total * -1);
               io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
               this.imprimirTicket(idTicket);
@@ -210,7 +231,10 @@ class PaytefClass {
               /*---- return true; */
             } else {
               // transactionReference != idTicket
-              logger.Error(`Transaccion (${idTicket}) transactionReference error ${resEstadoPaytef.result.transactionReference}`, "paytef.class");
+              logger.Error(
+                `Transaccion (${idTicket}) transactionReference error ${resEstadoPaytef.result.transactionReference}`,
+                "paytef.class"
+              );
               io.emit("consultaPaytefRefund", {
                 ok: false,
                 errorconex: true,
@@ -237,10 +261,16 @@ class PaytefClass {
         } else {
           // result.approved = false
           if (type === "sale") {
-            logger.Info(`Transaccion (${idTicket}) venta denegada`, "paytef.class");
+            logger.Info(
+              `Transaccion (${idTicket}) venta denegada`,
+              "paytef.class"
+            );
             io.emit("consultaPaytef", { valid: false, ticket: idTicket });
           } else if (type === "refund") {
-            logger.Info(`Transaccion (${idTicket}) refund denegada`, "paytef.class");
+            logger.Info(
+              `Transaccion (${idTicket}) refund denegada`,
+              "paytef.class"
+            );
             io.emit("consultaPaytefRefund", { ok: false, id: idTicket });
           }
           //this.transaccionFinalizada = true; // ahora transaccionFinaliza es finalizada y aprobada
@@ -258,7 +288,10 @@ class PaytefClass {
       );
       if (intentosBuclePollResult >= 2) {
         /* ??? */
-        logger.Error(`Transaccion (${idTicket}) poll no respuesta`, "paytef.class");
+        logger.Error(
+          `Transaccion (${idTicket}) poll no respuesta`,
+          "paytef.class"
+        );
         intentosBuclePollResult = 0;
         io.emit("consultaPaytefRefund", {
           ok: false,
