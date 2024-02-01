@@ -394,7 +394,7 @@ export class TicketsController {
                 idTrabajador
               );
               await movimientosInstance.nuevoMovimiento(
-                tkrsData.cantidadTkrs - total,
+                this.redondearPrecio(tkrsData.cantidadTkrs - total),
                 "",
                 "TKRS_CON_EXCESO",
                 ticket._id,
