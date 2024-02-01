@@ -265,7 +265,7 @@ export class CestaClase {
   ): Promise<boolean> {
     try {
       let cesta = await this.getCestaById(idCesta);
-      if (cesta.lista[index].pagado) return null;
+      if (cesta.lista[index]?.pagado) return null;
       let productos = [];
       productos.push(cesta.lista[index]);
       await this.registroLogSantaAna(cesta, productos);
