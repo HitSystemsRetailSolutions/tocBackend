@@ -74,7 +74,7 @@ export class ImpresoraController {
           startDate: startDate,
           ticket: idTicket,
         });
-        if (extraDataMovimiento == null)
+        if (extraDataMovimiento == null || extraDataMovimiento.data == '')
           throw Error("Faltan datos en impresora/imprimirTicket");
         for (const x of ["TITULAR", "ESTABLECIMIENTO"]) {
           await impresoraInstance.imprimirTicketPaytef(

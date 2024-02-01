@@ -81,8 +81,6 @@ export class TicketsController {
         tipo === "CONSUMO_PERSONAL",
         false,
         false,
-        false,
-        false,
         dejaCuenta
       );
 
@@ -159,7 +157,7 @@ export class TicketsController {
           if ( (await parametrosInstance.getParametros())?.params?.TicketDFAuto == "Si" ) {
             impresoraInstance.imprimirTicket(idTicket);
           }
-          ticketsInstance.setPagadoPaytef(idTicket);
+          //ticketsInstance.setPagadoPaytef(idTicket);
         }
         logger.Info(`crearTicketPaytef salida (${nextID}, ${x})`, "tickets.controller")
         return x;
@@ -226,14 +224,11 @@ export class TicketsController {
       }
 
       const d3G = tipo === "DATAFONO_3G";
-      const paytef = false;
       const ticket = await ticketsInstance.generarNuevoTicket(
         total,
         idTrabajador,
         cesta,
         tipo === "CONSUMO_PERSONAL",
-        d3G,
-        paytef,
         tipo.includes("HONEI") || honei,
         tkrsData?.cantidadTkrs > 0
       );
@@ -251,7 +246,8 @@ export class TicketsController {
           ticketsInstance.setPagadoPaytef(ticket._id);
         } else if (
           (tipo === "TKRS" && tkrsData) ||
-          (tkrsData?.cantidadTkrs > 0 && (tipo === "EFECTIVO" || tipo === "DATAFONO_3G"))
+          (tkrsData?.cantidadTkrs > 0 &&
+            (tipo === "EFECTIVO" || tipo === "DATAFONO_3G"))
         ) {
           if (tkrsData.cantidadTkrs > total) {
             await movimientosInstance.nuevoMovimiento(
@@ -269,6 +265,16 @@ export class TicketsController {
               idTrabajador
             );
           } else if (tkrsData.cantidadTkrs < total) {
+            if (tipo === "DATAFONO_3G") {
+              let total3G = Math.round((total-tkrsData.cantidadTkrs) *100)/100;
+              await movimientosInstance.nuevoMovimiento(
+                total3G,
+                "",
+                "DATAFONO_3G",
+                ticket._id,
+                idTrabajador,
+              )
+            }
             await movimientosInstance.nuevoMovimiento(
               tkrsData.cantidadTkrs,
               "",
@@ -285,6 +291,14 @@ export class TicketsController {
               idTrabajador
             );
           }
+        } else if (tipo === "DATAFONO_3G") {
+          await movimientosInstance.nuevoMovimiento(
+            total,
+            "",
+            "DATAFONO_3G",
+            ticket._id,
+            idTrabajador
+          );
         } else if (tipo === "DEUDA") {
           const cliente = await getClienteById(cesta.idCliente);
           //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
@@ -295,7 +309,8 @@ export class TicketsController {
               "DEUDA",
               "SALIDA",
               ticket._id,
-              idTrabajador
+              idTrabajador,
+              cliente.nombre,
             );
             var deuda = {
               idTicket: ticket._id,
@@ -316,11 +331,7 @@ export class TicketsController {
               idTrabajador
             );
           }
-        } else if (
-          tipo !== "EFECTIVO" &&
-          tipo != "CONSUMO_PERSONAL" &&
-          tipo !== "DATAFONO_3G"
-        ) {
+        } else if (tipo !== "EFECTIVO" && tipo != "CONSUMO_PERSONAL") {
           throw Error(
             "Falta información del tkrs o bien ninguna forma de pago es correcta"
           );
@@ -364,17 +375,13 @@ export class TicketsController {
   ) {
     try {
       if (typeof total == "number" && cesta && idTrabajador && tipo) {
-        let d3G = false;
-        if (tipo === "DATAFONO_3G") d3G = true;
         const ticket = await ticketsInstance.generarNuevoTicket(
           total,
           idTrabajador,
           cesta,
           tipo === "CONSUMO_PERSONAL",
-          d3G,
           null,
-          tipo.includes("HONEI"),
-          false
+          tipo.includes("HONEI")
         );
         if (!ticket) {
           throw Error(
@@ -474,5 +481,16 @@ export class TicketsController {
       caja.inicioTime,
       Date.now()
     );
+  }
+  @Get("getTotalDatafono3G")
+  async getTotalDatafono3G() {
+    try {
+      return await ticketsInstance.getTotalDatafono3G();
+      return null;
+    } catch (err) {
+      logger.Error(99, err);
+      console.log(err);
+      return 0;
+    }
   }
 }

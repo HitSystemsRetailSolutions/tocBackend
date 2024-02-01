@@ -21,6 +21,7 @@ export class CajaController {
       cantidadPaytef,
       idDependienta,
       cambioEmergencia,
+      cantidad3GAutomatizado,
     }
   ) {
     try {
@@ -36,13 +37,34 @@ export class CajaController {
         typeof cantidad3G === "number" &&
         typeof cantidadPaytef === "number"
       ) {
+        // Enviar un log si se ha modificado el valor de datafono_3G manulamente
+        if (
+          cantidad3GAutomatizado != undefined &&
+          typeof cantidad3GAutomatizado === "number" &&
+          cantidad3GAutomatizado != cantidad3G
+        ) {
+          let diferencia = Math.abs(cantidad3G - cantidad3GAutomatizado);
+          diferencia = Math.round(diferencia * 100) / 100;
+          logger.Info(
+            52.1,
+            "Dependienta " +
+              idDependienta +
+              " ha modificado el valor datafono_3G. Valor sin modificar:" +
+              cantidad3GAutomatizado +
+              "; valor modificado:" +
+              cantidad3G +
+              "; diferencia:" +
+              diferencia.toFixed(2)
+          );
+        }
         let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
+        let cantidadLocal3G = cantidad3G;
         return await cajaInstance.cerrarCaja(
           total,
           detalleMonedas,
           infoDinero,
           cantidad3G,
-          await ticketsInstance.cantidadLocal3G(),
+          cantidadLocal3G,
           cantidadPaytef,
           totalLocalPaytef,
           idDependienta,
@@ -76,6 +98,7 @@ export class CajaController {
           totalApertura: total,
           fichajes: idTrabajadores,
           propina: 0,
+          detalleActual: null,
         });
       }
       throw Error("Error abrirCaja > Faltan datos o son incorrectos");

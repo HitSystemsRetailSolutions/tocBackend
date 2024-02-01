@@ -39,7 +39,6 @@ export class AlbaranesController {
         (cliente) => cliente.idCliente === cesta.idCliente
       );
       if ((!clienteDescEsp || clienteDescEsp.precio!=total) &&  descuento && descuento > 0) {
-        console.log("entra en descuento")
         cesta.lista.forEach((producto) => {
           if (producto.arraySuplementos != null) {
             producto.subtotal = this.redondearPrecio(

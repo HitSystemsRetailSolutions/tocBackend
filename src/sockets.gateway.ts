@@ -35,8 +35,9 @@ io.on("connection", (socket) => {
           ticket._id,
           ticket.total
         );
+        return true;
       }
-      throw Error("Faltan datos {idTrabajador} controller");
+      throw Error("Faltan datos {idTrabajador} socket.on iniciarTransaccion");
     } catch (err) {
       logger.Error(131, err);
     }
@@ -143,6 +144,11 @@ io.on("connection", (socket) => {
     } catch (err) {
       logger.Error("sockets.gateway.ts recargarPromociones", err);
     }
+  });
+
+  socket.on("logFrontend", async (logLevel, errorMessage, serviceName, methodName, errorObj) => {
+    if (serviceName == null) serviceName="";
+    logger.Log(logLevel, errorMessage, "Frontend-"+serviceName, methodName, errorObj);
   });
 });
 
