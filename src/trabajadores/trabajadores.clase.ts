@@ -11,6 +11,7 @@ import { io } from "../sockets.gateway";
 import { logger } from "../logger";
 import { cestasInstance } from "src/cestas/cestas.clase";
 import { cajaInstance } from "src/caja/caja.clase";
+import { socket } from "src/sanPedro";
 
 export class TrabajadoresClase {
   /* Eze 4.0 */
@@ -195,6 +196,21 @@ export class TrabajadoresClase {
   trabajadorActivo = async (idTrabajador) => {
     if (!idTrabajador) return;
     return await schTrabajadores.trabajadorActivo(idTrabajador);
+  };
+  setTrabajadorActivo = async (idTrabajador) => {
+    if (!idTrabajador) return;
+    return await schTrabajadores.setTrabajadorActivo(idTrabajador);
+  };
+
+  /* Uri */
+  removeActiveEmployers = async () => {
+    try {
+      await schTrabajadores.removeActiveEmployers().then((res) => {
+        io.emit("preguntarFichadosEnUso");
+      });
+    } catch (err) {
+      logger.Error(36, err);
+    }
   };
 }
 

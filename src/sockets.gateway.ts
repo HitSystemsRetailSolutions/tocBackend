@@ -71,6 +71,8 @@ io.on("connection", (socket) => {
   /* Eze 4.0 */
   socket.on("cargarTrabajadores", async (data) => {
     try {
+      //pido que me digan quien esta usando el fichado
+      await trabajadoresInstance.removeActiveEmployers();
       socket.emit(
         "cargarTrabajadores",
         await trabajadoresInstance.getTrabajadoresFichados()
@@ -146,10 +148,19 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("logFrontend", async (logLevel, errorMessage, serviceName, methodName, errorObj) => {
-    if (serviceName == null) serviceName="";
-    logger.Log(logLevel, errorMessage, "Frontend-"+serviceName, methodName, errorObj);
-  });
+  socket.on(
+    "logFrontend",
+    async (logLevel, errorMessage, serviceName, methodName, errorObj) => {
+      if (serviceName == null) serviceName = "";
+      logger.Log(
+        logLevel,
+        errorMessage,
+        "Frontend-" + serviceName,
+        methodName,
+        errorObj
+      );
+    }
+  );
 });
 
 if (process.env.NODE_ENV !== "test") {
