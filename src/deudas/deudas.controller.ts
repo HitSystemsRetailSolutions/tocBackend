@@ -73,7 +73,8 @@ export class DeudasController {
       };
       const res: any = await axios.post("deudas/getDeudas", data);
       await deudasInstance.borrarDeudas();
-      return await deudasInstance.insertarDeudas(res.data);
+      await deudasInstance.insertarDeudas(res.data);
+      return true;
     } catch (err) {
       logger.Error(50, err);
       return null;
