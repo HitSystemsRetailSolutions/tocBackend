@@ -774,6 +774,7 @@ export class CestaClase {
             (await clienteInstance.isClienteDescuento(cesta.idCliente))
               ?.descuento
           );
+          console.log(cesta.modo,descuento)
     const cliente = cesta.idCliente
       ? await clienteInstance.getClienteById(cesta.idCliente)
       : null;
@@ -789,6 +790,8 @@ export class CestaClase {
         let articulo = await articulosInstance.getInfoArticulo(
           cesta.lista[i].idArticulo
         );
+        // encuentra el posible descuento del cliente albaran
+        let dtoAlbaran = cliente && cliente?.dto && cliente?.albaran ? await clienteInstance.getDtoAlbaran(cliente, articulo) : 0;
         let precioArt =
           cliente && cliente.albaran
             ? articulo.precioBase
@@ -815,7 +818,11 @@ export class CestaClase {
         cesta.lista[i].subtotal = precioArt * cesta.lista[i].unidades;
         if (descuento)
           precioArt = Number(precioArt - precioArt * (descuento / 100));
-
+        console.log("dto",dtoAlbaran)
+        if (dtoAlbaran){
+          precioArt = Number(precioArt - precioArt * (dtoAlbaran / 100));
+          cesta.lista[i].dto= dtoAlbaran;
+        }
         const auxDetalleIva = construirObjetoIvas(
           precioArt,
           articulo.tipoIva,

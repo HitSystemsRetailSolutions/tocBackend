@@ -51,6 +51,7 @@ export async function insertarArticulosNuevos(
       impresora: null,
       _id: id["_id"] + 1,
       suplementos: null,
+      pare: null,
     },
   ];
   await insertarTeclasNuevos(

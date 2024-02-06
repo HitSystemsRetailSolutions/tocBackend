@@ -52,6 +52,7 @@ export type ItemLista = {
   gramos: number;
   impresora: string;
   regalo: boolean;
+  dto?: number;
   pagado?: boolean;
 };
 
