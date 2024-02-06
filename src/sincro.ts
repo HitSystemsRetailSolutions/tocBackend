@@ -67,7 +67,6 @@ async function sincronizarTickets() {
           const res = await axios.post("tickets/enviarTicket", { ticket });
           //.catch((e) => {console.log("error",e)});
 
-
           if (res.data) {
             if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
               // si el ticket no se va ha reenviar marcarlo como enviado
@@ -97,18 +96,20 @@ async function sincronizarCajas() {
     if (caja) {
       const resCaja: any = await axios
         .post("cajas/enviarCaja", { caja })
+        .then(async (e) => {
+          if (e.data) {
+            if (await cajaInstance.confirmarCajaEnviada(caja._id)) {
+              sincronizarCajas();
+            } else {
+              throw Error(
+                "La caja está guardada en Hit, pero no se ha podido marcar como enviada en el Mongo"
+              );
+            }
+          }
+        })
         .catch((e) => {
           // console.log(e);
         });
-      if (resCaja.data) {
-        if (await cajaInstance.confirmarCajaEnviada(caja._id)) {
-          sincronizarCajas();
-        } else {
-          throw Error(
-            "La caja está guardada en Hit, pero no se ha podido marcar como enviada en el Mongo"
-          );
-        }
-      }
     }
   } catch (err) {
     logger.Error("sincro.ts sincronizarCajas()", err);
