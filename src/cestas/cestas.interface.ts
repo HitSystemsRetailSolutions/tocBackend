@@ -53,6 +53,7 @@ export type ItemLista = {
   impresora: string;
   regalo: boolean;
   dto?: number;
+  iva?: number;
   pagado?: boolean;
 };
 

@@ -428,7 +428,7 @@ export class CestaClase {
     const precioArt =
       cliente && cliente.albaran ? articulo.precioBase : articulo.precioConIva;
     // si es una promocion lo gestionamos de otra forma
-      if (
+    if (
       !(await nuevaInstancePromociones.gestionarPromociones(
         cesta,
         articulo._id,
@@ -481,7 +481,12 @@ export class CestaClase {
             // articulos pagados y no pagados de honei
             if (igual == cesta.lista[i].arraySuplementos.length) {
               cesta.lista[i].unidades += unidades;
-              cesta.lista[i].puntos += articulo.puntos;
+              if(unidades > 0) {
+                cesta.lista[i].puntos += articulo.puntos*unidades;
+              }else{
+                cesta.lista[i].puntos -= articulo.puntos*unidades;
+              }
+              
               cesta.lista[i].subtotal =
                 nuevaInstancePromociones.redondearDecimales(
                   cesta.lista[i].subtotal + unidades * precioArt,
@@ -496,7 +501,11 @@ export class CestaClase {
             cesta.lista[i].regalo == regalar
           ) {
             cesta.lista[i].unidades += unidades;
-            cesta.lista[i].puntos += articulo.puntos;
+            if(unidades > 0) {
+              cesta.lista[i].puntos += articulo.puntos*unidades;
+            }else{
+              cesta.lista[i].puntos += articulo.puntos*unidades;
+            }
             if (!regalar) {
               cesta.lista[i].subtotal = Number(
                 (cesta.lista[i].subtotal + unidades * precioArt).toFixed(2)
@@ -774,7 +783,7 @@ export class CestaClase {
             (await clienteInstance.isClienteDescuento(cesta.idCliente))
               ?.descuento
           );
-          console.log(cesta.modo,descuento)
+    console.log(cesta.modo, descuento);
     const cliente = cesta.idCliente
       ? await clienteInstance.getClienteById(cesta.idCliente)
       : null;
@@ -791,7 +800,10 @@ export class CestaClase {
           cesta.lista[i].idArticulo
         );
         // encuentra el posible descuento del cliente albaran
-        let dtoAlbaran = cliente && cliente?.dto && cliente?.albaran ? await clienteInstance.getDtoAlbaran(cliente, articulo) : 0;
+        let dtoAlbaran =
+          cliente && cliente?.dto && cliente?.albaran
+            ? await clienteInstance.getDtoAlbaran(cliente, articulo)
+            : 0;
         let precioArt =
           cliente && cliente.albaran
             ? articulo.precioBase
@@ -818,10 +830,28 @@ export class CestaClase {
         cesta.lista[i].subtotal = precioArt * cesta.lista[i].unidades;
         if (descuento)
           precioArt = Number(precioArt - precioArt * (descuento / 100));
-        console.log("dto",dtoAlbaran)
-        if (dtoAlbaran){
+        console.log("dto", dtoAlbaran);
+        if (dtoAlbaran) {
+          // aplicar el dto en el precioArt para calcular detallesIVA y guardar % de dto en el objeto cesta
+          // para mostrarlo en el frontend y ticket.
           precioArt = Number(precioArt - precioArt * (dtoAlbaran / 100));
-          cesta.lista[i].dto= dtoAlbaran;
+          cesta.lista[i].dto = dtoAlbaran;
+        }
+        if(cliente?.albaran){
+          switch (articulo.tipoIva) {
+            case 1:
+              cesta.lista[i].iva = 4;
+              break;
+            case 2:
+              cesta.lista[i].iva = 10;
+              break;
+            case 3:
+              cesta.lista[i].iva = 21;
+              break;
+            case 4:
+              cesta.lista[i].iva = 5;
+              break;
+          }
         }
         const auxDetalleIva = construirObjetoIvas(
           precioArt,
