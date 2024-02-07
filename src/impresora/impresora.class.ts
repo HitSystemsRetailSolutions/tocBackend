@@ -1497,13 +1497,17 @@ export class Impresora {
             }
             break;
           case "DATAFONO_3G":
-            datafono3G += `  Quant: +${arrayMovimientos[i].valor.toFixed(
-              2
-            )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
+              datafono3G += `  Quant: +${arrayMovimientos[i].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            }
           case "DEV_DATAFONO_3G":
-            datafono3G += `  Quant: -${arrayMovimientos[i].valor.toFixed(
-              2
-            )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
+              datafono3G += `  Quant: -${arrayMovimientos[i].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            }
             break;
         }
       }
