@@ -806,8 +806,9 @@ export class CestaClase {
           articulo.precioConIva =
             preu == null ? articulo.precioConIva : preu.precioConIva;
         }
-        cesta.lista[i].subtotal =
-          articulo.precioConIva * cesta.lista[i].unidades;
+        let p = articulo.precioConIva * cesta.lista[i].unidades;
+        cesta.lista[i].subtotal = Number(p.toFixed(2)) as number;
+
         if (descuento)
           articulo.precioConIva = Number(
             articulo.precioConIva - articulo.precioConIva * (descuento / 100)
@@ -835,11 +836,13 @@ export class CestaClase {
             cesta.lista[i].unidades
           );
           const preuSumplements = Number(
-            await this.getPreuSuplementos(
-              cesta.lista[i].arraySuplementos,
-              cesta.idCliente,
-              cesta.lista[i].unidades
-            )
+            (
+              await this.getPreuSuplementos(
+                cesta.lista[i].arraySuplementos,
+                cesta.idCliente,
+                cesta.lista[i].unidades
+              )
+            ).toFixed(2)
           );
           cesta.lista[i].subtotal += preuSumplements;
           cesta.detalleIva = fusionarObjetosDetalleIva(
@@ -864,7 +867,8 @@ export class CestaClase {
         let total = 0;
         for (let i = 0; i < cesta.lista.length; i++) {
           numProductos += cesta.lista[i].unidades;
-          total += cesta.lista[i].subtotal;
+          let valor: any = cesta.lista[i].subtotal.toFixed(2);
+          total += valor;
         }
         if (menu != "descargas") {
           impresoraInstance.mostrarVisor({
@@ -878,6 +882,7 @@ export class CestaClase {
         }
       }
     }
+    console.log(cesta);
     return cesta;
   }
 

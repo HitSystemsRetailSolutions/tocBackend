@@ -109,7 +109,7 @@ export class TicketsController {
       return false;
     }
   }
-  redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
+  redondearPrecio = (precio: number) => Number((Math.round(precio * 100) / 100).toFixed(2));
 
   @Post("crearTicketPaytef")
   async crearTicketPaytef(
@@ -258,7 +258,7 @@ export class TicketsController {
               idTrabajador
             );
             await movimientosInstance.nuevoMovimiento(
-              tkrsData.cantidadTkrs - total,
+              this.redondearPrecio(tkrsData.cantidadTkrs - total),
               "",
               "TKRS_CON_EXCESO",
               ticket._id,
@@ -404,7 +404,7 @@ export class TicketsController {
                 idTrabajador
               );
               await movimientosInstance.nuevoMovimiento(
-                tkrsData.cantidadTkrs - total,
+                this.redondearPrecio(tkrsData.cantidadTkrs - total),
                 "",
                 "TKRS_CON_EXCESO",
                 ticket._id,
