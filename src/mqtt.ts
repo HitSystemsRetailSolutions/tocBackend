@@ -14,7 +14,7 @@ client.on("connect", function () {
 
 client.on("message", async function (topic, message) {
   const parametros = await parametrosInstance.getParametros();
-  const shopInfo = { emp: parametros.nombreEmpresa, lic: parametros.licencia };
+  const shopInfo = { emp: parametros?.nombreEmpresa, lic: parametros?.licencia };
   client.publish("hit.hardware/shopinfo", JSON.stringify(shopInfo));
 });
 
