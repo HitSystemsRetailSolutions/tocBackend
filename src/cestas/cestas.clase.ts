@@ -882,7 +882,6 @@ export class CestaClase {
         }
       }
     }
-    console.log(cesta);
     return cesta;
   }
 
