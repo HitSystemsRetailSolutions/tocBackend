@@ -66,7 +66,6 @@ export class ClientesController {
         .catch((e) => {
           console.log(e);
         });
-        console.log(arrayClientes?.data?.length)
       arrayClientes = arrayClientes?.data as ClientesInterface[];
       if (arrayClientes)
         return await clienteInstance.insertarClientes(arrayClientes);

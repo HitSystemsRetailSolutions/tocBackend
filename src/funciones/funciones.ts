@@ -9,7 +9,8 @@ export function construirObjetoIvas(
   precio: number,
   tipoIva: TiposIva,
   unidades: number,
-  albaran: boolean = false
+  albaran: boolean = false,
+  dto: number = 0
 ): DetalleIvaInterface {
   let base1 = 0,
     base2 = 0,
@@ -26,34 +27,33 @@ export function construirObjetoIvas(
     importe3 = 0,
     importe4 = 0,
     importe5 = 0;
-
-// si es albaran, parametro precio viene sin el iva.
-// En caso contrario, al precio se le quita el iva para calcular las bases y valores
+  // si es albaran, parametro precio viene sin el iva.
+  // En caso contrario, al precio se le quita el iva para calcular las bases y valores
   switch (tipoIva) {
     case 1:
       base1 = albaran ? precio * unidades : (precio / 1.04) * unidades;
       valor1 = (precio / 1.04) * 0.04 * unidades;
-      importe1 = albaran ? base1 + valor1 : precio * unidades;
+      importe1 = albaran ? (base1 + valor1) - ( base1 + valor1) * (dto/100): precio * unidades;
       break;
     case 2:
       base2 = albaran ? precio * unidades : (precio / 1.1) * unidades;
-      valor2 = (precio / 1.1) * 0.1 * unidades;
-      importe2 = albaran ? base2 + valor2 : precio * unidades;
+      valor2 = albaran ? precio * 0.1 * unidades:(precio / 1.1) * 0.1 * unidades;
+      importe2 = albaran ? (base2 + valor2) - ( base2 + valor2) * (dto/100): precio * unidades;
       break;
     case 3:
       base3 = albaran ? precio * unidades : (precio / 1.21) * unidades;
       valor3 = (precio / 1.21) * 0.21 * unidades;
-      importe3 = albaran ? base3 + valor3 : precio * unidades;
+      importe3 = albaran ? (base3 + valor3) - ( base3 + valor3) * (dto/100) : precio * unidades;
       break;
     case 4:
       base4 = albaran ? precio * unidades : (precio / 1) * unidades;
       valor4 = (precio / 1) * 0 * unidades;
-      importe4 = albaran ? base4 + valor4 : precio * unidades;
+      importe4 = albaran ? (base4 + valor4) - ( base4 + valor4) * (dto/100) : precio * unidades;
       break;
     case 5:
       base5 = albaran ? precio * unidades : (precio / 1.05) * unidades;
       valor5 = (precio / 1.05) * 0.05 * unidades;
-      importe5 = albaran ? base5 + valor5 : precio * unidades;
+      importe5 = albaran ? (base5 + valor5) - ( base5 + valor5) * (dto/100) : precio * unidades;
       break;
     default:
       break;

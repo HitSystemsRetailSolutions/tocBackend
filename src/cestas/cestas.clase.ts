@@ -481,12 +481,12 @@ export class CestaClase {
             // articulos pagados y no pagados de honei
             if (igual == cesta.lista[i].arraySuplementos.length) {
               cesta.lista[i].unidades += unidades;
-              if(unidades > 0) {
-                cesta.lista[i].puntos += articulo.puntos*unidades;
-              }else{
-                cesta.lista[i].puntos -= articulo.puntos*unidades;
+              if (unidades > 0) {
+                cesta.lista[i].puntos += articulo.puntos * unidades;
+              } else {
+                cesta.lista[i].puntos -= articulo.puntos * unidades;
               }
-              
+
               cesta.lista[i].subtotal =
                 nuevaInstancePromociones.redondearDecimales(
                   cesta.lista[i].subtotal + unidades * precioArt,
@@ -501,10 +501,10 @@ export class CestaClase {
             cesta.lista[i].regalo == regalar
           ) {
             cesta.lista[i].unidades += unidades;
-            if(unidades > 0) {
-              cesta.lista[i].puntos += articulo.puntos*unidades;
-            }else{
-              cesta.lista[i].puntos += articulo.puntos*unidades;
+            if (unidades > 0) {
+              cesta.lista[i].puntos += articulo.puntos * unidades;
+            } else {
+              cesta.lista[i].puntos += articulo.puntos * unidades;
             }
             if (!regalar) {
               cesta.lista[i].subtotal = Number(
@@ -783,7 +783,6 @@ export class CestaClase {
             (await clienteInstance.isClienteDescuento(cesta.idCliente))
               ?.descuento
           );
-    console.log(cesta.modo, descuento);
     const cliente = cesta.idCliente
       ? await clienteInstance.getClienteById(cesta.idCliente)
       : null;
@@ -830,14 +829,12 @@ export class CestaClase {
         cesta.lista[i].subtotal = precioArt * cesta.lista[i].unidades;
         if (descuento)
           precioArt = Number(precioArt - precioArt * (descuento / 100));
-        console.log("dto", dtoAlbaran);
         if (dtoAlbaran) {
           // aplicar el dto en el precioArt para calcular detallesIVA y guardar % de dto en el objeto cesta
           // para mostrarlo en el frontend y ticket.
-          precioArt = Number(precioArt - precioArt * (dtoAlbaran / 100));
           cesta.lista[i].dto = dtoAlbaran;
         }
-        if(cliente?.albaran){
+        if (cliente?.albaran) {
           switch (articulo.tipoIva) {
             case 1:
               cesta.lista[i].iva = 4;
@@ -849,6 +846,9 @@ export class CestaClase {
               cesta.lista[i].iva = 21;
               break;
             case 4:
+              cesta.lista[i].iva = 0;
+              break;
+            case 5:
               cesta.lista[i].iva = 5;
               break;
           }
@@ -857,7 +857,8 @@ export class CestaClase {
           precioArt,
           articulo.tipoIva,
           cesta.lista[i].unidades,
-          cliente?.albaran
+          cliente?.albaran,
+          dtoAlbaran
         );
 
         cesta.detalleIva = fusionarObjetosDetalleIva(

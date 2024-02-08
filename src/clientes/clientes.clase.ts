@@ -39,7 +39,6 @@ export class Clientes {
     return x?.data;
   }
   getDtoAlbaran(cliente: ClientesInterface, articulo: ArticulosInterface) {
-    console.log("getDtoAlbaran");
     const dtoFamilia= this.getDtoFamilia(cliente, articulo);
     const dtoProduco = this.getDtoProducto(cliente, articulo);
     if(dtoFamilia > dtoProduco){
