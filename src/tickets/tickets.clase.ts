@@ -23,8 +23,13 @@ export class TicketsClase {
     try {
       const ticket = await schTickets.getTicketByID(idTicket);
       let movimientos = await schMovimientos.getMovimientosDelTicket(idTicket);
-      movimientos=null
-      if (ticket.paytef || (movimientos && movimientos.length>0 && movimientos[0]?.tipo === "TARJETA")) {
+      movimientos = null;
+      if (
+        ticket.paytef ||
+        (movimientos &&
+          movimientos.length > 0 &&
+          movimientos[0]?.tipo === "TARJETA")
+      ) {
         let xy = await schTickets.getAnulado(idTicket);
         if (xy?.anulado?.idTicketPositivo == idTicket)
           return { res: false, tipo: "TARJETA" };
@@ -47,7 +52,12 @@ export class TicketsClase {
         } else {
           return { res: false, tipo: "TARJETA" };
         }
-      } else if (ticket.datafono3G || (movimientos && movimientos.length>0 && movimientos[0].tipo === "DATAFONO_3G")) {
+      } else if (
+        ticket.datafono3G ||
+        (movimientos &&
+          movimientos.length > 0 &&
+          movimientos[0].tipo === "DATAFONO_3G")
+      ) {
         if (await schTickets.anularTicket(idTicket, true)) {
           const devolucionCreada = await schTickets.getUltimoTicket();
           if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
