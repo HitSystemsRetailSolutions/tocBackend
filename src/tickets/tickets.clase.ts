@@ -20,52 +20,55 @@ export class TicketsClase {
 
   /* Eze 4.0 */
   async anularTicket(idTicket: TicketsInterface["_id"]) {
-    const ticket = await schTickets.getTicketByID(idTicket);
-    let movimientos = await schMovimientos.getMovimientosDelTicket(idTicket);
-    if (ticket.paytef || movimientos[0].tipo === "TARJETA") {
-      let xy = await schTickets.getAnulado(idTicket);
-      if (xy?.anulado?.idTicketPositivo == idTicket)
-        return { res: false, tipo: "TARJETA" };
-      let x = await paytefInstance.iniciarTransaccion(
-        ticket.idTrabajador,
-        idTicket,
-        ticket.total,
-        "refund"
-      );
-      const devolucionCreada = await schTickets.getUltimoTicket();
-      if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
-        await movimientosInstance.nuevoMovimiento(
-          movimientos[0].valor,
-          movimientos[0].concepto,
-          "DEV_DATAFONO_PAYTEF",
-          devolucionCreada._id,
-          movimientos[0].idTrabajador
+    try {
+      const ticket = await schTickets.getTicketByID(idTicket);
+      let movimientos = await schMovimientos.getMovimientosDelTicket(idTicket);
+      if (ticket.paytef || (movimientos.length>0 && movimientos[0]?.tipo === "TARJETA")) {
+        let xy = await schTickets.getAnulado(idTicket);
+        if (xy?.anulado?.idTicketPositivo == idTicket)
+          return { res: false, tipo: "TARJETA" };
+        let x = await paytefInstance.iniciarTransaccion(
+          ticket.idTrabajador,
+          idTicket,
+          ticket.total,
+          "refund"
         );
-        return { res: true, tipo: "TARJETA" };
-      } else {
-        return { res: false, tipo: "TARJETA" };
-      }
-    } else if (ticket.datafono3G || movimientos[0].tipo === "DATAFONO_3G") {
-      if (await schTickets.anularTicket(idTicket, true)) {
         const devolucionCreada = await schTickets.getUltimoTicket();
         if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
           await movimientosInstance.nuevoMovimiento(
             movimientos[0].valor,
             movimientos[0].concepto,
-            "DEV_DATAFONO_3G",
+            "DEV_DATAFONO_PAYTEF",
             devolucionCreada._id,
             movimientos[0].idTrabajador
           );
-          return { res: true, tipo: "DATAFONO_3G" };
+          return { res: true, tipo: "TARJETA" };
+        } else {
+          return { res: false, tipo: "TARJETA" };
         }
+      } else if (ticket.datafono3G || (movimientos.length>0 && movimientos[0].tipo === "DATAFONO_3G")) {
+        if (await schTickets.anularTicket(idTicket, true)) {
+          const devolucionCreada = await schTickets.getUltimoTicket();
+          if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
+            await movimientosInstance.nuevoMovimiento(
+              movimientos[0].valor,
+              movimientos[0].concepto,
+              "DEV_DATAFONO_3G",
+              devolucionCreada._id,
+              movimientos[0].idTrabajador
+            );
+            return { res: true, tipo: "DATAFONO_3G" };
+          }
+        }
+        return {
+          res: false,
+          tipo: "DATAFONO_3G",
+        };
       }
-
-      return {
-        res: false,
-        tipo: "DATAFONO_3G",
-      };
+      return { res: await schTickets.anularTicket(idTicket), tipo: "EFECTIVO" };
+    } catch (error) {
+      console.log("error anularTicket", error);
     }
-    return { res: await schTickets.anularTicket(idTicket), tipo: "EFECTIVO" };
   }
   /* Eze 4.0 */
   getTicketsIntervalo = (fechaInicio: number, fechaFinal: number) =>
