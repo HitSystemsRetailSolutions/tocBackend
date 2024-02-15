@@ -1,73 +1,65 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+# TocGame BackEnd
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+El TocGame BackEnd és un sistema de gestió de terminal de punt de venda dissenyat específicament per a forns de pa i cafeteries. Aquest projecte utilitza el framework NestJS juntament amb Fastify per oferir una solució eficient i escalable per al maneig de les operacions diàries d'un negoci.
 
-## Description
+## Característiques
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **Gestió de Vendes:** Processament i seguiment de les vendes en temps real.
+- **Gestió de Productes:** Administració del catàleg de productes, incloent preus, descripcions i disponibilitat.
+- **Autenticació i Seguretat:** Implementació de mecanismes d'autenticació per assegurar l'accés al sistema.
+- **Integració amb Impressores de Tiquets:** Suport per a l'enviament de comandes a impressores de tiquets per a la generació automàtica de rebuts.
+- **Comunicació MQTT:** Utilització del protocol MQTT per a la comunicació en temps real amb diferents dispositius i serveis.
+- **Parametrització Flexible:** Configuració fàcil dels paràmetres de l'aplicació per adaptar-se a les necessitats específiques de cada negoci.
 
-## Installation
+## Tecnologies Utilitzades
 
-```bash
-$ npm install
-```
+- **NestJS:** Framework de backend per a aplicacions Node.js.
+- **Fastify:** Adaptador HTTP lleuger i de ràpid rendiment per a NestJS.
+- **Axios:** Client HTTP basat en promeses per a la realització de peticions HTTP.
+- **MQTT:** Protocol de missatgeria lleuger per a la comunicació entre dispositius.
+- **TypeScript:** Llenguatge de programació tipat superset de JavaScript.
 
-## Running the app
+## Començar
 
-```bash
-# development
-$ npm run start
+Per a iniciar el projecte TocGame BackEnd, seguiu els passos següents:
 
-# watch mode
-$ npm run start:dev
+1. **Instal·lació de Dependències:**
 
-# production mode
-$ npm run start:prod
-```
+   Assegureu-vos que teniu Node.js i npm instal·lats. Després, executeu el següent comandament per a instal·lar les dependències del projecte:
 
-## Test
+   ```bash
+   npm install
+   ```
 
-```bash
-# unit tests
-$ npm run test
+2. **Configuració de l'Entorn:**
 
-# e2e tests
-$ npm run test:e2e
+   Configureu les variables d'entorn necessàries (per exemple, l'adreça de la base de dades, credencials d'autenticació, etc.) segons les necessitats del vostre entorn.
 
-# test coverage
-$ npm run test:cov
-```
+3. **Inici de l'Aplicació:**
 
-## Support
+   Per a iniciar l'aplicació en mode desenvolupament, executeu:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+   ```bash
+   npm run start:dev
+   ```
 
-## Stay in touch
+   Per a producció, primer construïu l'aplicació:
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+   ```bash
+   npm run build
+   ```
 
-## License
+   I després inicieu-la amb:
 
-Nest is [MIT licensed](LICENSE).
+   ```bash
+   npm run start
+   ```
+
+## Contribuir
+
+Aquest projecte és obert a contribucions. Si esteu interessats a millorar el TocGame BackEnd, no dubteu a fer fork del repositori, realitzar els vostres canvis i enviar una sol·licitud de pull.
+
+## Llicència
+
+El TocGame BackEnd està llicenciat sota una Llicència d'Ús i Codi Privat de Venda. Això significa que l'ús, distribució i modificació del codi són permesos exclusivament sota els termes i condicions especificats en aquesta llicència, que inclou restriccions en la redistribució del codi font i l'ús comercial sense l'autorització explícita dels titulars de la llicència.
