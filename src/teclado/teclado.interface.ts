@@ -7,4 +7,5 @@ export interface TeclasInterface {
   esSumable: boolean;
   precioConIva: number;
   suplementos?: number[];
+  stock?: number;
 }
