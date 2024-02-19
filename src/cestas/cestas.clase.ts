@@ -867,7 +867,7 @@ export class CestaClase {
         let total = 0;
         for (let i = 0; i < cesta.lista.length; i++) {
           numProductos += cesta.lista[i].unidades;
-          let valor: any = cesta.lista[i].subtotal.toFixed(2);
+          let valor: any = Number(cesta.lista[i].subtotal.toFixed(2));
           total += valor;
         }
         if (menu != "descargas") {
@@ -882,7 +882,6 @@ export class CestaClase {
         }
       }
     }
-    console.log(cesta);
     return cesta;
   }
 

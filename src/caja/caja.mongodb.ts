@@ -167,6 +167,19 @@ export async function getMonedas(
 export async function setInfoCaja(data: CajaAbiertaInterface) {
   const database = (await conexion).db("tocgame");
   const caja = database.collection<CajaAbiertaInterface>("caja");
+  // Obtener la propina actual
+  const propinaActual = await caja.findOne({}, { projection: { propina: 1 } });
+
+  // Verificar si la propina actual es mayor a 0
+  const actualizarPropina =
+    propinaActual && "propina" in propinaActual && propinaActual.propina > 0;
+
+  // Si la propina actual es mayor a 0, no se actualiza
+  if (actualizarPropina) {
+    data.propina = propinaActual.propina;
+  }
+
+  // Actualizar la colección
   const resultado = await caja.updateMany({}, { $set: data }, { upsert: true });
   return (
     resultado.acknowledged &&
