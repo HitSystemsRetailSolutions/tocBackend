@@ -7,6 +7,7 @@ export interface ClientesInterface {
   descuento: number;
   telefono: string;
   dto?: Dto[];
+  vip?: boolean;
 }
 export interface Dto {
   variable: string;

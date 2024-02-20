@@ -154,10 +154,13 @@ export class Deudas {
     if (!albaran) {
       return false;
     }
+    // fecha de las modificaciones de los albaranes en deudas
     const fechaVersion = new Date("2024-01-03T12:00:00");
+    // en la 2a fecha ya dejan de ser albaranes cualquier deuda de un cliente albaran
+    const fechaVerion2 = new Date("2024-02-020T12:00:00");
     const timestamp = fechaVersion.getTime();
     // detectamos que deuda albaran es anterior a la nueva version de los albaranes
-    if (deuda.timestamp < timestamp) {
+    if (deuda.timestamp < timestamp && deuda.timestamp > fechaVerion2.getTime()) {
       return true;
     }
     return false;
