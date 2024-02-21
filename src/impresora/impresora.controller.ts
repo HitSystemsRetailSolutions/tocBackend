@@ -170,4 +170,29 @@ export class ImpresoraController {
       return true;
     } catch (err) {}
   }
+
+  @Post("detallesVip")
+  async detallesVip(@Body() { lista, idCliente }) {
+    try {
+      if (lista && idCliente) {
+        return await impresoraInstance.detallesTicket(lista, idCliente);
+      }
+      return false;
+    } catch (err) {
+      console.log(err);
+      return err;
+    }
+  }
+  @Post("detalles")
+  async detalles(@Body() { lista, idCliente }) {
+    try {
+      if (lista && idCliente) {
+        return await impresoraInstance.precioUnitario(lista, idCliente);
+      }
+      return false;
+    } catch (err) {
+      console.log(err);
+      return err;
+    }
+  }
 }

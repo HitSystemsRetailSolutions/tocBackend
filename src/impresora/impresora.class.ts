@@ -10,7 +10,7 @@ import {
   descuentoEspecial,
   ClientesInterface,
 } from "../clientes/clientes.interface";
-import { ItemLista } from "../cestas/cestas.interface";
+import { CestasInterface, ItemLista } from "../cestas/cestas.interface";
 import { devolucionesInstance } from "../devoluciones/devoluciones.clase";
 import { ObjectId } from "mongodb";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
@@ -28,6 +28,7 @@ import { deudasInstance } from "src/deudas/deudas.clase";
 import { EncargosInterface } from "src/encargos/encargos.interface";
 import { TicketsInterface } from "src/tickets/tickets.interface";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
+import { CestasController } from "src/cestas/cestas.controller";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -44,7 +45,15 @@ function random() {
   const numero = Math.floor(10000000 + Math.random() * 999999999);
   return numero.toString(16).slice(0, 8);
 }
-
+// consts para detalles al imprimir
+const cMargen = 1; // margen entre columna 1x4=4 caracteres
+const cLongQuant = 6;
+const cLongArticulo = 20;
+const cLongPreuU = 5;
+const cLongDto = 5;
+const cLongImporte = 9;
+// long maxima de la linea
+const cLongMax = 49;
 /* Función auxiliar borrar cuando sea posible */
 function dateToString2(fecha) {
   let fechaFinal;
@@ -663,7 +672,7 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    let detalles = await this.precioUnitario(arrayCompra);
+    let detalles = await this.detallesTicket(arrayCompra);
     let pagoTarjeta = "";
     let pagoTkrs = "";
     let detalleClienteVip = "";
@@ -778,8 +787,8 @@ export class Impresora {
       (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
     }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
     // declaramos el dispositivo y la impresora escpos
-    console.log(detalles)
-    console.log(detallesIva)
+    console.log(detalles);
+    console.log(detallesIva);
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
     const database = (await conexion).db("tocgame");
@@ -1017,6 +1026,243 @@ export class Impresora {
 
     return detalle;
   }
+  // funcion para imprimir detalles ticket vip
+  async detallesTicket(
+    arrayCompra: CestasInterface["lista"],
+    idCliente: ClientesInterface["id"]=null
+  ) {
+    const preuUnitari =
+    (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
+    "Si";
+    // comprueba si hay param dto y param iva
+    const thereIsDto = arrayCompra.find((item) => "dto" in item) !== undefined;
+    const thereIsIva = arrayCompra.find((item) => "iva" in item) !== undefined;
+    let descuento = 0;
+    if (idCliente)
+      descuento = (await clienteInstance.getClienteById(idCliente)).descuento;
+    // longs
+    let longDto = thereIsDto? cLongDto:0;
+    // si no hay dto, longDto = 0
+    let longSinDtoDiv= thereIsDto?0:Math.floor(cLongDto / 2);
+    let longSinDtoRes= thereIsDto?0:cLongDto % 2;
+    let margen = cMargen;
+    let longMax = cLongMax;
+    let longQuant = cLongQuant;
+    let longArticulo = cLongArticulo +longSinDtoRes;
+    let longPreuU = preuUnitari ? cLongPreuU+longSinDtoDiv:0;
+
+    let longImporte = cLongImporte+longSinDtoDiv;
+
+    // variables en cada linea detalle
+    let cantidadStr = "";
+    let articuloStr = "";
+    let precioUnitario = "";
+    let precioUnitarioStr = "";
+    let descuentoStr = "";
+    let importeStr = "";
+    let lineaTicket = "";
+    let margenStr = "";
+    margenStr = sprintf(`%-${margen}.2s`, margenStr);
+    let detalles = "";
+
+    console.log(thereIsDto);
+   
+    // ejemplos que se mostraria el listado
+    console.log("Quant  Article            Preu U.   Dto Importe €");
+    console.log("Quant  Article                 Dto Importe €");
+    console.log("Quant  Article               Preu U.    Importe €");
+    console.log("Quant  Article                   Importe €");
+    for (let i = 0; i < arrayCompra.length; i++) {
+      arrayCompra[i].subtotal =
+        arrayCompra[i].subtotal - arrayCompra[i].subtotal * (descuento / 100);
+      if (preuUnitari) {
+        arrayCompra[i]["preuU"] = Number(
+          (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
+        );
+      }
+      if (thereIsDto) {
+        let dto = arrayCompra[i].dto ? arrayCompra[i].dto + "%" : "";
+        descuentoStr = sprintf(`%${longDto}s`, dto);
+      } else {
+        descuentoStr = "";
+      }
+      // entra si es una promo
+      if (arrayCompra[i].promocion) {
+        // buscamos el nombre del articulo principal
+        let nombrePrincipal = (
+          await articulosInstance.getInfoArticulo(
+            arrayCompra[i].promocion.idArticuloPrincipal
+          )
+        ).nombre;
+
+        cantidadStr = sprintf(`%-${longQuant}.2f`, arrayCompra[i].unidades);
+        precioUnitarioStr = longPreuU==0?"": sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
+        importeStr = sprintf(`%${longImporte}s`, arrayCompra[i].subtotal);
+        // pasamos de param el nombre porque puede variar si es una promo
+        comprobarLongitud("Of. " + nombrePrincipal);
+        // linea del articulo
+        lineaTicket =
+          cantidadStr +
+          margenStr +
+          articuloStr +
+          margenStr +
+          precioUnitarioStr +
+          margenStr +
+          (thereIsDto ? descuentoStr : "") +
+          margenStr +
+          importeStr;
+        detalles += lineaTicket + "\n";
+
+        // imprime promoPrincipal ej:'>       oferta nombreP (10x)  1.20'
+        cantidadStr = sprintf(`%-${longQuant}.2s`, ">");
+        precioUnitarioStr = longPreuU==0?"": sprintf(
+          `%${longPreuU}s`,
+          `(${arrayCompra[i].promocion.cantidadArticuloPrincipal}x)`
+        );
+        descuentoStr = sprintf(`%${longDto}s`, "");
+        importeStr = sprintf(
+          `%${longImporte}.2f`,
+          arrayCompra[i].promocion.precioRealArticuloPrincipal
+        );
+        comprobarLongitud("Of. " + nombrePrincipal);
+        // linea del art promo principal
+        lineaTicket =
+          cantidadStr +
+          margenStr +
+          articuloStr +
+          margenStr +
+          precioUnitarioStr +
+          margenStr +
+          descuentoStr +
+          margenStr +
+          importeStr;
+        detalles += `${lineaTicket}\n`;
+
+        if (arrayCompra[i].promocion.cantidadArticuloSecundario > 0) {
+          // imprime promoSecundario ej:'<       oferta nombreS (10x)  0.20'
+          let nombreSecundario = (
+            await articulosInstance.getInfoArticulo(
+              arrayCompra[i].promocion.idArticuloSecundario
+            )
+          ).nombre;
+          cantidadStr = sprintf(`%-${longQuant}.2s`, ">");
+          precioUnitarioStr =longPreuU==0?"": sprintf(
+            `%${longPreuU}s`,
+            `(${arrayCompra[i].promocion.cantidadArticuloSecundario}x)`
+          );
+          descuentoStr = sprintf(`%${longDto}s`, "");
+          importeStr = sprintf(
+            `%${longImporte}.2f`,
+            arrayCompra[i].promocion.precioRealArticuloSecundario
+          );
+          comprobarLongitud("Of. " + nombreSecundario);
+          // linea del art promo principal
+          lineaTicket =
+            cantidadStr +
+            margenStr +
+            articuloStr +
+            margenStr +
+            precioUnitarioStr +
+            margenStr +
+            descuentoStr +
+            margenStr +
+            importeStr;
+          detalles += `${lineaTicket}\n`;
+        }
+      } else if (
+        arrayCompra[i].arraySuplementos &&
+        arrayCompra[i].arraySuplementos.length > 0
+      ) {
+        // Entra si tiene suplementos
+        // imprimir articulo
+        cantidadStr = sprintf(`%-${longQuant}.2s`, arrayCompra[i].unidades);
+        precioUnitarioStr = longPreuU==0?"": sprintf(
+          `%${longPreuU}.2f`,
+          arrayCompra[i]["preuU"]
+        );
+        importeStr = sprintf(`%${longImporte}.2f`, arrayCompra[i].subtotal);
+        comprobarLongitud();
+        // linea del articulo
+        lineaTicket =
+          cantidadStr +
+          margenStr +
+          articuloStr +
+          margenStr +
+          precioUnitarioStr +
+          margenStr +
+          (thereIsDto ? descuentoStr : "") +
+          margenStr +
+          importeStr;
+        detalles += lineaTicket + "\n";
+        for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
+          cantidadStr = sprintf(`%-${longQuant}.2s`, "");
+          precioUnitarioStr = longPreuU==0?"": sprintf(
+            `%${longPreuU}.2f`,
+            arrayCompra[i].arraySuplementos[j].precioConIva
+          );
+          importeStr = sprintf(`%${longImporte}.2s`, "");
+          comprobarLongitud(arrayCompra[i].arraySuplementos[j].nombre);
+          // linea del suplemento pos j
+          lineaTicket = `${
+            cantidadStr +
+            margenStr +
+            articuloStr +
+            margenStr +
+            precioUnitarioStr +
+            margenStr +
+            (thereIsDto ? descuentoStr : "") +
+            margenStr +
+            importeStr
+          }`;
+          detalles += lineaTicket + "\n";
+        }
+        // version antigua Suplementos
+      } else {
+        // articulo sin promos ni suplementos
+        cantidadStr = sprintf(`%-${longQuant}.2f`, arrayCompra[i].unidades);
+        precioUnitarioStr = longPreuU==0?"": sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
+        importeStr = sprintf(`%${longImporte}.2f`, arrayCompra[i].subtotal);
+        comprobarLongitud();
+
+        lineaTicket =
+          cantidadStr +
+          margenStr +
+          articuloStr +
+          margenStr +
+          precioUnitarioStr +
+          margenStr +
+          (thereIsDto ? descuentoStr : "") +
+          margenStr +
+          importeStr;
+        detalles += lineaTicket + "\n";
+      }
+
+      // funcion interna donde modifica las longitudes si el valor introducido es mayor que el predeterminado
+      function comprobarLongitud(nombreArticulo = null) {
+        if (importeStr.length > longImporte) {
+          longArticulo = longArticulo + longImporte - importeStr.length;
+        }
+        if (precioUnitarioStr.length > longPreuU) {
+          longArticulo = longArticulo + longPreuU - precioUnitarioStr.length;
+        }
+        if (thereIsDto && descuentoStr.length > longDto) {
+          longArticulo = longArticulo + longDto - descuentoStr.length;
+        }
+        articuloStr = sprintf(
+          `%-${longArticulo}s`,
+          nombreArticulo ? nombreArticulo : arrayCompra[i].nombre
+        );
+        if (articuloStr.length > longArticulo) {
+          articuloStr = articuloStr.slice(0, longArticulo);
+        }
+        // reinicia la longitud predeterminada del nombreArt para utilizarla al volver a entrar
+        longArticulo = cLongArticulo +longSinDtoRes;
+      }
+    }
+    console.log(detalles);
+    return detalles;
+  }
+
   async precioUnitario(arrayCompra, idCliente = null) {
     let detalles = "";
     //const preuUnitari =
