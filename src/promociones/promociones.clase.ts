@@ -557,7 +557,6 @@ export class NuevaPromocion {
 
     let cambioEnPromos = false; // modificar, añadir o eliminar alguna promo de las que estaban aplicadas
     let unidadesRestantes = unidadesTotales;
-
     for (let promoArt of promosArt) {
       let cantidadPromos = Math.trunc(
         unidadesRestantes / promoArt.unidadesPorPromo
@@ -625,6 +624,7 @@ export class NuevaPromocion {
       cambioEnPromos = true;
       cesta.lista.splice(cesta.lista.indexOf(itemCesta), 1);
     }
+
     if (!cambioEnPromos) return false; // No han habido promociones nuevas, los articulos se añadiran como un item de la cesta normal(sin promo)
 
     // borrar item cesta sin promo y crear nueva si es necesaria
@@ -652,7 +652,6 @@ export class NuevaPromocion {
       numProductos += cesta.lista[i].unidades;
       total += cesta.lista[i].subtotal;
     }
-
     impresoraInstance.mostrarVisor({
       total: total.toFixed(2),
       precio: articulo.precioConIva.toFixed(2),
@@ -1014,6 +1013,18 @@ export class NuevaPromocion {
         },
       });
     }
+    let numProductos = 0;
+    let total = 0;
+    for (let i = 0; i < cesta.lista.length; i++) {
+      numProductos += cesta.lista[i].unidades;
+      total += cesta.lista[i].subtotal;
+    }
+    impresoraInstance.mostrarVisor({
+      total: total,
+      precio: data.precioPromoUnitario * data.seAplican,
+      texto: `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`,
+      numProductos: numProductos,
+    });
   }
   public redondearDecimales(numero, decimales) {
     let numeroRegexp = new RegExp("\\d\\.(\\d){" + decimales + ",}"); // Expresion regular para numeros con un cierto numero de decimales o mas
