@@ -43,21 +43,23 @@ export class AlbaranesClase {
       if (await schAlbaranes.setAlbaran(nuevoAlbaran)) {
         // Siempre se genera una entrada de dinero en caja al ser albaran
         const cliente = await clienteInstance.getClienteById(cesta.idCliente);
-        await movimientosInstance.nuevoMovimiento(
-          total,
-          "Albara",
-          "ENTRADA_DINERO",
-          id,
-          idTrabajador,
-          cliente.nombre
-        );
+        if (
+          cliente &&
+          (cliente.noPagaEnTienda === undefined ||
+            cliente.noPagaEnTienda === false)
+        )
+          await movimientosInstance.nuevoMovimiento(
+            total,
+            "Albara",
+            "ENTRADA_DINERO",
+            id,
+            idTrabajador,
+            cliente.nombre
+          );
+
         switch (estado) {
           // si albaran es deuda se genera una deuda y un movimiento de salida de dinero
           case "DEUDA":
-            const cliente = await clienteInstance.getClienteById(
-              cesta.idCliente
-            );
-
             const deuda = {
               idTicket: id,
               cesta: cesta,
