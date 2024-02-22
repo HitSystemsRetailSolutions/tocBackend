@@ -32,28 +32,28 @@ export function construirObjetoIvas(
   // Al ser albaranNPT, puede contener dto, por lo que se le aplica el dto al importe
   switch (tipoIva) {
     case 1:
-      base1 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio / 1.04) * unidades - (precio / 1.04 * unidades) * (dto/100);
-      valor1 = albaranNPT ? base1 * 0.04 * unidades:base1 * 0.04 * unidades;
+      base1 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio -precio* 0.04) * unidades - (precio / 1.04 * unidades) * (dto/100);
+      valor1 = albaranNPT ? base1 * 0.04 * unidades:precio * 0.04 * unidades;
       importe1 = albaranNPT ? base1 + valor1 : precio * unidades ;
       break;
     case 2:
-      base2 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio / 1.1) * unidades - (precio / 1.1 * unidades) * (dto/100);
-      valor2 = albaranNPT ? base2 * 0.1 * unidades:base2 * 0.1 * unidades;
+      base2 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio -precio* 0.1) * unidades - (precio / 1.1 * unidades) * (dto/100);
+      valor2 = albaranNPT ? base2 * 0.1 * unidades:precio * 0.1 * unidades;
       importe2 = albaranNPT ? base2 + valor2: precio * unidades;
       break;
     case 3:
-      base3 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100) : (precio / 1.21) * unidades - (precio / 1.21 * unidades) * (dto/100);
-      valor3 = albaranNPT ? base3 * 0.21 * unidades:base3 * 0.21 * unidades;
+      base3 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100) : (precio -precio* 0.21) * unidades - (precio / 1.21 * unidades) * (dto/100);
+      valor3 = albaranNPT ? base3 * 0.21 * unidades:precio * 0.21 * unidades;
       importe3 = albaranNPT ? base3 + valor3 : precio * unidades;
       break;
     case 4:
-      base4 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio / 1) * unidades - (precio / 1 * unidades) * (dto/100);
-      valor4 = albaranNPT ? base4 * 0 * unidades: base4 * 0 * unidades;
+      base4 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio -precio* 0) * unidades - (precio / 1 * unidades) * (dto/100);
+      valor4 = albaranNPT ? base4 * 0 * unidades: precio * 0 * unidades;
       importe4 = albaranNPT ? base4 + valor4: precio * unidades;
       break;
     case 5:
-      base5 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio / 1.05) * unidades - (precio/ 1.05 * unidades) * (dto/100);
-      valor5 = albaranNPT ? base5 * 0.05 * unidades: base5 * 0.05 * unidades;
+      base5 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio -precio* 0.05) * unidades - (precio/ 1.05 * unidades) * (dto/100);
+      valor5 = albaranNPT ? base5 * 0.05 * unidades: precio * 0.05 * unidades;
       importe5 = albaranNPT ? base5 + valor5 : precio * unidades ;
       break;
     default:
