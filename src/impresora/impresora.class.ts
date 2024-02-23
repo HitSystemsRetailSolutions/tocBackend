@@ -47,18 +47,26 @@ function random() {
 }
 
 function encryptWhatsapp(text: string) {
-  /*var algorithm = "aes-192-cbc"; //algorithm to use
-  var secret = "semprePortoUnTrosDAhir";
-  const key = CryptoJS.scryptSync(secret, "salt", 24); //create key
-  const iv = CryptoJS.randomBytes(16);
-  console.log(iv);
+  let encoding: BufferEncoding = "hex";
 
-  const cipher = CryptoJS.createCipheriv(algorithm, key, iv);
-  var encrypted = cipher.update(text, "utf8", "hex") + cipher.final("hex"); // encrypted text
-  console.log(encrypted);*/
-  //base64
-  let encrypted = Buffer.from(text).toString("base64");
-  return encrypted;
+  let key: string = "buscoUnTrosDAhirPerEncriptarHITs";
+
+  function encrypt(plaintext: string) {
+    try {
+      const iv = CryptoJS.randomBytes(16);
+      const cipher = CryptoJS.createCipheriv("aes-256-cbc", key, iv);
+
+      const encrypted = Buffer.concat([
+        cipher.update(plaintext, "utf-8"),
+        cipher.final(),
+      ]);
+
+      return iv.toString(encoding) + encrypted.toString(encoding);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  return encrypt(text);
 }
 
 /* Función auxiliar borrar cuando sea posible */
@@ -294,9 +302,8 @@ export class Impresora {
   /* Eze 4.0 */
   async imprimirDevolucion(idDevolucion: ObjectId) {
     try {
-      const devolucion = await devolucionesInstance.getDevolucionById(
-        idDevolucion
-      );
+      const devolucion =
+        await devolucionesInstance.getDevolucionById(idDevolucion);
       const parametros = await parametrosInstance.getParametros();
       const trabajador: TrabajadoresInterface =
         await trabajadoresInstance.getTrabajadorById(devolucion.idTrabajador);
