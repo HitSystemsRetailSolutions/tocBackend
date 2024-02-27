@@ -54,8 +54,15 @@ const cLongDto = 5;
 const cLongImporte = 8;
 // long maxima de la linea
 const cLongMax = 48;
-// distintos formatos de detalle dependiendo si se muestra preuU, dto,etc
-const formatoDetalle = ["Quant    Article           Preu U.    Dto  Importe €","Quant    Article               Dto    Importe €","Quant    Article             Preu U.   Importe €","Quant    Article                    Importe €     "];
+// distintos formatos de detalle dependiendo si se muestra preuU, dto,etc:
+// 0: incluye dto y preuU; 1: incluye dto; 2: incluye preuU; 3: no incluye dto ni preuU; 4: formato albNPT
+const formatoDetalle = [
+  "Quant    Article          Preu U.  Dto  Import €",
+  "Quant    Article                   Dto  Import €",
+  "Quant    Article               Preu U.  Import €",
+  "Quant    Article                     Import €   ",
+  "Quant    Article                                ",
+];
 /* Función auxiliar borrar cuando sea posible */
 function dateToString2(fecha) {
   let fechaFinal;
@@ -445,8 +452,11 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    let detalles = await this.detallesTicket(arrayCompra);
-    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(arrayCompra,info.idCliente);
+    let detalles = await this.detallesTicket(arrayCompra, info.idCliente);
+    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
+      arrayCompra,
+      info.idCliente
+    );
     let pagoTarjeta = "";
     let pagoTkrs = "";
     let detalleClienteVip = "";
@@ -625,6 +635,7 @@ export class Impresora {
       { tipo: "text", payload: detalleDescuento },
       { tipo: "size", payload: [1, 1] },
       { tipo: "text", payload: pagoDevolucion },
+      { tipo: "align", payload: "RT" },
       { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
       { tipo: "control", payload: "LF" },
       { tipo: "size", payload: [0, 0] },
@@ -673,8 +684,14 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    let detalles = await this.detallesTicket(arrayCompra);
-    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(arrayCompra,info.idCliente);
+    let detalles = await this.detallesTicket(
+      arrayCompra,
+      infoCliente?.idCliente
+    );
+    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
+      arrayCompra,
+      infoCliente?.idCliente
+    );
     let pagoTarjeta = "";
     let pagoTkrs = "";
     let detalleClienteVip = "";
@@ -789,8 +806,6 @@ export class Impresora {
       (fecha.getHours() < 10 ? "0" : "") + fecha.getHours()
     }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
     // declaramos el dispositivo y la impresora escpos
-    console.log(detalles);
-    console.log(detallesIva);
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
     const database = (await conexion).db("tocgame");
@@ -854,13 +869,14 @@ export class Impresora {
       { tipo: "text", payload: detalleDescuento },
       { tipo: "size", payload: [1, 1] },
       { tipo: "text", payload: pagoDevolucion },
+      { tipo: "align", payload: "RT" },
       { tipo: "text", payload: "TOTAL PARCIAL: " + total.toFixed(2) + " €" },
       { tipo: "control", payload: "LF" },
       { tipo: "size", payload: [0, 0] },
       { tipo: "align", payload: "CT" },
       { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
       { tipo: "text", payload: detalleIva },
-      { tipo: "text", payload: copiaText },
+      { tipo: "text", payload: "-- ES COPIA --" },
       { tipo: "control", payload: "LF" },
       { tipo: "text", payload: "ID: " + random() + " - " + random() },
       { tipo: "text", payload: pie },
@@ -923,6 +939,7 @@ export class Impresora {
       { tipo: "text", payload: detalleDescuento },
       { tipo: "size", payload: [1, 1] },
       { tipo: "text", payload: pagoDevolucion },
+      { tipo: "align", payload: "RT" },
       { tipo: "text", payload: "TOTAL PARCIAL: " + total.toFixed(2) + " €" },
       { tipo: "control", payload: "LF" },
       { tipo: "size", payload: [0, 0] },
@@ -1037,24 +1054,25 @@ export class Impresora {
     const thereIsDto = arrayCompra.find((item) => "dto" in item) !== undefined;
     const thereIsIva = arrayCompra.find((item) => "iva" in item) !== undefined;
     // recoje el cliente si lo hay
-    let cliente = idCliente ? await clienteInstance.getClienteById(idCliente) : null;
+    let cliente = idCliente
+      ? await clienteInstance.getClienteById(idCliente)
+      : null;
     let descuento = cliente?.descuento ?? 0;
-    const albaranNPT = cliente?.albaran && cliente?.noPagaEnTienda? true: false;
-    // variables de longitud
-    let longDto = thereIsDto ? cLongDto : 0;
-    // si no hay dto, longDto = 0
-    let longSinDtoDiv = thereIsDto ? 0 : Math.floor(cLongDto / 2);
-    let longSinDtoRes = thereIsDto ? 0 : cLongDto % 2;
-    let longQuant = cLongQuant;
-    let longArticulo = cLongArticulo + longSinDtoRes;
-    let longPreuU = preuUnitari ? cLongPreuU + longSinDtoDiv : 0;
-    let longImporte = cLongImporte + longSinDtoDiv;
 
+    const albaranNPT =
+      cliente?.albaran && cliente?.noPagaEnTienda ? true : false;
+
+    // Longitudes relacionadas con el formato
+    let longDto = albaranNPT ? 0 : thereIsDto ? cLongDto : 0;
+    let longQuant = cLongQuant;
+    let longPreuU = albaranNPT ? 0 : preuUnitari ? cLongPreuU : 0;
+    let longImporte = albaranNPT ? 0 : cLongImporte;
+    let longArticulo = inicializarLongArticulo();
     let margen = cMargen;
+
     // variables en cada linea detalle
     let cantidadStr = "";
     let articuloStr = "";
-    let precioUnitario = "";
     let precioUnitarioStr = "";
     let descuentoStr = "";
     let importeStr = "";
@@ -1063,22 +1081,19 @@ export class Impresora {
     margenStr = sprintf(`%-${margen}s`, margenStr);
     let detalles = "";
 
-    console.log(thereIsDto);
-
-    // ejemplos que se mostraria el listado
-    console.log(" Quant   Article          Preu U.   Dto Importe €");
-    console.log(" Quant   Article               Dto Importe €");
-    console.log(" Quant   Article             Preu U.    Importe €");
-    console.log(" Quant   Article                 Importe €");
     for (let i = 0; i < arrayCompra.length; i++) {
       arrayCompra[i].subtotal =
         arrayCompra[i].subtotal - arrayCompra[i].subtotal * (descuento / 100);
-      if (preuUnitari) {
-        arrayCompra[i]["preuU"] = Number(
-          (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
-        );
-      }
-      if (thereIsDto) {
+
+      arrayCompra[i]["preuU"] = albaranNPT
+        ? Number(
+            (arrayCompra[i].precioOrig / arrayCompra[i].unidades).toFixed(2)
+          )
+        : Number(
+            (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
+          );
+
+      if (thereIsDto && !albaranNPT) {
         let dto = arrayCompra[i].dto ? arrayCompra[i].dto + "%" : "";
         descuentoStr = sprintf(`%${longDto}s`, dto);
       } else {
@@ -1093,12 +1108,12 @@ export class Impresora {
           )
         ).nombre;
 
-        cantidadStr = sprintf(`%${longQuant}s`, arrayCompra[i].unidades);
+        cantidadStr = sprintf(`%-${longQuant}s`, arrayCompra[i].unidades);
         precioUnitarioStr =
           longPreuU == 0
             ? ""
             : sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
-        importeStr = sprintf(`%${longImporte}s`, arrayCompra[i].subtotal);
+        importeStr = setImporteStr();
         // pasamos de param el nombre porque puede variar si es una promo
         comprobarLongitud("Of. " + nombrePrincipal);
         // linea del articulo
@@ -1115,7 +1130,7 @@ export class Impresora {
         detalles += lineaTicket + "\n";
 
         // imprime promoPrincipal ej:'>       oferta nombreP (10x)  1.20'
-        cantidadStr = sprintf(`%${longQuant}s`, "");
+        cantidadStr = sprintf(`%-${longQuant}s`, "");
         precioUnitarioStr =
           longPreuU == 0
             ? ""
@@ -1147,7 +1162,8 @@ export class Impresora {
               arrayCompra[i].promocion.idArticuloSecundario
             )
           ).nombre;
-          cantidadStr = sprintf(`%${longQuant}s`, "");
+
+          cantidadStr = sprintf(`%-${longQuant}s`, "");
           precioUnitarioStr =
             longPreuU == 0
               ? ""
@@ -1178,12 +1194,12 @@ export class Impresora {
       ) {
         // Entra si tiene suplementos
         // imprimir articulo
-        cantidadStr = sprintf(`%${longQuant}s`, arrayCompra[i].unidades);
+        cantidadStr = sprintf(`%-${longQuant}s`, arrayCompra[i].unidades);
         precioUnitarioStr =
           longPreuU == 0
             ? ""
             : sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
-        importeStr = sprintf(`%${longImporte}.2f`, arrayCompra[i].subtotal);
+        importeStr = setImporteStr();
         comprobarLongitud();
         // linea del articulo
         lineaTicket =
@@ -1198,7 +1214,7 @@ export class Impresora {
           importeStr;
         detalles += lineaTicket + "\n";
         for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
-          cantidadStr = sprintf(`%${longQuant}s`, "");
+          cantidadStr = sprintf(`%-${longQuant}s`, "");
           precioUnitarioStr =
             longPreuU == 0
               ? ""
@@ -1206,7 +1222,7 @@ export class Impresora {
                   `%${longPreuU}.2f`,
                   arrayCompra[i].arraySuplementos[j].precioConIva
                 );
-          importeStr = sprintf(`%${longImporte}.2s`, "");
+          importeStr = sprintf(`%${longImporte}s`, "");
           comprobarLongitud(arrayCompra[i].arraySuplementos[j].nombre);
           // linea del suplemento pos j
           lineaTicket = `${
@@ -1225,14 +1241,13 @@ export class Impresora {
         // version antigua Suplementos
       } else {
         // articulo sin promos ni suplementos
-        cantidadStr = sprintf(`%${longQuant}s`, arrayCompra[i].unidades);
+        cantidadStr = sprintf(`%-${longQuant}s`, arrayCompra[i].unidades);
         precioUnitarioStr =
           longPreuU == 0
             ? ""
             : sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
-        importeStr = sprintf(`%${longImporte}.2f`, arrayCompra[i].subtotal);
+        importeStr = setImporteStr();
         comprobarLongitud();
-
         lineaTicket =
           cantidadStr +
           margenStr +
@@ -1245,8 +1260,8 @@ export class Impresora {
           importeStr;
         detalles += lineaTicket + "\n";
       }
-
-      // funcion interna donde modifica las longitudes si el valor introducido es mayor que el predeterminado
+      // funcion interna donde modifica las longitudes si el valor introducido en
+      // cada iteración es mayor que el predeterminado
       function comprobarLongitud(nombreArticulo = null) {
         if (importeStr.length > longImporte) {
           longArticulo = longArticulo + longImporte - importeStr.length;
@@ -1265,19 +1280,50 @@ export class Impresora {
           articuloStr = articuloStr.slice(0, longArticulo);
         }
         // reinicia la longitud predeterminada del nombreArt para utilizarla al volver a entrar
-        longArticulo = cLongArticulo + longSinDtoRes;
+        longArticulo = inicializarLongArticulo();
+      }
+      function setImporteStr() {
+        let str = "";
+        if (albaranNPT) {
+          str = `${arrayCompra[i]["preuU"]} p/u`;
+          str +=
+            arrayCompra[i]?.dto != undefined
+              ? ` -${arrayCompra[i]?.dto}% D`
+              : "";
+          str +=
+            arrayCompra[i]?.iva != undefined
+              ? ` +${arrayCompra[i].iva}% Iva`
+              : "";
+          str = sprintf(`%${longImporte}s`, str);
+        } else {
+          str = sprintf(`%${longImporte}.2f`, arrayCompra[i].subtotal);
+        }
+        return str;
       }
     }
-    console.log(detalles);
+
     return detalles;
+
+    // funciones internas detallesTicket
+    function inicializarLongArticulo() {
+      // aumenta la long del nombreArt si las demas long de otras col son 0
+      let longArticulo = cLongArticulo;
+      if (longImporte === 0) {
+        longArticulo += cLongImporte;
+      }
+      if (longPreuU === 0) {
+        longArticulo += cLongPreuU;
+      }
+
+      if (longDto === 0) {
+        longArticulo += cLongDto;
+      }
+      return longArticulo;
+    }
   }
 
   async precioUnitario(arrayCompra, idCliente = null) {
     let detalles = "";
-    console.log("Quant  Article            Preu U.   Dto Importe €");
-    console.log("Quant  Article                 Dto Importe €");
-    console.log("Quant  Article               Preu U.    Importe €");
-    console.log("Quant  Article                   Importe €");
     //const preuUnitari =
     // recojemos los productos del ticket
     let descuento = 0;
@@ -1385,7 +1431,6 @@ export class Impresora {
       }
     }
     detalles.split("\n").splice(-1, 1).join("\n");
-    console.log(detalles);
     return detalles;
   }
   /* Eze 4.0 */
@@ -2569,26 +2614,30 @@ export class Impresora {
     }
   }
   async comprobarFormatoDetalle(lista: ItemLista[], idCliente: string) {
+    const cliente = await clienteInstance.isClienteDescuento(idCliente);
     const preuUnitari =
       (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
       "Si";
     // comprueba si hay param dto y param iva
     const thereIsDto = lista.find((item) => "dto" in item) !== undefined;
     const thereIsIva = lista.find((item) => "iva" in item) !== undefined;
-    if (preuUnitari && thereIsDto) {
-      console.log("preuUnitari && DTO")
+    if (cliente && cliente.albaran && cliente.noPagaEnTienda) {
+      // formato albaranNPT
+      return 4;
+    } else if (preuUnitari && thereIsDto) {
+      // "preuUnitari y con DTO")
       return 0;
     } else if (!preuUnitari && thereIsDto) {
-      console.log("sin PreuU y con DTO")
+      // "sin PreuU y con DTO")
       return 1;
     } else if (preuUnitari && !thereIsDto) {
-      console.log("Con preuUnitari y  sin DTO")
+      // "Con preuUnitari y  sin DTO")
       return 2;
     } else if (!preuUnitari && !thereIsDto) {
-      console.log("Sin preuUnitari y sin DTO")
+      // "Sin preuUnitari y sin DTO")
       return 3;
     }
-    console.log("No se ha cumplido ninguna condicion")
+    console.log("No se ha cumplido ninguna condicion");
     return 3;
   }
 }

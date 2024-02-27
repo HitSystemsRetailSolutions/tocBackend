@@ -871,20 +871,21 @@ export class CestaClase {
         }
         // si contiene dto o iva, añadir precio original para mostrarlo en el ticket
         if (cesta.lista[i]?.iva || cesta.lista[i]?.dto) {
-          cesta.lista[i].precioOrig=precioArt*cesta.lista[i].unidades;
-        }else if(cesta.lista[i]?.precioOrig){
+          cesta.lista[i].precioOrig = precioArt * cesta.lista[i].unidades;
+        } else if (cesta.lista[i]?.precioOrig) {
           delete cesta.lista[i].precioOrig;
         }
 
         if (cesta.lista[i].iva) {
-          cesta.lista[i].subtotal = cesta.lista[i].subtotal * (1 + cesta.lista[i].iva / 100);
-          cesta.lista[i].subtotal= Math.round(cesta.lista[i].subtotal * 100) / 100;
-          console.log(cesta.lista[i].subtotal);
+          cesta.lista[i].subtotal =
+            cesta.lista[i].subtotal * (1 + cesta.lista[i].iva / 100);
         }
         if (cesta.lista[i].dto) {
-          cesta.lista[i].subtotal = cesta.lista[i].subtotal * (1 - cesta.lista[i].dto / 100);
-          cesta.lista[i].subtotal= Math.round(cesta.lista[i].subtotal * 100) / 100;
+          cesta.lista[i].subtotal =
+            cesta.lista[i].subtotal * (1 - cesta.lista[i].dto / 100);
         }
+        cesta.lista[i].subtotal =
+          Math.round(cesta.lista[i].subtotal * 100) / 100;
         const auxDetalleIva = construirObjetoIvas(
           precioArt,
           articulo.tipoIva,
@@ -906,7 +907,8 @@ export class CestaClase {
           const detalleDeSuplementos = await this.getDetalleIvaSuplementos(
             cesta.lista[i].arraySuplementos,
             cesta.idCliente,
-            cesta.lista[i].unidades
+            cesta.lista[i].unidades,
+            dto
           );
           const preuSumplements = Number(
             await this.getPreuSuplementos(
@@ -916,6 +918,11 @@ export class CestaClase {
             )
           );
           cesta.lista[i].subtotal += preuSumplements;
+          if (cesta.lista[i].precioOrig) {
+            cesta.lista[i].precioOrig =
+              Math.round((cesta.lista[i].precioOrig + preuSumplements) * 100) /
+              100;
+          }
           cesta.detalleIva = fusionarObjetosDetalleIva(
             cesta.detalleIva,
             detalleDeSuplementos
@@ -982,7 +989,8 @@ export class CestaClase {
   async getDetalleIvaSuplementos(
     arraySuplementos: ArticulosInterface[],
     idCliente: ClientesInterface["id"],
-    unidades: number
+    unidades: number,
+    dto: number = 0
   ): Promise<DetalleIvaInterface> {
     let objetoIva: DetalleIvaInterface = {
       base1: 0,
@@ -1022,7 +1030,13 @@ export class CestaClase {
         precioArt = precioArt - precioArt * (descuento / 100);
       }
       objetoIva = fusionarObjetosDetalleIva(
-        construirObjetoIvas(precioArt, articulo.tipoIva, unidades),
+        construirObjetoIvas(
+          precioArt,
+          articulo.tipoIva,
+          unidades,
+          cliente?.albaran && cliente?.noPagaEnTienda,
+          dto
+        ),
         objetoIva
       );
     }
