@@ -40,7 +40,6 @@ export async function buscar(
     .toArray();
 }
 
-
 /* Eze 4.0 */
 export async function getTrabajador(
   idTrabajador: number
@@ -51,6 +50,23 @@ export async function getTrabajador(
   return await trabajadores.findOne({
     _id: idTrabajador,
   });
+}
+
+/* Uri */
+export async function removeActiveEmployers(): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const trabajadores =
+    database.collection<TrabajadoresInterface>("trabajadores");
+  let activos = await trabajadores.find({
+    activo: true,
+  });
+  activos.forEach((trabajador) => {
+    trabajadores.updateOne(
+      { _id: trabajador._id },
+      { $set: { activo: false } }
+    );
+  });
+  return true;
 }
 
 /* Eze 4.0 */
@@ -111,6 +127,14 @@ export async function usarTrabajador(
     )
   ).acknowledged;
   return true;
+}
+
+/* Uri */
+export async function setTrabajadorActivo(id) {
+  const database = (await conexion).db("tocgame");
+  const trabajadores = database.collection("trabajadores");
+  return (await trabajadores.updateOne({ _id: id }, { $set: { activo: true } }))
+    .acknowledged;
 }
 
 /* Uri*/

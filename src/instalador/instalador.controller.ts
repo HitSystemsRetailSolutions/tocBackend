@@ -376,12 +376,14 @@ export class InstaladorController {
               );
             } else {
               ticketProcessed.push(e.Num_tick);
+              // verificar si ticket es consumo_personal
+              const consumo_personal = e.Tipus_venta === "Desc_100";
               const Tickets = await ticketsInstance.InsertatTicketBackUp(
                 e.Num_tick,
                 e.Data,
                 e.Import,
                 e.Dependenta,
-                false
+                consumo_personal,
               );
             }
           }
@@ -399,6 +401,7 @@ export class InstaladorController {
             inicioTime: Date.parse(date.toString()),
             totalApertura: totalMonedas,
             fichajes: [Number.parseInt(Dependenta)],
+            propina: 0,
           });
         }
         return [1, monedas];

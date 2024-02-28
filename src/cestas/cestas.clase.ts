@@ -265,7 +265,7 @@ export class CestaClase {
   ): Promise<boolean> {
     try {
       let cesta = await this.getCestaById(idCesta);
-      if (cesta.lista[index].pagado) return null;
+      if (cesta.lista[index]?.pagado) return null;
       let productos = [];
       productos.push(cesta.lista[index]);
       await this.registroLogSantaAna(cesta, productos);
@@ -540,7 +540,8 @@ export class CestaClase {
         numProductos += cesta.lista[i].unidades;
         total += cesta.lista[i].subtotal;
       }
-      if (menu != "honei" && menu != "pagados") {
+      // menus con estos valores no se muestran en el visor
+      if (menu != "honei" && menu != "pagados" && menu != "descargas") {
         impresoraInstance.mostrarVisor({
           total: total.toFixed(2),
           precio: precioArt.toFixed(2).toString(),
@@ -639,8 +640,13 @@ export class CestaClase {
   ) {
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
+      if (!nombre && !articulo) {
+        throw Error(
+          "Error, el artículo " + idArticulo + " no existe en la base de datos"
+        );
+      }
       const cesta = await cestasInstance.getCestaById(idCesta);
-      articulo.nombre = nombre.length > 0 ? nombre : articulo.nombre;
+      articulo.nombre = nombre && nombre.length > 0 ? nombre : articulo.nombre;
 
       if (cesta.idCliente) {
         articulo = await articulosInstance.getPrecioConTarifa(
@@ -831,7 +837,8 @@ export class CestaClase {
           );
           precioArt = preu == null ? precioArt : preu.precioConIva;
         }
-        cesta.lista[i].subtotal = precioArt * cesta.lista[i].unidades;
+        let p = articulo.precioConIva * cesta.lista[i].unidades;
+        cesta.lista[i].subtotal = Number(p.toFixed(2)) as number;
         if (descuento)
           precioArt = Number(precioArt - precioArt * (descuento / 100));
         if (dto && !cesta.lista[i]?.dto) {
@@ -911,11 +918,13 @@ export class CestaClase {
             dto
           );
           const preuSumplements = Number(
-            await this.getPreuSuplementos(
-              cesta.lista[i].arraySuplementos,
-              cesta.idCliente,
-              cesta.lista[i].unidades
-            )
+            (
+              await this.getPreuSuplementos(
+                cesta.lista[i].arraySuplementos,
+                cesta.idCliente,
+                cesta.lista[i].unidades
+              )
+            ).toFixed(2)
           );
           cesta.lista[i].subtotal += preuSumplements;
           if (cesta.lista[i].precioOrig) {
@@ -945,16 +954,19 @@ export class CestaClase {
         let total = 0;
         for (let i = 0; i < cesta.lista.length; i++) {
           numProductos += cesta.lista[i].unidades;
-          total += cesta.lista[i].subtotal;
+          let valor: any = Number(cesta.lista[i].subtotal.toFixed(2));
+          total += valor;
         }
-        impresoraInstance.mostrarVisor({
-          total: total.toFixed(2),
-          precio: cesta.lista[cesta.lista.length - 1].subtotal
-            .toFixed(2)
-            .toString(),
-          texto: cesta.lista[cesta.lista.length - 1].nombre,
-          numProductos: numProductos,
-        });
+        if (menu != "descargas") {
+          impresoraInstance.mostrarVisor({
+            total: total.toFixed(2),
+            precio: cesta.lista[cesta.lista.length - 1].subtotal
+              .toFixed(2)
+              .toString(),
+            texto: cesta.lista[cesta.lista.length - 1].nombre,
+            numProductos: numProductos,
+          });
+        }
       }
     }
     return cesta;

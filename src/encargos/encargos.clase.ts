@@ -382,21 +382,27 @@ export class Encargos {
 
       let productos = [];
       const subcadena = ";0";
+
+      // recorremos array comentarios para añadirlas en su producto correspondiente
       for (const [index, item] of res.comentarios.entries()) {
         const textoModificado = await this.eliminarSubstringYAnterior(
           item,
           subcadena
         );
-
-        productos.push({
-          id: cestaEncargo.lista[index].idArticulo,
-          nombre: cestaEncargo.lista[index].nombre,
-          total: cestaEncargo.lista[index].subtotal,
-          unidades: cestaEncargo.lista[index].unidades,
-          comentario: textoModificado,
-          arraySuplementos: cestaEncargo.lista[index].arraySuplementos,
-          promocion: cestaEncargo.lista[index].promocion,
-        });
+        // Si no entra a la condicion, es porque en la cestaEncargo se ha creado
+        //  una promoCombo entre dos articulos no promocionables inicialmente
+        // y al recorrer el bucle con res.comentarios, hay mas comments que productos en cestaEncargo
+        if (cestaEncargo.lista[index]?.idArticulo) {
+          productos.push({
+            id: cestaEncargo.lista[index].idArticulo,
+            nombre: cestaEncargo.lista[index].nombre,
+            total: cestaEncargo.lista[index].subtotal,
+            unidades: cestaEncargo.lista[index].unidades,
+            comentario: textoModificado,
+            arraySuplementos: cestaEncargo.lista[index].arraySuplementos,
+            promocion: cestaEncargo.lista[index].promocion,
+          });
+        }
       }
       let descuento: any = Number(
         (await clienteInstance.isClienteDescuento(idCliente))?.descuento
@@ -421,10 +427,10 @@ export class Encargos {
 
       for (const key in cestaEncargo.detalleIva) {
         if (key.startsWith("importe")) {
-          total += cestaEncargo.detalleIva[key];
+          total += Math.round( cestaEncargo.detalleIva[key] * 100) / 100;
         }
       }
-
+      total = Number((Math.round(total * 100) / 100).toFixed(2));
       // creamos una data mogodb de encargo
       const mongodbEncargo = {
         idCliente: idCliente,
@@ -684,7 +690,7 @@ export class Encargos {
               1,
               arraySuplementos,
               "",
-              ""
+              "descargas"
             );
           }
 

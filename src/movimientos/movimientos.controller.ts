@@ -87,8 +87,33 @@ export class MovimientosController {
   async getMovTkrsSinExcIntervalo() {
     try {
       const inicioTime = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
-    const finalTime = Date.now();
-      return await movimientosInstance.getMovTkrsSinExcIntervalo(inicioTime, finalTime);
+      const finalTime = Date.now();
+      return await movimientosInstance.getMovTkrsSinExcIntervalo(
+        inicioTime,
+        finalTime
+      );
+    } catch (err) {
+      logger.Error(99, err);
+      console.log(err);
+      return 0;
+    }
+  }
+  @Post("PayWithCash")
+  async PayWithCash(@Body() { idTicket }) {
+    try {
+      return await movimientosInstance.payWithCash(idTicket);
+      return null;
+    } catch (err) {
+      logger.Error(99, err);
+      console.log(err);
+      return 0;
+    }
+  }
+  @Post("PayWith3G")
+  async PayWith3G(@Body() { idTicket }) {
+    try {
+      return await movimientosInstance.PayWith3G(idTicket);
+      return null;
     } catch (err) {
       logger.Error(99, err);
       console.log(err);

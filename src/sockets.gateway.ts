@@ -35,8 +35,9 @@ io.on("connection", (socket) => {
           ticket._id,
           ticket.total
         );
+        return true;
       }
-      throw Error("Faltan datos {idTrabajador} controller");
+      throw Error("Faltan datos {idTrabajador} socket.on iniciarTransaccion");
     } catch (err) {
       logger.Error(131, err);
     }
@@ -70,6 +71,8 @@ io.on("connection", (socket) => {
   /* Eze 4.0 */
   socket.on("cargarTrabajadores", async (data) => {
     try {
+      //pido que me digan quien esta usando el fichado
+      await trabajadoresInstance.removeActiveEmployers();
       socket.emit(
         "cargarTrabajadores",
         await trabajadoresInstance.getTrabajadoresFichados()
@@ -144,6 +147,20 @@ io.on("connection", (socket) => {
       logger.Error("sockets.gateway.ts recargarPromociones", err);
     }
   });
+
+  socket.on(
+    "logFrontend",
+    async (logLevel, errorMessage, serviceName, methodName, errorObj) => {
+      if (serviceName == null) serviceName = "";
+      logger.Log(
+        logLevel,
+        errorMessage,
+        "Frontend-" + serviceName,
+        methodName,
+        errorObj
+      );
+    }
+  );
 });
 
 if (process.env.NODE_ENV !== "test") {

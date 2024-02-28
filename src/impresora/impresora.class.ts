@@ -1734,7 +1734,7 @@ export class Impresora {
         datafono3G += "Desglossament Vises 3G:\n";
         for (let i = 0; i < arrayTickets.length; i++) {
           const auxFecha = new Date(arrayTickets[i].timestamp);
-          if (arrayTickets[i].datafono3G) {
+          if (arrayTickets[i]?.datafono3G) {
             const signo = arrayTickets[i]?.anulado ? "" : "+";
             datafono3G += ` Quant: ${signo}${arrayTickets[i].total.toFixed(
               2
@@ -1803,9 +1803,17 @@ export class Impresora {
             }
             break;
           case "DATAFONO_3G":
-            datafono3G += `  Quant: +${arrayMovimientos[i].valor.toFixed(
-              2
-            )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
+              datafono3G += `  Quant: +${arrayMovimientos[i].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            }
+          case "DEV_DATAFONO_3G":
+            if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
+              datafono3G += `  Quant: -${arrayMovimientos[i].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+            }
             break;
         }
       }
@@ -1917,7 +1925,7 @@ export class Impresora {
       buffer = buffer.concat([
         {
           tipo: "text",
-          payload: "Datafon 3g       :      " + caja.totalDatafono3G,
+          payload: "Datafon 3G       :      " + caja.totalDatafono3G,
         },
         {
           tipo: "text",
