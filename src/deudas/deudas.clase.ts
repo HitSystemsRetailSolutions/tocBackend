@@ -101,7 +101,16 @@ export class Deudas {
 
     if (deuda) {
       let id = deuda.idTicket;
-      if (await this.comprobarVersDeudaAlbaran(deuda, albaran)) {
+      // comprobaciones para proceder con el comportamiento correspondiente dependiendo de la fecha de creacion de la deuda albaran
+      // al haber hecho cambios en el procedimiento de los albaranes. El cambio actual se realizo el 27 de febrero de 2024
+      //Estas comprobaciones se podrán borrar en un futuro al no haber deudas pendientes de albaranes antiguos
+
+      // comprobamos si la deuda es de un albaran version antigua
+      const firstVersionDeudaAlbaran = await this.comprobarVersDeudaAlbaran(
+        deuda,
+        albaran
+      );
+      if (firstVersionDeudaAlbaran) {
         // creamos un albaran e insertamos al nuevoMovimiento la idAlbaran
         const idAlbarnan = await AlbaranesInstance.setAlbaran(
           Number(deuda.total.toFixed(2)),
@@ -111,7 +120,13 @@ export class Deudas {
         );
         id = idAlbarnan.toString();
       }
-      const concepto = albaran ? "DEUDA ALBARAN" : "DEUDA";
+      // comprobamos si la deuda es de un albaran version 2o antigua
+      const secondVersionDeudaAlbaran = await this.comprobar2ndVersDeudaAlbaran(
+        deuda,
+        albaran
+      );
+      const concepto =
+        secondVersionDeudaAlbaran && albaran ? "DEUDA ALBARAN" : "DEUDA";
       const movimiento = {
         cantidad: deuda.total,
         concepto: concepto,
@@ -148,10 +163,21 @@ export class Deudas {
       };
     }
   }
+  async comprobar2ndVersDeudaAlbaran(deuda: DeudasInterface, albaran: any) {
+    if (!albaran) {
+      return false;
+    }
+    const fechaVerion2 = new Date("2024-02-027T11:00:00");
+    if (deuda.timestamp < fechaVerion2.getTime()) {
+      return true;
+    }
+    return false;
+  }
   async comprobarVersDeudaAlbaran(deuda: DeudasInterface, albaran: any) {
     if (!albaran) {
       return false;
     }
+    // fecha de las modificaciones de los albaranes en deudas
     const fechaVersion = new Date("2024-01-03T12:00:00");
     const timestamp = fechaVersion.getTime();
     // detectamos que deuda albaran es anterior a la nueva version de los albaranes
@@ -168,7 +194,8 @@ export class Deudas {
         if (!res) {
           return { error: true, msg: "Error al borrar la deuda" };
         } else {
-          if (albaran) {
+          // se hace mov si la deuda albaran es de una vers antigua
+          if (albaran && this.comprobar2ndVersDeudaAlbaran(deuda, albaran)) {
             await movimientosInstance.nuevoMovimiento(
               deuda.total,
               "DEUDA ALBARAN ANULADO",

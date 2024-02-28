@@ -8,6 +8,7 @@ export interface ArticulosInterface {
   esSumable: boolean;
   puntos: number;
   impresora: string;
+  pare: string;
   suplementos: [];
 }
 

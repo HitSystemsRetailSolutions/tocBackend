@@ -6,9 +6,11 @@ const redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
 
 /* Eze 4.0 */
 export function construirObjetoIvas(
-  precioConIva: number,
+  precio: number,
   tipoIva: TiposIva,
-  unidades: number
+  unidades: number,
+  albaranNPT: boolean = false,
+  dto: number = 0
 ): DetalleIvaInterface {
   let base1 = 0,
     base2 = 0,
@@ -25,32 +27,34 @@ export function construirObjetoIvas(
     importe3 = 0,
     importe4 = 0,
     importe5 = 0;
-
+  // si es albaranNPT, parametro precio viene sin el iva.
+  // En caso contrario, al precio se le quita el iva para calcular las bases y valores
+  // Puede contener dto, por lo que se le aplica el dto a base
   switch (tipoIva) {
     case 1:
-      base1 = (precioConIva / 1.04) * unidades;
-      valor1 = (precioConIva / 1.04) * 0.04 * unidades;
-      importe1 = precioConIva * unidades;
+      base1 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio / 1.04) * unidades - (precio / 1.04 * unidades) * (dto/100);
+      valor1 = base1 * 0.04 ;
+      importe1 = base1 + valor1;
       break;
     case 2:
-      base2 = (precioConIva / 1.1) * unidades;
-      valor2 = (precioConIva / 1.1) * 0.1 * unidades;
-      importe2 = precioConIva * unidades;
+      base2 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio / 1.1) * unidades - (precio / 1.1 * unidades) * (dto/100);
+      valor2 = base2 * 0.1 ;
+      importe2 = base2 + valor2;
       break;
     case 3:
-      base3 = (precioConIva / 1.21) * unidades;
-      valor3 = (precioConIva / 1.21) * 0.21 * unidades;
-      importe3 = precioConIva * unidades;
+      base3 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100) : (precio / 1.21) * unidades - (precio / 1.21 * unidades) * (dto/100);
+      valor3 = base3 * 0.21;
+      importe3 = base3 + valor3;
       break;
     case 4:
-      base4 = (precioConIva / 1) * unidades;
-      valor4 = (precioConIva / 1) * 0 * unidades;
-      importe4 = precioConIva * unidades;
+      base4 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio / 1 ) * unidades - (precio / 1 * unidades) * (dto/100);
+      valor4 = base4 * 0;
+      importe4 = base4 + valor4;
       break;
     case 5:
-      base5 = (precioConIva / 1.05) * unidades;
-      valor5 = (precioConIva / 1.05) * 0.05 * unidades;
-      importe5 = precioConIva * unidades;
+      base5 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio/ 1.05) * unidades - (precio/ 1.05 * unidades) * (dto/100);
+      valor5 = base5 * 0.05;
+      importe5 = base5 + valor5;
       break;
     default:
       break;

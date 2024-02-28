@@ -36,6 +36,7 @@ export type ItemLista = {
   nombre: string;
   unidades: number;
   subtotal: number;
+  precioOrig?: number;
   arraySuplementos: ArticulosInterface[];
   promocion: {
     idPromocion: string;
@@ -52,6 +53,8 @@ export type ItemLista = {
   gramos: number;
   impresora: string;
   regalo: boolean;
+  dto?: number;
+  iva?: number;
   pagado?: boolean;
 };
 
