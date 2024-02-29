@@ -810,8 +810,7 @@ export class CestaClase {
         if (
           cliente &&
           cliente?.dto &&
-          (cliente?.albaran || cliente?.vip) &&
-          cliente?.noPagaEnTienda
+          ((cliente?.albaran && cliente?.noPagaEnTienda) || cliente?.vip)
         )
           dto = await clienteInstance.getDtoAlbaran(cliente, articulo);
         let precioArt =
@@ -837,7 +836,7 @@ export class CestaClase {
           );
           precioArt = preu == null ? precioArt : preu.precioConIva;
         }
-        let p = articulo.precioConIva * cesta.lista[i].unidades;
+        let p = precioArt * cesta.lista[i].unidades;
         cesta.lista[i].subtotal = Number(p.toFixed(2)) as number;
         if (descuento)
           precioArt = Number(precioArt - precioArt * (descuento / 100));
@@ -891,8 +890,8 @@ export class CestaClase {
           cesta.lista[i].subtotal =
             cesta.lista[i].subtotal * (1 - cesta.lista[i].dto / 100);
         }
-        cesta.lista[i].subtotal =
-          Math.round(cesta.lista[i].subtotal * 100) / 100;
+        cesta.lista[i].subtotal =Number(
+          cesta.lista[i].subtotal.toFixed(2));
         const auxDetalleIva = construirObjetoIvas(
           precioArt,
           articulo.tipoIva,

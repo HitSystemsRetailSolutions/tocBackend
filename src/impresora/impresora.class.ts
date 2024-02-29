@@ -29,6 +29,7 @@ import { EncargosInterface } from "src/encargos/encargos.interface";
 import { TicketsInterface } from "src/tickets/tickets.interface";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { CestasController } from "src/cestas/cestas.controller";
+import { info } from "console";
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -184,7 +185,7 @@ export class Impresora {
             idCliente: infoCliente.id,
             nombre: infoCliente.nombre,
             puntos: puntos,
-            descuento,
+            descuento: Number(infoCliente.descuento) || 0,
           },
           dejaCuenta: ticket.dejaCuenta,
           idCliente: ticket.idCliente,
@@ -265,7 +266,7 @@ export class Impresora {
             idCliente: infoCliente.id,
             nombre: infoCliente.nombre,
             puntos: puntos,
-            descuento,
+            descuento: Number(infoCliente.descuento) || 0,
           },
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
@@ -774,7 +775,6 @@ export class Impresora {
     if (info.dejaCuenta > 0) {
       detalleDejaCuenta = "Pagament rebut: " + info.dejaCuenta;
     }
-
     const detallesIva = await this.getDetallesIva(tiposIva);
 
     let detalleIva = "";
