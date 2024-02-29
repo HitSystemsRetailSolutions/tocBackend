@@ -8,4 +8,5 @@ export interface TeclasInterface {
   precioConIva: number;
   precioBase: number;
   suplementos?: number[];
+  stock?: number;
 }

@@ -10,6 +10,7 @@ export interface ArticulosInterface {
   impresora: string;
   pare: string;
   suplementos: [];
+  stock?: number;
 }
 
 export type TiposIva = 1 | 2 | 3 | 4 | 5;
