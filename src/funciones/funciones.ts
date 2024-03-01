@@ -32,50 +32,60 @@ export function construirObjetoIvas(
   // Puede contener dto, por lo que se le aplica el dto a base
   switch (tipoIva) {
     case 1:
-      base1 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio / 1.04) * unidades - (precio / 1.04 * unidades) * (dto/100);
-      valor1 = base1 * 0.04 ;
+      base1 = albaranNPT
+        ? precio * unidades - precio * unidades * (dto / 100)
+        : (precio / 1.04) * unidades - (precio / 1.04) * unidades * (dto / 100);
+      valor1 = base1 * 0.04;
       importe1 = base1 + valor1;
       break;
     case 2:
-      base2 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio / 1.1) * unidades - (precio / 1.1 * unidades) * (dto/100);
-      valor2 = base2 * 0.1 ;
+      base2 = albaranNPT
+        ? precio * unidades - precio * unidades * (dto / 100)
+        : (precio / 1.1) * unidades - (precio / 1.1) * unidades * (dto / 100);
+      valor2 = base2 * 0.1;
       importe2 = base2 + valor2;
       break;
     case 3:
-      base3 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100) : (precio / 1.21) * unidades - (precio / 1.21 * unidades) * (dto/100);
+      base3 = albaranNPT
+        ? precio * unidades - precio * unidades * (dto / 100)
+        : (precio / 1.21) * unidades - (precio / 1.21) * unidades * (dto / 100);
       valor3 = base3 * 0.21;
       importe3 = base3 + valor3;
       break;
     case 4:
-      base4 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio / 1 ) * unidades - (precio / 1 * unidades) * (dto/100);
+      base4 = albaranNPT
+        ? precio * unidades - precio * unidades * (dto / 100)
+        : (precio / 1) * unidades - (precio / 1) * unidades * (dto / 100);
       valor4 = base4 * 0;
       importe4 = base4 + valor4;
       break;
     case 5:
-      base5 = albaranNPT ? precio * unidades - (precio * unidades) * (dto/100): (precio/ 1.05) * unidades - (precio/ 1.05 * unidades) * (dto/100);
+      base5 = albaranNPT
+        ? precio * unidades - precio * unidades * (dto / 100)
+        : (precio / 1.05) * unidades - (precio / 1.05) * unidades * (dto / 100);
       valor5 = base5 * 0.05;
       importe5 = base5 + valor5;
       break;
     default:
       break;
   }
-
+// Redondeo con Math.Round y no con toFixed para evitar un almacenado con pérdida de precisión(6.3449999999662,6.3550000002).
   return {
-    base1: base1,
-    base2: base2,
-    base3: base3,
-    base4: base4,
-    base5: base5,
-    valorIva1: valor1,
-    valorIva2: valor2,
-    valorIva3: valor3,
-    valorIva4: valor4,
-    valorIva5: valor5,
-    importe1: importe1,
-    importe2: importe2,
-    importe3: importe3,
-    importe4: importe4,
-    importe5: importe5,
+    base1: Math.round(base1*100)/100,
+    base2: Math.round(base2*100)/100,
+    base3: Math.round(base3*100)/100,
+    base4: Math.round(base4*100)/100,
+    base5: Math.round(base5*100)/100,
+    valorIva1: Math.round(valor1*100)/100,
+    valorIva2: Math.round(valor2*100)/100,
+    valorIva3: Math.round(valor3*100)/100,
+    valorIva4: Math.round(valor4*100)/100,
+    valorIva5: Math.round(valor5*100)/100,
+    importe1: Math.round(importe1*100)/100,
+    importe2: Math.round(importe2*100)/100,
+    importe3: Math.round(importe3*100)/100,
+    importe4: Math.round(importe4*100)/100,
+    importe5: Math.round(importe5*100)/100,
   };
 }
 

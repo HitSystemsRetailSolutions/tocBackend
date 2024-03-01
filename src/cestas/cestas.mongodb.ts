@@ -61,6 +61,8 @@ export async function updateCesta(cesta: CestasInterface): Promise<boolean> {
         modo: cesta.modo,
         timestamp: cesta.timestamp,
         nombreCliente: cesta.nombreCliente,
+        albaran: cesta?.albaran,
+        vip: cesta?.vip,
       },
     }
   );

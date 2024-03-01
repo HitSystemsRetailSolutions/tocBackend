@@ -465,6 +465,7 @@ export class TicketsController {
     try {
       if (ticketId) {
         const res = await ticketsInstance.anularTicket(ticketId);
+        ticketsInstance.actualizarTickets();
         return res;
       }
       throw Error("Error, faltan datos en anularTicket() controller");

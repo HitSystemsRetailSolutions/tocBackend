@@ -11,6 +11,8 @@ export interface CestasInterface {
   idCliente: ClientesInterface["id"];
   nombreCliente?: string;
   indexMesa?: boolean;
+  albaran?: boolean;
+  vip?: boolean;
   trabajador: number;
   trabajadores: ObjectId[];
   comensales: number;
