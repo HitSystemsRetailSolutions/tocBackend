@@ -8,7 +8,6 @@ import * as schContable from "./contable.mongodb";
 //--------------------------------------------------------------
 client.on("connect", async () => {
   const parametros = await parametrosController.getParametros();
-  parametros.licencia = 159;
   try {
     client.subscribe(`/Hit/Serveis/Contable/Estock/${parametros.licencia}`);
   } catch (error) {
