@@ -1109,7 +1109,7 @@ export class Impresora {
     let cliente = idCliente
       ? await clienteInstance.getClienteById(idCliente)
       : null;
-    let descuento = cliente?.descuento ?? 0;
+    let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
 
     const albaranNPT =
       cliente?.albaran && cliente?.noPagaEnTienda ? true : false;
@@ -1379,8 +1379,11 @@ export class Impresora {
     //const preuUnitari =
     // recojemos los productos del ticket
     let descuento = 0;
-    if (idCliente)
-      descuento = (await clienteInstance.getClienteById(idCliente)).descuento;
+    if (idCliente){
+      const cliente = await clienteInstance.getClienteById(idCliente);
+      descuento = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
+    }
+
     const preuUnitari =
       (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
       "Si";

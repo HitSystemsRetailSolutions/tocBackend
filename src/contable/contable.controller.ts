@@ -11,7 +11,6 @@ client.on("connect", async () => {
   parametros.licencia = 159;
   try {
     client.subscribe(`/Hit/Serveis/Contable/Estock/${parametros.licencia}`);
-    console.log("conectado a mqtt");
   } catch (error) {
     console.log(
       "error en contable.controller parametros o direccion no encontrados: ",
@@ -33,7 +32,6 @@ client.on("message", async (topic, message) => {
     let stock = message.EstocActualitzat;
     try {
       //schContable.setItemStock(Number(item), Number(stock));
-      console.log("item: ", item, "stock: ", stock);
       io.emit("stock", { item, stock });
     } catch (error) {
       console.log(

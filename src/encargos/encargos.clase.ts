@@ -158,9 +158,8 @@ export class Encargos {
   };
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
   setEncargo = async (encargo) => {
-    let descuento: any = Number(
-      (await clienteInstance.isClienteDescuento(encargo.idCliente))?.descuento
-    );
+    const cliente = await clienteInstance.getClienteById(encargo.idCliente);
+    let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
     if (descuento && descuento > 0) {
       for (let i = 0; i < encargo.productos.length; i++) {
         const producto = encargo.productos[i];
@@ -404,9 +403,8 @@ export class Encargos {
           });
         }
       }
-      let descuento: any = Number(
-        (await clienteInstance.isClienteDescuento(idCliente))?.descuento
-      );
+      const cliente = await clienteInstance.getClienteById(detallesArray[0].Id);
+      let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
 
       // modificamos precios con el descuentro del cliente
       if (descuento && descuento > 0) {
