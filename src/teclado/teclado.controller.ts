@@ -3,6 +3,7 @@ import { UtilesModule } from "../utiles/utiles.module";
 import { cestasInstance } from "../cestas/cestas.clase";
 import { tecladoInstance } from "./teclado.clase";
 import { logger } from "../logger";
+import { io } from "src/sockets.gateway";
 
 @Controller("teclado")
 export class TecladoController {
@@ -45,7 +46,11 @@ export class TecladoController {
   @Post("actualizarTeclado")
   async actualizarArticulos() {
     try {
-      return await tecladoInstance.actualizarTeclado();
+      const res = await tecladoInstance.actualizarTeclado();
+      if (res) {
+        io.emit("cargarTeclado", res);
+        return res;
+      }
     } catch (err) {
       logger.Error(2, err);
       return false;

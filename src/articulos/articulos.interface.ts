@@ -8,7 +8,9 @@ export interface ArticulosInterface {
   esSumable: boolean;
   puntos: number;
   impresora: string;
+  pare: string;
   suplementos: [];
+  stock?: number;
 }
 
 export type TiposIva = 1 | 2 | 3 | 4 | 5;

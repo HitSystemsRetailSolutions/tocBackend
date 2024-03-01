@@ -47,9 +47,7 @@ export class TrabajadoresController {
   @Post("setTrabajadorActivo")
   async setTrabajadorActivo(@Body() { id }) {
     try {
-      console.log(id);
       let x = await trabajadoresInstance.setTrabajadorActivo(id);
-      console.log(x);
       return x;
     } catch (err) {
       logger.Error(111, err);
