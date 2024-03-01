@@ -1353,7 +1353,7 @@ export class Impresora {
         return str;
       }
     }
-
+    detalles = detalles.substring(0, detalles.length - 1);
     return detalles;
 
     // funciones internas detallesTicket
