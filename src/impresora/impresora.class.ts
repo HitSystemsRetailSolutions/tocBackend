@@ -702,10 +702,9 @@ export class Impresora {
         {
           tipo: "qrimage",
           payload: `https://api.whatsapp.com/send?phone=34617469230&text=${qrURL}`,
-        },
-
-        { tipo: "cut", payload: "PAPER_FULL_CUT" }
+        }
       );
+    arrayImprimir.push({ tipo: "cut", payload: "PAPER_FULL_CUT" });
     const options = {
       imprimirLogo: true,
       tipo: "venta",
