@@ -48,7 +48,6 @@ function random() {
   return numero.toString(16).slice(0, 8);
 }
 
-
 function encryptWhatsapp(text: string) {
   let encoding: BufferEncoding = "hex";
 
@@ -71,7 +70,6 @@ function encryptWhatsapp(text: string) {
   }
   return encrypt(text);
 }
-
 
 // consts para detalles al imprimir
 const cMargen = 1; // margen entre columna 1x4=4 caracteres
@@ -606,6 +604,9 @@ export class Impresora {
     const qrURL = await encryptWhatsapp(
       `Lic:${qrLic} Tick:${numFactura} Data:${qrData}`
     );
+    const qrEnabled =
+      (await parametrosInstance.getParametros())["params"]["QRWhatsApp"] ==
+      "Si";
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
     const database = (await conexion).db("tocgame");
@@ -655,12 +656,11 @@ export class Impresora {
       { tipo: "control", payload: "LF" },
       {
         tipo: "text",
-                payload: formatoDetalle[tipoFormatoDetalle],
+        payload: formatoDetalle[tipoFormatoDetalle],
       },
       {
         tipo: "text",
         payload: "-----------------------------------------------",
-
       },
       { tipo: "align", payload: "LT" },
       { tipo: "text", payload: detalles },
@@ -696,15 +696,16 @@ export class Impresora {
     if (copiaText) arrayImprimir.push({ tipo: "text", payload: copiaText });
     if (firmaText) arrayImprimir.push({ tipo: "text", payload: firmaText });
     if (pie) arrayImprimir.push({ tipo: "text", payload: pie });
-    arrayImprimir.push(
-      { tipo: "text", payload: "Consulta el ticket al WhatsApp:" },
-      {
-        tipo: "qrimage",
-        payload: `https://api.whatsapp.com/send?phone=34617469230&text=${qrURL}`,
-      },
+    if (qrEnabled)
+      arrayImprimir.push(
+        { tipo: "text", payload: "Consulta el ticket al WhatsApp:" },
+        {
+          tipo: "qrimage",
+          payload: `https://api.whatsapp.com/send?phone=34617469230&text=${qrURL}`,
+        },
 
-      { tipo: "cut", payload: "PAPER_FULL_CUT" }
-    );
+        { tipo: "cut", payload: "PAPER_FULL_CUT" }
+      );
     const options = {
       imprimirLogo: true,
       tipo: "venta",
@@ -1109,7 +1110,10 @@ export class Impresora {
     let cliente = idCliente
       ? await clienteInstance.getClienteById(idCliente)
       : null;
-    let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
+    let descuento: any =
+      cliente && !cliente?.albaran && !cliente?.vip
+        ? Number(cliente.descuento)
+        : 0;
 
     const albaranNPT =
       cliente?.albaran && cliente?.noPagaEnTienda ? true : false;
@@ -1379,9 +1383,12 @@ export class Impresora {
     //const preuUnitari =
     // recojemos los productos del ticket
     let descuento = 0;
-    if (idCliente){
+    if (idCliente) {
       const cliente = await clienteInstance.getClienteById(idCliente);
-      descuento = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
+      descuento =
+        cliente && !cliente?.albaran && !cliente?.vip
+          ? Number(cliente.descuento)
+          : 0;
     }
 
     const preuUnitari =
