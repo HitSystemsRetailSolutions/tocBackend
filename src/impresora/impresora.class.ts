@@ -25,6 +25,7 @@ import { conexion } from "../conexion/mongodb";
 import { sprintf } from "sprintf-js";
 import { paytefInstance } from "src/paytef/paytef.class";
 import { deudasInstance } from "src/deudas/deudas.clase";
+import * as CryptoJS from "crypto";
 import { EncargosInterface } from "src/encargos/encargos.interface";
 import { TicketsInterface } from "src/tickets/tickets.interface";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
@@ -45,6 +46,32 @@ function random() {
   const numero = Math.floor(10000000 + Math.random() * 999999999);
   return numero.toString(16).slice(0, 8);
 }
+
+
+function encryptWhatsapp(text: string) {
+  let encoding: BufferEncoding = "hex";
+
+  let key: string = "buscoUnTrosDAhirPerEncriptarHITs";
+
+  function encrypt(plaintext: string) {
+    try {
+      const iv = CryptoJS.randomBytes(16);
+      const cipher = CryptoJS.createCipheriv("aes-256-cbc", key, iv);
+
+      const encrypted = Buffer.concat([
+        cipher.update(plaintext, "utf-8"),
+        cipher.final(),
+      ]);
+
+      return iv.toString(encoding) + encrypted.toString(encoding);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  return encrypt(text);
+}
+
+
 // consts para detalles al imprimir
 const cMargen = 1; // margen entre columna 1x4=4 caracteres
 const cLongQuant = 6;
@@ -63,6 +90,7 @@ const formatoDetalle = [
   "Quant    Article                     Import €   ",
   "Quant    Article                                ",
 ];
+
 /* Función auxiliar borrar cuando sea posible */
 function dateToString2(fecha) {
   let fechaFinal;
@@ -296,9 +324,8 @@ export class Impresora {
   /* Eze 4.0 */
   async imprimirDevolucion(idDevolucion: ObjectId) {
     try {
-      const devolucion = await devolucionesInstance.getDevolucionById(
-        idDevolucion
-      );
+      const devolucion =
+        await devolucionesInstance.getDevolucionById(idDevolucion);
       const parametros = await parametrosInstance.getParametros();
       const trabajador: TrabajadoresInterface =
         await trabajadoresInstance.getTrabajadorById(devolucion.idTrabajador);
@@ -572,6 +599,12 @@ export class Impresora {
     }:${(fecha.getMinutes() < 10 ? "0" : "") + fecha.getMinutes()}`*/
     // declaramos el dispositivo y la impresora escpos
 
+    //qr info
+    const qrData = moment(info.timestamp).format("YYYY-MM-DD");
+    const qrLic = (await parametrosInstance.getParametros()).licencia;
+    const qrURL = await encryptWhatsapp(
+      `Lic:${qrLic} Tick:${numFactura} Data:${qrData}`
+    );
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
     const database = (await conexion).db("tocgame");
@@ -593,36 +626,47 @@ export class Impresora {
       },
       { tipo: "text", payload: "Factura simplificada N: " + numFactura },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
-      {
-        tipo: "text",
-        payload:
-          info.mesa == null
-            ? ""
-            : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
-      },
-      { tipo: "size", payload: [1, 0] },
-      { tipo: "text", payload: clientTitle },
-      { tipo: "size", payload: [0, 0] },
-      {
+    ];
+    if (info.mesa)
+      arrayImprimir.push(
+        {
+          tipo: "text",
+          payload:
+            info.mesa == null
+              ? ""
+              : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
+        },
+        { tipo: "size", payload: [1, 0] },
+        { tipo: "text", payload: clientTitle },
+        { tipo: "size", payload: [0, 0] }
+      );
+    if (detalleClienteVip)
+      arrayImprimir.push({
         tipo: "text",
         payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${
           detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
         }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${
           clienteDescuento ? `${clienteDescuento} \n` : ""
         }`,
-      },
+      });
+
+    arrayImprimir.push(
       { tipo: "control", payload: "LF" },
       {
         tipo: "text",
-        payload: formatoDetalle[tipoFormatoDetalle],
+                payload: formatoDetalle[tipoFormatoDetalle],
       },
-      { tipo: "text", payload: "-----------------------------------------" },
+      {
+        tipo: "text",
+        payload: "-----------------------------------------------",
+
+      },
       { tipo: "align", payload: "LT" },
       { tipo: "text", payload: detalles },
       { tipo: "align", payload: "CT" },
       {
         tipo: "text",
-        payload: "------------------------------------------",
+        payload: "------------------------------------------------",
       },
       {
         tipo: "text",
@@ -630,28 +674,36 @@ export class Impresora {
           pagoTkrs != "" ? `${pagoTkrs}` : ""
         }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
       },
-      { tipo: "align", payload: "LT" },
-      { tipo: "text", payload: detalleDejaCuenta },
-      { tipo: "text", payload: detalleDescuento },
-      { tipo: "size", payload: [1, 1] },
-      { tipo: "text", payload: pagoDevolucion },
+      { tipo: "align", payload: "RT" }
+    );
+    if (detalleDejaCuenta)
+      arrayImprimir.push({ tipo: "text", payload: detalleDejaCuenta });
+    if (detalleDescuento)
+      arrayImprimir.push({ tipo: "text", payload: detalleDescuento });
+    arrayImprimir.push({ tipo: "size", payload: [1, 1] });
+    if (pagoDevolucion)
+      arrayImprimir.push({ tipo: "text", payload: pagoDevolucion });
+    arrayImprimir.push(
       { tipo: "align", payload: "RT" },
       { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
       { tipo: "control", payload: "LF" },
       { tipo: "size", payload: [0, 0] },
       { tipo: "align", payload: "CT" },
-      { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
-      { tipo: "text", payload: detalleIva },
-      { tipo: "text", payload: copiaText },
-      { tipo: "text", payload: firmaText },
-      { tipo: "control", payload: "LF" },
-      { tipo: "text", payload: "ID: " + random() + " - " + random() },
-      { tipo: "text", payload: pie },
-      { tipo: "control", payload: "LF" },
-      { tipo: "control", payload: "LF" },
-      { tipo: "control", payload: "LF" },
-      { tipo: "cut", payload: "PAPER_FULL_CUT" },
-    ];
+      { tipo: "text", payload: "Base IVA         IVA         IMPORT" }
+    );
+    if (detalleIva) arrayImprimir.push({ tipo: "text", payload: detalleIva });
+    if (copiaText) arrayImprimir.push({ tipo: "text", payload: copiaText });
+    if (firmaText) arrayImprimir.push({ tipo: "text", payload: firmaText });
+    if (pie) arrayImprimir.push({ tipo: "text", payload: pie });
+    arrayImprimir.push(
+      { tipo: "text", payload: "Consulta el ticket al WhatsApp:" },
+      {
+        tipo: "qrimage",
+        payload: `https://api.whatsapp.com/send?phone=34617469230&text=${qrURL}`,
+      },
+
+      { tipo: "cut", payload: "PAPER_FULL_CUT" }
+    );
     const options = {
       imprimirLogo: true,
       tipo: "venta",
@@ -1423,15 +1475,39 @@ export class Impresora {
             arrayCompra[i].nombre += " ";
           }
         }
-        detalles += `${arrayCompra[i].unidades}     ${arrayCompra[
+        function formatSpaces(qtSpaces) {
+          let spaces = "";
+          for (let i = 0; i < qtSpaces; i++) {
+            spaces += " ";
+          }
+          return spaces;
+        }
+        let qtSpaces = 6 - arrayCompra[i].unidades.toString().length;
+        let spaces = formatSpaces(qtSpaces);
+        detalles += ` ${spaces + arrayCompra[i].unidades}  ${arrayCompra[
           i
-        ].nombre.slice(0, 20)}${
-          preuUnitari ? "     " + arrayCompra[i]["preuU"].toFixed(2) : ""
-        }   ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+        ].nombre.slice(0, 20)} ${
+          preuUnitari
+            ? formatSpaces(
+                6 - arrayCompra[i]["preuU"].toFixed(2).toString().length
+              ) + arrayCompra[i]["preuU"].toFixed(2)
+            : "      "
+        }  ${
+          formatSpaces(
+            8 - arrayCompra[i].subtotal.toFixed(2).toString().length
+          ) + arrayCompra[i].subtotal.toFixed(2)
+        }€\n`;
       }
     }
-    detalles.split("\n").splice(-1, 1).join("\n");
-    return detalles;
+    let finaltxt = "";
+    for (const x of detalles.split("\n")) {
+      if (x.length > 0) {
+        if (finaltxt.length > 0) finaltxt += "\n";
+        finaltxt += x;
+      }
+    }
+
+    return finaltxt;
   }
   /* Eze 4.0 */
   async imprimirSalida(movimiento: MovimientosInterface) {

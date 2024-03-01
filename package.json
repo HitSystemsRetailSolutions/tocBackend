@@ -36,6 +36,7 @@
     "@types/mongodb": "^4.0.7",
     "@types/socket.io": "^3.0.2",
     "axios": "^1.5.0",
+    "crypto-js": "^4.2.0",
     "ean13-lib": "0.0.5",
     "escpos": "^3.0.0-alpha.6",
     "escpos-network": "^3.0.0-alpha.5",
