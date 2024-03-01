@@ -792,7 +792,6 @@ export class CestaClase {
       cesta.modo !== "CONSUMO_PERSONAL" && cliente && !cliente?.albaran && !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
-    console.log("cestaModo",cesta.modo,cliente,"alb",cliente?.albaran,"vip",cliente?.vip,"descuento", descuento,!cliente?.albaran && !cliente?.vip);
     for (let i = 0; i < cesta.lista.length; i++) {
       if (cesta.lista[i].regalo) continue;
       if (cesta.lista[i].promocion) {
