@@ -32,9 +32,8 @@ export class AlbaranesController {
         throw Error("Error, cesta no encontrada en crearAlbaran() controller");
         
       }
-      let descuento: any = Number(
-        (await clienteInstance.isClienteDescuento(cesta.idCliente))?.descuento
-      );
+      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
       const clienteDescEsp = descuentoEspecial.find(
         (cliente) => cliente.idCliente === cesta.idCliente
       );

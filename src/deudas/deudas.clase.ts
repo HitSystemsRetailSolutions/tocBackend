@@ -298,9 +298,7 @@ export class Deudas {
       await cestasInstance.updateCesta(cesta);
       const cestaDeuda = await this.postCestaDeuda(deuda, cesta);
 
-      let descuento: any = Number(
-        (await clienteInstance.isClienteDescuento(idCliente))?.descuento
-      );
+    let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
 
       // modificamos precios con el descuentro del cliente
       if (descuento && descuento > 0) {
