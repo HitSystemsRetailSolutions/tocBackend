@@ -168,16 +168,15 @@ export class Impresora {
     let sendObject: Object;
     // Si el ticket existe y el trabajador tambien
     if (ticket && trabajador) {
+      let infoCliente = await clienteInstance.getClienteById(
+        ticket.idCliente
+      );
       // Si el ticket tiene cliente imprimimos los datos del cliente tambien
       if (ticket.idCliente && ticket.idCliente != "") {
         // recogemos los datos del cliente
-        let infoCliente = await clienteInstance.getClienteById(
-          ticket.idCliente
-        );
+        
         const puntos = await clienteInstance.getPuntosCliente(ticket.idCliente);
-        const { descuento } = await clienteInstance.getClienteById(
-          ticket.idCliente
-        );
+        const descuento = infoCliente && !infoCliente?.albaran && !infoCliente?.vip? Number(infoCliente.descuento) : 0;
 
         let informacionVip = infoCliente.albaran
           ? {
@@ -194,7 +193,6 @@ export class Impresora {
         for (let i = 0; i < ticket.cesta.lista.length; i++) {
           totalSinDescuento += ticket.cesta.lista[i].subtotal;
         }
-
         // preparamos los parametros que vamos a enviar a la impresora
         sendObject = {
           numFactura: ticket._id,
@@ -211,7 +209,7 @@ export class Impresora {
             idCliente: infoCliente.id,
             nombre: infoCliente.nombre,
             puntos: puntos,
-            descuento: Number(infoCliente.descuento) || 0,
+            descuento: descuento,
           },
           dejaCuenta: ticket.dejaCuenta,
           idCliente: ticket.idCliente,
@@ -242,7 +240,11 @@ export class Impresora {
         };
       }
       // enviamos el objeto
-      await this._venta(sendObject);
+      if(infoCliente?.albaran){
+        await this.imprimirAlbaran(sendObject);
+      }else{
+        await this._venta(sendObject);
+      }
     }
   }
 
@@ -267,10 +269,7 @@ export class Impresora {
         }
       : null;
 
-    const { descuento } = await clienteInstance.getClienteById(
-      ticket.idCliente
-    );
-
+    const descuento = infoCliente && !infoCliente?.albaran && !infoCliente?.vip ? Number(infoCliente.descuento) : 0;
     if (ticket && trabajador) {
       if (ticket.idCliente && ticket.idCliente != "") {
         let infoCliente: ClientesInterface;
@@ -292,7 +291,7 @@ export class Impresora {
             idCliente: infoCliente.id,
             nombre: infoCliente.nombre,
             puntos: puntos,
-            descuento: Number(infoCliente.descuento) || 0,
+            descuento: descuento,
           },
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
@@ -928,7 +927,7 @@ export class Impresora {
       { tipo: "align", payload: "CT" },
       { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
       { tipo: "text", payload: detalleIva },
-      { tipo: "text", payload: "-- ES COPIA --" },
+      { tipo: "text", payload: "-- FIRMA CLIENT --\n\n\n\n\n" },
       { tipo: "control", payload: "LF" },
       { tipo: "text", payload: "ID: " + random() + " - " + random() },
       { tipo: "text", payload: pie },
@@ -2429,7 +2428,7 @@ export class Impresora {
     const cliente: ClientesInterface = await clienteInstance.isClienteDescuento(
       encargo.idCliente
     );
-    const descuento: any = Number(cliente?.descuento);
+    const descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
     const telefono: ClientesInterface["telefono"] =
       cliente?.telefono && cliente?.telefono.length > 1
         ? cliente.telefono
