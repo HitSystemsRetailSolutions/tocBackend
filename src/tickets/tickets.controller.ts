@@ -194,9 +194,8 @@ export class TicketsController {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
-      let descuento: any = Number(
-        (await clienteInstance.isClienteDescuento(cesta.idCliente))?.descuento
-      );
+      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
       //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
       // el modo de cesta debe cambiar a consumo_personal.
       const clienteDescEsp = descuentoEspecial.find(
@@ -465,6 +464,7 @@ export class TicketsController {
     try {
       if (ticketId) {
         const res = await ticketsInstance.anularTicket(ticketId);
+        ticketsInstance.actualizarTickets();
         return res;
       }
       throw Error("Error, faltan datos en anularTicket() controller");

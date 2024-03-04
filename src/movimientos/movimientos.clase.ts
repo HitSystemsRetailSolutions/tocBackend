@@ -259,7 +259,7 @@ export class MovimientosClase {
         arrayMovimientos[0].tipo === "DATAFONO_3G" ||
         arrayMovimientos[0].tipo === "DEV_DATAFONO_3G"
       ) {
-        return "DEV_DATAFONO_PAYTEF";
+        return "DATAFONO_3G";
       }
     } else if (ticket.consumoPersonal) {
       return "CONSUMO_PERSONAL";

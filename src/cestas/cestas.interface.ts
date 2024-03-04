@@ -11,6 +11,8 @@ export interface CestasInterface {
   idCliente: ClientesInterface["id"];
   nombreCliente?: string;
   indexMesa?: boolean;
+  albaran?: boolean;
+  vip?: boolean;
   trabajador: number;
   trabajadores: ObjectId[];
   comensales: number;
@@ -36,6 +38,7 @@ export type ItemLista = {
   nombre: string;
   unidades: number;
   subtotal: number;
+  precioOrig?: number;
   arraySuplementos: ArticulosInterface[];
   promocion: {
     idPromocion: string;
@@ -52,6 +55,8 @@ export type ItemLista = {
   gramos: number;
   impresora: string;
   regalo: boolean;
+  dto?: number;
+  iva?: number;
   pagado?: boolean;
 };
 

@@ -168,7 +168,7 @@ export async function inicioDescanso(idTrabajador: number): Promise<boolean> {
   return (
     await trabajadores.updateOne(
       { _id: idTrabajador },
-      { $set: { fichado: false, descansando: true } }
+      { $set: { fichado: false, descansando: true, activo: false } }
     )
   ).acknowledged;
 }

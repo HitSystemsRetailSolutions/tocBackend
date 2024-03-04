@@ -23,7 +23,6 @@ export class TicketsClase {
     try {
       const ticket = await schTickets.getTicketByID(idTicket);
       let movimientos = await schMovimientos.getMovimientosDelTicket(idTicket);
-      movimientos = null;
       if (
         ticket.paytef ||
         (movimientos &&
