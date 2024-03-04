@@ -26,7 +26,7 @@ client.on("message", async (topic, message) => {
       message &&
       message.CodiArticle &&
       message.EstocActualitzat
-      // && message.Llicencia == parametros.licencia
+      && message.Llicencia == parametros.licencia
     ) {
       let item = message.CodiArticle;
       let stock = message.EstocActualitzat;
@@ -39,6 +39,8 @@ client.on("message", async (topic, message) => {
           error.message
         );
       }
+    } else {
+      console.log("error en contable.controller > message: ", message);
     }
   } catch (error) {
     console.log(
