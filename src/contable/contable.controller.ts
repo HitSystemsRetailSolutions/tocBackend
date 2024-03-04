@@ -19,8 +19,10 @@ client.on("connect", async () => {
 });
 
 client.on("message", async (topic, message) => {
+  console.log("message: ", message.toString());
   const parametros = await parametrosController.getParametros();
   message = JSON.parse(message.toString());
+  console.log("message: ", message);
   if (
     message &&
     message.CodiArticle &&
@@ -31,6 +33,7 @@ client.on("message", async (topic, message) => {
     let stock = message.EstocActualitzat;
     try {
       //schContable.setItemStock(Number(item), Number(stock));
+      console.log("item: ", item);
       io.emit("stock", { item, stock });
     } catch (error) {
       console.log(
