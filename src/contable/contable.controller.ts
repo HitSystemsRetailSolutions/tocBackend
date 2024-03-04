@@ -19,25 +19,32 @@ client.on("connect", async () => {
 });
 
 client.on("message", async (topic, message) => {
-  const parametros = await parametrosController.getParametros();
-  message = JSON.parse(message.toString());
-  if (
-    message &&
-    message.CodiArticle &&
-    message.EstocActualitzat
-    // && message.Llicencia == parametros.licencia
-  ) {
-    let item = message.CodiArticle;
-    let stock = message.EstocActualitzat;
-    try {
-      //schContable.setItemStock(Number(item), Number(stock));
-      io.emit("stock", { item, stock });
-    } catch (error) {
-      console.log(
-        "error en contable.controller > setItemStock: ",
-        error.message
-      );
+  try {
+    const parametros = await parametrosController.getParametros();
+    message = JSON.parse(message.toString());
+    if (
+      message &&
+      message.CodiArticle &&
+      message.EstocActualitzat
+      // && message.Llicencia == parametros.licencia
+    ) {
+      let item = message.CodiArticle;
+      let stock = message.EstocActualitzat;
+      try {
+        //schContable.setItemStock(Number(item), Number(stock));
+        io.emit("stock", { item, stock });
+      } catch (error) {
+        console.log(
+          "error en contable.controller > setItemStock: ",
+          error.message
+        );
+      }
     }
+  } catch (error) {
+    console.log(
+      "error en contable.controller > client.on(message): ",
+      error.message
+    );
   }
 });
 //--------------------------------------------------------------
