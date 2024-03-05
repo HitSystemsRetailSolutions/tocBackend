@@ -192,6 +192,7 @@ export class TecladoClase {
         (articulo) => articulo._id == teclas[i].idArticle
       );
       teclas[i].precioConIva = articulo?.precioConIva;
+      teclas[i].precioBase = articulo?.precioBase;
       if (this.tienePrefijoSubmenu(teclas[i].nomMenu)) {
         this.addTeclaConSubmenu(
           menus,
@@ -205,6 +206,7 @@ export class TecladoClase {
             esSumable: teclas[i].esSumable,
             suplementos: teclas[i].suplementos,
             precioConIva: teclas[i].precioConIva,
+            precioBase: teclas[i].precioBase,
           }
         );
       } else {
@@ -216,6 +218,7 @@ export class TecladoClase {
           esSumable: teclas[i].esSumable,
           suplementos: teclas[i].suplementos,
           precioConIva: teclas[i].precioConIva,
+          precioBase: teclas[i].precioBase,
         });
       }
     }

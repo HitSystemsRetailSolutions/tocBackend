@@ -60,14 +60,15 @@ export class Articulos {
     );
   }
 
-  async insertarTeclasNuevos(menu, esSumable, Nombre, idArt, pos, preuIva) {
+  async insertarTeclasNuevos(menu, esSumable, Nombre, idArt, pos, preuIva, preuBase) {
     return await schArticulos.insertarTeclasNuevos(
       menu,
       esSumable,
       Nombre,
       idArt,
       pos,
-      preuIva
+      preuIva,
+      preuBase,
     );
   }
 
