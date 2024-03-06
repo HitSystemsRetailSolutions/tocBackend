@@ -83,4 +83,5 @@ export type ModoCesta =
   | "VENTA"
   | "CONSUMO_PERSONAL"
   | "DEVOLUCION"
-  | "PAGO SEPARADO";
+  | "PAGO SEPARADO"
+  | "PAGO DEUDA";

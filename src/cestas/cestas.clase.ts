@@ -211,7 +211,26 @@ export class CestaClase {
     if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
     throw Error("Error, no se ha podido crear la cesta");
   }
-
+  async CestaPagoDeuda(cestas) {
+    const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO DEUDA");
+    nuevaCesta.indexMesa = null;
+    let id = undefined;
+    if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
+    if (id != undefined) {
+      for (const cesta of cestas) {
+        console.log("cesta iteracion", cesta);
+        nuevaCesta.lista = nuevaCesta.lista.concat(cesta.lista);
+        nuevaCesta.detalleIva = await fusionarObjetosDetalleIva(
+          cesta.detalleIva,
+          nuevaCesta.detalleIva
+        );
+      }
+      if (await this.updateCesta(nuevaCesta)) {
+        await this.actualizarCestas();
+      }
+      return id;
+    }
+  }
   async CestaPagoSeparado(articulos) {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO SEPARADO");
     nuevaCesta.indexMesa = null;
@@ -486,7 +505,6 @@ export class CestaClase {
               if (unidades > 0 && cesta.lista[i].puntos != null) {
                 cesta.lista[i].puntos += articulo.puntos * unidades;
               } else if (unidades < 0 && cesta.lista[i].puntos != null) {
-
                 cesta.lista[i].puntos -= articulo.puntos * unidades;
               }
 
@@ -506,7 +524,6 @@ export class CestaClase {
             if (unidades > 0 && cesta.lista[i].puntos != null) {
               cesta.lista[i].puntos += articulo.puntos * unidades;
             } else if (unidades < 0 && cesta.lista[i].puntos != null) {
-
               cesta.lista[i].puntos -= articulo.puntos * unidades;
             }
             if (!regalar) {
@@ -786,10 +803,13 @@ export class CestaClase {
       importe5: 0,
     };
     const cliente = cesta.idCliente
-    ? await clienteInstance.getClienteById(cesta.idCliente)
-    : null;
+      ? await clienteInstance.getClienteById(cesta.idCliente)
+      : null;
     let descuento: any =
-      cesta.modo !== "CONSUMO_PERSONAL" && cliente && !cliente?.albaran && !cliente?.vip
+      cesta.modo !== "CONSUMO_PERSONAL" &&
+      cliente &&
+      !cliente?.albaran &&
+      !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
     for (let i = 0; i < cesta.lista.length; i++) {
@@ -889,7 +909,8 @@ export class CestaClase {
           cesta.lista[i].subtotal =
             cesta.lista[i].subtotal * (1 - cesta.lista[i].dto / 100);
         }
-        cesta.lista[i].subtotal = Math.round(cesta.lista[i].subtotal * 100) / 100;
+        cesta.lista[i].subtotal =
+          Math.round(cesta.lista[i].subtotal * 100) / 100;
         const auxDetalleIva = construirObjetoIvas(
           precioArt,
           articulo.tipoIva,
@@ -1019,7 +1040,10 @@ export class CestaClase {
       importe5: 0,
     };
     let cliente = await clienteInstance.getClienteById(idCliente);
-    let descuento: any = cliente && !cliente?.albaran && !cliente.vip ? Number(cliente.descuento) : 0;
+    let descuento: any =
+      cliente && !cliente?.albaran && !cliente.vip
+        ? Number(cliente.descuento)
+        : 0;
 
     for (let i = 0; i < arraySuplementos.length; i++) {
       let articulo = await articulosInstance.getInfoArticulo(
@@ -1271,7 +1295,7 @@ export class CestaClase {
         descuento: cliente,
         idCliente: cesta.idCliente,
       };
-
+console.log("lista", lista)
       await axios.post("lista/setRegistro", {
         lista: lista,
       });
