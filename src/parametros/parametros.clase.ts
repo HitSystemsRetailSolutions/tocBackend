@@ -60,6 +60,11 @@ export class ParametrosClase {
   /* Uri*/
   totalPaytef = async (): Promise<number> => await schParametros.totalPaytef();
 
+  /* Uri */
+  totalPaytefHour = async (): Promise<string> => {
+    return await schParametros.totalPaytefHour();
+  };
+
   /* Uri*/
   setIpPaytef = async (ip: string): Promise<boolean> =>
     await schParametros.setIpPaytef(ip);

@@ -101,6 +101,18 @@ export class PaytefController {
   }
 
   /* Uri */
+  @Post("totalPaytefHour")
+  async totalPaytefHour() {
+    try {
+      return await parametrosInstance.totalPaytefHour();
+    } catch (err) {
+      console.log(err);
+      logger.Error(131, err);
+      return -1;
+    }
+  }
+
+  /* Uri */
   @Post("calcularPaytef")
   async calcularPaytef() {
     try {
