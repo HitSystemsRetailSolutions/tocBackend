@@ -69,8 +69,9 @@ export class ParametrosClase {
     await schParametros.setTcodPaytef(ip);
 
   /* Uri*/
-  setContadoDatafono = async (tipo: number, suma: number): Promise<boolean> =>
-    await schParametros.setContadoDatafono(tipo, suma);
+  setContadoDatafono = async (tipo: number, suma: number): Promise<boolean> => {
+    return await schParametros.setContadoDatafono(tipo, suma);
+  };
 
   /* yasai :D */
   set3G = async (): Promise<boolean> => await schParametros.set3G();
