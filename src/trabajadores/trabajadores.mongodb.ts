@@ -89,7 +89,12 @@ export async function getTrabajadorFichados(
   const trabajadores =
     database.collection<TrabajadoresInterface>("trabajadores");
   return await trabajadores
-    .find({ fichado: true, idTrabajador: trabajador })
+    .find({
+      $or: [
+        { fichado: true, idTrabajador: trabajador },
+        { descansando: true, idTrabajador: trabajador },
+      ],
+    })
     .toArray();
 }
 
