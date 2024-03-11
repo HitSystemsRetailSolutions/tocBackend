@@ -76,7 +76,9 @@ export async function getTrabajadoresFichados(): Promise<
   const database = (await conexion).db("tocgame");
   const trabajadores =
     database.collection<TrabajadoresInterface>("trabajadores");
-  return await trabajadores.find({ fichado: true }).toArray();
+  return await trabajadores
+    .find({ $or: [{ fichado: true }, { descansando: true }] })
+    .toArray();
 }
 
 /* Uri*/

@@ -243,6 +243,8 @@ export class CajaClase {
   getFechaApertura() {
     return schCajas.getApeturaCaja().then(async (res) => {
       if (!res) return false;
+      if ((await trabajadoresInstance.getTrabajadoresFichados()).length == 0)
+        return false;
       const fechaApertura = new Date(res.inicioTime).toDateString();
       const fechaHoy = new Date().toDateString();
       let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0][
