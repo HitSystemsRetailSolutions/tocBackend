@@ -36,6 +36,7 @@ export class AlbaranesClase {
       consumoPersonal: false,
       enviado: false,
       estado: estado,
+      pantalla: -1,
     };
 
     try {

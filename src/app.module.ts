@@ -32,6 +32,7 @@ import { CargarImagenController } from "./imagenInvasiva/imagen.controller";
 import { checkers } from "./checkers/checkers.controller";
 import { balancaController } from "./balanca/balanca.clase";
 import { AlbaranesController } from "./albaranes/albaranes.controller";
+import { pantallaManager } from "./pantallaManager/pantallaManager.controller";
 import { contableController } from "./contable/contable.controller";
 
 @Module({
@@ -52,6 +53,7 @@ import { contableController } from "./contable/contable.controller";
     TrabajadoresController,
     CajaController,
     ClientesController,
+    pantallaManager,
     ImpresoraController,
     contableController,
     DevolucionesController,

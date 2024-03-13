@@ -10,6 +10,7 @@ export interface TicketsInterface {
   timestamp: number;
   total: number;
   dejaCuenta?: number;
+  pantalla: number;
   datafono3G?: boolean;
   honei?: boolean;
   tkrs?: boolean;

@@ -58,20 +58,21 @@ export class TicketsController {
       dejaCuenta,
       idTrabajador,
       tipo,
+      idPantalla,
     }: {
       idEncargo: EncargosInterface["_id"];
       total: number;
       dejaCuenta: TicketsInterface["dejaCuenta"];
       tipo: FormaPago;
       idTrabajador: TicketsInterface["idTrabajador"];
+      idPantalla: TicketsInterface["pantalla"];
     }
   ) {
     try {
       const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
       // modifica
-      const graellaModificada = await encargosInstance.updateEncargoGraella(
-        idEncargo
-      );
+      const graellaModificada =
+        await encargosInstance.updateEncargoGraella(idEncargo);
       if (!graellaModificada) return false;
 
       const ticket = await ticketsInstance.generarNuevoTicket(
@@ -81,6 +82,7 @@ export class TicketsController {
         tipo === "CONSUMO_PERSONAL",
         false,
         false,
+        idPantalla,
         dejaCuenta
       );
 
@@ -109,7 +111,8 @@ export class TicketsController {
       return false;
     }
   }
-  redondearPrecio = (precio: number) => Number((Math.round(precio * 100) / 100).toFixed(2));
+  redondearPrecio = (precio: number) =>
+    Number((Math.round(precio * 100) / 100).toFixed(2));
 
   @Post("crearTicketPaytef")
   async crearTicketPaytef(
@@ -122,6 +125,7 @@ export class TicketsController {
       tkrsData,
       concepto,
       honei,
+      idPantalla,
     }: {
       total: number;
       idCesta: TicketsInterface["cesta"]["_id"];
@@ -133,10 +137,11 @@ export class TicketsController {
       };
       concepto?: MovimientosInterface["concepto"];
       honei?: boolean;
+      idPantalla: TicketsInterface["pantalla"];
     }
   ) {
     let nextID = await ticketsInstance.getProximoId();
-    logger.Info(`crearTicketPaytef entrada (${nextID})`, "tickets.controller")
+    logger.Info(`crearTicketPaytef entrada (${nextID})`, "tickets.controller");
     return await paytefInstance
       .iniciarTransaccion(idTrabajador, nextID, total)
       .then(async (x) => {
@@ -149,17 +154,27 @@ export class TicketsController {
             tkrsData,
             concepto,
             honei,
+            idPantalla,
           });
-          let idTicket= await ticketsInstance.getUltimoIdTicket();
-          if (idTicket!=nextID) {
-            logger.Error(`idTicket!=nextID (${idTicket}!=${nextID})`, "tickets.controller");
+          let idTicket = await ticketsInstance.getUltimoIdTicket();
+          if (idTicket != nextID) {
+            logger.Error(
+              `idTicket!=nextID (${idTicket}!=${nextID})`,
+              "tickets.controller"
+            );
           }
-          if ( (await parametrosInstance.getParametros())?.params?.TicketDFAuto == "Si" ) {
+          if (
+            (await parametrosInstance.getParametros())?.params?.TicketDFAuto ==
+            "Si"
+          ) {
             impresoraInstance.imprimirTicket(idTicket);
           }
           //ticketsInstance.setPagadoPaytef(idTicket);
         }
-        logger.Info(`crearTicketPaytef salida (${nextID}, ${x})`, "tickets.controller")
+        logger.Info(
+          `crearTicketPaytef salida (${nextID}, ${x})`,
+          "tickets.controller"
+        );
         return x;
       });
   }
@@ -176,6 +191,7 @@ export class TicketsController {
       tkrsData,
       concepto,
       honei,
+      idPantalla,
     }: {
       total: number;
       idCesta: TicketsInterface["cesta"]["_id"];
@@ -187,6 +203,7 @@ export class TicketsController {
       };
       concepto?: MovimientosInterface["concepto"];
       honei?: boolean;
+      idPantalla: TicketsInterface["pantalla"];
     }
   ) {
     try {
@@ -195,7 +212,10 @@ export class TicketsController {
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
       const cliente = await clienteInstance.getClienteById(cesta.idCliente);
-      let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
+      let descuento: any =
+        cliente && !cliente?.albaran && !cliente?.vip
+          ? Number(cliente.descuento)
+          : 0;
       //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
       // el modo de cesta debe cambiar a consumo_personal.
       const clienteDescEsp = descuentoEspecial.find(
@@ -229,7 +249,8 @@ export class TicketsController {
         cesta,
         tipo === "CONSUMO_PERSONAL",
         tipo.includes("HONEI") || honei,
-        tkrsData?.cantidadTkrs > 0
+        tkrsData?.cantidadTkrs > 0,
+        idPantalla
       );
 
       if (!ticket) {
@@ -265,14 +286,15 @@ export class TicketsController {
             );
           } else if (tkrsData.cantidadTkrs < total) {
             if (tipo === "DATAFONO_3G") {
-              let total3G = Math.round((total-tkrsData.cantidadTkrs) *100)/100;
+              let total3G =
+                Math.round((total - tkrsData.cantidadTkrs) * 100) / 100;
               await movimientosInstance.nuevoMovimiento(
                 total3G,
                 "",
                 "DATAFONO_3G",
                 ticket._id,
-                idTrabajador,
-              )
+                idTrabajador
+              );
             }
             await movimientosInstance.nuevoMovimiento(
               tkrsData.cantidadTkrs,
@@ -309,7 +331,7 @@ export class TicketsController {
               "SALIDA",
               ticket._id,
               idTrabajador,
-              cliente.nombre,
+              cliente.nombre
             );
             var deuda = {
               idTicket: ticket._id,
@@ -351,7 +373,7 @@ export class TicketsController {
     }
   }
 
-  /* Eze 4.0 */
+  /* 
   @Post("crearTicketSeparado")
   async crearTicketSeparado(
     @Body()

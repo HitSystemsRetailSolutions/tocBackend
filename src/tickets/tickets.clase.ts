@@ -197,6 +197,7 @@ export class TicketsClase {
     consumoPersonal: boolean,
     honei: TicketsInterface["honei"],
     tkrs: boolean,
+    pantalla: TicketsInterface["pantalla"],
     dejaCuenta?: TicketsInterface["dejaCuenta"]
   ): Promise<TicketsInterface> {
     /*const cliente = await clienteInstance.getClienteById(cesta.idCliente);
@@ -219,6 +220,7 @@ export class TicketsClase {
       cesta,
       enviado: false,
       consumoPersonal: consumoPersonal ? true : false,
+      pantalla,
     };
     return nuevoTicket;
   }
