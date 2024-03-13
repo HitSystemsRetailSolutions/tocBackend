@@ -102,8 +102,8 @@ export class CestasController {
     }
   }
   // recibe array de articulos de una o mas deudas  para generar una cesta
-  @Post("PagarDeudas")
-  async PagarDeudas(@Body() { cestas }) {
+  @Post("cestaDeudas")
+  async cestaDeudas(@Body() { cestas }) {
     try {
       if (cestas) {
         return await cestasInstance.CestaPagoDeuda(cestas);

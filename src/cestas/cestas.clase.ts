@@ -217,8 +217,8 @@ export class CestaClase {
     let id = undefined;
     if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
     if (id != undefined) {
+      nuevaCesta.idCliente = cestas[0].idCliente;
       for (const cesta of cestas) {
-        console.log("cesta iteracion", cesta);
         nuevaCesta.lista = nuevaCesta.lista.concat(cesta.lista);
         nuevaCesta.detalleIva = await fusionarObjetosDetalleIva(
           cesta.detalleIva,
@@ -1295,7 +1295,6 @@ export class CestaClase {
         descuento: cliente,
         idCliente: cesta.idCliente,
       };
-console.log("lista", lista)
       await axios.post("lista/setRegistro", {
         lista: lista,
       });

@@ -10,6 +10,7 @@ import { logger } from "../logger";
 import * as schTickets from "../tickets/tickets.mongodb";
 import { impresoraInstance } from "src/impresora/impresora.class";
 import { cajaInstance } from "src/caja/caja.clase";
+import { MovimientosInterface } from "src/movimientos/movimientos.interface";
 
 //let intentosBuclePollResult = 0;
 
@@ -34,9 +35,10 @@ class PaytefClass {
   /* Eze 4.0 */
   async iniciarTransaccion(
     idTrabajador: number,
-    idTicket: TicketsInterface["_id"],
-    total: TicketsInterface["total"],
-    type: "refund" | "sale" = "sale"
+    idTicket: TicketsInterface["_id"] | MovimientosInterface["_id"],
+    total: TicketsInterface["total"] | MovimientosInterface["valor"],
+    type: "refund" | "sale" = "sale",
+    ticket: boolean = true // si es true tendra acceso a comprobar si el ticket existe
   ): Promise<boolean> {
 
     if (this.dentroIniciarTransaccion) {
@@ -97,7 +99,8 @@ class PaytefClass {
                   idTicket,
                   total,
                   idTrabajador,
-                  type
+                  type,
+                  ticket
                 );
                 return xy;
               } else {
@@ -160,10 +163,11 @@ class PaytefClass {
 
   /* Eze 4.0 */
   async bucleComprobacion(
-    idTicket: TicketsInterface["_id"],
-    total: TicketsInterface["total"],
+    idTicket: TicketsInterface["_id"] | MovimientosInterface["_id"],
+    total: TicketsInterface["total"] | MovimientosInterface["valor"],
     idTrabajador: TicketsInterface["idTrabajador"],
-    type: "refund" | "sale" = "sale"
+    type: "refund" | "sale" = "sale",
+    ticket: boolean = true
   ): Promise<[boolean, boolean]> { // [ transaccionAprobada, errorConexion ]
     const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
 
@@ -198,7 +202,7 @@ class PaytefClass {
                 // el ticket ahora se puede generar despues de terminar la transacción en crearTicketPaytef (tickets.controller.ts)
                 // se comprueba si el ticket existe y despues se imprime y se marca como paytef
                 // sino se tendra que hacer cuando se genere el ticket
-                if (await ticketsInstance.getTicketById(idTicket)) {
+                if (ticket && await ticketsInstance.getTicketById(idTicket)) {
                   if (
                     (await parametrosInstance.getParametros())?.params?.TicketDFAuto == "Si"
                   ) {

@@ -103,11 +103,44 @@ export class MovimientosClase {
         concepto !== "Albaran" &&
         concepto !== "Paytef" &&
         tipo !== "DATAFONO_3G" &&
-        tipo !== "DEV_DATAFONO_PAYTEF"&&
+        tipo !== "DEV_DATAFONO_PAYTEF" &&
         tipo !== "DEV_DATAFONO_3G"
       ) {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
+      return true;
+    }
+    return false;
+  }
+  public async nuevoMovimientoForDeudas(
+    _id: MovimientosInterface["_id"],
+    valor: MovimientosInterface["valor"],
+    concepto: MovimientosInterface["concepto"],
+    tipo: MovimientosInterface["tipo"],
+    idTicket: MovimientosInterface["idTicket"],
+    idTrabajador: MovimientosInterface["idTrabajador"],
+    nombreCliente?: MovimientosInterface["nombreCliente"],
+    ExtraData: MovimientosInterface["ExtraData"] = []
+  ) {
+    let codigoBarras = "";
+    // if (concepto === "Entrega Diària" || concepto === "Entrada") {
+    codigoBarras = await this.generarCodigoBarrasSalida();
+    codigoBarras = String(Ean13Utils.generate(codigoBarras));
+    // }
+    const nuevoMovimiento: MovimientosInterface = {
+      _id: _id,
+      codigoBarras,
+      concepto,
+      enviado: false,
+      idTicket,
+      idTrabajador,
+      tipo,
+      valor: this.redondeoNoIntegrado(valor),
+      nombreCliente,
+      ExtraData,
+    };
+
+    if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
       return true;
     }
     return false;
@@ -390,6 +423,70 @@ export class MovimientosClase {
       return "EFECTIVO";
     } else if (superTicket.movimientos.length === 0 && superTicket.total < 0) {
       return "ANULADO";
+    } else if (
+      // CASO DEUDA PAGADA con 4 movs
+      superTicket.movimientos.length == 4
+    ) {
+      if (
+        superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
+          0 &&
+        superTicket.movimientos.filter((e) => e.tipo === "TKRS_SIN_EXCESO")
+          .length > 0 &&
+        superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G")
+          .length > 0 &&
+        superTicket.movimientos.filter((e) => e.tipo === "ENTRADA_DINERO")
+          .length > 0
+      )
+        return "TKRS + DATAFONO_3G";
+        if (
+          superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
+            0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "TKRS_SIN_EXCESO")
+            .length > 0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "TKRS_CON_EXCESO")
+            .length > 0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "ENTRADA_DINERO")
+            .length > 0
+        )
+          return "TKRS";
+
+    } else if (
+      // CASO DEUDA PAGADA con 3 movs
+      superTicket.movimientos.length == 3
+    ) {
+      // caso deuda pagada con tarjeta
+      if (
+        superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length > 0 &&
+        superTicket.movimientos.filter((e) => e.tipo === "ENTRADA_DINERO")
+          .length > 0 &&
+        superTicket.movimientos.filter((e) => e.tipo === "TARJETA").length > 0
+      )
+        return "TARJETA";
+      if (
+        superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length > 0 &&
+        superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G").length >
+          0 &&
+        superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length > 0
+      )
+        return "DATAFONO_3G";
+      if (
+        superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length > 0 &&
+        superTicket.movimientos.filter((e) => e.tipo === "TKRS_SIN_EXCESO")
+          .length > 0 &&
+        superTicket.movimientos.filter((e) => e.tipo === "ENTRADA_DINERO")
+          .length > 0
+      ){
+        if (
+          superTicket.movimientos.filter((e) => e.tipo === "TKRS_SIN_EXCESO")[0]
+            .valor === superTicket.total
+        )
+          return "TKRS";
+        else if (
+          superTicket.movimientos.filter((e) => e.tipo === "TKRS_SIN_EXCESO")[0]
+            .valor < superTicket.total
+        )
+          return "TKRS + EFECTIVO";
+      }
     } else if (superTicket.movimientos.length > 1) {
       // CASO TARJETA ANULADA
       if (
