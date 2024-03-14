@@ -166,6 +166,13 @@ export class Deudas {
       };
     }
   }
+  /**
+   * 
+   * @param arrayDeudas contiene las deudas a pagar
+   * @param infoCobro datos de la cesta
+   * @param visa booleano que indica si se ha pagado con visa/paytef
+   * @returns 
+   */
   async pagarDeuda(arrayDeudas, infoCobro, visa = false) {
     try {
       let deuda = null;
@@ -173,6 +180,7 @@ export class Deudas {
       let id = null;
       let concepto = null;
       let cantidadTkrs = infoCobro.tkrsData?.cantidadTkrs || 0;
+      // recorre las deudas para pagarlas
       for (const iterator of arrayDeudas) {
         deuda = iterator;
         albaran = deuda.albaran;
@@ -255,7 +263,7 @@ export class Deudas {
         // comprobaciones para proceder con el comportamiento correspondiente dependiendo de la fecha de creacion de la deuda albaran
         // al haber hecho cambios en el procedimiento de los albaranes. El cambio actual se realizo el 27 de febrero de 2024
         //Estas comprobaciones se podrán borrar en un futuro al no haber deudas pendientes de albaranes antiguos
-        // comprobamos si la deuda es de un albaran version 2o antigua
+        // comprobamos si la deuda es de un albaran 2o version antigua
         const secondVersionDeudaAlbaran =
           await this.comprobar2ndVersDeudaAlbaran(deuda, albaran);
         concepto =
@@ -287,7 +295,6 @@ export class Deudas {
               idTrabajador: infoCobro.idTrabajador,
               tipo: "TARJETA",
             };
-            console.log("movimientoTarjeta");
             await movimientosInstance.nuevoMovimientoForDeudas(
               Date.now(),
               movimientoTarjeta.valor,
@@ -298,7 +305,6 @@ export class Deudas {
               deuda.nombreCliente
             );
           }
-          console.log("pagado", movimiento.idTicket, deuda._id);
           const mongodb = await schDeudas
             .setPagado(deuda._id)
             .then(async (ok: boolean) => {
@@ -317,6 +323,7 @@ export class Deudas {
         // Restar la cantidad de TKRS para la siguiente deuda
         cantidadTkrs -= deuda.total;
       }
+      // Se genera un movimiento general de deuda/s para mostrar el cobro en un solo ticket al imprimir
       let codigoBarras = await movimientosInstance.generarCodigoBarrasSalida();
       codigoBarras = String(Ean13Utils.generate(codigoBarras));
       const movimientoGeneral: MovimientosInterface = {

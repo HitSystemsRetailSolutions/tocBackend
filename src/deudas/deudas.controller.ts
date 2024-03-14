@@ -131,7 +131,7 @@ export class DeudasController {
       logger.Error(501, err);
     }
   }
-
+// procedimiento de pago de deuda/s con paytef
   @Post("crearPagoDeudaPaytef")
   async crearPagoDeudaPaytef(
     @Body()
@@ -156,6 +156,7 @@ export class DeudasController {
       arrayDeudas: DeudasInterface[];
     }
   ) {
+    // iniciamos transaccion con paytef y si es correcto, dejamos la deuda como pagada
     let id = Date.now();
     logger.Info(`crearTicketPaytef entrada (${id})`, "tickets.controller");
     return await paytefInstance
@@ -179,7 +180,7 @@ export class DeudasController {
         return x;
       });
   }
-
+// procedimiento de pago de deuda/s
   @Post("crearPagoDeuda")
   async crearPagoDeuda(
     @Body()
@@ -193,6 +194,7 @@ export class DeudasController {
         tkrsData,
         tipo,
       }
+      // llamada a la funcion que deja pagada deuda/s
       return await deudasInstance.pagarDeuda(arrayDeudas,infoCobro);
     } catch (err) {
       logger.Error(500, err);

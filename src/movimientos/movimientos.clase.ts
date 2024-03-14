@@ -112,6 +112,7 @@ export class MovimientosClase {
     }
     return false;
   }
+  // creacion de mov, añadiendo el param _id y sin imprimir
   public async nuevoMovimientoForDeudas(
     _id: MovimientosInterface["_id"],
     valor: MovimientosInterface["valor"],
