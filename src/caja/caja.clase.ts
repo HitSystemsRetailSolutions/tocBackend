@@ -201,15 +201,19 @@ export class CajaClase {
       });
   }
 
-  getComprovarFechaCierreTurno() {
-    return schCajas.getComprovarTurno().then((res) => {
-      if (res.estado == true) {
-        schCajas.getCambioDeTurno().then((res2) => {});
-        return parseInt(res.time) + 1000;
+  async getComprovarFechaCierreTurno() {
+    try {
+      const fecha = await schCajas.getComprovarTurno();
+      if (fecha.estado) {
+        await schCajas.getCambioDeTurno();
+        return parseInt(fecha.time) + 1000;
       } else {
         return Date.now();
       }
-    });
+    } catch (err) {
+      logger.Error(157, err);
+      return Date.now();
+    }
   }
 
   getFechaCierre(
