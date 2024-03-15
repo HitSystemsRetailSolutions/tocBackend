@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from "@nestjs/common";
 import axios from "axios";
 import * as schPantallManager from "./pantallaManager.mongodb";
+import { pantallaInstance } from "./pantallaManager.class";
 @Controller("pantallaManager")
 export class pantallaManager {
   @Post("downloadPantallasTienda")
@@ -12,9 +13,14 @@ export class pantallaManager {
       const pantallas = await axios.post("pantallas/getPantallasTienda", {
         codigoTienda: codigoTienda,
       });
-      let screens = JSON.parse(JSON.stringify(pantallas.data));
-      let stp1 = await schPantallManager.setPantallas(screens);
-      if (stp1) return screens;
+      let dbScreens = JSON.parse(JSON.stringify(pantallas.data));
+      let mgScreens = await schPantallManager.getScreen();
+      let screens = mgScreens;
+      if (pantallaInstance.screensChanged(mgScreens, dbScreens) || !mgScreens) {
+        screens = dbScreens;
+        await schPantallManager.setPantallas(screens);
+      }
+      if (screens) return screens;
       return false;
     } catch (error) {
       console.error("Error al obtener las pantallas de la tienda:", error);
@@ -27,6 +33,16 @@ export class pantallaManager {
       let screens = await schPantallManager.getScreen();
       if (screens) return screens;
       return false;
+    } catch (error) {
+      console.error("Error al obtener las pantallas de la tienda:", error);
+    }
+  }
+
+  @Post("setScreenActive")
+  async setScreen(@Body() { id }) {
+    try {
+      console.log(id);
+      return await schPantallManager.setScreenInUse(id);
     } catch (error) {
       console.error("Error al obtener las pantallas de la tienda:", error);
     }

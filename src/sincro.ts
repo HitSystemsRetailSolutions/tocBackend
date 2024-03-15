@@ -26,6 +26,7 @@ import * as moment from "moment";
 import { AlbaranesInstance } from "./albaranes/albaranes.clase";
 import { clienteInstance } from "./clientes/clientes.clase";
 import { TicketsInterface } from "./tickets/tickets.interface";
+import { pantallaInstance } from "./pantallaManager/pantallaManager.class";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
@@ -64,7 +65,10 @@ async function sincronizarTickets() {
         const ticket = await ticketsInstance.getTicketMasAntiguo();
         if (ticket) {
           await nuevaInstancePromociones.deshacerPromociones(ticket);
-          const res = await axios.post("tickets/enviarTicket", { ticket });
+          let lic =
+            (await pantallaInstance.getInfoScreen(ticket.pantalla)).lic ||
+            parametros.licencia;
+          const res = await axios.post("tickets/enviarTicket", { ticket, lic });
           //.catch((e) => {console.log("error",e)});
 
           if (res.data) {
