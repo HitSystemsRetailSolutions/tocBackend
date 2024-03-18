@@ -29,7 +29,7 @@ export class Devoluciones {
     };
     await this.insertarDevolucion(objDevolucion);
     await impresoraInstance.imprimirDevolucion(objDevolucion._id);
-    if (await cestasInstance.borrarArticulosCesta(cesta._id, true, true)) {
+    if (await cestasInstance.borrarArticulosCesta(cesta._id, true, true, false)) {
       cestasInstance.actualizarCestas();
       return true;
     } else {
