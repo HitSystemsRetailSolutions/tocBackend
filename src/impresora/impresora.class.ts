@@ -643,7 +643,7 @@ export class Impresora {
         { tipo: "text", payload: clientTitle },
         { tipo: "size", payload: [0, 0] }
       );
-    if (detalleClienteVip)
+    if (infoCliente)
       arrayImprimir.push({
         tipo: "text",
         payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${

@@ -505,7 +505,7 @@ export class CestaClase {
               if (unidades > 0 && cesta.lista[i].puntos != null) {
                 cesta.lista[i].puntos += articulo.puntos * unidades;
               } else if (unidades < 0 && cesta.lista[i].puntos != null) {
-                cesta.lista[i].puntos -= articulo.puntos * unidades;
+                cesta.lista[i].puntos += articulo.puntos * unidades;
               }
 
               cesta.lista[i].subtotal =
@@ -524,7 +524,7 @@ export class CestaClase {
             if (unidades > 0 && cesta.lista[i].puntos != null) {
               cesta.lista[i].puntos += articulo.puntos * unidades;
             } else if (unidades < 0 && cesta.lista[i].puntos != null) {
-              cesta.lista[i].puntos -= articulo.puntos * unidades;
+              cesta.lista[i].puntos += articulo.puntos * unidades;
             }
             if (!regalar) {
               cesta.lista[i].subtotal = Number(
