@@ -98,6 +98,21 @@ export class MovimientosController {
       return 0;
     }
   }
+  @Get("getDat3GDeudaPagada")
+  async getDat3GDeudaPagada() {
+    try {
+      const inicioTime = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
+      const finalTime = Date.now();
+      return await movimientosInstance.getDat3GDeudaPagada(
+        inicioTime,
+        finalTime
+      );
+    } catch (err) {
+      logger.Error(99, err);
+      console.log(err);
+      return 0;
+    }
+  }
   @Post("PayWithCash")
   async PayWithCash(@Body() { idTicket }) {
     try {
