@@ -13,6 +13,7 @@ import { cajaInstance } from "../caja/caja.clase";
 import { ClientesInterface } from "src/clientes/clientes.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
+import { MovimientosController } from "src/movimientos/movimientos.controller";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -269,10 +270,15 @@ export class TicketsClase {
   getTotalDatafono3G = async () => {
     const superTicket = await movimientosInstance.construirArrayVentas();
     let total3G = 0;
+    const cajaAbiertaActual = await cajaInstance.getInfoCajaAbierta();
+    const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
+    const finalTime = Date.now();
+    // recogemos los movimientos de DATAFONO_3G concepto deuda pagada
+    const mov3G = await movimientosInstance.getDat3GDeudaPagada(
+      inicioTurnoCaja,
+      finalTime
+    );
     if (superTicket && superTicket.length > 0) {
-      const cajaAbiertaActual = await cajaInstance.getInfoCajaAbierta();
-      const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
-      const finalTime = Date.now();
       const tkrs = await movimientosInstance.getMovTkrsSinExcIntervalo(
         inicioTurnoCaja,
         finalTime
@@ -282,17 +288,24 @@ export class TicketsClase {
         acc[el.idTicket] = el;
         return acc;
       }, {});
-
+      const mov3GIndexado = mov3G.reduce((acc, el) => {
+        acc[el.idTicket] = el;
+        return acc;
+      }, {});
       superTicket.forEach((ticket) => {
         const idTicketVenta = ticket._id;
         const entradaCorrespondiente = tkrsIndexado[idTicketVenta];
+        // revisamos si el ticket tiene un movimiento de 3G concepto Deuda Pagada
+        // para no sumarlo al total3G. Se sumará esos movs al terminar el foreach
+        const mov3GCorrespondiente = mov3GIndexado[idTicketVenta];
         if (
+          !mov3GCorrespondiente &&
           entradaCorrespondiente &&
           (ticket.tipoPago.includes("DATAFONO_3G") || ticket.datafono3G)
         ) {
           total3G += ticket.total - entradaCorrespondiente.valor;
         } else if (
-          ticket.tipoPago.includes("DATAFONO_3G") ||
+          (!mov3GCorrespondiente && ticket.tipoPago.includes("DATAFONO_3G")) ||
           (ticket.anulado && ticket.datafono3G)
         ) {
           for (const item of ticket.cesta.lista) {
@@ -304,6 +317,13 @@ export class TicketsClase {
         }
       });
     }
+    // sumamos los movimientos de 3G concepto Deuda Pagada.
+    // Se hacen fuera del foreach para no sumarlos varias veces
+    // y algunas tienen un idTicket de otra caja
+    mov3G.forEach((mov) => {
+      total3G += mov.valor;
+      total3G = Math.round(total3G * 100) / 100;
+    });
     return total3G;
   };
   actualizarTickets = async () => {
