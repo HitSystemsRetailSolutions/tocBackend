@@ -20,6 +20,9 @@ export async function getArticulos(): Promise<ArticulosInterface[]> {
 
 /* Eze 4.0 */
 export async function insertarArticulos(arrayArticulos: ArticulosInterface[]) {
+  arrayArticulos.forEach(articulo => {
+    articulo.precioBase = Math.round(articulo.precioBase*100)/100;
+  });
   await borrarArticulos();
   const database = (await conexion).db("tocgame");
   const articulos = database.collection<ArticulosInterface>("articulos");
@@ -47,7 +50,7 @@ export async function insertarArticulosNuevos(
       esSumable: esSumable,
       familia: menus,
       puntos: null,
-      precioBase: precioBase,
+      precioBase: Math.round(precioBase * 100) / 100,
       impresora: null,
       _id: id["_id"] + 1,
       suplementos: null,
@@ -61,7 +64,7 @@ export async function insertarArticulosNuevos(
     id["_id"] + 1,
     posicion,
     precioConIva,
-    precioBase,
+    precioBase
   );
   if ((await articulos.insertMany(valors)).acknowledged) return id["_id"] + 1;
   return -1;
@@ -75,7 +78,7 @@ export async function insertarTeclasNuevos(
   idArt,
   pos,
   preuIva,
-  preuBase,
+  preuBase
 ) {
   const database = (await conexion).db("tocgame");
   const articulos = database.collection<TeclasInterface>("teclas");
@@ -89,7 +92,7 @@ export async function insertarTeclasNuevos(
       color: 16769279,
       esSumable: esSumable,
       precioConIva: preuIva,
-      precioBase: preuBase,
+      precioBase: Math.round(preuBase * 100) / 100,
     },
   ];
   return await articulos.insertMany(valors);

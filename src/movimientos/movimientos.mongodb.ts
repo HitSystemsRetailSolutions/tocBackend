@@ -160,3 +160,12 @@ export async function getMovTkrsSinExcIntervalo(
     database.collection<MovimientosInterface>("movimientos");
   return await movimientosCollection.find({  _id: { $lte: final, $gte: horaApertura },tipo: "TKRS_SIN_EXCESO" }).toArray();
 }
+export async function getDat3GDeudaPagada(
+  horaApertura: CajaAbiertaInterface["inicioTime"],
+  final: number
+){
+  const database = (await conexion).db("tocgame");
+  const movimientosCollection =
+    database.collection<MovimientosInterface>("movimientos");
+  return await movimientosCollection.find({  _id: { $lte: final, $gte: horaApertura },tipo: "DATAFONO_3G",concepto:"DEUDA PAGADA" }).toArray();
+}

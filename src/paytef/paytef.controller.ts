@@ -101,6 +101,41 @@ export class PaytefController {
   }
 
   /* Uri */
+  @Post("totalPaytefHour")
+  async totalPaytefHour() {
+    try {
+      return await parametrosInstance.totalPaytefHour();
+    } catch (err) {
+      console.log(err);
+      logger.Error(131, err);
+      return -1;
+    }
+  }
+
+  /* Uri */
+  @Post("calcularPaytef")
+  async calcularPaytef() {
+    try {
+      let startDate = await cajaInstance.getInicioTime();
+      return await paytefInstance
+        .getRecuentoTotal(startDate)
+        .then(async (res) => {
+          if (res >= 0) {
+            await parametrosInstance.setContadoDatafono(1, res);
+            return res;
+          } else return -1;
+        })
+        .catch((err) => {
+          return -1;
+        });
+    } catch (err) {
+      console.log(err);
+      logger.Error(131, err);
+      return -1;
+    }
+  }
+
+  /* Uri */
   @Post("comprobarDisponibilidad")
   async comprobarDisponibilidad(@Body() { ip }) {
     try {

@@ -1,3 +1,6 @@
+const moment = require("moment-timezone");
+
+import { logger } from "../logger";
 import { conexion } from "../conexion/mongodb";
 import { ParametrosInterface } from "./parametros.interface";
 
@@ -86,6 +89,11 @@ export async function totalPaytef(): Promise<number> {
   const parametros = database.collection<ParametrosInterface>("parametros");
   return (await parametros.findOne({ _id: "PARAMETROS" }))?.contadorPaytef;
 }
+export async function totalPaytefHour(): Promise<string> {
+  const database = (await conexion).db("tocgame");
+  const parametros = database.collection<ParametrosInterface>("parametros");
+  return (await parametros.findOne({ _id: "PARAMETROS" }))?.contadorPaytefDate;
+}
 
 /* Uri */
 export async function setContadoDatafono(
@@ -102,11 +110,20 @@ export async function setContadoDatafono(
       break;
   }
   const database = (await conexion).db("tocgame");
+  const now = moment().format("YYYY-MM-DD HH:mm:ss");
   const parametros = database.collection("parametros");
+  if (valor && now)
+    logger.Info(
+      991,
+      "setContadoDatafono",
+      `valor: ${valor}, fecha: ${now}`,
+      "parametros.mongodb.ts",
+      "setContadoDatafono"
+    );
   return (
     await parametros.updateOne(
       { _id: "PARAMETROS" },
-      { $set: { contadorPaytef: valor } },
+      { $set: { contadorPaytef: valor, contadorPaytefDate: now } },
       { upsert: true }
     )
   ).acknowledged;

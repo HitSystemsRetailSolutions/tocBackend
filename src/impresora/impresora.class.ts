@@ -210,6 +210,7 @@ export class Impresora {
             nombre: infoCliente.nombre,
             puntos: puntos,
             descuento: descuento,
+            albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
           },
           dejaCuenta: ticket.dejaCuenta,
           idCliente: ticket.idCliente,
@@ -292,6 +293,7 @@ export class Impresora {
             nombre: infoCliente.nombre,
             puntos: puntos,
             descuento: descuento,
+            albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
           },
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
@@ -641,7 +643,7 @@ export class Impresora {
         { tipo: "text", payload: clientTitle },
         { tipo: "size", payload: [0, 0] }
       );
-    if (detalleClienteVip)
+    if (infoCliente)
       arrayImprimir.push({
         tipo: "text",
         payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${
@@ -744,6 +746,7 @@ export class Impresora {
       arrayCompra,
       infoCliente?.idCliente
     );
+    const factura = infoCliente?.albaranNPT ? "Albarà N: " : "Factura simplificada N: ";
     let pagoTarjeta = "";
     let pagoTkrs = "";
     let detalleClienteVip = "";
@@ -876,7 +879,7 @@ export class Impresora {
           diasSemana[fechaEspaña.format("d")]
         } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
-      { tipo: "text", payload: "Factura simplificada N: " + numFactura },
+      { tipo: "text", payload: factura + numFactura },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
       {
         tipo: "text",
@@ -946,7 +949,7 @@ export class Impresora {
           diasSemana[fechaEspaña.format("d")]
         } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
-      { tipo: "text", payload: "Factura simplificada N: " + numFactura },
+      { tipo: "text", payload: factura + numFactura },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
       {
         tipo: "text",
@@ -1744,7 +1747,9 @@ export class Impresora {
       mqttInstance.loggerMQTT(err);
     }
   }
+  async imprimirDeudasPagadas(movimiento){
 
+  }
   async imprimirTest() {
     try {
       const device = new escpos.Network("localhost");
