@@ -115,10 +115,10 @@ export async function setContadoDatafono(
   if (valor && now)
     logger.Info(
       991,
-      "setContadoDatafono",
-      `valor: ${valor}, fecha: ${now}`,
-      "parametros.mongodb.ts",
-      "setContadoDatafono"
+      `setContadoDatafono
+      valor: ${valor}, fecha: ${now}
+      parametros.mongodb.ts
+      setContadoDatafono`
     );
   return (
     await parametros.updateOne(
