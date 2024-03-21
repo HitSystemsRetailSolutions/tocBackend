@@ -15,6 +15,7 @@ import { CajaAbiertaInterface } from "src/caja/caja.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
+import { reenviarTicket } from "src/sincro";
 
 const moment = require("moment");
 const Ean13Utils = require("ean13-lib").Ean13Utils;
@@ -90,6 +91,15 @@ export class MovimientosClase {
     if (tipo === "TARJETA")
       if (await schMovimientos.existeMovimiento(idTicket, valor)) return false;
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
+      if(idTicket){
+        // Se pone el ticket en no enviado para reenviar el ticket con el nuevo tipoPago
+        const ticketMDB = await ticketsInstance.getTicketById(idTicket);
+        if(ticketMDB && ticketMDB.enviado){
+          reenviarTicket(idTicket);
+        }else if(!ticketMDB){
+          // si no existe el ticket en local, posblemente sea una deuda o albaran
+        }
+      }
       if (tipo === "ENTRADA_DINERO" && concepto != "DEUDA") {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
       } else if (concepto == "DEUDA" && tipo === "ENTRADA_DINERO") {
@@ -142,6 +152,15 @@ export class MovimientosClase {
     };
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
+      if(idTicket){
+        // Se pone el ticket en no enviado para reenviar el ticket con el nuevo tipoPago
+        const ticketMDB = await ticketsInstance.getTicketById(idTicket);
+        if(ticketMDB && ticketMDB.enviado){
+          reenviarTicket(idTicket);
+        }else if(!ticketMDB){
+          // si no existe el ticket en local, posblemente sea una deuda antigua o albaran
+        }
+      }
       return true;
     }
     return false;
@@ -235,7 +254,8 @@ export class MovimientosClase {
   /* Eze v4 */
   setMovimientoEnviado = (movimiento: MovimientosInterface) =>
     schMovimientos.setMovimientoEnviado(movimiento);
-
+  getMovimientosDelTicket = (idTicket: number) =>
+    schMovimientos.getMovimientosDelTicket(idTicket);
   /* Eze 4.0 */
   construirArrayVentas = async () => {
     const infoCaja = await cajaInstance.getInfoCajaAbierta();
