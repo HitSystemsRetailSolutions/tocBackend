@@ -697,7 +697,9 @@ export class Impresora {
     if (copiaText) arrayImprimir.push({ tipo: "text", payload: copiaText });
     if (firmaText) arrayImprimir.push({ tipo: "text", payload: firmaText });
     if (pie) arrayImprimir.push({ tipo: "text", payload: pie });
-    if (qrEnabled)
+
+    if (qrEnabled){
+    
       arrayImprimir.push(
         { tipo: "text", payload: "Consulta el ticket al WhatsApp:" },
         {
@@ -705,7 +707,9 @@ export class Impresora {
           payload: `https://api.whatsapp.com/send?phone=34617469230&text=${qrURL}`,
         }
       );
-    arrayImprimir.push({ tipo: "cut", payload: "PAPER_FULL_CUT" });
+    }
+      arrayImprimir.push({ tipo: "cut", payload: "PAPER_FULL_CUT" });
+    
     const options = {
       imprimirLogo: true,
       tipo: "venta",
