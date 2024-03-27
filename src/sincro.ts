@@ -67,7 +67,6 @@ async function sincronizarTickets() {
           const superTicket = {...ticket, tipoPago: null,movimientos: null};
           superTicket.movimientos = await movimientosInstance.getMovimientosDelTicket(ticket._id);
           superTicket.tipoPago = await movimientosInstance.calcularFormaPago(superTicket);
-          console.log("enviando ticket", superTicket);
           const res = await axios.post("tickets/enviarTicket", { ticket:superTicket });
           //.catch((e) => {console.log("error",e)});
           if (res.data) {

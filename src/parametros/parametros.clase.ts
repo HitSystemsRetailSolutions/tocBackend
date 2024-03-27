@@ -100,6 +100,9 @@ export class ParametrosClase {
       payteftcod: "",
     };
   }
+  updLastTicket(idTicket: number) {
+    schParametros.setUltimoTicket(idTicket);
+  }
 }
 
 const parametrosInstance = new ParametrosClase();
