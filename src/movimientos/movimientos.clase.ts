@@ -52,6 +52,8 @@ export class MovimientosClase {
 
   getMovTkrsSinExcIntervalo = async (inicioTime: number, finalTime: number) =>
     await schMovimientos.getMovTkrsSinExcIntervalo(inicioTime, finalTime);
+  getDat3GDeudaPagada = async (inicioTime: number, finalTime: number) =>
+  await schMovimientos.getDat3GDeudaPagada(inicioTime, finalTime);
 
   /* Uri */
   /* Yasai :D */

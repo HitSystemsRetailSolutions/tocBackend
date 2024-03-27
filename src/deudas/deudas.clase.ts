@@ -221,7 +221,7 @@ export class Deudas {
               await movimientosInstance.nuevoMovimientoForDeudas(
                 Date.now(),
                 total3G,
-                "",
+                "DEUDA PAGADA",
                 "DATAFONO_3G",
                 id,
                 infoCobro.idTrabajador,
@@ -253,7 +253,7 @@ export class Deudas {
           await movimientosInstance.nuevoMovimientoForDeudas(
             Date.now(),
             deuda.total,
-            "",
+            "DEUDA PAGADA",
             "DATAFONO_3G",
             id,
             infoCobro.idTrabajador,

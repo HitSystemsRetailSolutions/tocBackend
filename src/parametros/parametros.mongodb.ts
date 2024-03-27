@@ -112,13 +112,16 @@ export async function setContadoDatafono(
   const database = (await conexion).db("tocgame");
   const now = moment().format("YYYY-MM-DD HH:mm:ss");
   const parametros = database.collection("parametros");
-  // logger.Info(
-  //   991,
-  //   "setContadoDatafono",
-  //   `valor: ${valor}, fecha: ${now}`,
-  //   "parametros.mongodb.ts",
-  //   "setContadoDatafono"
-  // );
+
+  if (valor && now)
+    logger.Info(
+      991,
+      `setContadoDatafono
+      valor: ${valor}, fecha: ${now}
+      parametros.mongodb.ts
+      setContadoDatafono`
+    );
+  
   return (
     await parametros.updateOne(
       { _id: "PARAMETROS" },

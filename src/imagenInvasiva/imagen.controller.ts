@@ -4,10 +4,17 @@ import { parametrosController } from "src/parametros/parametros.controller";
 import { mesasInstance } from "src/mesas/mesas.class";
 import { cajaInstance } from "src/caja/caja.clase";
 const mqtt = require("mqtt");
-const client = mqtt.connect("mqtt://63.33.116.171:1883");
+
+const mqttOptions = {
+  host: process.env.MQTT_HOST,
+  username: process.env.MQTT_USER,
+  password: process.env.MQTT_PASSWORD,
+};
+const client = mqtt.connect(mqttOptions);
 
 client.on("connect", async () => {
   try {
+    console.log("Conectado a MQTT");
     const parametros = await parametrosController.getParametros();
     client.subscribe(`hit.software/imagen/${parametros.licencia}/trabajador`);
     client.subscribe(`hit.software/imagen/${parametros.licencia}/cliente`);
@@ -18,6 +25,9 @@ client.on("connect", async () => {
       error.message
     );
   }
+});
+client.on('error', (err) => {
+  console.error('Error en el client MQTT:', err);
 });
 
 client.on("message", (topic, message) => {
