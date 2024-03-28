@@ -25,7 +25,7 @@ import {
 import * as moment from "moment";
 import { AlbaranesInstance } from "./albaranes/albaranes.clase";
 import { clienteInstance } from "./clientes/clientes.clase";
-import { TicketsInterface } from "./tickets/tickets.interface";
+import { SuperTicketInterface, TicketsInterface } from "./tickets/tickets.interface";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
@@ -61,12 +61,14 @@ async function sincronizarTickets() {
           let idTicket = idsTicketsReenviar.shift();
           await ticketsInstance.setTicketEnviado(idTicket, false);
         }
-        const ticket = await ticketsInstance.getTicketMasAntiguo();
+        const ticket: TicketsInterface = await ticketsInstance.getTicketMasAntiguo();
         if (ticket) {
           await nuevaInstancePromociones.deshacerPromociones(ticket);
-          const res = await axios.post("tickets/enviarTicket", { ticket });
+          const superTicket = {...ticket, tipoPago: null,movimientos: null};
+          superTicket.movimientos = await movimientosInstance.getMovimientosDelTicket(ticket._id);
+          superTicket.tipoPago = await movimientosInstance.calcularFormaPago(superTicket);
+          const res = await axios.post("tickets/enviarTicket", { ticket:superTicket });
           //.catch((e) => {console.log("error",e)});
-
           if (res.data) {
             if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
               // si el ticket no se va ha reenviar marcarlo como enviado

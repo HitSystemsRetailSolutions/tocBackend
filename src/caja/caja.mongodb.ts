@@ -31,6 +31,8 @@ export async function resetCajaAbierta(): Promise<boolean> {
           detalleApertura: null,
           fichajes: null,
           propina: 0,
+          detalleActual: null,
+          cambioEmergenciaActual: 0,
           cambioEmergenciaApertura: 0,
         },
       }

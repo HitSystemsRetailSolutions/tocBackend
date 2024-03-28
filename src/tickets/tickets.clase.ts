@@ -150,12 +150,13 @@ export class TicketsClase {
           console.log(e);
         });
 
-      if (resDescuento?.data) return await schTickets.nuevoTicket(ticket);
-
-      throw Error("No se han podido descontar los puntos");
+      if (!resDescuento?.data)
+        throw Error("No se han podido descontar los puntos");
     }
-    // si no tenemos que descontar dinero, simplemente insertamos el ticket
-    return await schTickets.nuevoTicket(ticket);
+    const res = await schTickets.nuevoTicket(ticket);
+    // si ha ido bien actualizamos el último ticket
+    if (res) await parametrosInstance.updLastTicket(ticket._id);
+    return res;
   }
 
   /* Uri 4.0 */
