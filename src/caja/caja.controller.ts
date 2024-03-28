@@ -56,6 +56,8 @@ export class CajaController {
               "; diferencia:" +
               diferencia.toFixed(2)
           );
+        }else{
+          logger.Info(52.2, "Dependienta " + idDependienta + " ha cerrado caja sin modificar el valor datafono_3G. Valor 3G original:" + cantidad3GAutomatizado + "; valor 3G final:" + cantidad3G);
         }
         let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
         let cantidadLocal3G = cantidad3G;
