@@ -271,7 +271,8 @@ async function sincronizarEncargosCreados() {
             encargo.fecha,
             encargo.hora,
             "YYYY-MM-DD HH:mm:ss.S",
-            encargo.amPm
+            encargo.amPm,
+            encargo.timestamp
           );
           const encargo_santAna = {
             id: await encargosInstance.generateId(
@@ -280,7 +281,8 @@ async function sincronizarEncargosCreados() {
                 encargo.fecha,
                 encargo.hora,
                 "YYYYMMDDHHmmss",
-                encargo.amPm
+                encargo.amPm,
+                encargo.timestamp
               ),
               encargo.idTrabajador.toString(),
               parametros
@@ -420,7 +422,7 @@ async function sincronizarEncargosFinalizados() {
             id: await encargosInstance.generateId(
               moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
               encargo.idTrabajador.toString(),
-              parametros
+              parametros,
             ),
           };
           const res: any = await axios.post(url, encargoGraella).catch((e) => {
