@@ -1,12 +1,18 @@
 import { Controller, Post, Body, Query, Param } from "@nestjs/common";
 const mqtt = require("mqtt");
-const client = mqtt.connect("mqtt://63.33.116.171:1883");
+const mqttOptions = {
+  host: process.env.MQTT_HOST,
+  username: process.env.MQTT_USER,
+  password: process.env.MQTT_PASSWORD,
+};
+const client = mqtt.connect(mqttOptions);
 import { parametrosController } from "src/parametros/parametros.controller";
 import { io } from "../sockets.gateway";
 import * as schContable from "./contable.mongodb";
 
 //--------------------------------------------------------------
 client.on("connect", async () => {
+  console.log("Conectado a MQTT");
   const parametros = await parametrosController.getParametros();
   try {
     client.subscribe(`/Hit/Serveis/Contable/Estock/${parametros.licencia}`);
@@ -16,6 +22,10 @@ client.on("connect", async () => {
       error.message
     );
   }
+});
+
+client.on('error', (err) => {
+  console.error('Error en el client MQTT:', err);
 });
 
 client.on("message", async (topic, message) => {

@@ -259,7 +259,7 @@ export class TicketsController {
         );
       }
       if (await ticketsInstance.insertarTicket(ticket)) {
-        await cestasInstance.borrarArticulosCesta(idCesta, true, true);
+        await cestasInstance.borrarArticulosCesta(idCesta, true, true, false);
         await cestasInstance.setClients(0, idCesta);
         if (tipo === "TARJETA") {
           // paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);

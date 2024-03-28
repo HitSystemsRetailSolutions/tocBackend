@@ -60,6 +60,11 @@ export class ParametrosClase {
   /* Uri*/
   totalPaytef = async (): Promise<number> => await schParametros.totalPaytef();
 
+  /* Uri */
+  totalPaytefHour = async (): Promise<string> => {
+    return await schParametros.totalPaytefHour();
+  };
+
   /* Uri*/
   setIpPaytef = async (ip: string): Promise<boolean> =>
     await schParametros.setIpPaytef(ip);
@@ -69,8 +74,9 @@ export class ParametrosClase {
     await schParametros.setTcodPaytef(ip);
 
   /* Uri*/
-  setContadoDatafono = async (tipo: number, suma: number): Promise<boolean> =>
-    await schParametros.setContadoDatafono(tipo, suma);
+  setContadoDatafono = async (tipo: number, suma: number): Promise<boolean> => {
+    return await schParametros.setContadoDatafono(tipo, suma);
+  };
 
   /* yasai :D */
   set3G = async (): Promise<boolean> => await schParametros.set3G();

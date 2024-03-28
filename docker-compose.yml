@@ -6,6 +6,9 @@ services:
     environment:
       MONGO_URL: "mongodb://mongodb:27017"
       MQTT_URL: "mqtt://172.17.0.1"
+      MQTT_HOST: "mqtt.nubehit.com"
+      MQTT_USER: 'mqtt'
+      MQTT_PASSWORD: 'DCdazU3RUTphpNx^iJQhVw' 
       TZ : Europe/Madrid
     depends_on:
       - mongodb

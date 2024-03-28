@@ -6,6 +6,13 @@ import axios from "axios";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { DeudasInterface } from "./deudas.interface";
 import { AlbaranesInterface } from "src/albaranes/albaranes.interface";
+import { TicketsInterface } from "src/tickets/tickets.interface";
+import {
+  FormaPago,
+  MovimientosInterface,
+} from "src/movimientos/movimientos.interface";
+import { paytefInstance } from "src/paytef/paytef.class";
+import { movimientosInstance } from "src/movimientos/movimientos.clase";
 
 @Controller("deudas")
 export class DeudasController {
@@ -122,6 +129,76 @@ export class DeudasController {
       return await deudasInstance.getDeudaByIdTicket(idTicket, timestamp);
     } catch (err) {
       logger.Error(501, err);
+    }
+  }
+// procedimiento de pago de deuda/s con paytef
+  @Post("crearPagoDeudaPaytef")
+  async crearPagoDeudaPaytef(
+    @Body()
+    {
+      total,
+      idCesta,
+      idTrabajador,
+      tipo,
+      tkrsData,
+      concepto,
+      arrayDeudas,
+    }: {
+      total: number;
+      idCesta: TicketsInterface["cesta"]["_id"];
+      idTrabajador: TicketsInterface["idTrabajador"];
+      tipo: FormaPago;
+      tkrsData: {
+        cantidadTkrs: number;
+        formaPago: FormaPago;
+      };
+      concepto?: MovimientosInterface["concepto"];
+      arrayDeudas: DeudasInterface[];
+    }
+  ) {
+    // iniciamos transaccion con paytef y si es correcto, dejamos la deuda como pagada
+    let id = Date.now();
+    logger.Info(`crearTicketPaytef entrada (${id})`, "tickets.controller");
+    return await paytefInstance
+      .iniciarTransaccion(idTrabajador, id, total, "sale", false)
+      .then(async (x) => {
+        if (x) {
+          const infoCobro = {
+            idCesta,
+            total,
+            idTrabajador,
+            tkrsData,
+            tipo,
+          };
+          await deudasInstance.pagarDeuda(arrayDeudas, infoCobro, true)
+          //ticketsInstance.setPagadoPaytef(idTicket);
+        }
+        logger.Info(
+          `crearMovPaytef salida (${id}, ${x})`,
+          "deudas.controller"
+        );
+        return x;
+      });
+  }
+// procedimiento de pago de deuda/s
+  @Post("crearPagoDeuda")
+  async crearPagoDeuda(
+    @Body()
+    { total, idCesta, idTrabajador, tipo, tkrsData, concepto, arrayDeudas }
+  ) {
+    try {
+      const infoCobro ={
+        idCesta,
+        total,
+        idTrabajador,
+        tkrsData,
+        tipo,
+      }
+      // llamada a la funcion que deja pagada deuda/s
+      return await deudasInstance.pagarDeuda(arrayDeudas,infoCobro);
+    } catch (err) {
+      logger.Error(500, err);
+      return false;
     }
   }
 }
