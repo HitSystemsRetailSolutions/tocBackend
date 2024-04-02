@@ -46,10 +46,14 @@ async function reenviarTicket(idTicket: TicketsInterface["_id"]) {
   await ticketsInstance.setTicketEnviado(idTicket, false);
   idsTicketsReenviar.push(idTicket);
 }
+// se pone el ticket otrosModificado en no enviado por si se apaga el programa antes de sincronizarTicketsOtrosModificado
 async function reenviarTicketPago(idTicket: TicketsInterface["_id"]) {
-  // se pone el ticket en no enviado por si se apaga el programa antes de sincronizarTickets
-  await ticketsInstance.setTicketOtrosModificado(idTicket, false);
-  idsTicketsOtrosReenviar.push(idTicket);
+
+  if (!idsTicketsOtrosReenviar.includes(idTicket)) {
+    // Si no está presente en el array, se pone el ticket en no enviado y se agrega al array
+    await ticketsInstance.setTicketOtrosModificado(idTicket, false);
+    idsTicketsOtrosReenviar.push(idTicket);
+  }
 }
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
