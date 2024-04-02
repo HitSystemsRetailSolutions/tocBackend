@@ -15,7 +15,7 @@ import { CajaAbiertaInterface } from "src/caja/caja.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
-import { reenviarTicket } from "src/sincro";
+import { reenviarTicket, reenviarTicketPago } from "src/sincro";
 
 const moment = require("moment");
 const Ean13Utils = require("ean13-lib").Ean13Utils;
@@ -53,7 +53,7 @@ export class MovimientosClase {
   getMovTkrsSinExcIntervalo = async (inicioTime: number, finalTime: number) =>
     await schMovimientos.getMovTkrsSinExcIntervalo(inicioTime, finalTime);
   getDat3GDeudaPagada = async (inicioTime: number, finalTime: number) =>
-  await schMovimientos.getDat3GDeudaPagada(inicioTime, finalTime);
+    await schMovimientos.getDat3GDeudaPagada(inicioTime, finalTime);
 
   /* Uri */
   /* Yasai :D */
@@ -97,7 +97,7 @@ export class MovimientosClase {
         // Se pone el ticket en no enviado para reenviar el ticket a santaAna con el nuevo tipoPago
         const ticketMDB = await ticketsInstance.getTicketById(idTicket);
         if (ticketMDB && ticketMDB.enviado) {
-          reenviarTicket(idTicket);
+          reenviarTicketPago(idTicket);
         } else if (!ticketMDB) {
           logger.Info(
             "No existe el ticket " +
@@ -163,7 +163,7 @@ export class MovimientosClase {
         // Se pone el ticket en no enviado para reenviar el ticket a santaAna con el nuevo tipoPago
         const ticketMDB = await ticketsInstance.getTicketById(idTicket);
         if (ticketMDB && ticketMDB.enviado) {
-          reenviarTicket(idTicket);
+          reenviarTicketPago(idTicket);
         } else if (!ticketMDB) {
           logger.Info(
             "No existe el ticket " +
@@ -361,7 +361,10 @@ export class MovimientosClase {
     movimiento._id = Date.now();
 
     if (await schMovimientos.nuevoMovimiento(movimiento)) {
-      ticketsInstance.setTicketEnviado(idTicket, false);
+      const ticket = await ticketsInstance.getTicketById(idTicket);
+      if (ticket && ticket.enviado) {
+        reenviarTicketPago(idTicket);
+      }
       return true;
     }
     return false;
@@ -373,7 +376,10 @@ export class MovimientosClase {
       if (movimiento.valor < 0) movimiento.valor = movimiento.valor * -1;
       movimiento._id = Date.now();
       if (await schMovimientos.nuevoMovimiento(movimiento)) {
-        ticketsInstance.setTicketEnviado(idTicket, false);
+        const ticket = await ticketsInstance.getTicketById(idTicket);
+        if (ticket && ticket.enviado) {
+          reenviarTicketPago(idTicket);
+        }
         return true;
       }
     } else {

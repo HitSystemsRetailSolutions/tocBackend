@@ -134,6 +134,15 @@ export async function getTicketMasAntiguo(): Promise<TicketsInterface> {
   )) as TicketsInterface;
 }
 
+export async function getTicketOtrosModificadoMasAntiguo(): Promise<TicketsInterface> {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  return (await tickets.findOne(
+    { otrosModificado: false },
+    { sort: { _id: 1 } }
+  )) as TicketsInterface;
+}
+
 /* Eze 4.0 */
 export async function getUltimoTicket(): Promise<TicketsInterface> {
   const database = (await conexion).db("tocgame");
@@ -336,6 +345,29 @@ export async function setTicketEnviado(
     )
   ).acknowledged;
 }
+/**
+ * inserta un booleano a la propiedad otrosModificado del ticket
+ * @param idTicket interficie ticket
+ * @param otrosModificado booleano
+ * @returns resultado de la operacion
+ */
+export async function setTicketOtrosModificado(
+  idTicket: TicketsInterface["_id"],
+  otrosModificado: boolean = true
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const tickets = database.collection<TicketsInterface>("tickets");
+  return (
+    await tickets.updateOne(
+      { _id: idTicket },
+      {
+        $set: {
+          otrosModificado: otrosModificado,
+        },
+      }
+    )
+  ).acknowledged;
+}
 
 /* Eze v23 */
 export async function borrarTicket(idTicket: number): Promise<boolean> {
@@ -410,7 +442,7 @@ export async function insertImprimir(
       { _id: idTicket },
       {
         $set: {
-          enviado: false,
+          otrosModificado: false,
           imprimir: true,
         },
       }

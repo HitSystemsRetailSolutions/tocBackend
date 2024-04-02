@@ -243,6 +243,9 @@ export class TicketsClase {
   /* Eze 4.0 */
   getTicketMasAntiguo = () => schTickets.getTicketMasAntiguo();
 
+  getTicketOtrosModificadoMasAntiguo = () =>
+    schTickets.getTicketOtrosModificadoMasAntiguo();
+
   /* Eze 4.0 */
   actualizarEstadoTicket = (ticket: TicketsInterface) =>
     schTickets.actualizarEstadoTicket(ticket);
@@ -252,7 +255,16 @@ export class TicketsClase {
     idTicket: TicketsInterface["_id"],
     enviado: boolean = true
   ) => schTickets.setTicketEnviado(idTicket, enviado);
-
+  /**
+   * marcar valor a true o false en otrosModificado
+   * @param idTicket interficie de ticket
+   * @param otrosModificado booleano que indica si se ha modificado el ticket en bbdd
+   * @returns resultado de la operación
+   */
+  setTicketOtrosModificado = (
+    idTicket: TicketsInterface["_id"],
+    otrosModificado: boolean = true
+  ) => schTickets.setTicketOtrosModificado(idTicket, otrosModificado);
   /* Uri 4.0 */
   setPagadoPaytef = async (idTicket: TicketsInterface["_id"]) => {
     let ticket = await schTickets.getTicketByID(idTicket);
