@@ -132,6 +132,23 @@ export class CajaClase {
       totalDeudas,
       Number(cambioEmergenciaCierre.toFixed(2))
     );
+    // Entra para calclular el cierre de caja que no se ha añadido al ser un cierre automático
+    if (cierreAutomatico) {
+      let cierreCaja = 0;
+      // Si el descuadre es negativo, le falta el valor del cierre de caja
+      // Si no entra, o la apertura era 0 o 
+      if (cajaCerradaActual.descuadre < 0) {
+        cierreCaja = cajaCerradaActual.descuadre * -1;
+        // Si el cierre es automático, el descuadre se le añade el total del cierre caja
+        cajaCerradaActual.descuadre += cierreCaja;
+        cajaCerradaActual.recaudado += cierreCaja;
+      }
+      // Se añade el cierre de caja al detalle de cierre
+      cajaCerradaActual.detalleCierre[0].unidades +=
+        Math.round(cierreCaja * 100 * 100) / 100;
+      cajaCerradaActual.detalleCierre[0].valor += cierreCaja;
+      guardarInfoMonedas[0] += cajaCerradaActual.detalleCierre[0].unidades;
+    }
     if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
       const ultimaCaja = await this.getUltimoCierre();
       impresoraInstance.imprimirCajaAsync(ultimaCaja);
@@ -263,7 +280,7 @@ export class CajaClase {
         let totalPaytef = paytef[0] ? paytef[0] : 0;
 
         let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
-        let totalDatafono3G = await ticketsInstance.getTotalDatafono3G();
+        let totalDatafono3G = await ticketsInstance.getTotalDatafono3G(res.inicioTime,new Date());
         let cantidadLocal3G = totalDatafono3G;
         await cajaInstance.cerrarCaja(
           0,
@@ -429,6 +446,12 @@ export class CajaClase {
           totalDatafono3G) *
           100
       ) / 100;-*/
+
+    // comprueba valor totalDatafono3G calculado en el frontend y el totalTarjeta (datafono3G)
+    // calculado en el backend si des del frontend da 0 pero en el backend no, ha habido un mal cálculo en el frontend 
+    // y se le añade el valor de totaltarjeta
+    totalDatafono3G = totalDatafono3G == 0 && totalTarjeta != 0 ? totalTarjeta : totalDatafono3G;
+    // se calcula el descuadre
     const descuadre = Number(
       (cajaAbiertaActual.totalApertura +
         totalTickets +
@@ -440,9 +463,11 @@ export class CajaClase {
           totalHonei)) *
         -1
     );
-
     recaudado = totalTickets + descuadre;
-    const mediaTickets = totalTickets / nTickets;
+    let mediaTickets = 0;
+    if (nTickets !== 0) {
+      mediaTickets = totalTickets / nTickets;
+    }
     return {
       calaixFetZ: Number(totalTickets.toFixed(2)),
       primerTicket:
