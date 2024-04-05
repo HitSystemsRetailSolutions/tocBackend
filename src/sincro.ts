@@ -33,7 +33,8 @@ let enProcesoDeudasFinalizadas = false;
 let enProcesoEncargosCreados = false;
 let enProcesoEncargosFinalizados = false;
 let enProcesoAlbaranesCreados = false;
-
+let enprocesoTicketsOtros = false;
+let idsTicketsOtrosReenviar: TicketsInterface["_id"][] = [];
 let idsTicketsReenviar: TicketsInterface["_id"][] = [];
 
 // reenviar ticket, pone el ticket en una lista para que sincronizarTickets ponga el ticket en no enviado, y lo envie.
@@ -44,6 +45,15 @@ async function reenviarTicket(idTicket: TicketsInterface["_id"]) {
   // se pone el ticket en no enviado por si se apaga el programa antes de sincronizarTickets
   await ticketsInstance.setTicketEnviado(idTicket, false);
   idsTicketsReenviar.push(idTicket);
+}
+// se pone el ticket otrosModificado en no enviado por si se apaga el programa antes de sincronizarTicketsOtrosModificado
+async function reenviarTicketPago(idTicket: TicketsInterface["_id"]) {
+
+  if (!idsTicketsOtrosReenviar.includes(idTicket)) {
+    // Si no está presente en el array, se pone el ticket en no enviado y se agrega al array
+    await ticketsInstance.setTicketOtrosModificado(idTicket, false);
+    idsTicketsOtrosReenviar.push(idTicket);
+  }
 }
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -90,6 +100,53 @@ async function sincronizarTickets() {
     logger.Error(5, err);
   } finally {
     enProcesoTickets = false;
+  }
+}
+/**
+ * recoge tickets con otrosModificado=false y los envia al servidor
+ * @returns nothing
+ */
+async function sincronizarTicketsOtrosModificado() {
+  if (enprocesoTicketsOtros) return; // salir si ya hay un proceso sincronizando
+  try {
+    enprocesoTicketsOtros = true; // try-finally volvera a poner enprocesoTicketsOtros=false al salir
+    const parametros = await parametrosInstance.getParametros();
+    if (parametros != null) {
+      let enviarMasTicketsOtros = true;
+      while (enviarMasTicketsOtros) {
+        while (idsTicketsOtrosReenviar.length) {
+          let idTicket = idsTicketsOtrosReenviar.shift();
+          await ticketsInstance.setTicketOtrosModificado(idTicket, false);
+        }
+        const ticket: TicketsInterface = await ticketsInstance.getTicketOtrosModificadoMasAntiguo();
+        if (ticket) {
+          await nuevaInstancePromociones.deshacerPromociones(ticket);
+          const superTicket = {...ticket, tipoPago: null,movimientos: null};
+          superTicket.movimientos = await movimientosInstance.getMovimientosDelTicket(ticket._id);
+          superTicket.tipoPago = await movimientosInstance.calcularFormaPago(superTicket);
+          const res = await axios.post("tickets/updOtros", { ticket:superTicket });
+          //.catch((e) => {console.log("error",e)});
+          if (res.data) {
+            if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
+              // si el ticket no se va ha reenviar marcarlo como enviado
+              await ticketsInstance.setTicketOtrosModificado(ticket._id, true);
+            }
+          } else enviarMasTicketsOtros = false; // si error en server salir y esperar a la siguiente sincronización
+        } else {
+          // no hay ticket mas antiguo
+          if (idsTicketsReenviar.length == 0)
+            // no hay mas tickets que reenviar
+            enviarMasTicketsOtros = false;
+        }
+        if (enviarMasTicketsOtros) await sleep(100);
+      }
+    } else {
+      logger.Error(4, "No hay parámetros definidos en la BBDD");
+    }
+  } catch (err) {
+    logger.Error(5, err);
+  } finally {
+    enprocesoTicketsOtros = false;
   }
 }
 async function sincronizarCajas() {
@@ -551,11 +608,13 @@ setInterval(sincronizarAlbaranesCreados, 11000);
 // setInterval(actualizarTeclados, 3600000);
 // setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);
+setInterval(sincronizarTicketsOtrosModificado, 16000);
 // setInterval(actualizarTrabajadores, 3600000);
 // setInterval(actualizarMesas, 3600000);
 
 export {
   reenviarTicket,
+  reenviarTicketPago,
   // sincronizarTickets,
   // sincronizarCajas,
   // sincronizarMovimientos,
