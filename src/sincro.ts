@@ -605,11 +605,11 @@ setInterval(sincronizarDeudasFinalizadas, 10000);
 setInterval(sincronizarEncargosCreados, 9000);
 setInterval(sincronizarEncargosFinalizados, 10000);
 setInterval(sincronizarAlbaranesCreados, 11000);
-setInterval(actualizarTeclados, 3600000);
-setInterval(actualizarTarifas, 3600000);
+// setInterval(actualizarTeclados, 3600000);
+// setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);
-setInterval(actualizarTrabajadores, 3600000);
 setInterval(sincronizarTicketsOtrosModificado, 16000);
+// setInterval(actualizarTrabajadores, 3600000);
 // setInterval(actualizarMesas, 3600000);
 
 export {

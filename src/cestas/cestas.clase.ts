@@ -824,6 +824,7 @@ export class CestaClase {
         let articulo = await articulosInstance.getInfoArticulo(
           cesta.lista[i].idArticulo
         );
+        let tarifaEsp = false;
         // encuentra el posible descuento del cliente albaran
         let dto = 0;
         if (
@@ -836,10 +837,16 @@ export class CestaClase {
           cliente && cliente.albaran && cliente?.noPagaEnTienda
             ? articulo.precioBase
             : articulo.precioConIva;
+        const artPrecioIvaSinTarifa = articulo.precioConIva;
         articulo = await articulosInstance.getPrecioConTarifa(
           articulo,
           cesta.idCliente
         );
+
+        if (artPrecioIvaSinTarifa != articulo.precioConIva) {
+          precioArt = articulo.precioConIva;
+          tarifaEsp = true;
+        }
         if (cesta.indexMesa != null) {
           precioArt =
             (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
@@ -866,12 +873,19 @@ export class CestaClase {
         } else if (!dto && cesta.lista[i]?.dto) {
           delete cesta.lista[i].dto;
         }
+        if(tarifaEsp && !cesta.lista[i]?.tarifaEsp){
+
+          cesta.lista[i].tarifaEsp = true;
+        }else if(!tarifaEsp && cesta.lista[i]?.tarifaEsp){
+          delete cesta.lista[i].tarifaEsp;
+        }
         // Si el cliente es albaran y no paga en tienda, se guarda el IVA correspondiente
         // para mostrarlo en el ticket y en el frontend.
         if (
           cliente?.albaran &&
           cliente?.noPagaEnTienda &&
-          !cesta.lista[i]?.iva
+          !cesta.lista[i]?.iva &&
+          !tarifaEsp
         ) {
           switch (articulo.tipoIva) {
             case 1:
@@ -915,7 +929,7 @@ export class CestaClase {
           precioArt,
           articulo.tipoIva,
           cesta.lista[i].unidades,
-          cliente?.albaran && cliente?.noPagaEnTienda,
+          cliente?.albaran && cliente?.noPagaEnTienda && !tarifaEsp,
           dto
         );
 
