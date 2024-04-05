@@ -485,8 +485,10 @@ export class TicketsController {
   @Get("getTotalDatafono3G")
   async getTotalDatafono3G() {
     try {
-      return await ticketsInstance.getTotalDatafono3G();
-      return null;
+      console.log("getTotalDatafono3G");
+      const inicioTime = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
+      const finalTime = Date.now();
+      return await ticketsInstance.getTotalDatafono3G(inicioTime, finalTime);
     } catch (err) {
       logger.Error(99, err);
       console.log(err);

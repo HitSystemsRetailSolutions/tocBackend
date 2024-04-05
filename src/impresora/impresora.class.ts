@@ -1831,7 +1831,7 @@ export class Impresora {
             const signo = arrayTickets[i]?.anulado ? "" : "+";
             datafono3G += ` Quant: ${signo}${arrayTickets[i].total.toFixed(
               2
-            )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${this.dosDigitos(
+            )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth()+1).toString().padStart(2,'0')}/${auxFecha.getFullYear()} ${this.dosDigitos(
               auxFecha.getHours()
             )}:${this.dosDigitos(auxFecha.getMinutes())}\n`;
           }
@@ -1854,19 +1854,19 @@ export class Impresora {
                 i
               ].valor.toFixed(
                 2
-              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth()+1).toString().padStart(2,'0')}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             } else if (arrayMovimientos[i].concepto == "DEUDA ALBARAN") {
               textoMovimientos += ` Deute albara deixat a deure:\n  Quant: -${arrayMovimientos[
                 i
               ].valor.toFixed(
                 2
-              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth()+1).toString().padStart(2,'0')}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             } else {
               textoMovimientos += ` Sortida:\n  Quant: -${arrayMovimientos[
                 i
               ].valor.toFixed(
                 2
-              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth()+1).toString().padStart(2,'0')}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
                 arrayMovimientos[i].concepto
               }\n`;
             }
@@ -1877,20 +1877,20 @@ export class Impresora {
                 i
               ].valor.toFixed(
                 2
-              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth()+1).toString().padStart(2,'0')}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             } else if (arrayMovimientos[i].concepto == "DEUDA ALBARAN") {
               textoMovimientos += ` Deute albara pagat:\n  Quant: +${arrayMovimientos[
                 i
               ].valor.toFixed(
                 2
-              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth()+1).toString().padStart(2,'0')}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             }
             {
               textoMovimientos += ` Entrada:\n  Quant: +${arrayMovimientos[
                 i
               ].valor.toFixed(
                 2
-              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth()+1).toString().padStart(2,'0')}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
                 arrayMovimientos[i].concepto
               }\n`;
             }
@@ -1899,13 +1899,13 @@ export class Impresora {
             if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
               datafono3G += `  Quant: +${arrayMovimientos[i].valor.toFixed(
                 2
-              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth()+1).toString().padStart(2,'0')}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             }
           case "DEV_DATAFONO_3G":
             if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
               datafono3G += `  Quant: -${arrayMovimientos[i].valor.toFixed(
                 2
-              )} Data: ${auxFecha.getDate()}/${auxFecha.getMonth()}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth()+1).toString().padStart(2,'0')}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             }
             break;
         }
@@ -2000,7 +2000,7 @@ export class Impresora {
         {
           tipo: "text",
           payload:
-            "Canvi d'emergencia tancament  :      " + cambioEmergenciaCierre,
+            "Canvi d'emergencia tancament :      " + cambioEmergenciaCierre,
         },
         {
           tipo: "text",

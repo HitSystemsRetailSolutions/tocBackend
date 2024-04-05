@@ -135,4 +135,16 @@ export class MovimientosController {
       return 0;
     }
   }
+  @Post("getMovsDatafono3G")
+  async getMovsDatafono3G() {
+    try {
+      const inicioTime = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
+      const finalTime = Date.now();
+      return await movimientosInstance.getMovsDatafono3G(inicioTime, finalTime);
+    } catch (err) {
+      logger.Error(99, err);
+      console.log(err);
+      return 0;
+    }
+  }
 }

@@ -619,6 +619,8 @@ export class MovimientosClase {
   private redondeoNoIntegrado(valor: number): number {
     return valor % 1 === 0 ? valor : Number(valor.toFixed(2));
   }
+  getMovsDatafono3G = async (inicioTime: number, finalTime: number) =>
+    await schMovimientos.getMovsDatafono3G(inicioTime, finalTime);
 }
 
 export const movimientosInstance = new MovimientosClase();
