@@ -21,6 +21,7 @@ export interface TicketsInterface {
   anulado?: Anulado;
   imprimir?: boolean;
   enviado: boolean;
+  otrosModificado?: boolean;
 }
 export interface Anulado {
   idTicketPositivo: number;
