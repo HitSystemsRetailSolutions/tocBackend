@@ -71,9 +71,8 @@ export class TicketsController {
       // modifica
       const graellaModificada = await encargosInstance.updateEncargoGraella(
         idEncargo
-      );
+      )
       if (!graellaModificada) return false;
-
       const ticket = await ticketsInstance.generarNuevoTicket(
         total - dejaCuenta,
         idTrabajador,
@@ -190,13 +189,14 @@ export class TicketsController {
     }
   ) {
     try {
+      var TTicket1 = performance.now()
       if (!(typeof total == "number" && idCesta && idTrabajador && tipo)) {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
       const cliente = await clienteInstance.getClienteById(cesta.idCliente);
       let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
-      //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
+      //en ocasiones cuando un idcliente es trabajador y quiera consumo personal,
       // el modo de cesta debe cambiar a consumo_personal.
       const clienteDescEsp = descuentoEspecial.find(
         (cliente) => cliente.idCliente === cesta.idCliente
@@ -240,6 +240,7 @@ export class TicketsController {
       if (await ticketsInstance.insertarTicket(ticket)) {
         await cestasInstance.borrarArticulosCesta(idCesta, true, true, false);
         await cestasInstance.setClients(0, idCesta);
+        
         if (tipo === "TARJETA") {
           // paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
           ticketsInstance.setPagadoPaytef(ticket._id);
@@ -320,7 +321,12 @@ export class TicketsController {
               total: total,
               timestamp: ticket.timestamp,
             };
+            var TDeuda1 = performance.now()
             await deudasInstance.setDeuda(deuda);
+            var TDeuda2 = performance.now()
+            var TiempoDeuda = TDeuda2 - TDeuda1
+            logger.Info("TiempoDeuda",TiempoDeuda.toFixed(4)+ " ms")
+
           } else {
             await movimientosInstance.nuevoMovimiento(
               total,
@@ -338,13 +344,20 @@ export class TicketsController {
         if (tipo !== "TARJETA" && concepto == "DEUDA") {
           await impresoraInstance.abrirCajon();
         }
+  
+        
         ticketsInstance.actualizarTickets();
+        var TTicket2 = performance.now()
+        var TiempoTicket = TTicket2 - TTicket1
+        logger.Info("TiempoTicket",TiempoTicket.toFixed(4)+" ms")
         return ticket._id;
+        
+        
       }
-
       throw Error(
         "Error, no se ha podido crear el ticket en crearTicket() controller 2"
       );
+      
     } catch (err) {
       logger.Error(107, err);
       return false;
@@ -494,3 +507,4 @@ export class TicketsController {
     }
   }
 }
+

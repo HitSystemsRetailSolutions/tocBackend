@@ -5,6 +5,7 @@ import { clienteInstance } from "./clientes.clase";
 import { ClientesInterface, arrayClientesFacturacion } from "./clientes.interface";
 import { logger } from "../logger";
 import { conexion } from "src/conexion/mongodb";
+let firstTimeCalled = true;
 
 @Controller("clientes")
 export class ClientesController {
@@ -19,17 +20,35 @@ export class ClientesController {
       return null;
     }
   }
+  
   /* Uri */
   @Post("getClienteByNumber")
   async getClienteByNumber(@Body() { idTarjeta }) {
     try {
-      if (idTarjeta) return await clienteInstance.getClienteByNumber(idTarjeta);
+      if (idTarjeta) {
+        var TTarjeta1 = performance.now()
+        const result = await clienteInstance.getClienteByNumber(idTarjeta);
+        var TTarjeta2 = performance.now()
+        var TiempoTarjeta = TTarjeta2 - TTarjeta1
+
+        if (firstTimeCalled) {
+          console.log(TiempoTarjeta);
+          firstTimeCalled = false;
+          setTimeout(() => {
+            firstTimeCalled = true;
+          }, 50);
+          logger.Info("TiempoTarjetaID",TiempoTarjeta.toFixed(4)+ " ms")
+        }
+        return result;
+      }
       throw Error("Error, faltan datos en getClienteByNumber");
     } catch (err) {
       logger.Error(66, err);
       return null;
     }
   }
+  
+  
 
   /* Eze 4.0 */
   @Post("getClienteById")
