@@ -402,7 +402,7 @@ export class MovimientosClase {
     }
     return false;
   }
-
+// funcion con muchas comprobaciones para calcular el tipo de pago en el ticket, se puede simplificar
   /* Eze 4.0 */
   public async calcularFormaPago(
     superTicket: SuperTicketInterface
