@@ -10,6 +10,7 @@ export interface ParametrosInterface {
   ultimoTicket: number;
   header: string;
   footer: string;
+  promocioDescompteFixe?: number;
   token: string;
   contadorPaytef: number;
   params?: any;
