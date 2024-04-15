@@ -402,7 +402,7 @@ export class MovimientosClase {
     }
     return false;
   }
-
+// funcion con muchas comprobaciones para calcular el tipo de pago en el ticket, se puede simplificar
   /* Eze 4.0 */
   public async calcularFormaPago(
     superTicket: SuperTicketInterface
@@ -473,7 +473,35 @@ export class MovimientosClase {
       ) {
         return "ANULADO";
       } else if (
-        // CASO DEUDA PAGADA con 4 movs
+        // CASO DEUDA PAGADA con 5 movs (1 es de dejaCuenta)
+        superTicket.movimientos.length === 5
+      ) {
+        if (
+          superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
+            0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "TKRS_SIN_EXCESO")
+            .length > 0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G")
+            .length > 0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "ENTRADA_DINERO")
+            .length > 0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "ENTRADA_DINERO")
+            .length > 0
+        )
+          return "TKRS + DATAFONO_3G";
+        if (
+          superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
+            0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "TKRS_SIN_EXCESO")
+            .length > 0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "TKRS_CON_EXCESO")
+            .length > 0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "ENTRADA_DINERO")
+            .length > 1
+        )
+          return "TKRS";
+      } else if (
+        // CASO DEUDA/DEUDA PAGADA con 4 movs
         superTicket.movimientos.length == 4
       ) {
         if (
@@ -498,6 +526,46 @@ export class MovimientosClase {
             .length > 0
         )
           return "TKRS";
+        if (
+          superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
+            0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "ENTRADA_DINERO")
+            .length > 1 &&
+          superTicket.movimientos.filter((e) => e.tipo === "TARJETA").length > 0
+        )
+          return "TARJETA";
+        if (
+          superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
+            0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G")
+            .length > 0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
+            0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "ENTRADA_DINERO")
+            .length > 0
+        )
+          return "DATAFONO_3G";
+        if (
+          superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
+            0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "TKRS_SIN_EXCESO")
+            .length > 0 &&
+          superTicket.movimientos.filter((e) => e.tipo === "ENTRADA_DINERO")
+            .length > 1
+        ) {
+          if (
+            superTicket.movimientos.filter(
+              (e) => e.tipo === "TKRS_SIN_EXCESO"
+            )[0].valor === superTicket.total
+          )
+            return "TKRS";
+          else if (
+            superTicket.movimientos.filter(
+              (e) => e.tipo === "TKRS_SIN_EXCESO"
+            )[0].valor < superTicket.total
+          )
+            return "TKRS + EFECTIVO";
+        }
       } else if (
         // CASO DEUDA PAGADA con 3 movs
         superTicket.movimientos.length == 3
@@ -540,6 +608,16 @@ export class MovimientosClase {
           )
             return "TKRS + EFECTIVO";
         }
+        if (
+          superTicket.movimientos.filter((e) => e.tipo === "ENTRADA_DINERO")
+            .length > 1 &&
+          superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
+            0 &&
+          superTicket.movimientos.filter((e) => e.concepto === "dejaACuenta")
+            .length > 0
+        ) {
+          return "EFECTIVO";
+        }
       } else if (superTicket.movimientos.length > 1) {
         // CASO TARJETA ANULADA
         if (
@@ -554,6 +632,8 @@ export class MovimientosClase {
           superTicket.movimientos[0].tipo === "SALIDA" &&
           superTicket.movimientos[1].tipo === "ENTRADA_DINERO"
         ) {
+          if (superTicket.movimientos[1].concepto === "dejaACuenta")
+            return "DEUDA";
           // CASO DEUDA PAGADA
           const debeSerCero =
             superTicket.movimientos[0].valor - superTicket.movimientos[1].valor;
