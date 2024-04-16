@@ -169,3 +169,12 @@ export async function getDat3GDeudaPagada(
     database.collection<MovimientosInterface>("movimientos");
   return await movimientosCollection.find({  _id: { $lte: final, $gte: horaApertura },tipo: "DATAFONO_3G",concepto:"DEUDA PAGADA" }).toArray();
 }
+export async function getMovsDatafono3G(
+  horaApertura: CajaAbiertaInterface["inicioTime"],
+  final: number
+){
+  const database = (await conexion).db("tocgame");
+  const movimientosCollection =
+    database.collection<MovimientosInterface>("movimientos");
+  return await movimientosCollection.find({  _id: { $lte: final, $gte: horaApertura },tipo: {$in: ["DATAFONO_3G", "DEV_DATAFONO_3G"]}}).toArray();
+}

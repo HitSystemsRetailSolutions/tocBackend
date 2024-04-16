@@ -265,23 +265,25 @@ export class Encargos {
     fecha: string | null,
     hora: string | null,
     format: string,
-    amPm: string | null
+    amPm: string | null,
+    timestamp: number,
   ): Promise<string> {
+    // genera la fecha de un formato especifico si opcion es hoy
     if (tipo === OpcionRecogida.HOY && format !== "YYYYMMDDHHmmss") {
-      fecha = moment(Date.now()).format("YYYY-MM-DD");
+      fecha = moment(fecha).format("YYYY-MM-DD");
       hora = moment(Date.now())
         .set({ hour: amPm === "am" ? 12 : 17, minute: 0 })
         .format("HH:mm");
       return moment(new Date(`${fecha}:${hora}`).getTime()).format(format);
     }
-
+    // genera la fecha de un formato especifico si opcion es otroDia
     if (tipo === OpcionRecogida.OTRO_DIA && format !== "YYYYMMDDHHmmss")
       return moment(new Date(`${fecha}:${hora}`).getTime()).format(format);
-
+    // genera la fecha de un formato especifico si opcion es repeticion
     if (tipo === OpcionRecogida.REPETICION && format !== "YYYYMMDDHHmmss")
       return fecha;
-
-    return moment(Date.now()).format(format);
+    // genera la fecha de un formato predeterminado para después construir el id del encargo
+    return moment(timestamp).format(format);
   }
   public async formatPeriode(dias) {
     return dias.reduce((arr, { nDia }) => {
