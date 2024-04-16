@@ -24,8 +24,8 @@ client.on("connect", async () => {
   }
 });
 
-client.on('error', (err) => {
-  console.error('Error en el client MQTT:', err);
+client.on("error", (err) => {
+  console.error("Error en el client MQTT:", err);
 });
 
 client.on("message", async (topic, message) => {
@@ -35,14 +35,18 @@ client.on("message", async (topic, message) => {
     if (
       message &&
       message.CodiArticle &&
-      message.EstocActualitzat
-      && message.Llicencia == parametros.licencia
+      message.EstocActualitzat &&
+      message.FontSize &&
+      message.FontColor &&
+      message.Llicencia == parametros.licencia
     ) {
       let item = message.CodiArticle;
       let stock = message.EstocActualitzat;
+      let fontSize = message.FontSize;
+      let fontColor = message.FontColor;
       try {
         //schContable.setItemStock(Number(item), Number(stock));
-        io.emit("stock", { item, stock });
+        io.emit("stock", { item, stock, fontSize, fontColor });
       } catch (error) {
         console.log(
           "error en contable.controller > setItemStock: ",
