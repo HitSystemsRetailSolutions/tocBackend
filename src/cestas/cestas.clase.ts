@@ -103,18 +103,19 @@ export class CestaClase {
       }
     }
   }
-  /* Eze 4.0 */
+  /* Eze 4.0 */ /* Actualizado por Aga */
   async actualizarCestas() {
     const arrayCestas = await cestasInstance.getAllCestas();
+    for (const cesta of arrayCestas) {
+      if (!cesta.idCliente) {  // Verificar si no hay Cliente
+        for (const item of cesta.lista) {
+          item.regalo = false; // Cambiar el valor de regalo a false para todos los artículos en la cesta (al no haber cliente no deberia de haber regalo)
+        }
+      }
+      await cestasInstance.recalcularIvas(cesta);
+      await schCestas.updateCesta(cesta);
+    }
     io.emit("cargarCestas", arrayCestas);
-    // cestasInstance
-    //   .getAllCestas()
-    //   .then((arrayCestas) => {
-
-    //   })
-    //   .catch((err) => {
-    //     logger.Error(119, err);
-    //   });
   }
 
   /* Eze 4.0 */
@@ -873,10 +874,9 @@ export class CestaClase {
         } else if (!dto && cesta.lista[i]?.dto) {
           delete cesta.lista[i].dto;
         }
-        if(tarifaEsp && !cesta.lista[i]?.tarifaEsp){
-
+        if (tarifaEsp && !cesta.lista[i]?.tarifaEsp) {
           cesta.lista[i].tarifaEsp = true;
-        }else if(!tarifaEsp && cesta.lista[i]?.tarifaEsp){
+        } else if (!tarifaEsp && cesta.lista[i]?.tarifaEsp) {
           delete cesta.lista[i].tarifaEsp;
         }
         // Si el cliente es albaran y no paga en tienda, se guarda el IVA correspondiente
