@@ -2,7 +2,7 @@ import { DetalleIvaInterface } from "../cestas/cestas.interface";
 import { TiposIva } from "../articulos/articulos.interface";
 
 /* Eze 4.0 (REDONDEA AL SEGUNDO DECIMAL) */
-const redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
+export const redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
 
 /* Eze 4.0 */
 export function construirObjetoIvas(

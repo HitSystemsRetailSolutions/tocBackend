@@ -222,7 +222,7 @@ export class TicketsController {
         await cestasInstance.recalcularIvas(cesta);
       }
 
-      const d3G = tipo === "DATAFONO_3G";
+
       const ticket = await ticketsInstance.generarNuevoTicket(
         total,
         idTrabajador,
@@ -238,108 +238,8 @@ export class TicketsController {
         );
       }
       if (await ticketsInstance.insertarTicket(ticket)) {
-        await cestasInstance.borrarArticulosCesta(idCesta, true, true, false);
-        await cestasInstance.setClients(0, idCesta);
-        if (tipo === "TARJETA") {
-          // paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
-          ticketsInstance.setPagadoPaytef(ticket._id);
-        } else if (
-          (tipo === "TKRS" && tkrsData) ||
-          (tkrsData?.cantidadTkrs > 0 &&
-            (tipo === "EFECTIVO" || tipo === "DATAFONO_3G"))
-        ) {
-          if (tkrsData.cantidadTkrs > total) {
-            await movimientosInstance.nuevoMovimiento(
-              total,
-              "",
-              "TKRS_SIN_EXCESO",
-              ticket._id,
-              idTrabajador
-            );
-            await movimientosInstance.nuevoMovimiento(
-              this.redondearPrecio(tkrsData.cantidadTkrs - total),
-              "",
-              "TKRS_CON_EXCESO",
-              ticket._id,
-              idTrabajador
-            );
-          } else if (tkrsData.cantidadTkrs < total) {
-            if (tipo === "DATAFONO_3G") {
-              let total3G = Math.round((total-tkrsData.cantidadTkrs) *100)/100;
-              await movimientosInstance.nuevoMovimiento(
-                total3G,
-                "",
-                "DATAFONO_3G",
-                ticket._id,
-                idTrabajador,
-              )
-            }
-            await movimientosInstance.nuevoMovimiento(
-              tkrsData.cantidadTkrs,
-              "",
-              "TKRS_SIN_EXCESO",
-              ticket._id,
-              idTrabajador
-            );
-          } else if (tkrsData.cantidadTkrs === total) {
-            await movimientosInstance.nuevoMovimiento(
-              total,
-              "",
-              "TKRS_SIN_EXCESO",
-              ticket._id,
-              idTrabajador
-            );
-          }
-        } else if (tipo === "DATAFONO_3G") {
-          await movimientosInstance.nuevoMovimiento(
-            total,
-            "",
-            "DATAFONO_3G",
-            ticket._id,
-            idTrabajador
-          );
-        } else if (tipo === "DEUDA") {
-          const cliente = await getClienteById(cesta.idCliente);
-          //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
-          // se diferenciara su uso cuando el concepto sea igual a DEUDA
-          if (concepto && concepto == "DEUDA") {
-            await movimientosInstance.nuevoMovimiento(
-              total,
-              "DEUDA",
-              "SALIDA",
-              ticket._id,
-              idTrabajador,
-              cliente.nombre,
-            );
-            var deuda = {
-              idTicket: ticket._id,
-              cesta: cesta,
-              idTrabajador: idTrabajador,
-              idCliente: cesta.idCliente,
-              nombreCliente: cesta.nombreCliente,
-              total: total,
-              timestamp: ticket.timestamp,
-            };
-            await deudasInstance.setDeuda(deuda);
-          } else {
-            await movimientosInstance.nuevoMovimiento(
-              total,
-              "",
-              "DEUDA",
-              ticket._id,
-              idTrabajador
-            );
-          }
-        } else if (tipo !== "EFECTIVO" && tipo != "CONSUMO_PERSONAL") {
-          throw Error(
-            "Falta información del tkrs o bien ninguna forma de pago es correcta"
-          );
-        }
-        if (tipo !== "TARJETA" && concepto == "DEUDA") {
-          await impresoraInstance.abrirCajon();
-        }
-        ticketsInstance.actualizarTickets();
-        return ticket._id;
+        return await ticketsInstance.finalizarTicket(ticket,idTrabajador,tipo, concepto, cesta, tkrsData);
+        
       }
 
       throw Error(
