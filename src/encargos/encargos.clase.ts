@@ -319,7 +319,6 @@ export class Encargos {
       }
 
       // Agregamos el objeto actual al grupo correspondiente según su id
-      console.log("hola")
       idsAgrupados[id].push(item);
     }
 

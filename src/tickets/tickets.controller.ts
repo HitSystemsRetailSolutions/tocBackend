@@ -100,6 +100,7 @@ export class TicketsController {
           dejaCuenta: dejaCuenta,
         };
         await deudasInstance.setDeuda(deuda);
+        var DeudaT2 = performance.now()
         await movimientosInstance.nuevoMovimiento(
           total - dejaCuenta,
           "DEUDA",
@@ -397,6 +398,7 @@ export class TicketsController {
             idTrabajador
           );
         } else if (tipo === "DEUDA") {
+          var TDeuda1 = performance.now()
           const cliente = await getClienteById(cesta.idCliente);
           //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
           // se diferenciara su uso cuando el concepto sea igual a DEUDA
@@ -408,7 +410,9 @@ export class TicketsController {
             ticket._id,
             idTrabajador
           );
-
+            var TDeuda2 = performance.now()
+            var TiempoDeuda = TDeuda2 - TDeuda1
+            logger.Info("TiempoDeuda",TiempoDeuda.toFixed(4) +" ms")
         } else if (tipo !== "EFECTIVO" && tipo != "CONSUMO_PERSONAL") {
           throw Error(
             "Falta información del tkrs o bien ninguna forma de pago es correcta"

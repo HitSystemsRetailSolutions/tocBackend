@@ -2,7 +2,10 @@ import { Controller, Post, Body, Get, Query } from "@nestjs/common";
 import axios from "axios";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { clienteInstance } from "./clientes.clase";
-import { ClientesInterface, arrayClientesFacturacion } from "./clientes.interface";
+import {
+  ClientesInterface,
+  arrayClientesFacturacion,
+} from "./clientes.interface";
 import { logger } from "../logger";
 import { conexion } from "src/conexion/mongodb";
 let firstTimeCalled = true;
@@ -20,24 +23,23 @@ export class ClientesController {
       return null;
     }
   }
-  
+
   /* Uri */
   @Post("getClienteByNumber")
   async getClienteByNumber(@Body() { idTarjeta }) {
     try {
       if (idTarjeta) {
-        var TTarjeta1 = performance.now()
+        var TTarjeta1 = performance.now();
         const result = await clienteInstance.getClienteByNumber(idTarjeta);
-        var TTarjeta2 = performance.now()
-        var TiempoTarjeta = TTarjeta2 - TTarjeta1
+        var TTarjeta2 = performance.now();
+        var TiempoTarjeta = TTarjeta2 - TTarjeta1;
 
         if (firstTimeCalled) {
-          console.log(TiempoTarjeta);
           firstTimeCalled = false;
           setTimeout(() => {
             firstTimeCalled = true;
           }, 50);
-          logger.Info("TiempoTarjetaID",TiempoTarjeta.toFixed(4)+ " ms")
+          logger.Info("TiempoTarjetaID", TiempoTarjeta.toFixed(4) + " ms");
         }
         return result;
       }
@@ -47,8 +49,6 @@ export class ClientesController {
       return null;
     }
   }
-  
-  
 
   /* Eze 4.0 */
   @Post("getClienteById")
@@ -287,53 +287,52 @@ export class ClientesController {
     }
   }
   @Get("getIdTrabajadorCliente")
-  async getIdTrabajadorCliente(@Query() query: { idCliente: ClientesInterface["id"] }){
-
+  async getIdTrabajadorCliente(
+    @Query() query: { idCliente: ClientesInterface["id"] }
+  ) {
     if (!query || !query.idCliente) {
       return false;
     }
 
     try {
-      const params={idCliente:query.idCliente}
-      const res = await axios.get("clientes/getIdTrabajadorCliente",{params})
+      const params = { idCliente: query.idCliente };
+      const res = await axios.get("clientes/getIdTrabajadorCliente", {
+        params,
+      });
       if (res.data) {
-        return true
+        return true;
       }
       return false;
     } catch (error) {
-      logger.Error(136, 'En getIdTrabajadorCliente:',error);
+      logger.Error(136, "En getIdTrabajadorCliente:", error);
       return false;
     }
-
   }
 
   @Get("getEsClient")
-  async getEsClient(@Query() query: { idCliente: ClientesInterface["id"] }){
-
+  async getEsClient(@Query() query: { idCliente: ClientesInterface["id"] }) {
     if (!query || !query.idCliente) {
       return false;
     }
     try {
-      const params={idCliente:query.idCliente}
-      const res = await axios.get("clientes/getEsClient",{params})
+      const params = { idCliente: query.idCliente };
+      const res = await axios.get("clientes/getEsClient", { params });
       if (res.data) {
-        return true
+        return true;
       }
       return false;
     } catch (error) {
-      logger.Error(137, 'En getEsClient:',error);
+      logger.Error(137, "En getEsClient:", error);
       return false;
     }
   }
 
   @Get("getEsClienteFacturacion")
-  async getEsClienteFacturacion(){
+  async getEsClienteFacturacion() {
     try {
-      
       return arrayClientesFacturacion;
-
     } catch (error) {
-      logger.Error(138, 'En getEsClientFacturacion:',error);
+      logger.Error(138, "En getEsClientFacturacion:", error);
       return false;
     }
   }
