@@ -10,6 +10,7 @@ export interface DeudasInterface {
     nombreCliente: string;
     idCliente: string;
     cesta: CestasInterface;
+    dejaCuenta: number;
     enviado?: boolean;
     finalizado?: boolean;
     estado: "SIN_PAGAR" | "PAGADO" | "ANULADO";

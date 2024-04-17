@@ -8,6 +8,7 @@ import {
 } from "./cestas.interface";
 import {
   construirObjetoIvas,
+  convertirDineroEnPuntos,
   fusionarObjetosDetalleIva,
 } from "../funciones/funciones";
 import { Articulos, articulosInstance } from "../articulos/articulos.clase";
@@ -502,6 +503,9 @@ export class CestaClase {
             // articulos pagados y no pagados de honei
             if (igual == cesta.lista[i].arraySuplementos.length) {
               cesta.lista[i].unidades += unidades;
+              if (articulo.puntos == null) {
+                await this.setPuntosPromoDscompteFixe(articulo);
+              }
               if (unidades > 0 && cesta.lista[i].puntos != null) {
                 cesta.lista[i].puntos += articulo.puntos * unidades;
               } else if (unidades < 0 && cesta.lista[i].puntos != null) {
@@ -521,6 +525,9 @@ export class CestaClase {
             cesta.lista[i].regalo == regalar
           ) {
             cesta.lista[i].unidades += unidades;
+            if (articulo.puntos == null) {
+              await this.setPuntosPromoDscompteFixe(articulo);
+            }
             if (unidades > 0 && cesta.lista[i].puntos != null) {
               cesta.lista[i].puntos += articulo.puntos * unidades;
             } else if (unidades < 0 && cesta.lista[i].puntos != null) {
@@ -539,6 +546,9 @@ export class CestaClase {
       const pagado = menu === "pagados";
 
       if (articuloNuevo) {
+        if (articulo.puntos == null) {
+          await this.setPuntosPromoDscompteFixe(articulo);
+        }
         cesta.lista.push({
           idArticulo: articulo._id,
           nombre: articulo.nombre,
@@ -574,6 +584,15 @@ export class CestaClase {
     if (await schCestas.updateCesta(cesta)) return cesta;
 
     throw Error("Error updateCesta() - cesta.clase.ts");
+  }
+  async setPuntosPromoDscompteFixe(articulo: ArticulosInterface) {
+    const promocioDescompteFixe =
+      (await parametrosInstance.getParametros()).promocioDescompteFixe || 0;
+    if (promocioDescompteFixe > 0) {
+      let dineroToPuntos = convertirDineroEnPuntos(articulo.precioConIva,promocioDescompteFixe);
+      if (dineroToPuntos > 0) articulo.puntos = dineroToPuntos;
+    }
+    return articulo;
   }
   /* Yasai :D */
   async insertarArticulosHonei(
@@ -873,10 +892,9 @@ export class CestaClase {
         } else if (!dto && cesta.lista[i]?.dto) {
           delete cesta.lista[i].dto;
         }
-        if(tarifaEsp && !cesta.lista[i]?.tarifaEsp){
-
+        if (tarifaEsp && !cesta.lista[i]?.tarifaEsp) {
           cesta.lista[i].tarifaEsp = true;
-        }else if(!tarifaEsp && cesta.lista[i]?.tarifaEsp){
+        } else if (!tarifaEsp && cesta.lista[i]?.tarifaEsp) {
           delete cesta.lista[i].tarifaEsp;
         }
         // Si el cliente es albaran y no paga en tienda, se guarda el IVA correspondiente

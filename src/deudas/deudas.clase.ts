@@ -167,11 +167,11 @@ export class Deudas {
     }
   }
   /**
-   * 
+   *
    * @param arrayDeudas contiene las deudas a pagar
    * @param infoCobro datos de la cesta
    * @param visa booleano que indica si se ha pagado con visa/paytef
-   * @returns 
+   * @returns
    */
   async pagarDeuda(arrayDeudas, infoCobro, visa = false) {
     try {
@@ -180,9 +180,15 @@ export class Deudas {
       let id = null;
       let concepto = null;
       let cantidadTkrs = infoCobro.tkrsData?.cantidadTkrs || 0;
+      let dejaCuenta = 0;
       // recorre las deudas para pagarlas
       for (const iterator of arrayDeudas) {
         deuda = iterator;
+        let total = deuda.total;
+        if (deuda.dejaCuenta > 0) {
+          dejaCuenta += deuda.dejaCuenta;
+          total = Math.round((deuda.total - deuda.dejaCuenta) * 100) / 100;
+        }
         albaran = deuda.albaran;
         id = deuda.idTicket;
         // creacion de mov si se ha utilizado tkrs
@@ -192,12 +198,12 @@ export class Deudas {
             (infoCobro.tipo === "EFECTIVO" || infoCobro.tipo === "DATAFONO_3G"))
         ) {
           // Realizar acciones específicas según la cantidad de TKRS
-          if (cantidadTkrs > deuda.total) {
+          if (cantidadTkrs > total) {
             // Acciones si hay exceso de TKRS
             // llamada a nuevoMovimientoForDeudas para crear movs sin imprimirlos y pasando por param la _id
             await movimientosInstance.nuevoMovimientoForDeudas(
               Date.now(),
-              deuda.total,
+              total,
               "",
               "TKRS_SIN_EXCESO",
               id,
@@ -206,18 +212,18 @@ export class Deudas {
             );
             await movimientosInstance.nuevoMovimientoForDeudas(
               Date.now(),
-              this.redondearPrecio(cantidadTkrs - deuda.total),
+              this.redondearPrecio(cantidadTkrs - total),
               "",
               "TKRS_CON_EXCESO",
               id,
               infoCobro.idTrabajador,
               deuda.nombreCliente
             );
-          } else if (cantidadTkrs < deuda.total) {
+          } else if (cantidadTkrs < total) {
             // Acciones si la cantidad de TKRS no cubre la deuda completa
             if (infoCobro.tipo === "DATAFONO_3G") {
               let total3G =
-                Math.round((deuda.total - cantidadTkrs) * 100) / 100;
+                Math.round((total - cantidadTkrs) * 100) / 100;
               await movimientosInstance.nuevoMovimientoForDeudas(
                 Date.now(),
                 total3G,
@@ -249,10 +255,10 @@ export class Deudas {
               deuda.nombreCliente
             );
           }
-        }else if(infoCobro.tipo === "DATAFONO_3G"){
+        } else if (infoCobro.tipo === "DATAFONO_3G") {
           await movimientosInstance.nuevoMovimientoForDeudas(
             Date.now(),
-            deuda.total,
+            total,
             "DEUDA PAGADA",
             "DATAFONO_3G",
             id,
@@ -269,7 +275,7 @@ export class Deudas {
         concepto =
           secondVersionDeudaAlbaran && albaran ? "DEUDA ALBARAN" : "DEUDA";
         const movimiento = {
-          valor: deuda.total,
+          valor: total,
           concepto: concepto,
           idTicket: id,
           idTrabajador: infoCobro.idTrabajador,
@@ -289,7 +295,7 @@ export class Deudas {
           // si la deuda se paga con visa, generamos mov de tarjeta
           if (visa) {
             const movimientoTarjeta = {
-              valor: deuda.total,
+              valor: total,
               concepto: concepto,
               idTicket: id,
               idTrabajador: infoCobro.idTrabajador,
@@ -321,14 +327,14 @@ export class Deudas {
           }
         }
         // Restar la cantidad de TKRS para la siguiente deuda
-        cantidadTkrs -= deuda.total;
+        cantidadTkrs -= total;
       }
       // Se genera un movimiento general de deuda/s para mostrar el cobro en un solo ticket al imprimir
       let codigoBarras = await movimientosInstance.generarCodigoBarrasSalida();
       codigoBarras = String(Ean13Utils.generate(codigoBarras));
       const movimientoGeneral: MovimientosInterface = {
         _id: Date.now(),
-        valor: infoCobro.total,
+        valor: Math.round((infoCobro.total-dejaCuenta)*100)/100,
         concepto: concepto,
         idTicket: null,
         idTrabajador: infoCobro.idTrabajador,
@@ -467,6 +473,20 @@ export class Deudas {
       const idCliente = deuda[0].Otros.match(/\[Id:(.*?)\]/)?.[1] || "";
       const cliente = await clienteInstance.getClienteById(idCliente);
       const nombreCliente = cliente.nombre;
+      const detall = deuda[0].Detall;
+      let inicio = detall.indexOf("DejaACuenta:");
+      let dejaCuenta = 0;
+      if (inicio !== -1) {
+        // Ajustar el índice para comenzar desde después de ":"
+        inicio += "DejaACuenta:".length;
+
+        // Encontrar la posición final del valor numérico (buscando el siguiente corchete)
+        let fin = detall.indexOf("]", inicio);
+
+        // Extraer y convertir el valor numérico
+        let valorDejaACuenta = parseFloat(detall.substring(inicio, fin));
+        dejaCuenta = valorDejaACuenta;
+      }
       let total = 0;
       const fechaOriginal = new Date(deuda[0].Data); // Fecha y hora original en tu zona horaria local
       const fechaGMT = new Date(
@@ -512,6 +532,7 @@ export class Deudas {
         idCliente: idCliente,
         nombreCliente: nombreCliente,
         total: total,
+        dejaCuenta: dejaCuenta,
         timestamp: timestamp,
         enviado: true,
         estado: "SIN_PAGAR",
