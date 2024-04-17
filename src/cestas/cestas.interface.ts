@@ -54,6 +54,7 @@ export type ItemLista = {
   puntos: number;
   gramos: number;
   impresora: string;
+  printed?: boolean;
   regalo: boolean;
   dto?: number;
   iva?: number;
