@@ -18,7 +18,7 @@ import { deudasInstance } from "src/deudas/deudas.clase";
 import { timestamp } from "rxjs";
 import { mqttInstance } from "src/mqtt";
 import axios from "axios";
-import { clienteInstance } from "src/clientes/clientes.clase";
+import { Clientes, clienteInstance } from "src/clientes/clientes.clase";
 import { getClienteById } from "src/clientes/clientes.mongodb";
 import { descuentoEspecial } from "src/clientes/clientes.interface";
 import { parametrosInstance } from "../parametros/parametros.clase";
@@ -109,7 +109,8 @@ export class TicketsController {
       return false;
     }
   }
-  redondearPrecio = (precio: number) => Number((Math.round(precio * 100) / 100).toFixed(2));
+  redondearPrecio = (precio: number) =>
+    Number((Math.round(precio * 100) / 100).toFixed(2));
 
   @Post("crearTicketPaytef")
   async crearTicketPaytef(
@@ -136,30 +137,50 @@ export class TicketsController {
     }
   ) {
     let nextID = await ticketsInstance.getProximoId();
-    logger.Info(`crearTicketPaytef entrada (${nextID})`, "tickets.controller")
+    const cesta = await cestasInstance.getCestaById(idCesta);
+    await cestasInstance.aplicarDescuento(cesta, total);
+    const ticketTemp = await ticketsInstance.generarNuevoTicket(
+      total,
+      idTrabajador,
+      cesta,
+      tipo === "CONSUMO_PERSONAL",
+      tipo.includes("HONEI") || honei,
+      tkrsData?.cantidadTkrs > 0
+    );
+    logger.Info(`crearTicketPaytef entrada (${nextID})`, "tickets.controller");
     return await paytefInstance
       .iniciarTransaccion(idTrabajador, nextID, total)
       .then(async (x) => {
         if (x) {
-          await this.crearTicket({
-            total,
-            idCesta,
-            idTrabajador,
-            tipo,
-            tkrsData,
-            concepto,
-            honei,
-          });
-          let idTicket= await ticketsInstance.getUltimoIdTicket();
-          if (idTicket!=nextID) {
-            logger.Error(`idTicket!=nextID (${idTicket}!=${nextID})`, "tickets.controller");
+          if (await ticketsInstance.insertarTicket(ticketTemp)) {
+            return await ticketsInstance.finalizarTicket(
+              ticketTemp,
+              idTrabajador,
+              tipo,
+              concepto,
+              cesta,
+              tkrsData
+            );
           }
-          if ( (await parametrosInstance.getParametros())?.params?.TicketDFAuto == "Si" ) {
+          let idTicket = await ticketsInstance.getUltimoIdTicket();
+          if (idTicket != nextID) {
+            logger.Error(
+              `idTicket!=nextID (${idTicket}!=${nextID})`,
+              "tickets.controller"
+            );
+          }
+          if (
+            (await parametrosInstance.getParametros())?.params?.TicketDFAuto ==
+            "Si"
+          ) {
             impresoraInstance.imprimirTicket(idTicket);
           }
           //ticketsInstance.setPagadoPaytef(idTicket);
         }
-        logger.Info(`crearTicketPaytef salida (${nextID}, ${x})`, "tickets.controller")
+        logger.Info(
+          `crearTicketPaytef salida (${nextID}, ${x})`,
+          "tickets.controller"
+        );
         return x;
       });
   }
@@ -194,34 +215,11 @@ export class TicketsController {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
-      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
-      let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
-      //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
-      // el modo de cesta debe cambiar a consumo_personal.
-      const clienteDescEsp = descuentoEspecial.find(
-        (cliente) => cliente.idCliente === cesta.idCliente
-      );
-      if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
-      if (
-        tipo !== "CONSUMO_PERSONAL" &&
-        descuento &&
-        descuento > 0 &&
-        (!clienteDescEsp || clienteDescEsp.precio == total)
-      ) {
-        cesta.lista.forEach((producto) => {
-          if (producto.arraySuplementos != null) {
-            producto.subtotal = this.redondearPrecio(
-              producto.subtotal - (producto.subtotal * descuento) / 100
-            );
-          } else if (producto.promocion == null)
-            producto.subtotal = this.redondearPrecio(
-              producto.subtotal - (producto.subtotal * descuento) / 100
-            ); // Modificamos el total para añadir el descuento especial del cliente
-        });
-      } else if (tipo == "CONSUMO_PERSONAL" && descuento) {
-        await cestasInstance.recalcularIvas(cesta);
-      }
 
+      if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
+
+      // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
+      await cestasInstance.aplicarDescuento(cesta, total);
 
       const ticket = await ticketsInstance.generarNuevoTicket(
         total,
@@ -238,8 +236,14 @@ export class TicketsController {
         );
       }
       if (await ticketsInstance.insertarTicket(ticket)) {
-        return await ticketsInstance.finalizarTicket(ticket,idTrabajador,tipo, concepto, cesta, tkrsData);
-        
+        return await ticketsInstance.finalizarTicket(
+          ticket,
+          idTrabajador,
+          tipo,
+          concepto,
+          cesta,
+          tkrsData
+        );
       }
 
       throw Error(

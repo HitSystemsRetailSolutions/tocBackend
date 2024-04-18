@@ -9,6 +9,7 @@ import {
 import {
   construirObjetoIvas,
   fusionarObjetosDetalleIva,
+  redondearPrecio,
 } from "../funciones/funciones";
 import { Articulos, articulosInstance } from "../articulos/articulos.clase";
 import { cajaInstance } from "../caja/caja.clase";
@@ -116,7 +117,37 @@ export class CestaClase {
     //     logger.Error(119, err);
     //   });
   }
-
+  async aplicarDescuento(cesta: CestasInterface, total: number) {
+    const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+    let descuento: any =
+      cliente && !cliente?.albaran && !cliente?.vip
+        ? Number(cliente.descuento)
+        : 0;
+    //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
+    // el modo de cesta debe cambiar a consumo_personal.
+    const clienteDescEsp = descuentoEspecial.find(
+      (cliente) => cliente.idCliente === cesta.idCliente
+    );
+    if (
+      cesta.modo !== "CONSUMO_PERSONAL" &&
+      descuento &&
+      descuento > 0 &&
+      (!clienteDescEsp || clienteDescEsp.precio == total)
+    ) {
+      cesta.lista.forEach((producto) => {
+        if (producto.arraySuplementos != null) {
+          producto.subtotal = redondearPrecio(
+            producto.subtotal - (producto.subtotal * descuento) / 100
+          );
+        } else if (producto.promocion == null)
+          producto.subtotal = redondearPrecio(
+            producto.subtotal - (producto.subtotal * descuento) / 100
+          ); // Modificamos el total para añadir el descuento especial del cliente
+      });
+    } else if (cesta.modo == "CONSUMO_PERSONAL" && descuento) {
+      await cestasInstance.recalcularIvas(cesta);
+    }
+  }
   /* Eze 4.0 */
   getCestaById = async (idCesta: CestasInterface["_id"]) =>
     await schCestas.getCestaById(idCesta);
@@ -873,10 +904,9 @@ export class CestaClase {
         } else if (!dto && cesta.lista[i]?.dto) {
           delete cesta.lista[i].dto;
         }
-        if(tarifaEsp && !cesta.lista[i]?.tarifaEsp){
-
+        if (tarifaEsp && !cesta.lista[i]?.tarifaEsp) {
           cesta.lista[i].tarifaEsp = true;
-        }else if(!tarifaEsp && cesta.lista[i]?.tarifaEsp){
+        } else if (!tarifaEsp && cesta.lista[i]?.tarifaEsp) {
           delete cesta.lista[i].tarifaEsp;
         }
         // Si el cliente es albaran y no paga en tienda, se guarda el IVA correspondiente
