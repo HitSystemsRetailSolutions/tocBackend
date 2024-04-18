@@ -138,7 +138,9 @@ export class TicketsController {
   ) {
     let nextID = await ticketsInstance.getProximoId();
     const cesta = await cestasInstance.getCestaById(idCesta);
+    // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     await cestasInstance.aplicarDescuento(cesta, total);
+    // genera un ticket temporal hasta que se confirme o se anule el pago
     const ticketTemp = await ticketsInstance.generarNuevoTicket(
       total,
       idTrabajador,
@@ -153,6 +155,8 @@ export class TicketsController {
       .then(async (x) => {
         if (x) {
           if (await ticketsInstance.insertarTicket(ticketTemp)) {
+            // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
+            // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
             return await ticketsInstance.finalizarTicket(
               ticketTemp,
               idTrabajador,
@@ -236,6 +240,8 @@ export class TicketsController {
         );
       }
       if (await ticketsInstance.insertarTicket(ticket)) {
+        // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
+        // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
         return await ticketsInstance.finalizarTicket(
           ticket,
           idTrabajador,
@@ -389,7 +395,6 @@ export class TicketsController {
   @Get("getTotalDatafono3G")
   async getTotalDatafono3G() {
     try {
-      console.log("getTotalDatafono3G");
       const inicioTime = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
       const finalTime = Date.now();
       return await ticketsInstance.getTotalDatafono3G(inicioTime, finalTime);
