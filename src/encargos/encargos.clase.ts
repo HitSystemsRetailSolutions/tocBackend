@@ -158,6 +158,7 @@ export class Encargos {
   };
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
   setEncargo = async (encargo) => {
+    var TEncargo1 = performance.now()
     const cliente = await clienteInstance.getClienteById(encargo.idCliente);
     let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
     if (descuento && descuento > 0) {
@@ -185,7 +186,9 @@ export class Encargos {
     encargo.codigoBarras = codigoBarras;
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
     await impresoraInstance.imprimirEncargo(encargoCopia);
-
+    var TEncargo2 = performance.now()
+    var TiempoEncargo = TEncargo2 - TEncargo1
+    logger.Info("TiempoEncargo",TiempoEncargo.toFixed(4) +" ms")
     // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
@@ -194,6 +197,7 @@ export class Encargos {
         return { error: false, msg: "Encargo creado" };
       })
       .catch((err: string) => ({ error: true, msg: err }));
+      
   };
 
   getEncargoByNumber = async (idTarjeta: string): Promise<EncargosInterface> =>

@@ -49,7 +49,91 @@ export class TicketsController {
       return null;
     }
   }
+  @Post("crearTicketDeuda")
+  async crearTicketDeuda(
+    @Body()
+    {
+      total,
+      idCesta,
+      idTrabajador,
+      tipo,
+      tkrsData,
+      dejaCuenta,
+    }: {
+      total: number;
+      idCesta: TicketsInterface["cesta"]["_id"];
+      idTrabajador: TicketsInterface["idTrabajador"];
+      tipo: FormaPago;
+      tkrsData: {
+        cantidadTkrs: number;
+        formaPago: FormaPago;
+      };
+      dejaCuenta: TicketsInterface["dejaCuenta"];
+    }
+  ) {
+    try {
+      const cesta = await cestasInstance.getCestaById(idCesta);
+      const ticket = await ticketsInstance.generarNuevoTicket(
+        total - dejaCuenta,
+        idTrabajador,
+        cesta,
+        tipo === "CONSUMO_PERSONAL",
+        false,
+        tkrsData?.cantidadTkrs > 0,
+        dejaCuenta
+      );
 
+      if (!ticket) {
+        throw Error(
+          "Error, no se ha podido generar el objecto del ticket en crearTicketDeuda controller"
+        );
+      }
+      if (await ticketsInstance.insertarTicket(ticket)) {
+        var deuda = {
+          idTicket: ticket._id,
+          cesta: cesta,
+          idTrabajador: idTrabajador,
+          idCliente: cesta.idCliente,
+          nombreCliente: cesta.nombreCliente,
+          total: total,
+          timestamp: ticket.timestamp,
+          dejaCuenta: dejaCuenta,
+        };
+        await deudasInstance.setDeuda(deuda);
+        var DeudaT2 = performance.now()
+        await movimientosInstance.nuevoMovimiento(
+          total - dejaCuenta,
+          "DEUDA",
+          "SALIDA",
+          ticket._id,
+          idTrabajador,
+          cesta.nombreCliente
+        );
+        if (dejaCuenta > 0) {
+          await movimientosInstance.nuevoMovimiento(
+            dejaCuenta,
+            "dejaACuenta",
+            "ENTRADA_DINERO",
+            ticket._id,
+            idTrabajador,
+            cesta.nombreCliente
+          );
+        }
+        if (tipo !== "TARJETA") {
+          await impresoraInstance.abrirCajon();
+        }
+
+        ticketsInstance.actualizarTickets();
+        return true;
+      }
+      throw Error(
+        "Error, no se ha podido generar el ticket de deuda y sus movs en crearTicketDeuda controller"
+      );
+    } catch (error) {
+      logger.Error(1071, error);
+      return false;
+    }
+  }
   @Post("crearTicketEncargo") async crearTicketEncargo(
     @Body()
     {
@@ -71,9 +155,8 @@ export class TicketsController {
       // modifica
       const graellaModificada = await encargosInstance.updateEncargoGraella(
         idEncargo
-      );
+      )
       if (!graellaModificada) return false;
-
       const ticket = await ticketsInstance.generarNuevoTicket(
         total - dejaCuenta,
         idTrabajador,
@@ -215,11 +298,11 @@ export class TicketsController {
     }
   ) {
     try {
+      var TTicket1 = performance.now()
       if (!(typeof total == "number" && idCesta && idTrabajador && tipo)) {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
-
       if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
 
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
@@ -250,11 +333,12 @@ export class TicketsController {
           cesta,
           tkrsData
         );
-      }
 
+      }
       throw Error(
         "Error, no se ha podido crear el ticket en crearTicket() controller 2"
       );
+      
     } catch (err) {
       logger.Error(107, err);
       return false;
@@ -405,3 +489,4 @@ export class TicketsController {
     }
   }
 }
+
