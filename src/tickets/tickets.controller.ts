@@ -100,6 +100,7 @@ export class TicketsController {
           dejaCuenta: dejaCuenta,
         };
         await deudasInstance.setDeuda(deuda);
+        var DeudaT2 = performance.now()
         await movimientosInstance.nuevoMovimiento(
           total - dejaCuenta,
           "DEUDA",
@@ -154,9 +155,8 @@ export class TicketsController {
       // modifica
       const graellaModificada = await encargosInstance.updateEncargoGraella(
         idEncargo
-      );
+      )
       if (!graellaModificada) return false;
-
       const ticket = await ticketsInstance.generarNuevoTicket(
         total - dejaCuenta,
         idTrabajador,
@@ -283,6 +283,7 @@ export class TicketsController {
     }
   ) {
     try {
+      var TTicket1 = performance.now()
       if (!(typeof total == "number" && idCesta && idTrabajador && tipo)) {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
@@ -292,7 +293,7 @@ export class TicketsController {
         cliente && !cliente?.albaran && !cliente?.vip
           ? Number(cliente.descuento)
           : 0;
-      //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
+      //en ocasiones cuando un idcliente es trabajador y quiera consumo personal,
       // el modo de cesta debe cambiar a consumo_personal.
       const clienteDescEsp = descuentoEspecial.find(
         (cliente) => cliente.idCliente === cesta.idCliente
@@ -336,6 +337,7 @@ export class TicketsController {
       if (await ticketsInstance.insertarTicket(ticket)) {
         await cestasInstance.borrarArticulosCesta(idCesta, true, true, false);
         await cestasInstance.setClients(0, idCesta);
+        
         if (tipo === "TARJETA") {
           // paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
           ticketsInstance.setPagadoPaytef(ticket._id);
@@ -396,9 +398,11 @@ export class TicketsController {
             idTrabajador
           );
         } else if (tipo === "DEUDA") {
+          var TDeuda1 = performance.now()
           const cliente = await getClienteById(cesta.idCliente);
           //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
           // se diferenciara su uso cuando el concepto sea igual a DEUDA
+
           await movimientosInstance.nuevoMovimiento(
             total,
             "",
@@ -406,6 +410,9 @@ export class TicketsController {
             ticket._id,
             idTrabajador
           );
+            var TDeuda2 = performance.now()
+            var TiempoDeuda = TDeuda2 - TDeuda1
+            logger.Info("TiempoDeuda",TiempoDeuda.toFixed(4) +" ms")
         } else if (tipo !== "EFECTIVO" && tipo != "CONSUMO_PERSONAL") {
           throw Error(
             "Falta información del tkrs o bien ninguna forma de pago es correcta"
@@ -414,13 +421,20 @@ export class TicketsController {
         if (tipo !== "TARJETA" && concepto == "DEUDA") {
           await impresoraInstance.abrirCajon();
         }
+  
+        
         ticketsInstance.actualizarTickets();
+        var TTicket2 = performance.now()
+        var TiempoTicket = TTicket2 - TTicket1
+        logger.Info("TiempoTicket",TiempoTicket.toFixed(4)+" ms")
         return ticket._id;
+        
+        
       }
-
       throw Error(
         "Error, no se ha podido crear el ticket en crearTicket() controller 2"
       );
+      
     } catch (err) {
       logger.Error(107, err);
       return false;
@@ -571,3 +585,4 @@ export class TicketsController {
     }
   }
 }
+
