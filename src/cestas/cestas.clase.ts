@@ -907,6 +907,7 @@ export class CestaClase {
         ) {
           switch (articulo.tipoIva) {
             case 1:
+            default:
               cesta.lista[i].iva = 4;
               break;
             case 2:

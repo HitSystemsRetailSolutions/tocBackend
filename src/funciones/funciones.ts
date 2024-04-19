@@ -32,6 +32,7 @@ export function construirObjetoIvas(
   // Puede contener dto, por lo que se le aplica el dto a base
   switch (tipoIva) {
     case 1:
+    default:
       base1 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
         : (precio / 1.04) * unidades - (precio / 1.04) * unidades * (dto / 100);
@@ -66,7 +67,6 @@ export function construirObjetoIvas(
       valor5 = base5 * 0.05;
       importe5 = base5 + valor5;
       break;
-    default:
       break;
   }
   // Redondeo con Math.Round y no con toFixed para evitar un almacenado con pérdida de precisión(6.3449999999662,6.3550000002).
