@@ -107,13 +107,35 @@ export class CestaClase {
   async actualizarCestas() {
     const arrayCestas = await cestasInstance.getAllCestas();
     for (const cesta of arrayCestas) {
-      if (!cesta.idCliente) {  // Verificar si no hay Cliente
-        for (const item of cesta.lista) {
-          item.regalo = false; // Cambiar el valor de regalo a false para todos los artículos en la cesta (al no haber cliente no deberia de haber regalo)
+      if (cesta.lista.length > 0) {
+//verifica si hay algo en la lista de la cesta
+        if (!cesta.idCliente) {
+// Verifica si no hay Cliente
+          for (const item of cesta.lista) {
+            item.regalo = false; // Cambiar el valor de regalo a false para todos los artículos en la cesta (al no haber cliente no deberia de haber regalo)
+          }
         }
+        //juntar elementos de la lista iguales, por ID y Regalo
+        for (let i = 0; i < cesta.lista.length; i++) {
+          const currentItem = cesta.lista[i];
+
+          for (let j = i + 1; j < cesta.lista.length; j++) {
+            const nextItem = cesta.lista[j];
+
+            if (
+              currentItem.idArticulo == nextItem.idArticulo &&
+              currentItem.regalo == nextItem.regalo
+            ) {
+              currentItem.unidades += nextItem.unidades;
+              currentItem.puntos += nextItem.puntos;
+              cesta.lista.splice(j, 1);
+              j -= 1;
+            }
+          }
+        }
+        await cestasInstance.recalcularIvas(cesta);
+        await schCestas.updateCesta(cesta);
       }
-      await cestasInstance.recalcularIvas(cesta);
-      await schCestas.updateCesta(cesta);
     }
     io.emit("cargarCestas", arrayCestas);
   }
