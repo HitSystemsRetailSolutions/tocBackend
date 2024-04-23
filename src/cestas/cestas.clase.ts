@@ -1357,14 +1357,16 @@ export class CestaClase {
             (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
           );
       let parametros = await parametrosInstance.getParametros();
-
+      // si la cesta pertenece a una mesa, cogemos la dependienta en el array
+      let dependienta = cesta.trabajador || cesta.trabajadores[0];
+      console.log("dependienta", dependienta);
       let lista = {
         timestamp: new Date().getTime(),
         botiga: parametros.codigoTienda,
         bbdd: parametros.database,
         accio: "ArticleEsborrat",
         productos: productos,
-        dependienta: cesta.trabajador,
+        dependienta: dependienta,
         descuento: cliente,
         idCliente: cesta.idCliente,
       };
