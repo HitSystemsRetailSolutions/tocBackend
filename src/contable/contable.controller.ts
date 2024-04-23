@@ -12,7 +12,7 @@ import * as schContable from "./contable.mongodb";
 
 //--------------------------------------------------------------
 client.on("connect", async () => {
-  console.log("Conectado a MQTT");
+  console.log("Conectado a MQTT"+ client.connected);
   const parametros = await parametrosController.getParametros();
   try {
     client.subscribe(`/Hit/Serveis/Contable/Estock/${parametros.licencia}`);
