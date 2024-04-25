@@ -34,13 +34,13 @@ client.on("message", async (topic, message) => {
     message = JSON.parse(message.toString());
     if (
       message &&
-      message.CodiArticle &&
+      message.articleCodi &&
       message.EstocActualitzat &&
       message.FontSize &&
       message.FontColor &&
       message.Llicencia == parametros.licencia
     ) {
-      let item = message.CodiArticle;
+      let item = message.articleCodi;
       let stock = message.EstocActualitzat;
       let fontSize = message.FontSize;
       let fontColor = message.FontColor;
