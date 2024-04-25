@@ -20,22 +20,27 @@ client.on("message", async function (topic, message) {
 
 class Mqtt {
   public loggerMQTT(txt: string) {
+    return;
     client.publish("hit.software/error", txt);
   }
 
   public enviarVisor(txt: string) {
+    return;
     client.publish("hit.hardware/visor", txt);
   }
 
   public enviarImpresora(txt: string) {
+    return;
     client.publish("hit.hardware/printer", txt);
   }
 
   public resetPapel() {
+    return;
     client.publish("hit.hardware/resetPaper");
   }
 
   public async mandarLogo() {
+    return;
     try {
       const logoMongo = await archivosInstance.getLogo();
       if (!logoMongo) {

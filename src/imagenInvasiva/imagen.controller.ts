@@ -13,50 +13,50 @@ const mqttOptions = {
 };
 const client = mqtt.connect(mqttOptions);
 
-client.on("connect", async () => {
-  try {
-    console.log("Conectado a MQTT");
-    const parametros = await parametrosController.getParametros();
-    client.subscribe(`hit.software/imagen/${parametros.licencia}/trabajador`);
-    client.subscribe(`hit.software/imagen/${parametros.licencia}/cliente`);
-    client.subscribe(`hit.orders/${parametros.licencia}`);
-  } catch (error) {
-    console.log(
-      "error en imagen.controller parametros o direccion no encontrados: ",
-      error.message
-    );
-  }
-});
-client.on('error', (err) => {
-  console.error('Error en el client MQTT:', err);
-});
+// client.on("connect", async () => {
+//   try {
+//     console.log("Conectado a MQTT");
+//     const parametros = await parametrosController.getParametros();
+//     client.subscribe(`hit.software/imagen/${parametros.licencia}/trabajador`);
+//     client.subscribe(`hit.software/imagen/${parametros.licencia}/cliente`);
+//     client.subscribe(`hit.orders/${parametros.licencia}`);
+//   } catch (error) {
+//     console.log(
+//       "error en imagen.controller parametros o direccion no encontrados: ",
+//       error.message
+//     );
+//   }
+// });
+// client.on('error', (err) => {
+//   console.error('Error en el client MQTT:', err);
+// });
 
-client.on("message", (topic, message) => {
-  if (topic.includes("hit.software/imagen")) {
-    const mensaje = Buffer.from(message, "binary").toString("utf-8");
-    const objetivo = topic.split("/")[3];
-    io.emit(`ponerImagen_${objetivo}`, JSON.parse(mensaje));
-  }
+// client.on("message", (topic, message) => {
+//   if (topic.includes("hit.software/imagen")) {
+//     const mensaje = Buffer.from(message, "binary").toString("utf-8");
+//     const objetivo = topic.split("/")[3];
+//     io.emit(`ponerImagen_${objetivo}`, JSON.parse(mensaje));
+//   }
 
-  if (topic.includes("hit.orders")) {
-    const mensaje = Buffer.from(message, "binary").toString("utf-8");
-    const msg = JSON.parse(mensaje);
-    // console.log(msg);
+//   if (topic.includes("hit.orders")) {
+//     const mensaje = Buffer.from(message, "binary").toString("utf-8");
+//     const msg = JSON.parse(mensaje);
+//     // console.log(msg);
 
-    if (msg.payed) {
-      // TODO: manejar la orden pagada
-      // avisamos al frontend del pedido
-      io.emit("pedidoPagado", msg);
-      if (msg.tip) {
-        cajaInstance.aumentarPropina(msg.tip);
-      }
-    } else {
-      // TODO: manejar la orden no pagada
-      io.emit("pedidoNoPagado", msg);
-      // TODO: manejar la insercion en la mesa o lo que sea que haya que hacer
-    }
-  }
-});
+//     if (msg.payed) {
+//       // TODO: manejar la orden pagada
+//       // avisamos al frontend del pedido
+//       io.emit("pedidoPagado", msg);
+//       if (msg.tip) {
+//         cajaInstance.aumentarPropina(msg.tip);
+//       }
+//     } else {
+//       // TODO: manejar la orden no pagada
+//       io.emit("pedidoNoPagado", msg);
+//       // TODO: manejar la insercion en la mesa o lo que sea que haya que hacer
+//     }
+//   }
+// });
 
 @Controller("/cargarImagen/:licencia")
 export class CargarImagenController {
