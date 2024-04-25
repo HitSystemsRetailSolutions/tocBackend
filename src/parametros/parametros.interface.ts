@@ -14,6 +14,7 @@ export interface ParametrosInterface {
   contadorPaytef: number;
   params?: any;
   ipTefpay?: string;
+  ipCashlogy?: string;
   contadorPaytefDate?: string;
   tarifaMesa: string;
   payteftcod: string;
