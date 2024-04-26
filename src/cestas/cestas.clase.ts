@@ -10,6 +10,7 @@ import {
   construirObjetoIvas,
   convertirDineroEnPuntos,
   fusionarObjetosDetalleIva,
+  redondearPrecio,
 } from "../funciones/funciones";
 import { Articulos, articulosInstance } from "../articulos/articulos.clase";
 import { cajaInstance } from "../caja/caja.clase";
@@ -117,7 +118,37 @@ export class CestaClase {
     //     logger.Error(119, err);
     //   });
   }
-
+  async aplicarDescuento(cesta: CestasInterface, total: number) {
+    const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+    let descuento: any =
+      cliente && !cliente?.albaran && !cliente?.vip
+        ? Number(cliente.descuento)
+        : 0;
+    //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
+    // el modo de cesta debe cambiar a consumo_personal.
+    const clienteDescEsp = descuentoEspecial.find(
+      (cliente) => cliente.idCliente === cesta.idCliente
+    );
+    if (
+      cesta.modo !== "CONSUMO_PERSONAL" &&
+      descuento &&
+      descuento > 0 &&
+      (!clienteDescEsp || clienteDescEsp.precio == total)
+    ) {
+      cesta.lista.forEach((producto) => {
+        if (producto.arraySuplementos != null) {
+          producto.subtotal = redondearPrecio(
+            producto.subtotal - (producto.subtotal * descuento) / 100
+          );
+        } else if (producto.promocion == null)
+          producto.subtotal = redondearPrecio(
+            producto.subtotal - (producto.subtotal * descuento) / 100
+          ); // Modificamos el total para añadir el descuento especial del cliente
+      });
+    } else if (cesta.modo == "CONSUMO_PERSONAL" && descuento) {
+      await cestasInstance.recalcularIvas(cesta);
+    }
+  }
   /* Eze 4.0 */
   getCestaById = async (idCesta: CestasInterface["_id"]) =>
     await schCestas.getCestaById(idCesta);
@@ -589,7 +620,7 @@ export class CestaClase {
     const promocioDescompteFixe =
       (await parametrosInstance.getParametros()).promocioDescompteFixe || 0;
     if (promocioDescompteFixe > 0) {
-      let dineroToPuntos = convertirDineroEnPuntos(articulo.precioConIva,promocioDescompteFixe);
+      let dineroToPuntos = convertirDineroEnPuntos(articulo.precioConIva, promocioDescompteFixe);
       if (dineroToPuntos > 0) articulo.puntos = dineroToPuntos;
     }
     return articulo;
@@ -756,7 +787,7 @@ export class CestaClase {
       const unidadesTotales = itemPromocion.promocion.cantidadArticuloPrincipal
         ? itemPromocion.promocion.cantidadArticuloPrincipal
         : itemPromocion.promocion.cantidadArticuloSecundario *
-          itemPromocion.unidades;
+        itemPromocion.unidades;
       detalleIva = construirObjetoIvas(
         importeRealUnitario,
         articulo.tipoIva,
@@ -826,9 +857,9 @@ export class CestaClase {
       : null;
     let descuento: any =
       cesta.modo !== "CONSUMO_PERSONAL" &&
-      cliente &&
-      !cliente?.albaran &&
-      !cliente?.vip
+        cliente &&
+        !cliente?.albaran &&
+        !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
     for (let i = 0; i < cesta.lista.length; i++) {
@@ -869,10 +900,10 @@ export class CestaClase {
         if (cesta.indexMesa != null) {
           precioArt =
             (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
-            null
+              null
               ? precioArt
               : (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo))
-                  .precioConIva;
+                .precioConIva;
         }
         if (menu.length > 0) {
           let preu = await tarifasInstance.tarifaMenu(
@@ -907,6 +938,7 @@ export class CestaClase {
         ) {
           switch (articulo.tipoIva) {
             case 1:
+            default:
               cesta.lista[i].iva = 4;
               break;
             case 2:
@@ -1203,6 +1235,15 @@ export class CestaClase {
   updateCesta = async (cesta: CestasInterface) =>
     await schCestas.updateCesta(cesta);
 
+  /* uri House */
+  setArticuloImprimido = async (idCesta: CestasInterface["_id"], articulosIDs: number[]) => {
+    const cesta = await this.getCestaById(idCesta);
+    for (let x = 0; x < cesta.lista.length; x++) {
+      if (articulosIDs.includes(cesta.lista[x].idArticulo)) cesta.lista[x].printed = true;
+    }
+    await this.updateCesta(cesta);
+  }
+
   /* Eze 4.0 */
   async regalarItem(idCesta: CestasInterface["_id"], index: number) {
     const cesta = await cestasInstance.getCestaById(idCesta);
@@ -1310,20 +1351,22 @@ export class CestaClase {
     try {
       let cliente: number =
         (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
-        undefined
+          undefined
           ? 0
           : Number(
-              (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
-            );
+            (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
+          );
       let parametros = await parametrosInstance.getParametros();
-
+      // si la cesta pertenece a una mesa, cogemos la dependienta en el array
+      let dependienta = cesta.trabajador || cesta.trabajadores[0];
+      console.log("dependienta", dependienta);
       let lista = {
         timestamp: new Date().getTime(),
         botiga: parametros.codigoTienda,
         bbdd: parametros.database,
         accio: "ArticleEsborrat",
         productos: productos,
-        dependienta: cesta.trabajador,
+        dependienta: dependienta,
         descuento: cliente,
         idCliente: cesta.idCliente,
       };

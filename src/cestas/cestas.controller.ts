@@ -110,7 +110,7 @@ export class CestasController {
       }
       throw Error("Error, faltan datos en PagarDeuda() controller");
     } catch (err) {
-      logger.Error(60, "PagarDeuda: "+err);
+      logger.Error(60, "PagarDeuda: " + err);
       return null;
     }
   }
@@ -287,6 +287,23 @@ export class CestasController {
       logger.Error(133, err);
     }
   }
+
+  /* Uri House */
+  @Post("setArticuloImprimido")
+  async setArticuloImprimido(@Body() { idCesta, articulos }) {
+    try {
+      if (idCesta && articulos) {
+        return await cestasInstance.setArticuloImprimido(
+          idCesta,
+          articulos
+        );
+      }
+      throw Error("Error, faltan datos en cestas/insertarArtsPagados");
+    } catch (err) {
+      logger.Error(133, err);
+    }
+  }
+
 
   @Post("recalcularIvasDescuentoToGo")
   async recalcularIvasDescuentoToGo(@Body() { idCesta }) {

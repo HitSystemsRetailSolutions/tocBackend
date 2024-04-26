@@ -12,7 +12,7 @@ import * as schContable from "./contable.mongodb";
 
 //--------------------------------------------------------------
 client.on("connect", async () => {
-  console.log("Conectado a MQTT");
+  console.log("Conectado a MQTT"+ client.connected);
   const parametros = await parametrosController.getParametros();
   try {
     client.subscribe(`/Hit/Serveis/Contable/Estock/${parametros.licencia}`);
@@ -24,8 +24,8 @@ client.on("connect", async () => {
   }
 });
 
-client.on('error', (err) => {
-  console.error('Error en el client MQTT:', err);
+client.on("error", (err) => {
+  console.error("Error en el client MQTT:", err);
 });
 
 client.on("message", async (topic, message) => {
@@ -34,15 +34,19 @@ client.on("message", async (topic, message) => {
     message = JSON.parse(message.toString());
     if (
       message &&
-      message.CodiArticle &&
-      message.EstocActualitzat
-      && message.Llicencia == parametros.licencia
+      message.articleCodi &&
+      message.EstocActualitzat &&
+      message.FontSize &&
+      message.FontColor &&
+      message.Llicencia == parametros.licencia
     ) {
-      let item = message.CodiArticle;
+      let item = message.articleCodi;
       let stock = message.EstocActualitzat;
+      let fontSize = message.FontSize;
+      let fontColor = message.FontColor;
       try {
         //schContable.setItemStock(Number(item), Number(stock));
-        io.emit("stock", { item, stock });
+        io.emit("stock", { item, stock, fontSize, fontColor });
       } catch (error) {
         console.log(
           "error en contable.controller > setItemStock: ",
