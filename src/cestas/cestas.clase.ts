@@ -1210,6 +1210,7 @@ export class CestaClase {
       if (articulosIDs.includes(cesta.lista[x].idArticulo)) cesta.lista[x].printed = true;
     }
     await this.updateCesta(cesta);
+    return true
   }
 
   /* Eze 4.0 */
