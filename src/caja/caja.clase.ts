@@ -35,9 +35,9 @@ export class CajaClase {
       };
       let url = `/Hit/Serveis/Contable/Licencia/Apertura`;
       const mqttOptions = {
-        host: "mqtt.nubehit.com",
-        username: "mqtt",
-        password: "DCdazU3RUTphpNx^iJQhVw",
+        host: process.env.MQTT_HOST,
+        username: process.env.MQTT_USER,
+        password: process.env.MQTT_PASSWORD,
       };
       const client = mqtt.connect(mqttOptions);
       // cuando se conecta enviamos los datos
