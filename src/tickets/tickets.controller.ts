@@ -72,6 +72,7 @@ export class TicketsController {
     }
   ) {
     try {
+      var TDeuda1 = performance.now();
       const cesta = await cestasInstance.getCestaById(idCesta);
       const ticket = await ticketsInstance.generarNuevoTicket(
         total - dejaCuenta,
@@ -100,7 +101,6 @@ export class TicketsController {
           dejaCuenta: dejaCuenta,
         };
         await deudasInstance.setDeuda(deuda);
-        var DeudaT2 = performance.now();
         await movimientosInstance.nuevoMovimiento(
           total - dejaCuenta,
           "DEUDA",
@@ -124,6 +124,9 @@ export class TicketsController {
         }
 
         ticketsInstance.actualizarTickets();
+        var TDeuda2 = performance.now();
+        var TiempoDeuda = TDeuda2 - TDeuda1;
+        logger.Info("TiempoDeuda", TiempoDeuda.toFixed(4) + " ms");
         return true;
       }
       throw Error(
@@ -335,6 +338,9 @@ export class TicketsController {
           "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
         );
       }
+      var TTicket2 = performance.now();
+      var TiempoTicket = TTicket2 - TTicket1;
+      logger.Info("TiempoTicket", TiempoTicket.toFixed(4) + " ms");
       if (await ticketsInstance.insertarTicket(ticket)) {
         // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
         // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
@@ -347,6 +353,7 @@ export class TicketsController {
           tkrsData
         );
       }
+      console.log("4");
       throw Error(
         "Error, no se ha podido crear el ticket en crearTicket() controller 2"
       );
