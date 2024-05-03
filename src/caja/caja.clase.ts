@@ -21,6 +21,7 @@ import * as moment from "moment";
 import { parametrosController } from "src/parametros/parametros.controller";
 import { ticketsInstance } from "src/tickets/tickets.clase";
 import { deudasInstance } from "src/deudas/deudas.clase";
+require("dotenv").config();
 const mqtt = require("mqtt");
 export class CajaClase {
   async mqttAbrirCaja(inicioTime: number) {

@@ -4,6 +4,7 @@ import { parametrosController } from "src/parametros/parametros.controller";
 import { mesasInstance } from "src/mesas/mesas.class";
 import { cajaInstance } from "src/caja/caja.clase";
 const mqtt = require("mqtt");
+require("dotenv").config();
 
 const mqttOptions = {
   host: process.env.MQTT_HOST,

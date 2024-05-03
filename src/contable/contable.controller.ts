@@ -9,6 +9,7 @@ const client = mqtt.connect(mqttOptions);
 import { parametrosController } from "src/parametros/parametros.controller";
 import { io } from "../sockets.gateway";
 import * as schContable from "./contable.mongodb";
+require("dotenv").config();
 
 //--------------------------------------------------------------
 client.on("connect", async () => {
