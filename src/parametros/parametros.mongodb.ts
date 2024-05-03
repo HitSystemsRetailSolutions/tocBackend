@@ -72,6 +72,18 @@ export async function setIpPaytef(ip: string): Promise<boolean> {
   ).acknowledged;
 }
 
+export async function setIpCashlogy(ip: string): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const parametros = database.collection("parametros");
+  return (
+    await parametros.updateOne(
+      { _id: "PARAMETROS" },
+      { $set: { ipCashlogy: ip } },
+      { upsert: true }
+    )
+  ).acknowledged;
+}
+
 export async function setTcodPaytef(tcod: string): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const parametros = database.collection("parametros");
@@ -121,7 +133,7 @@ export async function setContadoDatafono(
       parametros.mongodb.ts
       setContadoDatafono`
     );
-  
+
   return (
     await parametros.updateOne(
       { _id: "PARAMETROS" },

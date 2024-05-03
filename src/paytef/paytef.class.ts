@@ -16,6 +16,9 @@ import { MovimientosInterface } from "src/movimientos/movimientos.interface";
 
 axios.defaults.timeout = 5000; // Evitem que el client esperi...  // ???? se modifica en instalador.controller.ts
 class PaytefClass {
+  deleteUltimaIniciarTransaccion() {
+    this.ultimaIniciarTransaccion = null;
+  }
   // errorConexionUltimaTransaccion se puede consultar a la salida de iniciarTransaccion en el caso de que esta devuelva false.
   // En este caso podra ser porque el datáfono a denegado la trasacción o porque haya habido un error (de conexión, no started, o != transReference),
   // si ha habido alguno de estos errores errorConexionUltimaTransaccion=true
@@ -181,7 +184,8 @@ class PaytefClass {
     idTrabajador: TicketsInterface["idTrabajador"],
     type: "refund" | "sale" = "sale",
     ticket: boolean = true
-  ): Promise<[boolean, boolean]> { // [ transaccionAprobada, errorConexion ]
+  ): Promise<[boolean, boolean]> {
+    // [ transaccionAprobada, errorConexion ]
     const ipDatafono = (await parametrosInstance.getParametros()).ipTefpay;
 
     let transaccionAprobada = false;
@@ -218,7 +222,7 @@ class PaytefClass {
                 // el ticket ahora se puede generar despues de terminar la transacción en crearTicketPaytef (tickets.controller.ts)
                 // se comprueba si el ticket existe y despues se imprime y se marca como paytef
                 // sino se tendra que hacer cuando se genere el ticket
-                if (ticket && await ticketsInstance.getTicketById(idTicket)) {
+                if (ticket && (await ticketsInstance.getTicketById(idTicket))) {
                   if (
                     (await parametrosInstance.getParametros())?.params
                       ?.TicketDFAuto == "Si"
@@ -456,7 +460,6 @@ class PaytefClass {
       .catch((e) => {
         console.log(e);
       });
-
     if (res.data) return res.data;
   }
 

@@ -91,12 +91,14 @@ export class CajaController {
         const idTrabajadores = fichados.map(
           (resultado) => resultado.idTrabajador
         );
+        const inicioTime = await cajaInstance.getComprovarFechaCierreTurno();
+        await cajaInstance.mqttAbrirCaja(inicioTime);
         return await cajaInstance.abrirCaja({
           detalleApertura: detalle,
           idDependientaApertura: idDependienta,
           cambioEmergenciaApertura: cambioEmergencia,
           cambioEmergenciaActual: 0,
-          inicioTime: await cajaInstance.getComprovarFechaCierreTurno(),
+          inicioTime: inicioTime,
           totalApertura: total,
           fichajes: idTrabajadores,
           propina: 0,

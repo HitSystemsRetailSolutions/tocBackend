@@ -105,18 +105,41 @@ export class CestaClase {
       }
     }
   }
-  /* Eze 4.0 */
+  /* Eze 4.0 */ /* Actualizado por Aga */
   async actualizarCestas() {
     const arrayCestas = await cestasInstance.getAllCestas();
-    io.emit("cargarCestas", arrayCestas);
-    // cestasInstance
-    //   .getAllCestas()
-    //   .then((arrayCestas) => {
+    for (const cesta of arrayCestas) {
+      if (cesta.lista.length > 0) {
+//verifica si hay algo en la lista de la cesta
+        if (!cesta.idCliente) {
+// Verifica si no hay Cliente
+          for (const item of cesta.lista) {
+            item.regalo = false; // Cambiar el valor de regalo a false para todos los artículos en la cesta (al no haber cliente no deberia de haber regalo)
+          }
+        }
+        //juntar elementos de la lista iguales, por ID y Regalo
+        for (let i = 0; i < cesta.lista.length; i++) {
+          const currentItem = cesta.lista[i];
 
-    //   })
-    //   .catch((err) => {
-    //     logger.Error(119, err);
-    //   });
+          for (let j = i + 1; j < cesta.lista.length; j++) {
+            const nextItem = cesta.lista[j];
+
+            if (
+              currentItem.idArticulo == nextItem.idArticulo &&
+              currentItem.regalo == nextItem.regalo
+            ) {
+              currentItem.unidades += nextItem.unidades;
+              currentItem.puntos += nextItem.puntos;
+              cesta.lista.splice(j, 1);
+              j -= 1;
+            }
+          }
+        }
+        await cestasInstance.recalcularIvas(cesta);
+        await schCestas.updateCesta(cesta);
+      }
+    }
+    io.emit("cargarCestas", arrayCestas);
   }
   async aplicarDescuento(cesta: CestasInterface, total: number) {
     const cliente = await clienteInstance.getClienteById(cesta.idCliente);
@@ -585,6 +608,7 @@ export class CestaClase {
           nombre: articulo.nombre,
           arraySuplementos: arraySuplementos,
           promocion: null,
+          varis: articulo.varis || false,
           regalo: false,
           puntos: articulo.puntos,
           impresora: articulo.impresora,
@@ -620,7 +644,10 @@ export class CestaClase {
     const promocioDescompteFixe =
       (await parametrosInstance.getParametros()).promocioDescompteFixe || 0;
     if (promocioDescompteFixe > 0) {
-      let dineroToPuntos = convertirDineroEnPuntos(articulo.precioConIva, promocioDescompteFixe);
+      let dineroToPuntos = convertirDineroEnPuntos(
+        articulo.precioConIva,
+        promocioDescompteFixe
+      );
       if (dineroToPuntos > 0) articulo.puntos = dineroToPuntos;
     }
     return articulo;
@@ -715,8 +742,11 @@ export class CestaClase {
         );
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
-      articulo.nombre = nombre && nombre.length > 0 ? nombre : articulo.nombre;
-
+      // Si el nombre no está vacío, es un artículo 'varis' y se le asigna el nombre
+      if (nombre && nombre.length > 0) {
+        articulo.nombre = nombre;
+        articulo.varis = true;
+      }
       if (cesta.idCliente) {
         articulo = await articulosInstance.getPrecioConTarifa(
           articulo,
@@ -787,7 +817,7 @@ export class CestaClase {
       const unidadesTotales = itemPromocion.promocion.cantidadArticuloPrincipal
         ? itemPromocion.promocion.cantidadArticuloPrincipal
         : itemPromocion.promocion.cantidadArticuloSecundario *
-        itemPromocion.unidades;
+          itemPromocion.unidades;
       detalleIva = construirObjetoIvas(
         importeRealUnitario,
         articulo.tipoIva,
@@ -857,9 +887,9 @@ export class CestaClase {
       : null;
     let descuento: any =
       cesta.modo !== "CONSUMO_PERSONAL" &&
-        cliente &&
-        !cliente?.albaran &&
-        !cliente?.vip
+      cliente &&
+      !cliente?.albaran &&
+      !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
     for (let i = 0; i < cesta.lista.length; i++) {
@@ -900,10 +930,10 @@ export class CestaClase {
         if (cesta.indexMesa != null) {
           precioArt =
             (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
-              null
+            null
               ? precioArt
               : (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo))
-                .precioConIva;
+                  .precioConIva;
         }
         if (menu.length > 0) {
           let preu = await tarifasInstance.tarifaMenu(
@@ -1236,13 +1266,17 @@ export class CestaClase {
     await schCestas.updateCesta(cesta);
 
   /* uri House */
-  setArticuloImprimido = async (idCesta: CestasInterface["_id"], articulosIDs: number[]) => {
+  setArticuloImprimido = async (
+    idCesta: CestasInterface["_id"],
+    articulosIDs: number[]
+  ) => {
     const cesta = await this.getCestaById(idCesta);
     for (let x = 0; x < cesta.lista.length; x++) {
-      if (articulosIDs.includes(cesta.lista[x].idArticulo)) cesta.lista[x].printed = true;
+      if (articulosIDs.includes(cesta.lista[x].idArticulo))
+        cesta.lista[x].printed = true;
     }
     await this.updateCesta(cesta);
-  }
+  };
 
   /* Eze 4.0 */
   async regalarItem(idCesta: CestasInterface["_id"], index: number) {
@@ -1351,15 +1385,14 @@ export class CestaClase {
     try {
       let cliente: number =
         (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
-          undefined
+        undefined
           ? 0
           : Number(
-            (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
-          );
+              (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
+            );
       let parametros = await parametrosInstance.getParametros();
       // si la cesta pertenece a una mesa, cogemos la dependienta en el array
       let dependienta = cesta.trabajador || cesta.trabajadores[0];
-      console.log("dependienta", dependienta);
       let lista = {
         timestamp: new Date().getTime(),
         botiga: parametros.codigoTienda,

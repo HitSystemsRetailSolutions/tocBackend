@@ -60,6 +60,7 @@ export type ItemLista = {
   iva?: number;
   pagado?: boolean;
   tarifaEsp?: boolean;
+  varis?: boolean;
 };
 
 export type DetalleIvaInterface = {
