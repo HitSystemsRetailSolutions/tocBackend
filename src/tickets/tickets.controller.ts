@@ -100,7 +100,7 @@ export class TicketsController {
           dejaCuenta: dejaCuenta,
         };
         await deudasInstance.setDeuda(deuda);
-        var DeudaT2 = performance.now()
+        var DeudaT2 = performance.now();
         await movimientosInstance.nuevoMovimiento(
           total - dejaCuenta,
           "DEUDA",
@@ -153,9 +153,8 @@ export class TicketsController {
     try {
       const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
       // modifica
-      const graellaModificada = await encargosInstance.updateEncargoGraella(
-        idEncargo
-      )
+      const graellaModificada =
+        await encargosInstance.updateEncargoGraella(idEncargo);
       if (!graellaModificada) return false;
       const ticket = await ticketsInstance.generarNuevoTicket(
         total - dejaCuenta,
@@ -219,10 +218,11 @@ export class TicketsController {
       honei?: boolean;
     }
   ) {
-    let nextID = await ticketsInstance.getProximoId();
     const cesta = await cestasInstance.getCestaById(idCesta);
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     await cestasInstance.aplicarDescuento(cesta, total);
+    // elimina la última transacción de Paytef
+    paytefInstance.deleteUltimaIniciarTransaccion();
     // genera un ticket temporal hasta que se confirme o se anule el pago
     const ticketTemp = await ticketsInstance.generarNuevoTicket(
       total,
@@ -232,15 +232,21 @@ export class TicketsController {
       tipo.includes("HONEI") || honei,
       tkrsData?.cantidadTkrs > 0
     );
-    logger.Info(`crearTicketPaytef entrada (${nextID})`, "tickets.controller");
+    // id temporal para el ticketPaytef
+    let idTransaccion = await ticketsInstance.getProximoId();
+    ticketTemp._id = idTransaccion;
+    logger.Info(
+      `crearTicketPaytef entrada (${idTransaccion})`,
+      "tickets.controller"
+    );
     return await paytefInstance
-      .iniciarTransaccion(idTrabajador, nextID, total)
+      .iniciarTransaccion(idTrabajador, idTransaccion, total)
       .then(async (x) => {
         if (x) {
           if (await ticketsInstance.insertarTicket(ticketTemp)) {
             // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
             // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
-            return await ticketsInstance.finalizarTicket(
+            await ticketsInstance.finalizarTicket(
               ticketTemp,
               idTrabajador,
               tipo,
@@ -249,10 +255,11 @@ export class TicketsController {
               tkrsData
             );
           }
-          let idTicket = await ticketsInstance.getUltimoIdTicket();
-          if (idTicket != nextID) {
+          // si el identificador temporal no coincide con el real, se lanza un logError
+          // puede ocurrir si se ha generado un nuevo ticket mientras se realizaba el pago con Paytef
+          if (ticketTemp._id != idTransaccion) {
             logger.Error(
-              `idTicket!=nextID (${idTicket}!=${nextID})`,
+              `idTicket!=idTransaccion (${ticketTemp._id}!=${idTransaccion}), se ha generado un nuevo ticket mientras se realizaba el pago con Paytef.`,
               "tickets.controller"
             );
           }
@@ -260,12 +267,12 @@ export class TicketsController {
             (await parametrosInstance.getParametros())?.params?.TicketDFAuto ==
             "Si"
           ) {
-            impresoraInstance.imprimirTicket(idTicket);
+            impresoraInstance.imprimirTicket(ticketTemp._id);
           }
           //ticketsInstance.setPagadoPaytef(idTicket);
         }
         logger.Info(
-          `crearTicketPaytef salida (${nextID}, ${x})`,
+          `crearTicketPaytef salida (${idTransaccion}, ${x})`,
           "tickets.controller"
         );
         return x;
@@ -298,7 +305,7 @@ export class TicketsController {
     }
   ) {
     try {
-      var TTicket1 = performance.now()
+      var TTicket1 = performance.now();
       if (!(typeof total == "number" && idCesta && idTrabajador && tipo)) {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
@@ -307,7 +314,13 @@ export class TicketsController {
 
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
       await cestasInstance.aplicarDescuento(cesta, total);
-
+      // caso doble tpv; borrar registro de la última transacción de Paytef cuando no se ha iniciado una transacción
+      if (
+        !paytefInstance.dentroIniciarTransaccion &&
+        paytefInstance.ultimaIniciarTransaccion
+      ) {
+        paytefInstance.deleteUltimaIniciarTransaccion();
+      }
       const ticket = await ticketsInstance.generarNuevoTicket(
         total,
         idTrabajador,
@@ -333,12 +346,10 @@ export class TicketsController {
           cesta,
           tkrsData
         );
-
       }
       throw Error(
         "Error, no se ha podido crear el ticket en crearTicket() controller 2"
       );
-      
     } catch (err) {
       logger.Error(107, err);
       return false;
@@ -489,4 +500,3 @@ export class TicketsController {
     }
   }
 }
-

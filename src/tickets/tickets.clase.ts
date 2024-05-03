@@ -121,7 +121,15 @@ export class TicketsClase {
     const ultimoIdTicket = await this.getUltimoIdTicket();
 
     if (typeof ultimoIdTicket === "number") {
-      return ultimoIdTicket + 1;
+      let newId = ultimoIdTicket + 1;
+      // si la id generada es igual a la de la ultima transaccion de paytef, se incrementa en 1
+      if (
+        paytefInstance.ultimaIniciarTransaccion &&
+        newId == paytefInstance.ultimaIniciarTransaccion.idTicket
+      ) {
+        newId++;
+      }
+      return newId;
     }
 
     throw Error("El ultimoIdTicket no es correcto");
