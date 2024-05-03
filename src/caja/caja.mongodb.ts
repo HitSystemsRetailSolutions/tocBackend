@@ -8,6 +8,7 @@ import {
   TiposInfoMoneda,
 } from "./caja.interface";
 import { logger } from "../logger";
+import { MatchKeysAndValues } from "mongodb";
 
 /* Eze 4.0 */
 export async function getInfoCajaAbierta(): Promise<CajaAbiertaInterface> {
@@ -182,7 +183,7 @@ export async function setInfoCaja(data: CajaAbiertaInterface) {
   }
 
   // Actualizar la colección
-  const resultado = await caja.updateMany({}, { $set: data }, { upsert: true });
+  const resultado = await caja.updateMany({}, { $set: data as MatchKeysAndValues<CajaAbiertaInterface> }, { upsert: true });
   return (
     resultado.acknowledged &&
     (resultado.modifiedCount > 0 || resultado.upsertedCount > 0)

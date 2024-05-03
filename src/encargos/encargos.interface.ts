@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import { CestasInterface } from "../cestas/cestas.interface";
 
 type Dias = {
@@ -31,7 +32,7 @@ export enum Periodo {
 }
 
 export interface EncargosInterface {
-  _id: string | undefined;
+  _id: ObjectId | string | undefined;
   nombreCliente: string;
   amPm: string | null;
   dejaCuenta: number;
