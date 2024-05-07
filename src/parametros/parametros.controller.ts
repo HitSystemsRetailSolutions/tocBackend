@@ -211,6 +211,16 @@ export class ParametrosController {
       return null;
     }
   }
+
+@Get("getIpCashlogy")
+async getIpCashlogy() {
+  try {
+    return (await parametrosInstance.getParametros()).ipCashlogy;
+  } catch (err) {
+    logger.Error(46, err);
+    return null;
+  }
+}
 }
 
 const parametrosController = new ParametrosController();
