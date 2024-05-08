@@ -5,6 +5,7 @@ import { UtilesModule } from "../utiles/utiles.module";
 import { logger } from "../logger";
 import { paytefInstance } from "src/paytef/paytef.class";
 import { cajaInstance } from "src/caja/caja.clase";
+import { setIpCashlogy } from "./parametros.mongodb";
 
 @Controller("parametros")
 export class ParametrosController {
@@ -143,6 +144,23 @@ export class ParametrosController {
     }
   }
 
+  @Post("setIpCashlogy")
+  async setIpCashlogy(@Body("ip") ip: string) {
+    //console.log(ip)
+    try {
+      const result = await setIpCashlogy(ip);
+
+      if (result) {
+        return { message: "IP almacenada correctamente", data: result };
+      } else {
+        throw new Error("Error al almacenar la IP");
+      }
+    } catch (err) {
+      logger.Error(42, err);
+      throw new Error("Error al almacenar la IP");
+    }
+  }
+
   /* Uri */
   @Post("setContadoDatafono")
   async setContadoDatafono(@Body() { suma }) {
@@ -193,6 +211,16 @@ export class ParametrosController {
       return null;
     }
   }
+
+@Get("getIpCashlogy")
+async getIpCashlogy() {
+  try {
+    return (await parametrosInstance.getParametros()).ipCashlogy;
+  } catch (err) {
+    logger.Error(46, err);
+    return null;
+  }
+}
 }
 
 const parametrosController = new ParametrosController();

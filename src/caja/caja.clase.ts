@@ -21,8 +21,51 @@ import * as moment from "moment";
 import { parametrosController } from "src/parametros/parametros.controller";
 import { ticketsInstance } from "src/tickets/tickets.clase";
 import { deudasInstance } from "src/deudas/deudas.clase";
-
+require("dotenv").config();
+const mqtt = require("mqtt");
 export class CajaClase {
+  async mqttAbrirCaja(inicioTime: number) {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      const date = this.formatoFechaISO8601(inicioTime);
+      let ticketJSON = {
+        Llicencia: parametros.codigoTienda,
+        Empresa: parametros.database,
+        tipus: "ObreCaixa",
+        CaixaDataInici: date,
+      };
+      let url = `/Hit/Serveis/Contable/Licencia/Apertura`;
+      const mqttOptions = {
+        host: process.env.MQTT_HOST,
+        username: process.env.MQTT_USER,
+        password: process.env.MQTT_PASSWORD,
+      };
+      const client = mqtt.connect(mqttOptions);
+      // cuando se conecta enviamos los datos
+      client.on("connect", function () {
+        // console.log("Conectado a MQTT apertura");
+        client.publish(url, JSON.stringify(ticketJSON));
+      });
+      client.on("error", (err) => {
+        console.error("Error en el client MQTT:", err);
+      });
+    } catch (error) {
+      logger.Error(53.2, "Error en mqttAbrirCaja: " + error);
+    }
+  }
+  formatoFechaISO8601(timestamp: number) {
+    const fecha = new Date(timestamp);
+    const año = fecha.getFullYear();
+    const mes = String(fecha.getMonth() + 1).padStart(2, "0"); // Sumar 1 al mes porque los meses van de 0 a 11
+    const dia = String(fecha.getDate()).padStart(2, "0");
+    const horas = String(fecha.getHours()).padStart(2, "0");
+    const minutos = String(fecha.getMinutes()).padStart(2, "0");
+    const segundos = String(fecha.getSeconds()).padStart(2, "0");
+
+    // Crear la cadena de fecha en el formato deseado
+    const fechaFormateada = `${año}-${mes}-${dia}T${horas}:${minutos}:${segundos}.000Z`;
+    return fechaFormateada;
+  }
   postFichajesCaja = async (
     arrayTrabajadores: CajaAbiertaInterface["fichajes"]
   ) => await schCajas.postfichajesCaja(arrayTrabajadores);
@@ -136,7 +179,7 @@ export class CajaClase {
     if (cierreAutomatico) {
       let cierreCaja = 0;
       // Si el descuadre es negativo, le falta el valor del cierre de caja
-      // Si no entra, o la apertura era 0 o 
+      // Si no entra, o la apertura era 0 o
       if (cajaCerradaActual.descuadre < 0) {
         cierreCaja = cajaCerradaActual.descuadre * -1;
         // Si el cierre es automático, el descuadre se le añade el total del cierre caja
@@ -280,7 +323,10 @@ export class CajaClase {
         let totalPaytef = paytef[0] ? paytef[0] : 0;
 
         let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
-        let totalDatafono3G = await ticketsInstance.getTotalDatafono3G(res.inicioTime,new Date());
+        let totalDatafono3G = await ticketsInstance.getTotalDatafono3G(
+          res.inicioTime,
+          new Date()
+        );
         let cantidadLocal3G = totalDatafono3G;
         await cajaInstance.cerrarCaja(
           0,
@@ -448,9 +494,12 @@ export class CajaClase {
       ) / 100;-*/
 
     // comprueba valor totalDatafono3G calculado en el frontend y el totalTarjeta (datafono3G)
-    // calculado en el backend si des del frontend da 0 pero en el backend no, ha habido un mal cálculo en el frontend 
+    // calculado en el backend si des del frontend da 0 pero en el backend no, ha habido un mal cálculo en el frontend
     // y se le añade el valor de totaltarjeta
-    totalDatafono3G = totalDatafono3G == 0 && totalTarjeta != 0 ? totalTarjeta : totalDatafono3G;
+    totalDatafono3G =
+      totalDatafono3G == 0 && totalTarjeta != 0
+        ? totalTarjeta
+        : totalDatafono3G;
     // se calcula el descuadre
     const descuadre = Number(
       (cajaAbiertaActual.totalApertura +

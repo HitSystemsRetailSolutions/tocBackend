@@ -59,6 +59,18 @@ export class TrabajadoresController {
   @Post("fichar")
   async fichar(@Body() { idTrabajador }) {
     try {
+      const arrayFichados =
+        await trabajadoresInstance.getTrabajadoresFichados();
+      //console.log(arrayFichados);
+
+      // Verificar si el trabajador ya está fichado
+      const trabajadorYaFichado = arrayFichados.find(
+        (trabajador) => trabajador.idTrabajador === idTrabajador
+      );
+      if (trabajadorYaFichado) {
+        throw new Error("El trabajador ya ha fichado anteriormente.");
+      }
+
       if (idTrabajador) {
         const idCesta = await cestasInstance.crearCesta(null, idTrabajador);
         const parametros = await parametrosInstance.getParametros();
@@ -70,11 +82,13 @@ export class TrabajadoresController {
             });
           return trabajadoresInstance.ficharTrabajador(idTrabajador);
         }
-        throw Error(
+        throw new Error(
           "Error, no se ha podido asignar el idCesta nuevo al trabajador. trabajadores controller"
         );
       }
-      throw Error("Error, faltan datos en fichar() trabajadores controller");
+      throw new Error(
+        "Error, faltan datos en fichar() trabajadores controller"
+      );
     } catch (err) {
       logger.Error(112, err);
       return false;

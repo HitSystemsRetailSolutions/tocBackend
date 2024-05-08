@@ -10,6 +10,7 @@ export interface ArticulosInterface {
   impresora: string;
   pare: string;
   suplementos: [];
+  varis?: boolean;
   stock?: number;
 }
 
