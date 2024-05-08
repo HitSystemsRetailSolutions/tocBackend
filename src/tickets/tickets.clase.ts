@@ -69,9 +69,12 @@ export class TicketsClase {
         );
         if (allDatafono3G) {
           // si la suma de los movs dat3G es 0, al ticket se le considera pago en efectivo
-          const sumAll=movimientos.reduce((acc, mov) => acc + mov.valor, 0);
+          const sumAll = movimientos.reduce((acc, mov) => acc + mov.valor, 0);
           if (sumAll == 0) {
-            return { res: await schTickets.anularTicket(idTicket), tipo: "EFECTIVO" };
+            return {
+              res: await schTickets.anularTicket(idTicket),
+              tipo: "EFECTIVO",
+            };
           }
         }
         if (await schTickets.anularTicket(idTicket, true)) {
