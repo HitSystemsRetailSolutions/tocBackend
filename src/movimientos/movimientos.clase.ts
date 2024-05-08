@@ -335,9 +335,8 @@ export class MovimientosClase {
 
   /* Uri */
   public async getExtraData(ticket) {
-    const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
-      ticket
-    );
+    const arrayMovimientos =
+      await schMovimientos.getMovimientosDelTicket(ticket);
     if (arrayMovimientos?.length > 0) {
       return arrayMovimientos[0].ExtraData;
     }
@@ -346,9 +345,8 @@ export class MovimientosClase {
 
   /* Uri */
   public async getMovimentOfTicket(ticket) {
-    const arrayMovimientos = await schMovimientos.getMovimientosDelTicket(
-      ticket
-    );
+    const arrayMovimientos =
+      await schMovimientos.getMovimientosDelTicket(ticket);
     if (arrayMovimientos?.length > 0) {
       return arrayMovimientos[0];
     }
@@ -402,7 +400,7 @@ export class MovimientosClase {
     }
     return false;
   }
-// funcion con muchas comprobaciones para calcular el tipo de pago en el ticket, se puede simplificar
+  // funcion con muchas comprobaciones para calcular el tipo de pago en el ticket, se puede simplificar
   /* Eze 4.0 */
   public async calcularFormaPago(
     superTicket: SuperTicketInterface
@@ -696,8 +694,24 @@ export class MovimientosClase {
           );
         }
       }
+      const allDatafono3G = superTicket.movimientos.every(
+        (mov) => mov.tipo === "DATAFONO_3G"
+      );
+      if (allDatafono3G) {
+        const allSum = superTicket.movimientos.reduce(
+          (acc, mov) => acc + mov.valor,
+          0
+        );
+
+        if (allSum === 0) {
+          return "EFECTIVO";
+        } else {
+          return "DATAFONO_3G";
+        }
+      }
       throw Error("Forma de pago desconocida idTicket: " + superTicket._id);
     } catch (error) {
+      console.log("Error en calcularFormaPago", error);
       logger.Error(211, error);
       return "ERROR_DETECTADO";
     }
