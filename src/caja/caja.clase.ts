@@ -150,6 +150,14 @@ export class CajaClase {
     if (!(await this.cajaAbierta()))
       throw Error("Error al cerrar caja: La caja ya está cerrada");
 
+    detalleCierre = detalleCierre.map((item) => {
+      return {
+        _id: item._id,
+        valor: parseFloat(item.valor.toFixed(3)),
+        unidades: item.unidades,
+      };
+    });
+    //console.log(detalleCierre)
     cestasInstance.actualizarCestas();
     parametrosInstance.setContadoDatafono(1, 0);
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
