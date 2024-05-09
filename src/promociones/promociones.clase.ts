@@ -19,6 +19,8 @@ import { promises } from "dns";
 import { unwatchFile } from "fs";
 import { impresoraInstance } from "src/impresora/impresora.class";
 import { cestasInstance } from "src/cestas/cestas.clase";
+import { convertirDineroEnPuntos } from "src/funciones/funciones";
+import { parametrosInstance } from "src/parametros/parametros.clase";
 
 export class NuevaPromocion {
   private promosIndividuales: PromocionesInterface[] = [];
@@ -554,7 +556,8 @@ export class NuevaPromocion {
     promosArt.sort((a, b) => b.unidadesPorPromo - a.unidadesPorPromo); // ordenar por unidadesPorPromo descendiente
 
     const articulo = await articulosInstance.getInfoArticulo(idArticulo);
-
+    const conversorPuntos = (await parametrosInstance.getParametros()).promocioDescompteFixe||0;
+    let puntos = convertirDineroEnPuntos(articulo.precioConIva,conversorPuntos)
     let cambioEnPromos = false; // modificar, añadir o eliminar alguna promo de las que estaban aplicadas
     let unidadesRestantes = unidadesTotales;
     for (let promoArt of promosArt) {
@@ -578,6 +581,7 @@ export class NuevaPromocion {
                 precioUnidad
               ).toFixed(2)
             );
+            itemCesta.puntos = puntos * cantidadPromos*promoArt.unidadesPorPromo;
             itemCesta.promocion.unidadesOferta = cantidadPromos;
           }
           itemsCestaPromo.delete(promoArt.promoInd._id); // promo ya procesada, eliminar de los items por procesar
@@ -585,6 +589,7 @@ export class NuevaPromocion {
           // promo no existe en la cesta, crear item y añadirlo a la cesta
           cambioEnPromos = true;
           //let promoMenosCantidad = (promosArt[promosArt.length-1] == promoArt);
+          puntos= puntos * promoArt.unidadesPorPromo * cantidadPromos;
           cesta.lista.push({
             arraySuplementos: null,
             gramos: 0,
@@ -602,7 +607,7 @@ export class NuevaPromocion {
                 precioUnidad
               ).toFixed(2)
             ),
-            puntos: null,
+            puntos: puntos,
             promocion: {
               idPromocion: promoArt.promoInd._id,
               tipoPromo: "INDIVIDUAL",
@@ -631,18 +636,19 @@ export class NuevaPromocion {
     if (itemCestaSinPromo)
       cesta.lista.splice(cesta.lista.indexOf(itemCestaSinPromo), 1);
     if (unidadesRestantes) {
+      let subtotal = Number((unidadesRestantes * articulo.precioConIva).toFixed(2));
+      let porcentajeConversion = (await parametrosInstance.getParametros()).promocioDescompteFixe||0;
+      let puntos = convertirDineroEnPuntos(subtotal,porcentajeConversion)
       cesta.lista.push({
         arraySuplementos: null,
         gramos: null,
         idArticulo,
         nombre: articulo.nombre,
         promocion: null,
-        puntos: articulo.puntos,
+        puntos: puntos,
         impresora: articulo.impresora,
         regalo: false,
-        subtotal: Number(
-          (unidadesRestantes * articulo.precioConIva).toFixed(2)
-        ),
+        subtotal: subtotal,
         unidades: unidadesRestantes,
       });
     }

@@ -126,7 +126,7 @@ export class CestaClase {
 
             if (
               currentItem.idArticulo == nextItem.idArticulo &&
-              currentItem.regalo == nextItem.regalo
+              currentItem.regalo == nextItem.regalo && currentItem.idArticulo != -1
             ) {
               currentItem.unidades += nextItem.unidades;
               currentItem.puntos += nextItem.puntos;
@@ -598,7 +598,6 @@ export class CestaClase {
         }
       }
       const pagado = menu === "pagados";
-
       if (articuloNuevo) {
         if (articulo.puntos == null) {
           await this.setPuntosPromoDscompteFixe(articulo);
