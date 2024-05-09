@@ -110,23 +110,43 @@ export class CestaClase {
     const arrayCestas = await cestasInstance.getAllCestas();
     for (const cesta of arrayCestas) {
       if (cesta.lista.length > 0) {
-//verifica si hay algo en la lista de la cesta
+        //verifica si hay algo en la lista de la cesta
         if (!cesta.idCliente) {
-// Verifica si no hay Cliente
+          // Verifica si no hay Cliente
           for (const item of cesta.lista) {
             item.regalo = false; // Cambiar el valor de regalo a false para todos los artículos en la cesta (al no haber cliente no deberia de haber regalo)
           }
         }
         //juntar elementos de la lista iguales, por ID y Regalo
+        // PD: Faltaria tener en cuenta las promociones
         for (let i = 0; i < cesta.lista.length; i++) {
           const currentItem = cesta.lista[i];
-
+          let arraySuplCurrentItem = null;
+          if (currentItem.arraySuplementos) {
+            arraySuplCurrentItem = currentItem.arraySuplementos.slice().sort();
+          }
           for (let j = i + 1; j < cesta.lista.length; j++) {
             const nextItem = cesta.lista[j];
-
+            let arraySuplNextItem = null;
+            if (nextItem.arraySuplementos) {
+              arraySuplNextItem = nextItem.arraySuplementos.slice().sort();
+            }
             if (
               currentItem.idArticulo == nextItem.idArticulo &&
-              currentItem.regalo == nextItem.regalo
+              currentItem.regalo == nextItem.regalo &&
+              currentItem.idArticulo != -1 &&
+              arraySuplCurrentItem == null &&
+              arraySuplNextItem == null
+            ) {
+              currentItem.unidades += nextItem.unidades;
+              currentItem.puntos += nextItem.puntos;
+              cesta.lista.splice(j, 1);
+              j -= 1;
+            } else if (
+              currentItem.idArticulo == nextItem.idArticulo &&
+              currentItem.regalo == nextItem.regalo &&
+              currentItem.idArticulo != -1 &&
+              arraySuplCurrentItem == arraySuplNextItem
             ) {
               currentItem.unidades += nextItem.unidades;
               currentItem.puntos += nextItem.puntos;
@@ -598,7 +618,6 @@ export class CestaClase {
         }
       }
       const pagado = menu === "pagados";
-
       if (articuloNuevo) {
         if (articulo.puntos == null) {
           await this.setPuntosPromoDscompteFixe(articulo);
