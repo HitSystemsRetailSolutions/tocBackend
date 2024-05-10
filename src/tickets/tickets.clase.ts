@@ -64,6 +64,19 @@ export class TicketsClase {
           movimientos.length > 0 &&
           movimientos[0].tipo === "DATAFONO_3G")
       ) {
+        const allDatafono3G = movimientos.every(
+          (mov) => mov.tipo === "DATAFONO_3G"
+        );
+        if (allDatafono3G) {
+          // si la suma de los movs dat3G es 0, al ticket se le considera pago en efectivo
+          const sumAll = movimientos.reduce((acc, mov) => acc + mov.valor, 0);
+          if (sumAll == 0) {
+            return {
+              res: await schTickets.anularTicket(idTicket),
+              tipo: "EFECTIVO",
+            };
+          }
+        }
         if (await schTickets.anularTicket(idTicket, true)) {
           const devolucionCreada = await schTickets.getUltimoTicket();
           if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
