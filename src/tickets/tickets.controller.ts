@@ -112,7 +112,7 @@ export class TicketsController {
         if (dejaCuenta > 0) {
           await movimientosInstance.nuevoMovimiento(
             dejaCuenta,
-            "dejaACuenta",
+            "dejaACuentaDeuda",
             "ENTRADA_DINERO",
             ticket._id,
             idTrabajador,
