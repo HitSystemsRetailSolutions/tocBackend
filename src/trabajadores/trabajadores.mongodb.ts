@@ -6,6 +6,7 @@ import {
 } from "./trabajadores.interface";
 import { CestasInterface } from "../cestas/cestas.interface";
 import { ObjectId } from "mongodb";
+import { logger } from "src/logger";
 
 /* Eze 4.0 */
 export async function limpiezaFichajes(): Promise<boolean> {
@@ -125,15 +126,24 @@ export async function usarTrabajador(
   idTrabajador: number,
   inUse: boolean
 ): Promise<boolean> {
-  const database = (await conexion).db("tocgame");
-  const trabajadores = database.collection("trabajadores");
-  (
-    await trabajadores.updateOne(
+  try {
+    const database = (await conexion).db("tocgame");
+    const trabajadores = database.collection("trabajadores");
+
+    const result = await trabajadores.updateOne(
       { _id: idTrabajador },
       { $set: { activo: inUse } }
-    )
-  ).acknowledged;
-  return true;
+    );
+
+    if (result.acknowledged) {
+      return true; // Si se modificó correctamente el documento
+    } else {
+      return false;
+    }
+  } catch (error) {
+    logger.Error(132, "Error al actualizar el estado del trabajador: " + error);
+    return false;
+  }
 }
 
 /* Uri */
