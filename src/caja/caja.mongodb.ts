@@ -64,6 +64,7 @@ export async function guardarMonedas(
   cambioEmergencia: CajaCerradaInterface["cambioEmergenciaCierre"],
   tipo: TiposInfoMoneda
 ): Promise<boolean> {
+  arrayMonedas = arrayMonedas.map((num) => Math.round(num));
   const database = (await conexion).db("tocgame");
   const infoMonedas = database.collection<MonedasInterface>("infoMonedas");
   const resultado = await infoMonedas.updateOne(
@@ -183,7 +184,11 @@ export async function setInfoCaja(data: CajaAbiertaInterface) {
   }
 
   // Actualizar la colección
-  const resultado = await caja.updateMany({}, { $set: data as MatchKeysAndValues<CajaAbiertaInterface> }, { upsert: true });
+  const resultado = await caja.updateMany(
+    {},
+    { $set: data as MatchKeysAndValues<CajaAbiertaInterface> },
+    { upsert: true }
+  );
   return (
     resultado.acknowledged &&
     (resultado.modifiedCount > 0 || resultado.upsertedCount > 0)
@@ -279,6 +284,13 @@ export async function getCambioEmActual(): Promise<number> {
 export async function setDetalleActual(detalleActual): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const caja = database.collection("caja");
+  detalleActual = detalleActual.map((item) => {
+    return {
+      _id: item._id,
+      valor: parseFloat(item.valor.toFixed(3)),
+      unidades: item.unidades,
+    };
+  });
   return (
     await caja.updateOne(
       {},
