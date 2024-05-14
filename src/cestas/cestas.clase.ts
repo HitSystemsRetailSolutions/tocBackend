@@ -143,6 +143,8 @@ export class CestaClase {
       cliente && !cliente?.albaran && !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
+    let importe = cesta.detalleIva.importe1+ cesta.detalleIva.importe2+ cesta.detalleIva.importe3+ cesta.detalleIva.importe4+ cesta.detalleIva.importe5;
+    importe = redondearPrecio(importe);
     //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
     // el modo de cesta debe cambiar a consumo_personal.
     const clienteDescEsp = descuentoEspecial.find(
@@ -164,7 +166,7 @@ export class CestaClase {
             producto.subtotal - (producto.subtotal * descuento) / 100
           ); // Modificamos el total para añadir el descuento especial del cliente
       });
-    } else if (clienteDescEsp) {
+    } else if (clienteDescEsp && importe == clienteDescEsp.precio) {
       this.recalcularSubtotales(cesta, clienteDescEsp.precio);
     } else if (cesta.modo == "CONSUMO_PERSONAL" && descuento) {
       await cestasInstance.recalcularIvas(cesta);
