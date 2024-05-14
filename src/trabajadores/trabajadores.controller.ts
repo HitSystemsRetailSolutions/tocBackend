@@ -169,10 +169,12 @@ export class TrabajadoresController {
       const inUse = (await trabajadoresInstance.trabajadorActivo(idNuevo))
         .activo;
       if (inUse && !forced) return 0;
-      const result = await trabajadoresInstance.usarTrabajador(
-        idAntiguo,
-        false
-      );
+
+      let result = false;
+      if (idAntiguo)
+        result = await trabajadoresInstance.usarTrabajador(idAntiguo, false);
+
+      if (!result && idAntiguo) return 1;
       let res = (await trabajadoresInstance.usarTrabajador(idNuevo, true))
         ? 2
         : 1;
