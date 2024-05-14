@@ -31,7 +31,7 @@ import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 import { tarifasInstance } from "src/tarifas/tarifas.class";
 
 export class CestaClase {
-  async recalcularIvasDescuentoToGo(cesta: CestasInterface) {
+  async recalcularIvasDescuentoEspecial(cesta: CestasInterface) {
     let totalDeseado = 3.99;
     // Busca el objeto con el idCliente específico
     const clienteEspecial = descuentoEspecial.find(
@@ -57,29 +57,55 @@ export class CestaClase {
     const factorEscala = totalDeseado / sumaActualImportes;
 
     // Aplicar el factor de escala a las bases y valores de IVA
-    cesta.detalleIva.base1 *= factorEscala;
-    cesta.detalleIva.base2 *= factorEscala;
-    cesta.detalleIva.base3 *= factorEscala;
-    cesta.detalleIva.base4 *= factorEscala;
-    cesta.detalleIva.base5 *= factorEscala;
+    // Aplicar el factor de escala a las bases y valores de IVA
+    cesta.detalleIva.base1 = redondearPrecio(
+      cesta.detalleIva.base1 * factorEscala
+    );
+    cesta.detalleIva.base2 = redondearPrecio(
+      cesta.detalleIva.base2 * factorEscala
+    );
+    cesta.detalleIva.base3 = redondearPrecio(
+      cesta.detalleIva.base3 * factorEscala
+    );
+    cesta.detalleIva.base4 = redondearPrecio(
+      cesta.detalleIva.base4 * factorEscala
+    );
+    cesta.detalleIva.base5 = redondearPrecio(
+      cesta.detalleIva.base5 * factorEscala
+    );
 
-    cesta.detalleIva.valorIva1 *= factorEscala;
-    cesta.detalleIva.valorIva2 *= factorEscala;
-    cesta.detalleIva.valorIva3 *= factorEscala;
-    cesta.detalleIva.valorIva4 *= factorEscala;
-    cesta.detalleIva.valorIva5 *= factorEscala;
+    cesta.detalleIva.valorIva1 = redondearPrecio(
+      cesta.detalleIva.valorIva1 * factorEscala
+    );
+    cesta.detalleIva.valorIva2 = redondearPrecio(
+      cesta.detalleIva.valorIva2 * factorEscala
+    );
+    cesta.detalleIva.valorIva3 = redondearPrecio(
+      cesta.detalleIva.valorIva3 * factorEscala
+    );
+    cesta.detalleIva.valorIva4 = redondearPrecio(
+      cesta.detalleIva.valorIva4 * factorEscala
+    );
+    cesta.detalleIva.valorIva5 = redondearPrecio(
+      cesta.detalleIva.valorIva5 * factorEscala
+    );
 
     // Recalcular los importes según las nuevas bases y valores de IVA
-    cesta.detalleIva.importe1 =
-      cesta.detalleIva.base1 + cesta.detalleIva.valorIva1;
-    cesta.detalleIva.importe2 =
-      cesta.detalleIva.base2 + cesta.detalleIva.valorIva2;
-    cesta.detalleIva.importe3 =
-      cesta.detalleIva.base3 + cesta.detalleIva.valorIva3;
-    cesta.detalleIva.importe4 =
-      cesta.detalleIva.base4 + cesta.detalleIva.valorIva4;
-    cesta.detalleIva.importe5 =
-      cesta.detalleIva.base5 + cesta.detalleIva.valorIva5;
+    cesta.detalleIva.importe1 = redondearPrecio(
+      cesta.detalleIva.base1 + cesta.detalleIva.valorIva1
+    );
+    cesta.detalleIva.importe2 = redondearPrecio(
+      cesta.detalleIva.base2 + cesta.detalleIva.valorIva2
+    );
+    cesta.detalleIva.importe3 = redondearPrecio(
+      cesta.detalleIva.base3 + cesta.detalleIva.valorIva3
+    );
+    cesta.detalleIva.importe4 = redondearPrecio(
+      cesta.detalleIva.base4 + cesta.detalleIva.valorIva4
+    );
+    cesta.detalleIva.importe5 = redondearPrecio(
+      cesta.detalleIva.base5 + cesta.detalleIva.valorIva5
+    );
 
     if (await this.updateCesta(cesta)) {
       this.actualizarCestas();
@@ -108,59 +134,9 @@ export class CestaClase {
   /* Eze 4.0 */ /* Actualizado por Aga */
   async actualizarCestas() {
     const arrayCestas = await cestasInstance.getAllCestas();
-    for (const cesta of arrayCestas) {
-      if (cesta.lista.length > 0) {
-        //verifica si hay algo en la lista de la cesta
-        if (!cesta.idCliente) {
-          // Verifica si no hay Cliente
-          for (const item of cesta.lista) {
-            item.regalo = false; // Cambiar el valor de regalo a false para todos los artículos en la cesta (al no haber cliente no deberia de haber regalo)
-          }
-        }
-        //juntar elementos de la lista iguales, por ID y Regalo
-        // PD: Faltaria tener en cuenta las promociones
-        for (let i = 0; i < cesta.lista.length; i++) {
-          const currentItem = cesta.lista[i];
-          let arraySuplCurrentItem = null;
-          if (currentItem.arraySuplementos) {
-            arraySuplCurrentItem = currentItem.arraySuplementos.slice().sort();
-          }
-          for (let j = i + 1; j < cesta.lista.length; j++) {
-            const nextItem = cesta.lista[j];
-            let arraySuplNextItem = null;
-            if (nextItem.arraySuplementos) {
-              arraySuplNextItem = nextItem.arraySuplementos.slice().sort();
-            }
-            if (
-              currentItem.idArticulo == nextItem.idArticulo &&
-              currentItem.regalo == nextItem.regalo &&
-              currentItem.idArticulo != -1 &&
-              arraySuplCurrentItem == null &&
-              arraySuplNextItem == null
-            ) {
-              currentItem.unidades += nextItem.unidades;
-              currentItem.puntos += nextItem.puntos;
-              cesta.lista.splice(j, 1);
-              j -= 1;
-            } else if (
-              currentItem.idArticulo == nextItem.idArticulo &&
-              currentItem.regalo == nextItem.regalo &&
-              currentItem.idArticulo != -1 &&
-              arraySuplCurrentItem == arraySuplNextItem
-            ) {
-              currentItem.unidades += nextItem.unidades;
-              currentItem.puntos += nextItem.puntos;
-              cesta.lista.splice(j, 1);
-              j -= 1;
-            }
-          }
-        }
-        await cestasInstance.recalcularIvas(cesta);
-        await schCestas.updateCesta(cesta);
-      }
-    }
     io.emit("cargarCestas", arrayCestas);
   }
+
   async aplicarDescuento(cesta: CestasInterface, total: number) {
     const cliente = await clienteInstance.getClienteById(cesta.idCliente);
     let descuento: any =
@@ -176,7 +152,7 @@ export class CestaClase {
       cesta.modo !== "CONSUMO_PERSONAL" &&
       descuento &&
       descuento > 0 &&
-      (!clienteDescEsp || clienteDescEsp.precio == total)
+      !clienteDescEsp
     ) {
       cesta.lista.forEach((producto) => {
         if (producto.arraySuplementos != null) {
@@ -188,8 +164,38 @@ export class CestaClase {
             producto.subtotal - (producto.subtotal * descuento) / 100
           ); // Modificamos el total para añadir el descuento especial del cliente
       });
+    } else if (clienteDescEsp) {
+      this.recalcularSubtotales(cesta, clienteDescEsp.precio);
     } else if (cesta.modo == "CONSUMO_PERSONAL" && descuento) {
       await cestasInstance.recalcularIvas(cesta);
+    }
+  }
+  recalcularSubtotales(cesta: CestasInterface, precio: number) {
+    const totalDeseado = precio;
+    let sumaSubtotales = 0;
+    cesta.lista.forEach((item) => {
+      item.subtotal = Number(item.subtotal.toFixed(2));
+      sumaSubtotales += item.subtotal;
+    });
+
+    const factorEscala = totalDeseado / sumaSubtotales;
+
+    sumaSubtotales = 0;
+    // Asignar subtotales ajustados y redondear a 2 decimales
+    cesta.lista.forEach((item) => {
+      item.subtotal *= factorEscala;
+      item.subtotal = Number(item.subtotal.toFixed(2));
+      sumaSubtotales += item.subtotal;
+    });
+
+    // Redondear la suma total al deseo y ajustar el último subtotal si es necesario
+    sumaSubtotales = Number(sumaSubtotales.toFixed(2));
+    if (sumaSubtotales !== totalDeseado) {
+      const ajuste = totalDeseado - sumaSubtotales;
+      cesta.lista[cesta.lista.length - 1].subtotal += ajuste;
+      cesta.lista[cesta.lista.length - 1].subtotal = Number(
+        cesta.lista[cesta.lista.length - 1].subtotal.toFixed(2)
+      );
     }
   }
   /* Eze 4.0 */
@@ -878,7 +884,50 @@ export class CestaClase {
     }
     return detalleIva;
   }
-
+  async comprobarRegalos(cesta: CestasInterface) {
+    if (!cesta.idCliente) {
+      // Verifica si no hay Cliente
+      for (const item of cesta.lista) {
+        item.regalo = false; // Cambiar el valor de regalo a false para todos los artículos en la cesta (al no haber cliente no deberia de haber regalo)
+      }
+    }
+    for (let i = 0; i < cesta.lista.length; i++) {
+      const currentItem = cesta.lista[i];
+      let arraySuplCurrentItem = null;
+      if (currentItem.arraySuplementos) {
+        arraySuplCurrentItem = currentItem.arraySuplementos.slice().sort();
+      }
+      for (let j = i + 1; j < cesta.lista.length; j++) {
+        const nextItem = cesta.lista[j];
+        let arraySuplNextItem = null;
+        if (nextItem.arraySuplementos) {
+          arraySuplNextItem = nextItem.arraySuplementos.slice().sort();
+        }
+        if (
+          currentItem.idArticulo == nextItem.idArticulo &&
+          currentItem.regalo == nextItem.regalo &&
+          currentItem.idArticulo != -1 &&
+          arraySuplCurrentItem == null &&
+          arraySuplNextItem == null
+        ) {
+          currentItem.unidades += nextItem.unidades;
+          currentItem.puntos += nextItem.puntos;
+          cesta.lista.splice(j, 1);
+          j -= 1;
+        } else if (
+          currentItem.idArticulo == nextItem.idArticulo &&
+          currentItem.regalo == nextItem.regalo &&
+          currentItem.idArticulo != -1 &&
+          arraySuplCurrentItem == arraySuplNextItem
+        ) {
+          currentItem.unidades += nextItem.unidades;
+          currentItem.puntos += nextItem.puntos;
+          cesta.lista.splice(j, 1);
+          j -= 1;
+        }
+      }
+    }
+  }
   /* Eze 4.0 */
   async recalcularIvas(
     cesta: CestasInterface,
@@ -904,6 +953,7 @@ export class CestaClase {
     const cliente = cesta.idCliente
       ? await clienteInstance.getClienteById(cesta.idCliente)
       : null;
+    await this.comprobarRegalos(cesta);
     let descuento: any =
       cesta.modo !== "CONSUMO_PERSONAL" &&
       cliente &&
@@ -1075,6 +1125,16 @@ export class CestaClase {
             detalleDeSuplementos.importe5;*/
         }
       }
+    }
+    let total = 0;
+    let clienteDescEsp = descuentoEspecial.find(
+      (desc) => desc.idCliente == cesta.idCliente
+    );
+    for (let i = 0; i < cesta.lista.length; i++) {
+      total += cesta.lista[i].subtotal;
+    }
+    if (clienteDescEsp && total >= clienteDescEsp.activacion) {
+      await this.recalcularIvasDescuentoEspecial(cesta);
     }
     if (cesta.lista.length > 0) {
       if (
