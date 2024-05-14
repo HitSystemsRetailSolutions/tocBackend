@@ -541,8 +541,6 @@ export class Impresora {
           infoCliente.descuento) /
         100
       ).toFixed(2)}€\n`;
-    } else if (clienteDescEsp && clienteDescEsp.precio == total) {
-      detalleDescuento += "Nou preu total: " + clienteDescEsp.precio;
     }
 
     const moment = require("moment-timezone");
