@@ -499,7 +499,7 @@ export class Impresora {
     let detalleDescuento = "";
     let clienteDescuento = "";
     let clientTitle = "";
-    let ClienteTelefono = "";
+    let clienteTelefono = "";
     if (infoClienteVip) {
       clientTitle = "\nCLIENT:";
       detalleClienteVip = `\n${infoClienteVip.nombre}`;
@@ -512,7 +512,7 @@ export class Impresora {
     const clienteDescEsp = descuentoEspecial.find(
       (cliente) => cliente.idCliente === infoCliente?.idCliente
     );
-    if (infoCliente.telefono) ClienteTelefono = infoCliente.telefono;
+
     if (infoCliente != null) {
       clientTitle = "\nCLIENT:";
       detalleNombreCliente = infoCliente.nombre;
@@ -667,7 +667,7 @@ export class Impresora {
         { tipo: "size", payload: [0, 0] },
         {
           tipo: "text",
-          payload: `${ClienteTelefono ? `${ClienteTelefono}\n` : ""}${
+          payload: `${infoCliente.telefono ? `${infoCliente.telefono}\n` : ""}${
             detallePuntosCliente ? `${detallePuntosCliente}\n` : ""
           }${clienteDescuento ? `${clienteDescuento}\n` : ""}`,
         }
