@@ -2451,8 +2451,9 @@ export class Impresora {
     // Imprimir las deudas por orden de fecha
     await deudas.forEach((deuda) => {
       const date = new Date(deuda.timestamp);
+      const dateOptions: Intl.DateTimeFormatOptions  = { day: '2-digit', month: '2-digit', year: 'numeric' };
       const options = { hour12: false };
-      const fecha = date.toLocaleDateString();
+      const fecha = date.toLocaleDateString('es-ES', dateOptions);
       const hora = date.toLocaleTimeString(undefined, options);
 
       string += `\n${fecha} ${hora}`;
