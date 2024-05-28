@@ -143,7 +143,12 @@ export class CestaClase {
       cliente && !cliente?.albaran && !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
-    let importe = cesta.detalleIva.importe1+ cesta.detalleIva.importe2+ cesta.detalleIva.importe3+ cesta.detalleIva.importe4+ cesta.detalleIva.importe5;
+    let importe =
+      cesta.detalleIva.importe1 +
+      cesta.detalleIva.importe2 +
+      cesta.detalleIva.importe3 +
+      cesta.detalleIva.importe4 +
+      cesta.detalleIva.importe5;
     importe = redondearPrecio(importe);
     //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
     // el modo de cesta debe cambiar a consumo_personal.
@@ -293,6 +298,10 @@ export class CestaClase {
     );
     if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
     throw Error("Error, no se ha podido crear la cesta");
+  }
+
+  async findCestaDevolucion(trabajador: TrabajadoresInterface["_id"]) {
+    return await schCestas.findCestaDevolucion(trabajador);
   }
   async CestaPagoDeuda(cestas) {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO DEUDA");
@@ -770,6 +779,7 @@ export class CestaClase {
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
       // Si el nombre no está vacío, es un artículo 'varis' y se le asigna el nombre
+      console.log("nombre", nombre);
       if (nombre && nombre.length > 0) {
         articulo.nombre = nombre;
         articulo.varis = true;
@@ -895,6 +905,9 @@ export class CestaClase {
     }
     for (let i = 0; i < cesta.lista.length; i++) {
       const currentItem = cesta.lista[i];
+      if (currentItem.gramos != null) {
+        continue;
+      }
       let arraySuplCurrentItem = null;
       if (currentItem.arraySuplementos) {
         arraySuplCurrentItem = currentItem.arraySuplementos.slice().sort();

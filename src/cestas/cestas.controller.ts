@@ -164,7 +164,23 @@ export class CestasController {
       return false;
     }
   }
-
+  @Post("findCestaDevolucion")
+  async findCestaDevolucion(@Body() { idTrabajador }) {
+    try {
+      if (idTrabajador) {
+        const result = await cestasInstance.findCestaDevolucion(idTrabajador);
+        if (result) {
+          await trabajadoresInstance.setIdCesta(idTrabajador, result._id);
+          await trabajadoresInstance.actualizarTrabajadoresFrontend();
+          return true;
+        }
+      }
+      throw Error("Error, faltan datos en crearCesta controller");
+    } catch (err) {
+      logger.Error(61, err);
+      return false;
+    }
+  }
   /* Eze 4.0 */
   @Post("onlyCrearCestaParaMesa")
   async onlyCrearCesta(@Body() { indexMesa }) {
@@ -293,17 +309,13 @@ export class CestasController {
   async setArticuloImprimido(@Body() { idCesta, articulos }) {
     try {
       if (idCesta && articulos) {
-        return await cestasInstance.setArticuloImprimido(
-          idCesta,
-          articulos
-        );
+        return await cestasInstance.setArticuloImprimido(idCesta, articulos);
       }
       throw Error("Error, faltan datos en cestas/insertarArtsPagados");
     } catch (err) {
       logger.Error(133, err);
     }
   }
-
 
   // @Post("recalcularIvasDescuentoToGo")
   // async recalcularIvasDescuentoToGo(@Body() { idCesta }) {
