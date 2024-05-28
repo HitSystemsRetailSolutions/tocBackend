@@ -194,3 +194,15 @@ export async function modificarNombreCesta(cestaId, miCesta) {
   );
   return resultado;
 }
+
+export async function findCestaDevolucion(
+  idTrabajador: CestasInterface["trabajador"]
+) {
+  const database = (await conexion).db("tocgame");
+  const cestas = database.collection<CestasInterface>("cestas");
+  const resultado = await cestas.findOne({
+    trabajador: idTrabajador,
+    modo: "DEVOLUCION",
+  });
+  return resultado;
+}

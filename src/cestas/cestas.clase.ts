@@ -294,6 +294,10 @@ export class CestaClase {
     if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
     throw Error("Error, no se ha podido crear la cesta");
   }
+
+  async findCestaDevolucion(trabajador: TrabajadoresInterface["_id"]) {
+    return await schCestas.findCestaDevolucion(trabajador);
+  }
   async CestaPagoDeuda(cestas) {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO DEUDA");
     nuevaCesta.indexMesa = null;
