@@ -22,6 +22,7 @@ export interface TicketsInterface {
   imprimir?: boolean;
   enviado: boolean;
   otrosModificado?: boolean;
+  fiskalyId?: string;
 }
 export interface Anulado {
   idTicketPositivo: number;

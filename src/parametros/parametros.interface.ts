@@ -1,4 +1,12 @@
 /* Yasai :D */
+export interface FiskalyInterface {
+    API_KEY: string;
+    API_SECRET: string;
+    baseUrl: string;
+    client: string;
+    enabled: boolean;
+};
+
 export interface ParametrosInterface {
   _id: string;
   codigoTienda: number;
@@ -19,6 +27,7 @@ export interface ParametrosInterface {
   contadorPaytefDate?: string;
   tarifaMesa: string;
   payteftcod: string;
+  fiskaly?: FiskalyInterface;
 }
 
 export type TiposDatafono = "3G" | "PAYTEF" | "CLEARONE";

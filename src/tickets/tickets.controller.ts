@@ -22,9 +22,11 @@ import { Clientes, clienteInstance } from "src/clientes/clientes.clase";
 import { getClienteById } from "src/clientes/clientes.mongodb";
 import { descuentoEspecial } from "src/clientes/clientes.interface";
 import { parametrosInstance } from "../parametros/parametros.clase";
+import { Fiskaly } from "src/fiskaly/fiskaly";
 
 @Controller("tickets")
 export class TicketsController {
+  constructor(private fiskaly: Fiskaly) {}
   /* Eze 4.0 */
   @Post("getTicketsIntervalo")
   async getTicketsIntervalo(@Body() { inicioTime, finalTime }) {
@@ -89,7 +91,7 @@ export class TicketsController {
           "Error, no se ha podido generar el objecto del ticket en crearTicketDeuda controller"
         );
       }
-      if (await ticketsInstance.insertarTicket(ticket)) {
+      if (await ticketsInstance.insertarTicket(ticket, this.fiskaly)) {
         var deuda = {
           idTicket: ticket._id,
           cesta: cesta,
@@ -175,7 +177,7 @@ export class TicketsController {
         );
       }
 
-      if (await ticketsInstance.insertarTicket(ticket)) {
+      if (await ticketsInstance.insertarTicket(ticket, this.fiskaly)) {
         await encargosInstance.setEntregado(idEncargo);
 
         if (tipo !== "TARJETA") {
@@ -313,6 +315,17 @@ export class TicketsController {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
+      const cestaFiskaly = JSON.parse(JSON.stringify(cesta));
+      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      let descuento: any =
+        cliente && !cliente?.albaran && !cliente?.vip
+          ? Number(cliente.descuento)
+          : 0;
+      //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
+      // el modo de cesta debe cambiar a consumo_personal.
+      const clienteDescEsp = descuentoEspecial.find(
+        (cliente) => cliente.idCliente === cesta.idCliente
+      );
       if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
 
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
@@ -341,7 +354,16 @@ export class TicketsController {
       var TTicket2 = performance.now();
       var TiempoTicket = TTicket2 - TTicket1;
       logger.Info("TiempoTicket", TiempoTicket.toFixed(4) + " ms");
-      if (await ticketsInstance.insertarTicket(ticket)) {
+      
+      const fiskalTicketId = await this.fiskaly.createTicket(cestaFiskaly);
+      if(!fiskalTicketId) {
+        throw Error(
+          "Error, no se ha podido crear el ticket en fiskaly en crearTicket() controller 4"
+        );
+      }
+      ticket.fiskalyId = fiskalTicketId;
+      
+      if (await ticketsInstance.insertarTicket(ticket, this.fiskaly)) {
         // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
         // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
         return await ticketsInstance.finalizarTicket(
@@ -386,6 +408,9 @@ export class TicketsController {
   ) {
     try {
       if (typeof total == "number" && cesta && idTrabajador && tipo) {
+        // Creo una copia de la cesta para no modificar la original.
+        // No se puede copiar usando el spread operator porque hay objetos dentro de la cesta.
+        const cestaFiskaly = JSON.parse(JSON.stringify(cesta));
         const ticket = await ticketsInstance.generarNuevoTicket(
           total,
           idTrabajador,
@@ -395,11 +420,15 @@ export class TicketsController {
           tipo.includes("HONEI")
         );
         if (!ticket) {
-          throw Error(
-            "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
-          );
+            throw Error(
+                "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
+            );
         }
-        if (await ticketsInstance.insertarTicket(ticket)) {
+        if(!this.fiskaly.createTicket(cestaFiskaly))
+            throw Error(
+                "Error, no se ha podido crear el ticket en fiskaly en crearTicket() controller 4"
+            );
+        if (await ticketsInstance.insertarTicket(ticket, this.fiskaly)) {
           if (tipo === "TARJETA")
             paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
           else if (

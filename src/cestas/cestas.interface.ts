@@ -61,6 +61,7 @@ export type ItemLista = {
   pagado?: boolean;
   tarifaEsp?: boolean;
   varis?: boolean;
+  ivaFiskaly?: number;
 };
 
 export type DetalleIvaInterface = {

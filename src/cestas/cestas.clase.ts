@@ -651,6 +651,7 @@ export class CestaClase {
           subtotal: unidades * precioArt,
           unidades: unidades,
           gramos: gramos,
+          ivaFiskaly: articulo.precioConIva - articulo.precioBase,
           pagado,
         });
       }

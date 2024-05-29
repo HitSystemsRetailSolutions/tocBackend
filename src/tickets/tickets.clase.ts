@@ -20,6 +20,7 @@ import { MovimientosController } from "src/movimientos/movimientos.controller";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { impresoraInstance } from "src/impresora/impresora.class";
 import { cestasInstance } from "src/cestas/cestas.clase";
+import { Fiskaly } from "src/fiskaly/fiskaly";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -149,7 +150,7 @@ export class TicketsClase {
   }
 
   /* Eze 4.0 */
-  async insertarTicket(ticket: TicketsInterface): Promise<boolean> {
+  async insertarTicket(ticket: TicketsInterface, fiskalyService: Fiskaly): Promise<boolean> {
     // miramos que la lista tenga elementos
     if (ticket.cesta.lista.length == 0)
       throw Error("Error al insertar ticket: la lista está vacía");
@@ -182,7 +183,10 @@ export class TicketsClase {
     }
     const res = await schTickets.nuevoTicket(ticket);
     // si ha ido bien actualizamos el último ticket
-    if (res) await parametrosInstance.updLastTicket(ticket._id);
+    if (res) {
+        await parametrosInstance.updLastTicket(ticket._id);
+        fiskalyService.setLastTicket(ticket._id);
+    } 
     return res;
   }
 

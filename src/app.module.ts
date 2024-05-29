@@ -33,6 +33,7 @@ import { checkers } from "./checkers/checkers.controller";
 import { balancaController } from "./balanca/balanca.clase";
 import { AlbaranesController } from "./albaranes/albaranes.controller";
 import { contableController } from "./contable/contable.controller";
+import { FiskalyModule } from "./fiskaly/fiskaly.module";
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { contableController } from "./contable/contable.controller";
       rootPath: join(__dirname, "..", "public"),
     }),
     UtilesModule,
+    FiskalyModule,
   ],
   controllers: [
     ListadoVentasController,
