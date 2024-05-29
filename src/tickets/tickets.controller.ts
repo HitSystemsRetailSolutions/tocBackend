@@ -316,16 +316,6 @@ export class TicketsController {
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
       const cestaFiskaly = JSON.parse(JSON.stringify(cesta));
-      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
-      let descuento: any =
-        cliente && !cliente?.albaran && !cliente?.vip
-          ? Number(cliente.descuento)
-          : 0;
-      //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
-      // el modo de cesta debe cambiar a consumo_personal.
-      const clienteDescEsp = descuentoEspecial.find(
-        (cliente) => cliente.idCliente === cesta.idCliente
-      );
       if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
 
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
