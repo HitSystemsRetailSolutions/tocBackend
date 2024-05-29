@@ -248,7 +248,7 @@ export class TicketsController {
       .iniciarTransaccion(idTrabajador, idTransaccion, total)
       .then(async (x) => {
         if (x) {
-          if (await ticketsInstance.insertarTicket(ticketTemp)) {
+          if (await ticketsInstance.insertarTicket(ticketTemp, this.fiskaly)) {
             // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
             // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
             await ticketsInstance.finalizarTicket(
