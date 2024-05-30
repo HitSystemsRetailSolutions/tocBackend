@@ -379,7 +379,7 @@ export class CestaClase {
       if (cesta.lista[index]?.pagado) return null;
       let productos = [];
       productos.push(cesta.lista[index]);
-      await this.registroLogSantaAna(cesta, productos);
+      this.registroLogSantaAna(cesta, productos);
 
       cesta.lista.splice(index, 1);
       // Enviar por socket
