@@ -5,7 +5,10 @@ import { CestasInterface } from "../cestas/cestas.interface";
 import { io } from "../sockets.gateway";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import axios from "axios";
-import { convertirDineroEnPuntos } from "../funciones/funciones";
+import {
+  convertirDineroEnPuntos,
+  redondearPrecio,
+} from "../funciones/funciones";
 import { articulosInstance } from "../articulos/articulos.clase";
 import * as schMovimientos from "../movimientos/movimientos.mongodb";
 import { paytefInstance } from "../paytef/paytef.class";
@@ -14,6 +17,9 @@ import { ClientesInterface } from "src/clientes/clientes.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { MovimientosController } from "src/movimientos/movimientos.controller";
+import { deudasInstance } from "src/deudas/deudas.clase";
+import { impresoraInstance } from "src/impresora/impresora.class";
+import { cestasInstance } from "src/cestas/cestas.clase";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -58,6 +64,19 @@ export class TicketsClase {
           movimientos.length > 0 &&
           movimientos[0].tipo === "DATAFONO_3G")
       ) {
+        const allDatafono3G = movimientos.every(
+          (mov) => mov.tipo === "DATAFONO_3G"
+        );
+        if (allDatafono3G) {
+          // si la suma de los movs dat3G es 0, al ticket se le considera pago en efectivo
+          const sumAll = movimientos.reduce((acc, mov) => acc + mov.valor, 0);
+          if (sumAll == 0) {
+            return {
+              res: await schTickets.anularTicket(idTicket),
+              tipo: "EFECTIVO",
+            };
+          }
+        }
         if (await schTickets.anularTicket(idTicket, true)) {
           const devolucionCreada = await schTickets.getUltimoTicket();
           if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
@@ -115,7 +134,15 @@ export class TicketsClase {
     const ultimoIdTicket = await this.getUltimoIdTicket();
 
     if (typeof ultimoIdTicket === "number") {
-      return ultimoIdTicket + 1;
+      let newId = ultimoIdTicket + 1;
+      // si la id generada es igual a la de la ultima transaccion de paytef, se incrementa en 1
+      if (
+        paytefInstance.ultimaIniciarTransaccion &&
+        newId == paytefInstance.ultimaIniciarTransaccion.idTicket
+      ) {
+        newId++;
+      }
+      return newId;
     }
 
     throw Error("El ultimoIdTicket no es correcto");
@@ -358,6 +385,118 @@ export class TicketsClase {
   //   });
   //   return total3G;
   // };
+  async finalizarTicket(
+    ticket: TicketsInterface,
+    idTrabajador: number,
+    tipo: string,
+    concepto: string,
+    cesta: CestasInterface,
+    tkrsData: any
+  ) {
+    await cestasInstance.borrarArticulosCesta(cesta._id, true, true, false);
+    await cestasInstance.setClients(0, cesta._id);
+    if (tipo === "TARJETA") {
+      // paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
+      this.setPagadoPaytef(ticket._id);
+    } else if (
+      (tipo === "TKRS" && tkrsData) ||
+      (tkrsData?.cantidadTkrs > 0 &&
+        (tipo === "EFECTIVO" || tipo === "DATAFONO_3G"))
+    ) {
+      if (tkrsData.cantidadTkrs > ticket.total) {
+        await movimientosInstance.nuevoMovimiento(
+          ticket.total,
+          "",
+          "TKRS_SIN_EXCESO",
+          ticket._id,
+          idTrabajador
+        );
+        await movimientosInstance.nuevoMovimiento(
+          redondearPrecio(tkrsData.cantidadTkrs - ticket.total),
+          "",
+          "TKRS_CON_EXCESO",
+          ticket._id,
+          idTrabajador
+        );
+      } else if (tkrsData.cantidadTkrs < ticket.total) {
+        if (tipo === "DATAFONO_3G") {
+          let total3G =
+            Math.round((ticket.total - tkrsData.cantidadTkrs) * 100) / 100;
+          await movimientosInstance.nuevoMovimiento(
+            total3G,
+            "",
+            "DATAFONO_3G",
+            ticket._id,
+            idTrabajador
+          );
+        }
+        await movimientosInstance.nuevoMovimiento(
+          tkrsData.cantidadTkrs,
+          "",
+          "TKRS_SIN_EXCESO",
+          ticket._id,
+          idTrabajador
+        );
+      } else if (tkrsData.cantidadTkrs === ticket.total) {
+        await movimientosInstance.nuevoMovimiento(
+          ticket.total,
+          "",
+          "TKRS_SIN_EXCESO",
+          ticket._id,
+          idTrabajador
+        );
+      }
+    } else if (tipo === "DATAFONO_3G") {
+      await movimientosInstance.nuevoMovimiento(
+        ticket.total,
+        "",
+        "DATAFONO_3G",
+        ticket._id,
+        idTrabajador
+      );
+    } else if (tipo === "DEUDA") {
+      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
+      // se diferenciara su uso cuando el concepto sea igual a DEUDA
+      if (concepto && concepto == "DEUDA") {
+        await movimientosInstance.nuevoMovimiento(
+          ticket.total,
+          "DEUDA",
+          "SALIDA",
+          ticket._id,
+          idTrabajador,
+          cliente.nombre
+        );
+        var deuda = {
+          idTicket: ticket._id,
+          cesta: cesta,
+          idTrabajador: idTrabajador,
+          idCliente: cesta.idCliente,
+          nombreCliente: cesta.nombreCliente,
+          total: ticket.total,
+          timestamp: ticket.timestamp,
+        };
+        await deudasInstance.setDeuda(deuda);
+      } else {
+        await movimientosInstance.nuevoMovimiento(
+          ticket.total,
+          "",
+          "DEUDA",
+          ticket._id,
+          idTrabajador
+        );
+      }
+    } else if (tipo !== "EFECTIVO" && tipo != "CONSUMO_PERSONAL") {
+      throw Error(
+        "Falta información del tkrs o bien ninguna forma de pago es correcta"
+      );
+    }
+    if (tipo !== "TARJETA" && concepto == "DEUDA") {
+      await impresoraInstance.abrirCajon();
+    }
+    this.actualizarTickets();
+    return ticket._id;
+  }
   actualizarTickets = async () => {
     const arrayVentas = await movimientosInstance.construirArrayVentas();
     if (arrayVentas) io.emit("cargarVentas", arrayVentas.reverse());

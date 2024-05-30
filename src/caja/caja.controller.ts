@@ -56,8 +56,16 @@ export class CajaController {
               "; diferencia:" +
               diferencia.toFixed(2)
           );
-        }else{
-          logger.Info(52.2, "Dependienta " + idDependienta + " ha cerrado caja sin modificar el valor datafono_3G. Valor 3G original:" + cantidad3GAutomatizado + "; valor 3G final:" + cantidad3G);
+        } else {
+          logger.Info(
+            52.2,
+            "Dependienta " +
+              idDependienta +
+              " ha cerrado caja sin modificar el valor datafono_3G. Valor 3G original:" +
+              cantidad3GAutomatizado +
+              "; valor 3G final:" +
+              cantidad3G
+          );
         }
         let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
         let cantidadLocal3G = cantidad3G;
@@ -91,13 +99,22 @@ export class CajaController {
         const idTrabajadores = fichados.map(
           (resultado) => resultado.idTrabajador
         );
+        const inicioTime = await cajaInstance.getComprovarFechaCierreTurno();
+        await cajaInstance.mqttAbrirCaja(inicioTime);
+        detalle = detalle.map((item) => {
+          return {
+            _id: item._id,
+            valor: parseFloat(item.valor.toFixed(3)),
+            unidades: item.unidades,
+          };
+        });
         return await cajaInstance.abrirCaja({
           detalleApertura: detalle,
           idDependientaApertura: idDependienta,
           cambioEmergenciaApertura: cambioEmergencia,
           cambioEmergenciaActual: 0,
-          inicioTime: await cajaInstance.getComprovarFechaCierreTurno(),
-          totalApertura: total,
+          inicioTime: inicioTime,
+          totalApertura: parseFloat(total.toFixed(3)),
           fichajes: idTrabajadores,
           propina: 0,
           detalleActual: null,

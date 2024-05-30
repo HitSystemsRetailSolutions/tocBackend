@@ -18,7 +18,7 @@ import { deudasInstance } from "src/deudas/deudas.clase";
 import { timestamp } from "rxjs";
 import { mqttInstance } from "src/mqtt";
 import axios from "axios";
-import { clienteInstance } from "src/clientes/clientes.clase";
+import { Clientes, clienteInstance } from "src/clientes/clientes.clase";
 import { getClienteById } from "src/clientes/clientes.mongodb";
 import { descuentoEspecial } from "src/clientes/clientes.interface";
 import { parametrosInstance } from "../parametros/parametros.clase";
@@ -72,6 +72,7 @@ export class TicketsController {
     }
   ) {
     try {
+      var TDeuda1 = performance.now();
       const cesta = await cestasInstance.getCestaById(idCesta);
       const ticket = await ticketsInstance.generarNuevoTicket(
         total - dejaCuenta,
@@ -111,7 +112,7 @@ export class TicketsController {
         if (dejaCuenta > 0) {
           await movimientosInstance.nuevoMovimiento(
             dejaCuenta,
-            "dejaACuenta",
+            "dejaACuentaDeuda",
             "ENTRADA_DINERO",
             ticket._id,
             idTrabajador,
@@ -123,6 +124,9 @@ export class TicketsController {
         }
 
         ticketsInstance.actualizarTickets();
+        var TDeuda2 = performance.now();
+        var TiempoDeuda = TDeuda2 - TDeuda1;
+        logger.Info("TiempoDeuda", TiempoDeuda.toFixed(4) + " ms");
         return true;
       }
       throw Error(
@@ -152,11 +156,9 @@ export class TicketsController {
     try {
       const cestaEncargo = await encargosInstance.getEncargoById(idEncargo);
       // modifica
-      const graellaModificada = await encargosInstance.updateEncargoGraella(
-        idEncargo
-      );
+      const graellaModificada =
+        await encargosInstance.updateEncargoGraella(idEncargo);
       if (!graellaModificada) return false;
-
       const ticket = await ticketsInstance.generarNuevoTicket(
         total - dejaCuenta,
         idTrabajador,
@@ -219,25 +221,48 @@ export class TicketsController {
       honei?: boolean;
     }
   ) {
-    let nextID = await ticketsInstance.getProximoId();
-    logger.Info(`crearTicketPaytef entrada (${nextID})`, "tickets.controller");
+    const cesta = await cestasInstance.getCestaById(idCesta);
+    // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
+    await cestasInstance.aplicarDescuento(cesta, total);
+    // elimina la última transacción de Paytef
+    paytefInstance.deleteUltimaIniciarTransaccion();
+    // genera un ticket temporal hasta que se confirme o se anule el pago
+    const ticketTemp = await ticketsInstance.generarNuevoTicket(
+      total,
+      idTrabajador,
+      cesta,
+      tipo === "CONSUMO_PERSONAL",
+      tipo.includes("HONEI") || honei,
+      tkrsData?.cantidadTkrs > 0
+    );
+    // id temporal para el ticketPaytef
+    let idTransaccion = await ticketsInstance.getProximoId();
+    ticketTemp._id = idTransaccion;
+    logger.Info(
+      `crearTicketPaytef entrada (${idTransaccion})`,
+      "tickets.controller"
+    );
     return await paytefInstance
-      .iniciarTransaccion(idTrabajador, nextID, total)
+      .iniciarTransaccion(idTrabajador, idTransaccion, total)
       .then(async (x) => {
         if (x) {
-          await this.crearTicket({
-            total,
-            idCesta,
-            idTrabajador,
-            tipo,
-            tkrsData,
-            concepto,
-            honei,
-          });
-          let idTicket = await ticketsInstance.getUltimoIdTicket();
-          if (idTicket != nextID) {
+          if (await ticketsInstance.insertarTicket(ticketTemp)) {
+            // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
+            // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
+            await ticketsInstance.finalizarTicket(
+              ticketTemp,
+              idTrabajador,
+              tipo,
+              concepto,
+              cesta,
+              tkrsData
+            );
+          }
+          // si el identificador temporal no coincide con el real, se lanza un logError
+          // puede ocurrir si se ha generado un nuevo ticket mientras se realizaba el pago con Paytef
+          if (ticketTemp._id != idTransaccion) {
             logger.Error(
-              `idTicket!=nextID (${idTicket}!=${nextID})`,
+              `idTicket!=idTransaccion (${ticketTemp._id}!=${idTransaccion}), se ha generado un nuevo ticket mientras se realizaba el pago con Paytef.`,
               "tickets.controller"
             );
           }
@@ -245,12 +270,12 @@ export class TicketsController {
             (await parametrosInstance.getParametros())?.params?.TicketDFAuto ==
             "Si"
           ) {
-            impresoraInstance.imprimirTicket(idTicket);
+            impresoraInstance.imprimirTicket(ticketTemp._id);
           }
           //ticketsInstance.setPagadoPaytef(idTicket);
         }
         logger.Info(
-          `crearTicketPaytef salida (${nextID}, ${x})`,
+          `crearTicketPaytef salida (${idTransaccion}, ${x})`,
           "tickets.controller"
         );
         return x;
@@ -283,42 +308,22 @@ export class TicketsController {
     }
   ) {
     try {
+      var TTicket1 = performance.now();
       if (!(typeof total == "number" && idCesta && idTrabajador && tipo)) {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
-      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
-      let descuento: any =
-        cliente && !cliente?.albaran && !cliente?.vip
-          ? Number(cliente.descuento)
-          : 0;
-      //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
-      // el modo de cesta debe cambiar a consumo_personal.
-      const clienteDescEsp = descuentoEspecial.find(
-        (cliente) => cliente.idCliente === cesta.idCliente
-      );
       if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
-      if (
-        tipo !== "CONSUMO_PERSONAL" &&
-        descuento &&
-        descuento > 0 &&
-        (!clienteDescEsp || clienteDescEsp.precio == total)
-      ) {
-        cesta.lista.forEach((producto) => {
-          if (producto.arraySuplementos != null) {
-            producto.subtotal = this.redondearPrecio(
-              producto.subtotal - (producto.subtotal * descuento) / 100
-            );
-          } else if (producto.promocion == null)
-            producto.subtotal = this.redondearPrecio(
-              producto.subtotal - (producto.subtotal * descuento) / 100
-            ); // Modificamos el total para añadir el descuento especial del cliente
-        });
-      } else if (tipo == "CONSUMO_PERSONAL" && descuento) {
-        await cestasInstance.recalcularIvas(cesta);
-      }
 
-      const d3G = tipo === "DATAFONO_3G";
+      // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
+      await cestasInstance.aplicarDescuento(cesta, total);
+      // caso doble tpv; borrar registro de la última transacción de Paytef cuando no se ha iniciado una transacción
+      if (
+        !paytefInstance.dentroIniciarTransaccion &&
+        paytefInstance.ultimaIniciarTransaccion
+      ) {
+        paytefInstance.deleteUltimaIniciarTransaccion();
+      }
       const ticket = await ticketsInstance.generarNuevoTicket(
         total,
         idTrabajador,
@@ -333,91 +338,22 @@ export class TicketsController {
           "Error, no se ha podido generar el objecto del ticket en crearTicket controller 3"
         );
       }
+      var TTicket2 = performance.now();
+      var TiempoTicket = TTicket2 - TTicket1;
+      logger.Info("TiempoTicket", TiempoTicket.toFixed(4) + " ms");
       if (await ticketsInstance.insertarTicket(ticket)) {
-        await cestasInstance.borrarArticulosCesta(idCesta, true, true, false);
-        await cestasInstance.setClients(0, idCesta);
-        if (tipo === "TARJETA") {
-          // paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
-          ticketsInstance.setPagadoPaytef(ticket._id);
-        } else if (
-          (tipo === "TKRS" && tkrsData) ||
-          (tkrsData?.cantidadTkrs > 0 &&
-            (tipo === "EFECTIVO" || tipo === "DATAFONO_3G"))
-        ) {
-          if (tkrsData.cantidadTkrs > total) {
-            await movimientosInstance.nuevoMovimiento(
-              total,
-              "",
-              "TKRS_SIN_EXCESO",
-              ticket._id,
-              idTrabajador
-            );
-            await movimientosInstance.nuevoMovimiento(
-              this.redondearPrecio(tkrsData.cantidadTkrs - total),
-              "",
-              "TKRS_CON_EXCESO",
-              ticket._id,
-              idTrabajador
-            );
-          } else if (tkrsData.cantidadTkrs < total) {
-            if (tipo === "DATAFONO_3G") {
-              let total3G =
-                Math.round((total - tkrsData.cantidadTkrs) * 100) / 100;
-              await movimientosInstance.nuevoMovimiento(
-                total3G,
-                "",
-                "DATAFONO_3G",
-                ticket._id,
-                idTrabajador
-              );
-            }
-            await movimientosInstance.nuevoMovimiento(
-              tkrsData.cantidadTkrs,
-              "",
-              "TKRS_SIN_EXCESO",
-              ticket._id,
-              idTrabajador
-            );
-          } else if (tkrsData.cantidadTkrs === total) {
-            await movimientosInstance.nuevoMovimiento(
-              total,
-              "",
-              "TKRS_SIN_EXCESO",
-              ticket._id,
-              idTrabajador
-            );
-          }
-        } else if (tipo === "DATAFONO_3G") {
-          await movimientosInstance.nuevoMovimiento(
-            total,
-            "",
-            "DATAFONO_3G",
-            ticket._id,
-            idTrabajador
-          );
-        } else if (tipo === "DEUDA") {
-          const cliente = await getClienteById(cesta.idCliente);
-          //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
-          // se diferenciara su uso cuando el concepto sea igual a DEUDA
-          await movimientosInstance.nuevoMovimiento(
-            total,
-            "",
-            "DEUDA",
-            ticket._id,
-            idTrabajador
-          );
-        } else if (tipo !== "EFECTIVO" && tipo != "CONSUMO_PERSONAL") {
-          throw Error(
-            "Falta información del tkrs o bien ninguna forma de pago es correcta"
-          );
-        }
-        if (tipo !== "TARJETA" && concepto == "DEUDA") {
-          await impresoraInstance.abrirCajon();
-        }
-        ticketsInstance.actualizarTickets();
-        return ticket._id;
+        // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
+        // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
+        return await ticketsInstance.finalizarTicket(
+          ticket,
+          idTrabajador,
+          tipo,
+          concepto,
+          cesta,
+          tkrsData
+        );
       }
-
+      console.log("4");
       throw Error(
         "Error, no se ha podido crear el ticket en crearTicket() controller 2"
       );

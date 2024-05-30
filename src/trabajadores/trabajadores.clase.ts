@@ -124,7 +124,7 @@ export class TrabajadoresClase {
         idTrabajador: idTrabajador,
         fecha: {
           year: auxTime.getFullYear(),
-          month: auxTime.getMonth(),
+          month: auxTime.getMonth()+1,//Enero equivale al mes 0
           day: auxTime.getDate(),
           hours: auxTime.getHours(),
           minutes: auxTime.getMinutes(),
