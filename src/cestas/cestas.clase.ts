@@ -1513,6 +1513,9 @@ export class CestaClase {
       console.error("Error al enviar el registro a Santa Ana:", error.message);
     }
   }
+  async borrarCestas() {
+    await schCestas.borrarCestas();
+  }
 }
 
 export const cestasInstance = new CestaClase();

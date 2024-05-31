@@ -204,6 +204,7 @@ export class CajaClase {
       const ultimaCaja = await this.getUltimoCierre();
       impresoraInstance.imprimirCajaAsync(ultimaCaja);
       if (await this.resetCajaAbierta()) {
+        await cestasInstance.borrarCestas();
         if (!finalTime.estadoTurno) {
           io.emit("cargarVentas", []);
         }
