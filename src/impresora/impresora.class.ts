@@ -1134,10 +1134,7 @@ export class Impresora {
     let cliente = idCliente
       ? await clienteInstance.getClienteById(idCliente)
       : null;
-    let descuento: any =
-      cliente && !cliente?.albaran && !cliente?.vip
-        ? Number(cliente.descuento)
-        : 0;
+
 
     const albaranNPT =
       cliente?.albaran && cliente?.noPagaEnTienda ? true : false;
@@ -1163,7 +1160,7 @@ export class Impresora {
 
     for (let i = 0; i < arrayCompra.length; i++) {
       arrayCompra[i].subtotal =
-        arrayCompra[i].subtotal - arrayCompra[i].subtotal * (descuento / 100);
+        arrayCompra[i].subtotal;
 
       arrayCompra[i]["preuU"] = albaranNPT
         ? Number(
