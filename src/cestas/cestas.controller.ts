@@ -306,10 +306,10 @@ export class CestasController {
 
   /* Uri House */
   @Post("setArticuloImprimido")
-  async setArticuloImprimido(@Body() { idCesta, articulos }) {
+  async setArticuloImprimido(@Body() { idCesta, articulos, printed }) {
     try {
-      if (idCesta && articulos) {
-        return await cestasInstance.setArticuloImprimido(idCesta, articulos);
+      if (idCesta && articulos && printed != null) {
+        return await cestasInstance.setArticuloImprimido(idCesta, articulos, printed);
       }
       throw Error("Error, faltan datos en cestas/insertarArtsPagados");
     } catch (err) {
