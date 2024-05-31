@@ -1362,15 +1362,19 @@ export class CestaClase {
   /* uri House */
   setArticuloImprimido = async (
     idCesta: CestasInterface["_id"],
-    articulosIDs: number[]
+    articulosIDs: number[],
+    printed: boolean
   ) => {
     const cesta = await this.getCestaById(idCesta);
     for (let x = 0; x < cesta.lista.length; x++) {
-      if (articulosIDs.includes(cesta.lista[x].idArticulo))
-        cesta.lista[x].printed = true;
+      if (articulosIDs.includes(cesta.lista[x].idArticulo)) {
+        cesta.lista[x].printed = printed;
+      }
     }
-    await this.updateCesta(cesta);
-    return true
+    if (await this.updateCesta(cesta)) {
+      this.actualizarCestas();
+    }
+    return true;
   };
 
   /* Eze 4.0 */
