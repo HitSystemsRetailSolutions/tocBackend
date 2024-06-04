@@ -3,6 +3,8 @@ import { conexion } from "../conexion/mongodb";
 import { CestasInterface } from "./cestas.interface";
 import { nuevaInstancePromociones } from "src/promociones/promociones.clase";
 import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
+import { log } from "console";
+import { logger } from "src/logger";
 
 /* Eze 4.0 */
 export async function getCestaById(
@@ -205,4 +207,20 @@ export async function findCestaDevolucion(
     modo: "DEVOLUCION",
   });
   return resultado;
+}
+
+export async function borrarCestas() {
+  try {
+    
+  
+  const database = (await conexion).db("tocgame");
+  const cestas = database.collection<CestasInterface>("cestas");
+  const resultado = await cestas.deleteMany({
+    indexMesa: null,
+  });
+  console.log("Cestas borradas: ", resultado.deletedCount);
+  return resultado.acknowledged;
+} catch (error) {
+    logger.Error('777',error);
+}
 }
