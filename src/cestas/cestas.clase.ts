@@ -379,7 +379,7 @@ export class CestaClase {
       if (cesta.lista[index]?.pagado) return null;
       let productos = [];
       productos.push(cesta.lista[index]);
-      await this.registroLogSantaAna(cesta, productos);
+      this.registroLogSantaAna(cesta, productos);
 
       cesta.lista.splice(index, 1);
       // Enviar por socket
@@ -779,7 +779,7 @@ export class CestaClase {
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
       // Si el nombre no está vacío, es un artículo 'varis' y se le asigna el nombre
-      console.log("nombre", nombre);
+
       if (nombre && nombre.length > 0) {
         articulo.nombre = nombre;
         articulo.varis = true;
@@ -897,6 +897,10 @@ export class CestaClase {
     return detalleIva;
   }
   async comprobarRegalos(cesta: CestasInterface) {
+    // Si no hay cliente, no puede haber regalos
+    if (cesta.idCliente) return;
+    // Si no hay regalos, no hace falta comprobar nada
+    if (!cesta.lista.find(item => item.regalo)) return;
     if (!cesta.idCliente) {
       // Verifica si no hay Cliente
       for (const item of cesta.lista) {
@@ -1362,14 +1366,19 @@ export class CestaClase {
   /* uri House */
   setArticuloImprimido = async (
     idCesta: CestasInterface["_id"],
-    articulosIDs: number[]
+    articulosIDs: number[],
+    printed: boolean
   ) => {
     const cesta = await this.getCestaById(idCesta);
     for (let x = 0; x < cesta.lista.length; x++) {
-      if (articulosIDs.includes(cesta.lista[x].idArticulo))
-        cesta.lista[x].printed = true;
+      if (articulosIDs.includes(cesta.lista[x].idArticulo)) {
+        cesta.lista[x].printed = printed;
+      }
     }
-    await this.updateCesta(cesta);
+    if (await this.updateCesta(cesta)) {
+      this.actualizarCestas();
+    }
+    return true;
   };
 
   /* Eze 4.0 */
@@ -1503,6 +1512,9 @@ export class CestaClase {
     } catch (error) {
       console.error("Error al enviar el registro a Santa Ana:", error.message);
     }
+  }
+  async borrarCestas() {
+    await schCestas.borrarCestas();
   }
 }
 
