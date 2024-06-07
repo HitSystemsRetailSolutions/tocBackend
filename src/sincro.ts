@@ -25,7 +25,10 @@ import {
 import * as moment from "moment";
 import { AlbaranesInstance } from "./albaranes/albaranes.clase";
 import { clienteInstance } from "./clientes/clientes.clase";
-import { SuperTicketInterface, TicketsInterface } from "./tickets/tickets.interface";
+import {
+  SuperTicketInterface,
+  TicketsInterface,
+} from "./tickets/tickets.interface";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
@@ -48,7 +51,6 @@ async function reenviarTicket(idTicket: TicketsInterface["_id"]) {
 }
 // se pone el ticket otrosModificado en no enviado por si se apaga el programa antes de sincronizarTicketsOtrosModificado
 async function reenviarTicketPago(idTicket: TicketsInterface["_id"]) {
-
   if (!idsTicketsOtrosReenviar.includes(idTicket)) {
     // Si no está presente en el array, se pone el ticket en no enviado y se agrega al array
     await ticketsInstance.setTicketOtrosModificado(idTicket, false);
@@ -71,13 +73,18 @@ async function sincronizarTickets() {
           let idTicket = idsTicketsReenviar.shift();
           await ticketsInstance.setTicketEnviado(idTicket, false);
         }
-        const ticket: TicketsInterface = await ticketsInstance.getTicketMasAntiguo();
+        const ticket: TicketsInterface =
+          await ticketsInstance.getTicketMasAntiguo();
         if (ticket) {
           await nuevaInstancePromociones.deshacerPromociones(ticket);
-          const superTicket = {...ticket, tipoPago: null,movimientos: null};
-          superTicket.movimientos = await movimientosInstance.getMovimientosDelTicket(ticket._id);
-          superTicket.tipoPago = await movimientosInstance.calcularFormaPago(superTicket);
-          const res = await axios.post("tickets/enviarTicket", { ticket:superTicket });
+          const superTicket = { ...ticket, tipoPago: null, movimientos: null };
+          superTicket.movimientos =
+            await movimientosInstance.getMovimientosDelTicket(ticket._id);
+          superTicket.tipoPago =
+            await movimientosInstance.calcularFormaPago(superTicket);
+          const res = await axios.post("tickets/enviarTicket", {
+            ticket: superTicket,
+          });
           //.catch((e) => {console.log("error",e)});
           if (res.data) {
             if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
@@ -118,13 +125,18 @@ async function sincronizarTicketsOtrosModificado() {
           let idTicket = idsTicketsOtrosReenviar.shift();
           await ticketsInstance.setTicketOtrosModificado(idTicket, false);
         }
-        const ticket: TicketsInterface = await ticketsInstance.getTicketOtrosModificadoMasAntiguo();
+        const ticket: TicketsInterface =
+          await ticketsInstance.getTicketOtrosModificadoMasAntiguo();
         if (ticket) {
           await nuevaInstancePromociones.deshacerPromociones(ticket);
-          const superTicket = {...ticket, tipoPago: null,movimientos: null};
-          superTicket.movimientos = await movimientosInstance.getMovimientosDelTicket(ticket._id);
-          superTicket.tipoPago = await movimientosInstance.calcularFormaPago(superTicket);
-          const res = await axios.post("tickets/updOtros", { ticket:superTicket });
+          const superTicket = { ...ticket, tipoPago: null, movimientos: null };
+          superTicket.movimientos =
+            await movimientosInstance.getMovimientosDelTicket(ticket._id);
+          superTicket.tipoPago =
+            await movimientosInstance.calcularFormaPago(superTicket);
+          const res = await axios.post("tickets/updOtros", {
+            ticket: superTicket,
+          });
           //.catch((e) => {console.log("error",e)});
           if (res.data) {
             if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
@@ -364,7 +376,7 @@ async function sincronizarEncargosCreados() {
             bbdd: parametros.database,
             productos: encargo.productos,
             idTrabajador: encargo.idTrabajador,
-            recogido: false,
+            recogido: encargo.estado === "RECOGIDO" ? true : false,
             timestamp: encargo.timestamp,
             opcionEncargo: encargo.opcionRecogida,
             codigoBarras: encargo.codigoBarras,
@@ -374,19 +386,32 @@ async function sincronizarEncargosCreados() {
             .catch((e) => {
               console.log(e);
             });
-          if (res.data && !res.data.error) {
-            if (await encargosInstance.setEnviado(encargo._id)) {
-              enProcesoEncargosCreados = false;
-              setTimeout(sincronizarEncargosCreados, 100);
-            } else {
-              enProcesoEncargosCreados = false;
-            }
+            if (res.data) {
+              if (!res.data.error) {
+                  if (await encargosInstance.setEnviado(encargo._id)) {
+                      enProcesoEncargosCreados = false;
+                      setTimeout(sincronizarEncargosCreados, 100);
+                  }
+              } else if (res.data.error && res.data?.pedido) {
+                  // Se ha creado pero no se ha podido marcar como enviado el pedido
+                  await encargosInstance.setFinalizadoFalse(encargo._id);
+                  if (await encargosInstance.setEnviado(encargo._id)) {
+                      enProcesoEncargosCreados = false;
+                      setTimeout(sincronizarEncargosCreados, 100);
+                  }
+              } else {
+                  logger.Error(
+                      153,
+                      "Error: no se ha podido crear el encargo en el SantaAna"
+                  );
+                  enProcesoEncargosCreados = false;
+              }
           } else {
-            logger.Error(
-              153,
-              "Error: no se ha podido crear el encargo en el SantaAna"
-            );
-            enProcesoEncargosCreados = false;
+              logger.Error(
+                  153.1,
+                  "Error: no ha habido respuesta en SantaAna"
+              );
+              enProcesoEncargosCreados = false;
           }
         } else {
           enProcesoEncargosCreados = false;
@@ -483,7 +508,7 @@ async function sincronizarEncargosFinalizados() {
             id: await encargosInstance.generateId(
               moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
               encargo.idTrabajador.toString(),
-              parametros,
+              parametros
             ),
           };
           const res: any = await axios.post(url, encargoGraella).catch((e) => {
