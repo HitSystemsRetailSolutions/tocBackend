@@ -1135,7 +1135,6 @@ export class Impresora {
       ? await clienteInstance.getClienteById(idCliente)
       : null;
 
-
     const albaranNPT =
       cliente?.albaran && cliente?.noPagaEnTienda ? true : false;
 
@@ -1159,8 +1158,7 @@ export class Impresora {
     let detalles = "";
 
     for (let i = 0; i < arrayCompra.length; i++) {
-      arrayCompra[i].subtotal =
-        arrayCompra[i].subtotal;
+      arrayCompra[i].subtotal = arrayCompra[i].subtotal;
 
       arrayCompra[i]["preuU"] = albaranNPT
         ? Number(
@@ -2448,9 +2446,13 @@ export class Impresora {
     // Imprimir las deudas por orden de fecha
     await deudas.forEach((deuda) => {
       const date = new Date(deuda.timestamp);
-      const dateOptions: Intl.DateTimeFormatOptions  = { day: '2-digit', month: '2-digit', year: 'numeric' };
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      };
       const options = { hour12: false };
-      const fecha = date.toLocaleDateString('es-ES', dateOptions);
+      const fecha = date.toLocaleDateString("es-ES", dateOptions);
       const hora = date.toLocaleTimeString(undefined, options);
 
       string += `\n${fecha} ${hora}`;
@@ -2486,7 +2488,112 @@ export class Impresora {
     );
     return { error: false, msg: "Good work bro" };
   }
+  async imprimirPedido(encargo: EncargosInterface) {
+    const parametros = await parametrosInstance.getParametros();
+    const trabajador: TrabajadoresInterface =
+      await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
+    
+    const cabecera = parametros?.header == undefined ? "" : parametros.header;
+    const moment = require("moment-timezone");
+    const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
+    let detalles = await this.detallesTicket(
+      encargo.cesta.lista,
+      encargo.idCliente
+    );
+    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
+      encargo.cesta.lista,
+      encargo.idCliente
+    );
+    let detalleImporte = "";
+    let importe = "Total:" + encargo.total.toFixed(2) + " €";
 
+    const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
+    let detalleIva = "";
+    detalleIva =
+      detallesIva.detalleIva0 +
+      detallesIva.detalleIva4 +
+      detallesIva.detalleIva5 +
+      detallesIva.detalleIva10 +
+      detallesIva.detalleIva21;
+    // mostramos las observaciones de los productos
+    let observacions = "";
+    for (const producto of encargo.productos) {
+      if (producto.comentario != "") {
+        const nombreLimpio = producto.nombre.startsWith("+")
+          ? producto.nombre.substring(1)
+          : producto.nombre;
+        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;
+      }
+    }
+    let fechaEncargo = encargo.fecha + " " + encargo.hora;;
+    try {
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
+      const options = { imprimirLogo: true };
+
+      this.enviarMQTT(
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "Comanda" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: cabecera },
+          {
+            tipo: "text",
+            payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
+          },
+          { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
+          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+          { tipo: "control", payload: "LF" },
+          {
+            tipo: "text",
+            payload: formatoDetalle[tipoFormatoDetalle],
+          },
+          {
+            tipo: "text",
+            payload: "------------------------------------------",
+          },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: detalles },
+          {
+            tipo: "text",
+            payload: "------------------------------------------",
+          },
+          { tipo: "text", payload: detalleImporte },
+          { tipo: "text", payload: "" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: importe },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "Observacions:" },
+          { tipo: "text", payload: observacions },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "CT" },
+          { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+          { tipo: "text", payload: detalleIva },
+          { tipo: "text", payload: "-- ES COPIA --" },
+          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: "ID: " + random() + " - " + random() },
+          {
+            tipo: "barcode",
+            payload: [encargo.codigoBarras.toString().slice(0, 12), "EAN13", 4],
+          },
+
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
+      );
+      return { error: false, info: "OK" };
+    } catch (err) {
+      console.log(err);
+      logger.Error(145, err);
+      return { error: true, info: "Error en CATCH imprimirPedido()" };
+    }
+  }
   async imprimirEncargo(encargo: EncargosInterface) {
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
@@ -2498,6 +2605,7 @@ export class Impresora {
       cliente && !cliente?.albaran && !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
+    const clienteEnc = cliente && cliente?.nombre ? cliente.nombre : "No en té";
     const telefono: ClientesInterface["telefono"] =
       cliente?.telefono && cliente?.telefono.length > 1
         ? cliente.telefono
@@ -2621,7 +2729,7 @@ export class Impresora {
             payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
-          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Client: " + clienteEnc },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },
@@ -2674,7 +2782,7 @@ export class Impresora {
             payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
-          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Client: " + clienteEnc },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },
@@ -2727,7 +2835,7 @@ export class Impresora {
             payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
-          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Client: " + clienteEnc },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },

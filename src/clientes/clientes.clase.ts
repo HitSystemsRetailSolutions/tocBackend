@@ -4,6 +4,7 @@ import axios from "axios";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { tarifasInstance } from "../tarifas/tarifas.class";
 import { ArticulosInterface } from "src/articulos/articulos.interface";
+import { logger } from "src/logger";
 const dtoP = "DtoProducte";
 const dtoF = "DtoFamilia";
 export class Clientes {
@@ -93,5 +94,17 @@ export class Clientes {
     await tarifasInstance.clienteTieneTarifa(idCliente);
   eliminarCliente = async (idCliente: ClientesInterface["id"]) =>
     await schClientes.eliminarCliente(idCliente);
+  async getClientePedidosTienda() {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      if (parametros) {
+        return schClientes.getClientePedidosTienda(parametros.codigoTienda);
+      }
+      return false;
+    } catch (err) {
+      logger.Error(158.1, err);
+      return false;
+    }
+  }
 }
 export const clienteInstance = new Clientes();

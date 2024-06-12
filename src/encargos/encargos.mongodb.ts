@@ -118,24 +118,44 @@ export async function setEnviado(
   ).acknowledged;
 }
 
-
-export async function getEncargoCreadoMasAntiguo(): Promise<EncargosInterface>{
+export async function getEncargoCreadoMasAntiguo(): Promise<EncargosInterface> {
   const database = (await conexion).db("tocgame");
   const encargos = database.collection<EncargosInterface>("encargos");
   return (await encargos.findOne(
     { enviado: false },
     { sort: { _id: 1 } }
-  )) as EncargosInterface ;
+  )) as EncargosInterface;
 }
 
-
-export async function getEncargoFinalizadoMasAntiguo(): Promise<EncargosInterface>{
+export async function getEncargoFinalizadoMasAntiguo(): Promise<EncargosInterface> {
   const database = (await conexion).db("tocgame");
   const encargos = database.collection<EncargosInterface>("encargos");
   return (await encargos.findOne(
     { finalizado: false },
     { sort: { _id: 1 } }
-  )) as EncargosInterface ;
+  )) as EncargosInterface;
+}
+
+export async function getEncargoPedidoCaducadoMasAntiguo(): Promise<EncargosInterface> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  const fechaHoraActual = new Date();
+  const fechaActual = fechaHoraActual.toISOString().split('T')[0]; // "YYYY-MM-DD"
+  const horaActual = fechaHoraActual.toTimeString().split(' ')[0]; // "HH:MM:SS"
+// busca un pedido con la fecha y hora caducada y este enviado en el santaAna
+  return (await encargos.findOne(
+    {
+      pedido: true,
+      enviado: true,
+      finalizado: { $exists: false, $ne: true },
+      $or: [
+        { fecha: { $lt: fechaActual } },
+        { fecha: fechaActual, hora: { $lt: horaActual } }
+      ]
+    },
+    { sort: { _id: 1 } }
+  )) as EncargosInterface;
+
 }
 
 export async function setFinalizado(
@@ -154,22 +174,36 @@ export async function setFinalizado(
     )
   ).acknowledged;
 }
-
+export async function setFinalizadoFalse(
+  idDeuda: EncargosInterface["_id"]
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  return (
+    await encargos.updateOne(
+      { _id: new ObjectId(idDeuda) },
+      {
+        $set: {
+          finalizado: false,
+        },
+      }
+    )
+  ).acknowledged;
+}
 export async function getUpdateEncargos(): Promise<boolean> {
   try {
     const database = (await conexion).db("tocgame");
     const encargos = database.collection<EncargosInterface>("encargos");
-    
+
     const documento = await encargos.findOne({ recogido: { $exists: true } });
-    
+
     if (documento) {
       return false; // Existe al menos una deuda, devuelve false.
     } else {
       return true; // No existen encargos, devuelve true.
     }
   } catch (error) {
-    console.error('Error al buscar documentos: ', error);
+    console.error("Error al buscar documentos: ", error);
     throw error; // Lanza el error si ocurre un problema durante la búsqueda.
-  };
-  
+  }
 }

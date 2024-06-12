@@ -25,13 +25,17 @@ import {
 import * as moment from "moment";
 import { AlbaranesInstance } from "./albaranes/albaranes.clase";
 import { clienteInstance } from "./clientes/clientes.clase";
-import { SuperTicketInterface, TicketsInterface } from "./tickets/tickets.interface";
+import {
+  SuperTicketInterface,
+  TicketsInterface,
+} from "./tickets/tickets.interface";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
 let enProcesoDeudasFinalizadas = false;
 let enProcesoEncargosCreados = false;
 let enProcesoEncargosFinalizados = false;
+let enProcesoEncargosPedidosCaducados = false;
 let enProcesoAlbaranesCreados = false;
 let enprocesoTicketsOtros = false;
 let idsTicketsOtrosReenviar: TicketsInterface["_id"][] = [];
@@ -48,7 +52,6 @@ async function reenviarTicket(idTicket: TicketsInterface["_id"]) {
 }
 // se pone el ticket otrosModificado en no enviado por si se apaga el programa antes de sincronizarTicketsOtrosModificado
 async function reenviarTicketPago(idTicket: TicketsInterface["_id"]) {
-
   if (!idsTicketsOtrosReenviar.includes(idTicket)) {
     // Si no está presente en el array, se pone el ticket en no enviado y se agrega al array
     await ticketsInstance.setTicketOtrosModificado(idTicket, false);
@@ -71,13 +74,18 @@ async function sincronizarTickets() {
           let idTicket = idsTicketsReenviar.shift();
           await ticketsInstance.setTicketEnviado(idTicket, false);
         }
-        const ticket: TicketsInterface = await ticketsInstance.getTicketMasAntiguo();
+        const ticket: TicketsInterface =
+          await ticketsInstance.getTicketMasAntiguo();
         if (ticket) {
           await nuevaInstancePromociones.deshacerPromociones(ticket);
-          const superTicket = {...ticket, tipoPago: null,movimientos: null};
-          superTicket.movimientos = await movimientosInstance.getMovimientosDelTicket(ticket._id);
-          superTicket.tipoPago = await movimientosInstance.calcularFormaPago(superTicket);
-          const res = await axios.post("tickets/enviarTicket", { ticket:superTicket });
+          const superTicket = { ...ticket, tipoPago: null, movimientos: null };
+          superTicket.movimientos =
+            await movimientosInstance.getMovimientosDelTicket(ticket._id);
+          superTicket.tipoPago =
+            await movimientosInstance.calcularFormaPago(superTicket);
+          const res = await axios.post("tickets/enviarTicket", {
+            ticket: superTicket,
+          });
           //.catch((e) => {console.log("error",e)});
           if (res.data) {
             if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
@@ -118,13 +126,18 @@ async function sincronizarTicketsOtrosModificado() {
           let idTicket = idsTicketsOtrosReenviar.shift();
           await ticketsInstance.setTicketOtrosModificado(idTicket, false);
         }
-        const ticket: TicketsInterface = await ticketsInstance.getTicketOtrosModificadoMasAntiguo();
+        const ticket: TicketsInterface =
+          await ticketsInstance.getTicketOtrosModificadoMasAntiguo();
         if (ticket) {
           await nuevaInstancePromociones.deshacerPromociones(ticket);
-          const superTicket = {...ticket, tipoPago: null,movimientos: null};
-          superTicket.movimientos = await movimientosInstance.getMovimientosDelTicket(ticket._id);
-          superTicket.tipoPago = await movimientosInstance.calcularFormaPago(superTicket);
-          const res = await axios.post("tickets/updOtros", { ticket:superTicket });
+          const superTicket = { ...ticket, tipoPago: null, movimientos: null };
+          superTicket.movimientos =
+            await movimientosInstance.getMovimientosDelTicket(ticket._id);
+          superTicket.tipoPago =
+            await movimientosInstance.calcularFormaPago(superTicket);
+          const res = await axios.post("tickets/updOtros", {
+            ticket: superTicket,
+          });
           //.catch((e) => {console.log("error",e)});
           if (res.data) {
             if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
@@ -374,19 +387,26 @@ async function sincronizarEncargosCreados() {
             .catch((e) => {
               console.log(e);
             });
-          if (res.data && !res.data.error) {
-            if (await encargosInstance.setEnviado(encargo._id)) {
-              enProcesoEncargosCreados = false;
-              setTimeout(sincronizarEncargosCreados, 100);
-            } else {
-              enProcesoEncargosCreados = false;
-            }
+            if (res.data) {
+              if (!res.data.error) {
+                  if (await encargosInstance.setEnviado(encargo._id)) {
+                      enProcesoEncargosCreados = false;
+                      setTimeout(sincronizarEncargosCreados, 100);
+                  }
+              } else {
+                console.log(res.data.msg)
+                  logger.Error(
+                      153,
+                      "Error: no se ha podido crear el encargo en el SantaAna"
+                  );
+                  enProcesoEncargosCreados = false;
+              }
           } else {
-            logger.Error(
-              153,
-              "Error: no se ha podido crear el encargo en el SantaAna"
-            );
-            enProcesoEncargosCreados = false;
+              logger.Error(
+                  153.1,
+                  "Error: no ha habido respuesta en SantaAna"
+              );
+              enProcesoEncargosCreados = false;
           }
         } else {
           enProcesoEncargosCreados = false;
@@ -483,7 +503,7 @@ async function sincronizarEncargosFinalizados() {
             id: await encargosInstance.generateId(
               moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
               encargo.idTrabajador.toString(),
-              parametros,
+              parametros
             ),
           };
           const res: any = await axios.post(url, encargoGraella).catch((e) => {
@@ -513,6 +533,57 @@ async function sincronizarEncargosFinalizados() {
     }
   } catch (err) {
     enProcesoEncargosFinalizados = false;
+    logger.Error(5, err);
+  }
+}
+
+// buscara pedido caducado y enviara una consulta para que lo marque como recogido
+async function sincronizarPedidosCaducados() {
+  try {
+    if (!enProcesoEncargosPedidosCaducados) {
+      enProcesoEncargosPedidosCaducados = true;
+      const parametros = await parametrosInstance.getParametros();
+      if (parametros != null) {
+        const encargo = await encargosInstance.getEncargoPedidoCaducadoMasAntiguo();
+        if (encargo) {
+          let url = "encargos/updateEncargoGraella";
+          let encargoGraella = {
+            tmStmp: encargo.timestamp,
+            bbdd: parametros.database,
+            data: encargo.fecha,
+            id: await encargosInstance.generateId(
+              moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+              encargo.idTrabajador.toString(),
+              parametros
+            ),
+          };
+          const res: any = await axios.post(url, encargoGraella).catch((e) => {
+            console.log(e);
+          });
+          if (res.data && !res.data.error) {
+            if (await encargosInstance.setFinalizado(encargo._id)) {
+              enProcesoEncargosPedidosCaducados = false;
+              setTimeout(sincronizarPedidosCaducados, 100);
+            } else {
+              enProcesoEncargosPedidosCaducados = false;
+            }
+          } else {
+            logger.Error(
+              156,
+              "Error: no se ha podido crear el encargo en el SantaAna"
+            );
+            enProcesoEncargosPedidosCaducados = false;
+          }
+        } else {
+          enProcesoEncargosPedidosCaducados = false;
+        }
+      } else {
+        enProcesoEncargosPedidosCaducados = false;
+        logger.Error(4, "No hay parámetros definidos en la BBDD");
+      }
+    }
+  } catch (err) {
+    enProcesoEncargosPedidosCaducados = false;
     logger.Error(5, err);
   }
 }
@@ -615,6 +686,7 @@ setInterval(limpiezaProfunda, 60000);
 setInterval(sincronizarTicketsOtrosModificado, 16000);
 // setInterval(actualizarTrabajadores, 3600000);
 // setInterval(actualizarMesas, 3600000);
+setInterval(sincronizarPedidosCaducados, 60000);
 
 export {
   reenviarTicket,

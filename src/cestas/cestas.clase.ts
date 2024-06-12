@@ -780,7 +780,7 @@ export class CestaClase {
       const cesta = await cestasInstance.getCestaById(idCesta);
       // Si el nombre no está vacío, es un artículo 'varis' y se le asigna el nombre
 
-      if (nombre && nombre.length > 0) {
+      if (nombre && nombre.length > 0 && articulo.nombre.toLowerCase().includes("varis")|| articulo.nombre.toLowerCase().includes("varios")) {
         articulo.nombre = nombre;
         articulo.varis = true;
       }
