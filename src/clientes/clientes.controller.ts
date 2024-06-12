@@ -336,4 +336,13 @@ export class ClientesController {
       return false;
     }
   }
+  @Get("getClientePedidosTienda")
+  async getClientePedidosTienda() {
+    try {
+      return await clienteInstance.getClientePedidosTienda();
+    } catch (error) {
+      logger.Error(158, "En getEsClientFacturacion:", error);
+      return false;
+    }
+  }
 }

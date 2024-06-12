@@ -136,6 +136,28 @@ export async function getEncargoFinalizadoMasAntiguo(): Promise<EncargosInterfac
   )) as EncargosInterface;
 }
 
+export async function getEncargoPedidoCaducadoMasAntiguo(): Promise<EncargosInterface> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  const fechaHoraActual = new Date();
+  const fechaActual = fechaHoraActual.toISOString().split('T')[0]; // "YYYY-MM-DD"
+  const horaActual = fechaHoraActual.toTimeString().split(' ')[0]; // "HH:MM:SS"
+// busca un pedido con la fecha y hora caducada y este enviado en el santaAna
+  return (await encargos.findOne(
+    {
+      pedido: true,
+      enviado: true,
+      finalizado: { $exists: false, $ne: true },
+      $or: [
+        { fecha: { $lt: fechaActual } },
+        { fecha: fechaActual, hora: { $lt: horaActual } }
+      ]
+    },
+    { sort: { _id: 1 } }
+  )) as EncargosInterface;
+
+}
+
 export async function setFinalizado(
   idDeuda: EncargosInterface["_id"]
 ): Promise<boolean> {

@@ -218,7 +218,6 @@ export async function borrarCestas() {
   const resultado = await cestas.deleteMany({
     indexMesa: null,
   });
-  console.log("Cestas borradas: ", resultado.deletedCount);
   return resultado.acknowledged;
 } catch (error) {
     logger.Error('777',error);
