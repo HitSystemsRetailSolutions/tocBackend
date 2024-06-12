@@ -187,9 +187,6 @@ export class Encargos {
     encargo.enviado = false;
 
     encargo.estado = encargo?.pedido ? "RECOGIDO" : "SIN_RECOGER";
-    if (encargo?.pedido) {
-      encargo.finalizado = true;
-    }
     encargo.codigoBarras = codigoBarras;
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
     if (encargo?.pedido) {
@@ -259,7 +256,8 @@ export class Encargos {
     await schEncargos.getEncargoCreadoMasAntiguo();
   getEncargoFinalizadoMasAntiguo = async () =>
     await schEncargos.getEncargoFinalizadoMasAntiguo();
-
+  getEncargoPedidoCaducadoMasAntiguo = async () =>
+    await schEncargos.getEncargoPedidoCaducadoMasAntiguo();
   setFinalizado = (idDeuda: EncargosInterface["_id"]) =>
     schEncargos.setFinalizado(idDeuda);
 

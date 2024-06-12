@@ -35,6 +35,7 @@ let enProcesoDeudasCreadas = false;
 let enProcesoDeudasFinalizadas = false;
 let enProcesoEncargosCreados = false;
 let enProcesoEncargosFinalizados = false;
+let enProcesoEncargosPedidosCaducados = false;
 let enProcesoAlbaranesCreados = false;
 let enprocesoTicketsOtros = false;
 let idsTicketsOtrosReenviar: TicketsInterface["_id"][] = [];
@@ -376,7 +377,7 @@ async function sincronizarEncargosCreados() {
             bbdd: parametros.database,
             productos: encargo.productos,
             idTrabajador: encargo.idTrabajador,
-            recogido: encargo.estado === "RECOGIDO" ? true : false,
+            recogido: false,
             timestamp: encargo.timestamp,
             opcionEncargo: encargo.opcionRecogida,
             codigoBarras: encargo.codigoBarras,
@@ -392,14 +393,8 @@ async function sincronizarEncargosCreados() {
                       enProcesoEncargosCreados = false;
                       setTimeout(sincronizarEncargosCreados, 100);
                   }
-              } else if (res.data.error && res.data?.pedido) {
-                  // Se ha creado pero no se ha podido marcar como enviado el pedido
-                  await encargosInstance.setFinalizadoFalse(encargo._id);
-                  if (await encargosInstance.setEnviado(encargo._id)) {
-                      enProcesoEncargosCreados = false;
-                      setTimeout(sincronizarEncargosCreados, 100);
-                  }
               } else {
+                console.log(res.data.msg)
                   logger.Error(
                       153,
                       "Error: no se ha podido crear el encargo en el SantaAna"
@@ -542,6 +537,57 @@ async function sincronizarEncargosFinalizados() {
   }
 }
 
+// buscara pedido caducado y enviara una consulta para que lo marque como recogido
+async function sincronizarPedidosCaducados() {
+  try {
+    if (!enProcesoEncargosPedidosCaducados) {
+      enProcesoEncargosPedidosCaducados = true;
+      const parametros = await parametrosInstance.getParametros();
+      if (parametros != null) {
+        const encargo = await encargosInstance.getEncargoPedidoCaducadoMasAntiguo();
+        if (encargo) {
+          let url = "encargos/updateEncargoGraella";
+          let encargoGraella = {
+            tmStmp: encargo.timestamp,
+            bbdd: parametros.database,
+            data: encargo.fecha,
+            id: await encargosInstance.generateId(
+              moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+              encargo.idTrabajador.toString(),
+              parametros
+            ),
+          };
+          const res: any = await axios.post(url, encargoGraella).catch((e) => {
+            console.log(e);
+          });
+          if (res.data && !res.data.error) {
+            if (await encargosInstance.setFinalizado(encargo._id)) {
+              enProcesoEncargosPedidosCaducados = false;
+              setTimeout(sincronizarPedidosCaducados, 100);
+            } else {
+              enProcesoEncargosPedidosCaducados = false;
+            }
+          } else {
+            logger.Error(
+              156,
+              "Error: no se ha podido crear el encargo en el SantaAna"
+            );
+            enProcesoEncargosPedidosCaducados = false;
+          }
+        } else {
+          enProcesoEncargosPedidosCaducados = false;
+        }
+      } else {
+        enProcesoEncargosPedidosCaducados = false;
+        logger.Error(4, "No hay parámetros definidos en la BBDD");
+      }
+    }
+  } catch (err) {
+    enProcesoEncargosPedidosCaducados = false;
+    logger.Error(5, err);
+  }
+}
+
 async function sincronizarAlbaranesCreados() {
   try {
     if (!enProcesoAlbaranesCreados) {
@@ -640,6 +686,7 @@ setInterval(limpiezaProfunda, 60000);
 setInterval(sincronizarTicketsOtrosModificado, 16000);
 // setInterval(actualizarTrabajadores, 3600000);
 // setInterval(actualizarMesas, 3600000);
+setInterval(sincronizarPedidosCaducados, 60000);
 
 export {
   reenviarTicket,
