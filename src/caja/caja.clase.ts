@@ -26,6 +26,7 @@ const mqtt = require("mqtt");
 export class CajaClase {
   async mqttAbrirCaja(inicioTime: number) {
     try {
+      console.log("Iniciando mqttAbrirCaja");
       const parametros = await parametrosInstance.getParametros();
       const date = this.formatoFechaISO8601(inicioTime);
       let ticketJSON = {
@@ -41,13 +42,31 @@ export class CajaClase {
         password: process.env.MQTT_PASSWORD,
       };
       const client = mqtt.connect(mqttOptions);
-      // cuando se conecta enviamos los datos
+  
+      // Bandera para controlar si ya se ha publicado
+      let isPublished = false;
+  
+      // Cuando se conecta, enviamos los datos
       client.on("connect", function () {
-        // console.log("Conectado a MQTT apertura");
-        client.publish(url, JSON.stringify(ticketJSON));
+        if (!isPublished) {
+          console.log("Conectado a MQTT, publicando mensaje");
+          client.publish(url, JSON.stringify(ticketJSON), (err) => {
+            if (!err) {
+              console.log("Mensaje publicado correctamente");
+              isPublished = true;
+              client.end(); // Desconectamos el cliente después de publicar
+            } else {
+              console.error("Error al publicar mensaje:", err);
+            }
+          });
+        } else {
+          console.log("Mensaje ya publicado, no se publicará nuevamente");
+        }
       });
+  
       client.on("error", (err) => {
-        console.error("Error en el client MQTT:", err);
+        console.error("Error en el cliente MQTT:", err);
+        client.end(); // Desconectamos el cliente en caso de error
       });
     } catch (error) {
       logger.Error(53.2, "Error en mqttAbrirCaja: " + error);
