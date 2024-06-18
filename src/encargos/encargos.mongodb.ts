@@ -141,7 +141,7 @@ export async function getEncargoPedidoCaducadoMasAntiguo(): Promise<EncargosInte
   const encargos = database.collection<EncargosInterface>("encargos");
   const fechaHoraActual = new Date();
   const fechaActual = fechaHoraActual.toISOString().split('T')[0]; // "YYYY-MM-DD"
-  const horaActual = fechaHoraActual.toTimeString().split(' ')[0]; // "HH:MM:SS"
+  const horaActual = fechaHoraActual.toTimeString().split(' ')[0].substring(0, 5); // "HH:MM"
 // busca un pedido con la fecha y hora caducada y este enviado en el santaAna
   return (await encargos.findOne(
     {

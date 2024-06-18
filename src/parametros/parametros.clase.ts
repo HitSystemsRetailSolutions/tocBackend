@@ -2,9 +2,15 @@ import { ParametrosInterface } from "./parametros.interface";
 import * as schParametros from "./parametros.mongodb";
 
 export class ParametrosClase {
+  public parametros: ParametrosInterface = null;
+
   /* Eze 4.0 */
-  getParametros = async (): Promise<ParametrosInterface> =>
-    await schParametros.getParametros();
+  getParametros = async (): Promise<ParametrosInterface> => {
+    if (!this.parametros) {
+      this.parametros = await schParametros.getParametros();
+    }
+    return this.parametros;
+  };
 
   /* Eze 4.0 */
   actParametros = async (params: ParametrosInterface) =>
@@ -12,7 +18,10 @@ export class ParametrosClase {
 
   /* Eze 4.0 */
   setParametros = async (params: ParametrosInterface): Promise<boolean> =>
-    await schParametros.setParametros(params);
+    {
+      this.parametros = params;
+      return await schParametros.setParametros(params);
+    }
 
   /* Eze 4.0 */
   async todoInstalado(): Promise<boolean> {
