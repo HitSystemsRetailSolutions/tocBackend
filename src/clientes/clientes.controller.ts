@@ -225,7 +225,7 @@ export class ClientesController {
               return !!res.data;
             })
             .finally(async () => {
-              await this.descargarClientesFinales();
+              this.descargarClientesFinales();
             })
             .catch((err) => {
               return false;
