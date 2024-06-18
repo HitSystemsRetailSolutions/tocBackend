@@ -357,6 +357,7 @@ export class Encargos {
       console.log("Error insertEncargos:", error);
     }
   }
+  private parametros: ParametrosInterface= null;
   async insertarEncargo(encargo: any, cesta: CestasInterface) {
     // convertimos en  array el string de detall
     const detallesArray = [];
@@ -450,8 +451,10 @@ export class Encargos {
       }
       total = Number((Math.round(total * 100) / 100).toFixed(2));
       // creamos una data mogodb de encargo
-      const parametros = parametrosInstance.parametros;
-
+      const parametros = this.parametros || (await parametrosInstance.getParametros());
+      if(this.parametros==null){
+        this.parametros=parametros;
+      }
       const mongodbEncargo: EncargosInterface = {
         idCliente: idCliente,
         nombreCliente: client.nombre,
