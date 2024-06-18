@@ -29,6 +29,7 @@ import {
   PromocionesInterface,
 } from "src/promociones/promociones.interface";
 import { cajaInstance } from "src/caja/caja.clase";
+import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 
 export class Encargos {
   async pruebaImportar() {
@@ -191,7 +192,7 @@ export class Encargos {
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
     if (encargo?.pedido) {
       await impresoraInstance.imprimirPedido(encargoCopia);
-    }else{
+    } else {
       await impresoraInstance.imprimirEncargo(encargoCopia);
     }
     var TEncargo2 = performance.now();
@@ -439,7 +440,7 @@ export class Encargos {
           }
         }
       }
-      let dependenta =
+      let dependenta : TrabajadoresInterface=
         await trabajadoresInstance.getTrabajadorById(idDependenta);
 
       for (const key in cestaEncargo.detalleIva) {
@@ -449,7 +450,9 @@ export class Encargos {
       }
       total = Number((Math.round(total * 100) / 100).toFixed(2));
       // creamos una data mogodb de encargo
-      const mongodbEncargo = {
+      const parametros = parametrosInstance.parametros;
+
+      const mongodbEncargo: EncargosInterface = {
         idCliente: idCliente,
         nombreCliente: client.nombre,
         opcionRecogida: opcionRecogida,
@@ -468,6 +471,10 @@ export class Encargos {
         estado: "SIN_RECOGER",
         codigoBarras: codigoBarras,
       };
+      if ( parametros && parametros.codigoTienda && idCliente == "CliBoti_" + parametros.codigoTienda + "_pedidosTienda") {
+        mongodbEncargo.pedido = true;
+        mongodbEncargo.estado = "RECOGIDO";
+      }
       // se vacia la lista para no duplicar posibles productos en la siguiente creacion de un encargo
 
       cesta.lista = [];
