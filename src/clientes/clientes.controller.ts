@@ -206,33 +206,37 @@ export class ClientesController {
     try {
       const parametros = await parametrosInstance.getParametros();
 
-      if (nombre) {
-        if (nombre.length >= 3) {
-          const hola = {
-            nombre,
-            telefono,
-            email,
-            direccion,
-            tarjetaCliente,
-            nif,
-            descuento,
-            idCliente: `CliBoti_${parametros.codigoTienda}_${Date.now()}`,
-            idTarjetaCliente: tarjetaCliente,
-          };
-          await axios
-            .post("clientes/crearNuevoCliente", hola)
-            .then((res) => {
-              return !!res.data;
-            })
-            .finally(async () => {
-              this.descargarClientesFinales();
-            })
-            .catch((err) => {
-              return false;
-            });
-        }
+      if (!nombre || nombre.length < 3) {
+        throw Error("Error, faltan datos en crearNuevoCliente() controller");
       }
-      throw Error("Error, faltan datos en crearNuevoCliente() controller");
+
+      const nuevoCliente = {
+        nombre,
+        telefono,
+        email,
+        direccion,
+        tarjetaCliente,
+        nif,
+        descuento,
+        idCliente: `CliBoti_${parametros.codigoTienda}_${Date.now()}`,
+        idTarjetaCliente: tarjetaCliente,
+      };
+
+      // Añadir el nuevo cliente a la base de datos local
+      const db = (await conexion).db("tocgame");
+      const clientes = db.collection("clientes");
+      await clientes.insertOne(nuevoCliente);
+
+      const response = await axios.post(
+        "clientes/crearNuevoCliente",
+        nuevoCliente
+      );
+
+      if (response.data) {
+        return true;
+      } else {
+        throw new Error("Error al crear el cliente en el servidor remoto");
+      }
     } catch (err) {
       logger.Error(68, err);
       return false;
