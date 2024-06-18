@@ -5,6 +5,7 @@ import { logger } from "../logger";
 import { UtilesModule } from "../utiles/utiles.module";
 import axios from "axios";
 import { articulosInstance } from "../articulos/articulos.clase";
+import { encargosInstance } from "src/encargos/encargos.clase";
 
 @Controller("cestas")
 export class CestasController {
@@ -108,9 +109,22 @@ export class CestasController {
       if (cestas) {
         return await cestasInstance.CestaPagoDeuda(cestas);
       }
+      throw Error("Error, faltan datos en cetsaDeudas() controller");
+    } catch (err) {
+      logger.Error(61, "PagarDeuda: " + err);
+      return null;
+    }
+  }
+
+  @Post("generarCestaEncargos")
+  async cestaEncargos(@Body() { cestaEncargo }) {
+    try {
+      if (cestaEncargo) {
+        return await cestasInstance.CestaRecogerEncargo(cestaEncargo);
+      }
       throw Error("Error, faltan datos en PagarDeuda() controller");
     } catch (err) {
-      logger.Error(60, "PagarDeuda: " + err);
+      logger.Error(63, "cestaEncargo: " + err);
       return null;
     }
   }

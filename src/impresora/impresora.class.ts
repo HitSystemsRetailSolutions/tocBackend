@@ -504,7 +504,7 @@ export class Impresora {
       clientTitle = "\nCLIENT:";
       detalleClienteVip = `\n${infoClienteVip.nombre}`;
       if (infoClienteVip.nif)
-        detalleClienteVip += `\nNIF: ${infoClienteVip.nif}`;
+        detalleClienteVip += `\x1B\x45\x00 \nNIF: ${infoClienteVip.nif}`;
       if (infoClienteVip.direccion)
         detalleClienteVip += `\n${infoClienteVip.direccion}`;
     }
@@ -632,7 +632,11 @@ export class Impresora {
           diasSemana[fechaEspaña.format("d")]
         } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
-      { tipo: "text", payload: "Factura simplificada N: " + numFactura },
+      {
+        tipo: "text",
+        payload:
+          `\x1B\x45\x01 Factura simplificada N: ${numFactura}\x1B\x45\x00`,
+      },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
     ];
     if (info.mesa)
@@ -665,9 +669,13 @@ export class Impresora {
         { tipo: "size", payload: [0, 0] },
         {
           tipo: "text",
-          payload: `${infoCliente.telefono ? `${infoCliente.telefono}\n` : ""}${
-            detallePuntosCliente ? `${detallePuntosCliente}\n` : ""
-          }${clienteDescuento ? `${clienteDescuento}\n` : ""}`,
+          payload: `${
+            infoCliente.telefono
+              ? `\x1B\x45\x01 ${infoCliente.telefono} \x1B\x45\x00 \n`
+              : ""
+          }${detallePuntosCliente ? `${detallePuntosCliente}\n` : ""}${
+            clienteDescuento ? `${clienteDescuento}\n` : ""
+          }`,
         }
       );
 

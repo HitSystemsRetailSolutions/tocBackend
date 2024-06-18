@@ -119,4 +119,19 @@ export class EncargosController {
       return null;
     }
   }
+  @Post("setEntregado")
+  async setEntregado(@Body() data) {
+    try {
+      if (!data.id)
+        return {
+          error: true,
+          msg: "Faltan datos.",
+        };
+
+      return encargosInstance.setEntregado(data.id);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
 }

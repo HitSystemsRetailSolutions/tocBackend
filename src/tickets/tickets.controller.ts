@@ -208,6 +208,7 @@ export class TicketsController {
       tkrsData,
       concepto,
       honei,
+      dejaCuenta = 0,
     }: {
       total: number;
       idCesta: TicketsInterface["cesta"]["_id"];
@@ -219,6 +220,7 @@ export class TicketsController {
       };
       concepto?: MovimientosInterface["concepto"];
       honei?: boolean;
+      dejaCuenta?: number;
     }
   ) {
     const cesta = await cestasInstance.getCestaById(idCesta);
@@ -233,7 +235,8 @@ export class TicketsController {
       cesta,
       tipo === "CONSUMO_PERSONAL",
       tipo.includes("HONEI") || honei,
-      tkrsData?.cantidadTkrs > 0
+      tkrsData?.cantidadTkrs > 0,
+      dejaCuenta
     );
     // id temporal para el ticketPaytef
     let idTransaccion = await ticketsInstance.getProximoId();
@@ -294,6 +297,7 @@ export class TicketsController {
       tkrsData,
       concepto,
       honei,
+      dejaCuenta = 0,
     }: {
       total: number;
       idCesta: TicketsInterface["cesta"]["_id"];
@@ -305,6 +309,7 @@ export class TicketsController {
       };
       concepto?: MovimientosInterface["concepto"];
       honei?: boolean;
+      dejaCuenta?: number;
     }
   ) {
     try {
@@ -330,7 +335,8 @@ export class TicketsController {
         cesta,
         tipo === "CONSUMO_PERSONAL",
         tipo.includes("HONEI") || honei,
-        tkrsData?.cantidadTkrs > 0
+        tkrsData?.cantidadTkrs > 0,
+        dejaCuenta
       );
 
       if (!ticket) {
@@ -353,7 +359,6 @@ export class TicketsController {
           tkrsData
         );
       }
-      console.log("4");
       throw Error(
         "Error, no se ha podido crear el ticket en crearTicket() controller 2"
       );

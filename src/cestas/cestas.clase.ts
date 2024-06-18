@@ -323,6 +323,24 @@ export class CestaClase {
       return id;
     }
   }
+
+   // generar cesta modo recoger encargo
+   async CestaRecogerEncargo(cestaEncargo: any) {
+    const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "RECOGER ENCARGO");
+    nuevaCesta.indexMesa = null;
+    let id = undefined;
+    if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
+    if (id != undefined) {
+      nuevaCesta.idCliente = cestaEncargo.idCliente;
+      nuevaCesta.nombreCliente = cestaEncargo.nombreCliente;
+      nuevaCesta.lista = cestaEncargo.lista;
+      nuevaCesta.detalleIva = cestaEncargo.detalleIva;
+      if (await this.updateCesta(nuevaCesta)) {
+        await this.actualizarCestas();
+      }
+      return id;
+    }
+  }
   async CestaPagoSeparado(articulos) {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO SEPARADO");
     nuevaCesta.indexMesa = null;

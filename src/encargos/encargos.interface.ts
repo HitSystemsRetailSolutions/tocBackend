@@ -32,7 +32,7 @@ export enum Periodo {
 }
 
 export interface EncargosInterface {
-  _id: ObjectId | string | undefined;
+  _id?: ObjectId | string | undefined;
   nombreCliente: string;
   amPm: string | null;
   dejaCuenta: number;
@@ -47,6 +47,8 @@ export interface EncargosInterface {
   total: number;
   codigoBarras: number;
   timestamp:number;
+  nombreDependienta?: string;
+  pedido?: boolean;
   enviado?: boolean;
   finalizado?: boolean;
   estado: "SIN_RECOGER" | "RECOGIDO" | "ANULADO";
