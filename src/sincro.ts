@@ -375,6 +375,7 @@ async function sincronizarEncargosCreados() {
                 ? await encargosInstance.formatPeriode(encargo.dias)
                 : 0,
             bbdd: parametros.database,
+            licencia: parametros.licencia, 
             productos: encargo.productos,
             idTrabajador: encargo.idTrabajador,
             recogido: false,
@@ -499,7 +500,9 @@ async function sincronizarEncargosFinalizados() {
           let encargoGraella = {
             tmStmp: encargo.timestamp,
             bbdd: parametros.database,
+            licencia: parametros.licencia,
             data: encargo.fecha,
+            productos: encargo.productos,
             id: await encargosInstance.generateId(
               moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
               encargo.idTrabajador.toString(),
@@ -550,6 +553,8 @@ async function sincronizarPedidosCaducados() {
           let encargoGraella = {
             tmStmp: encargo.timestamp,
             bbdd: parametros.database,
+            licencia: parametros.licencia,
+            productos: encargo.productos,
             data: encargo.fecha,
             id: await encargosInstance.generateId(
               moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
