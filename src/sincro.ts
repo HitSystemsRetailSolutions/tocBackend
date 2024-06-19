@@ -553,6 +553,8 @@ async function sincronizarPedidosCaducados() {
           let encargoGraella = {
             tmStmp: encargo.timestamp,
             bbdd: parametros.database,
+            licencia: parametros.licencia,
+            productos: encargo.productos,
             data: encargo.fecha,
             id: await encargosInstance.generateId(
               moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
