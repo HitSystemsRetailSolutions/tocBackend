@@ -541,11 +541,10 @@ export class Impresora {
       (!clienteDescEsp || clienteDescEsp.precio != total)
     ) {
       detalleDescuento += detalleDescuento += `Total sense descompte: ${(
-        (total + dejaCuenta) /
+        total /
         (1 - infoCliente.descuento / 100)
       ).toFixed(2)}€\nDescompte total: ${(
-        (((total + dejaCuenta) / (1 - infoCliente.descuento / 100)) *
-          infoCliente.descuento) /
+        ((total / (1 - infoCliente.descuento / 100)) * infoCliente.descuento) /
         100
       ).toFixed(2)}€\n`;
     }
@@ -634,8 +633,7 @@ export class Impresora {
       },
       {
         tipo: "text",
-        payload:
-          `\x1B\x45\x01 Factura simplificada N: ${numFactura}\x1B\x45\x00`,
+        payload: `\x1B\x45\x01 Factura simplificada N: ${numFactura}\x1B\x45\x00`,
       },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
     ];
@@ -711,9 +709,11 @@ export class Impresora {
     arrayImprimir.push({ tipo: "size", payload: [1, 1] });
     if (pagoDevolucion)
       arrayImprimir.push({ tipo: "text", payload: pagoDevolucion });
+    let totalImporte = total;
+    if (dejaCuenta) totalImporte = total - dejaCuenta;
     arrayImprimir.push(
       { tipo: "align", payload: "RT" },
-      { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
+      { tipo: "text", payload: "TOTAL: " + totalImporte.toFixed(2) + " €" },
       { tipo: "control", payload: "LF" },
       { tipo: "size", payload: [0, 0] },
       { tipo: "align", payload: "CT" },
@@ -2500,7 +2500,7 @@ export class Impresora {
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
-    
+
     const cabecera = parametros?.header == undefined ? "" : parametros.header;
     const moment = require("moment-timezone");
     const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
@@ -2533,7 +2533,7 @@ export class Impresora {
         observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;
       }
     }
-    let fechaEncargo = encargo.fecha + " " + encargo.hora;;
+    let fechaEncargo = encargo.fecha + " " + encargo.hora;
     try {
       const device = new escpos.Network();
       const printer = new escpos.Printer(device);
