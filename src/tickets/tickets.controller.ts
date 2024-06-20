@@ -160,7 +160,7 @@ export class TicketsController {
         await encargosInstance.updateEncargoGraella(idEncargo);
       if (!graellaModificada) return false;
       const ticket = await ticketsInstance.generarNuevoTicket(
-        total - dejaCuenta,
+        total,
         idTrabajador,
         cestaEncargo.cesta,
         tipo === "CONSUMO_PERSONAL",
@@ -249,6 +249,8 @@ export class TicketsController {
       .iniciarTransaccion(idTrabajador, idTransaccion, total)
       .then(async (x) => {
         if (x) {
+          if(dejaCuenta > 0)
+            ticketTemp.total += dejaCuenta;
           if (await ticketsInstance.insertarTicket(ticketTemp)) {
             // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
             // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
@@ -330,7 +332,7 @@ export class TicketsController {
         paytefInstance.deleteUltimaIniciarTransaccion();
       }
       const ticket = await ticketsInstance.generarNuevoTicket(
-        total,
+        total+dejaCuenta,
         idTrabajador,
         cesta,
         tipo === "CONSUMO_PERSONAL",
