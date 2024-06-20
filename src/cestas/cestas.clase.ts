@@ -324,13 +324,30 @@ export class CestaClase {
     }
   }
 
-   // generar cesta modo recoger encargo
-   async CestaRecogerEncargo(cestaEncargo: any) {
-    const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "RECOGER ENCARGO");
+  // generar cesta modo recoger encargo
+  async CestaRecogerEncargo(cestaEncargo: any) {
+    const nuevaCesta = this.generarObjetoCesta(
+      new ObjectId(),
+      "RECOGER ENCARGO"
+    );
     nuevaCesta.indexMesa = null;
     let id = undefined;
     if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
     if (id != undefined) {
+      const cliente: ClientesInterface = await clienteInstance.getClienteById(
+        cestaEncargo.idCliente
+      );
+      // Aplicamos los articulos a la cesta sin el descuento del cliente
+      if (cliente && cliente.descuento != 0) {
+        for (const articulo of cestaEncargo.lista) {
+          articulo.subtotal =
+            Math.round(
+              (articulo.subtotal +
+                (articulo.subtotal * cliente.descuento) / 100) *
+                100
+            ) / 100;
+        }
+      }
       nuevaCesta.idCliente = cestaEncargo.idCliente;
       nuevaCesta.nombreCliente = cestaEncargo.nombreCliente;
       nuevaCesta.lista = cestaEncargo.lista;
@@ -798,7 +815,12 @@ export class CestaClase {
       const cesta = await cestasInstance.getCestaById(idCesta);
       // Si el nombre no está vacío, es un artículo 'varis' y se le asigna el nombre
 
-      if (nombre && nombre.length > 0 && articulo.nombre.toLowerCase().includes("varis")|| articulo.nombre.toLowerCase().includes("varios")) {
+      if (
+        (nombre &&
+          nombre.length > 0 &&
+          articulo.nombre.toLowerCase().includes("varis")) ||
+        articulo.nombre.toLowerCase().includes("varios")
+      ) {
         articulo.nombre = nombre;
         articulo.varis = true;
       }
@@ -918,7 +940,7 @@ export class CestaClase {
     // Si no hay cliente, no puede haber regalos
     if (cesta.idCliente) return;
     // Si no hay regalos, no hace falta comprobar nada
-    if (!cesta.lista.find(item => item.regalo)) return;
+    if (!cesta.lista.find((item) => item.regalo)) return;
     if (!cesta.idCliente) {
       // Verifica si no hay Cliente
       for (const item of cesta.lista) {
