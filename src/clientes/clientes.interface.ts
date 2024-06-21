@@ -6,6 +6,9 @@ export interface ClientesInterface {
   noPagaEnTienda: boolean;
   descuento: number;
   telefono: string;
+  nif?: string;
+  direccion?: string;
+  email?: string;
   dto?: Dto[];
   vip?: boolean;
 }
