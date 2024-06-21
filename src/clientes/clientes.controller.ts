@@ -205,11 +205,11 @@ export class ClientesController {
   ) {
     try {
       const parametros = await parametrosInstance.getParametros();
-
+  
       if (!nombre || nombre.length < 3) {
-        throw Error("Error, faltan datos en crearNuevoCliente() controller");
+        throw new Error("Error, faltan datos en crearNuevoCliente() controller");
       }
-
+  
       const nuevoCliente = {
         nombre,
         telefono,
@@ -221,25 +221,66 @@ export class ClientesController {
         idCliente: `CliBoti_${parametros.codigoTienda}_${Date.now()}`,
         idTarjetaCliente: tarjetaCliente,
       };
-
-      // Añadir el nuevo cliente a la base de datos local
-      const db = (await conexion).db("tocgame");
-      const clientes = db.collection("clientes");
-      await clientes.insertOne(nuevoCliente);
-
-      const response = await axios.post(
-        "clientes/crearNuevoCliente",
-        nuevoCliente
-      );
-
+  
+      let response;
+      try {
+        response = await axios.post("clientes/crearNuevoCliente", nuevoCliente);
+      } catch (axiosError) {
+        throw {
+          type: "AxiosError",
+          message: "Error al crear el cliente en el servidor remoto",
+          details: axiosError.message,
+        };
+      }
+  
       if (response.data) {
-        return true;
+        const clienteMDB: ClientesInterface = {
+          id: nuevoCliente.idCliente,
+          nombre: nuevoCliente.nombre,
+          tarjetaCliente: nuevoCliente.tarjetaCliente,
+          descuento: nuevoCliente.descuento,
+          nif: nuevoCliente.nif.toString(),
+          telefono: nuevoCliente.telefono,
+          direccion: nuevoCliente.direccion,
+          email: nuevoCliente.email,
+          albaran: false,
+          noPagaEnTienda: false,
+          vip: false,
+        };
+  
+        try {
+          await clienteInstance.insertarCliente(clienteMDB);
+          return {
+            success: true,
+            message: "Cliente creado exitosamente",
+            idCliente: nuevoCliente.idCliente,
+          };
+        } catch (dbError) {
+          throw {
+            type: "DatabaseError",
+            message: "Error al insertar el cliente en la base de datos",
+            details: dbError.message,
+          };
+        }
       } else {
-        throw new Error("Error al crear el cliente en el servidor remoto");
+        throw new Error("Error desconocido al crear el cliente en el servidor remoto");
       }
     } catch (err) {
-      logger.Error(68, err);
-      return false;
+      if (err.type === "AxiosError" || err.type === "DatabaseError") {
+        logger.Error(err.message, err.details);
+        return {
+          success: false,
+          message: err.message,
+          details: err.details,
+        };
+      } else {
+        logger.Error(68, err);
+        return {
+          success: false,
+          message: "Error general en crearNuevoCliente()",
+          details: err.message,
+        };
+      }
     }
   }
 

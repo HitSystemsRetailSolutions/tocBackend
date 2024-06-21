@@ -165,7 +165,7 @@ export class Impresora {
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
     // Preparamos el objeto que vamos a mandar a la impresora
-    let sendObject: Object;
+    let sendObject;
     // Si el ticket existe y el trabajador tambien
     if (ticket && trabajador) {
       let infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
@@ -241,6 +241,9 @@ export class Impresora {
               : ticket.cesta.indexMesa,
           comensales: ticket?.cesta?.comensales || null,
         };
+      }
+      if (ticket.restante > 0) {
+        sendObject.restante = ticket.restante;
       }
       // enviamos el objeto
       if (infoCliente?.albaran) {
@@ -319,6 +322,9 @@ export class Impresora {
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
         };
+      }
+      if(ticket.restante > 0) {
+        sendObject.restante = ticket.restante;
       }
       // funcion parecida a _venta pero imprime dos veces el ticket una de las dos con firma
       // por que existe esta guarrada? para evitar que se imprima solo una de dos.
@@ -711,7 +717,7 @@ export class Impresora {
       arrayImprimir.push({ tipo: "text", payload: pagoDevolucion });
     let totalImporte = total;
     // si hay deja cuenta restamos el total, menos si esta anulado el ticket
-    if (dejaCuenta && total>0) totalImporte = total - dejaCuenta;
+    if (info?.restante) totalImporte = info.restante;
     arrayImprimir.push(
       { tipo: "align", payload: "RT" },
       { tipo: "text", payload: "TOTAL: " + totalImporte.toFixed(2) + " €" },
