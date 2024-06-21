@@ -235,7 +235,6 @@ export class TicketsClase {
           art.subtotal - art.subtotal * (cliente.descuento / 100);
       });
     }*/
-
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),
@@ -249,6 +248,9 @@ export class TicketsClase {
       enviado: false,
       consumoPersonal: consumoPersonal ? true : false,
     };
+    if(dejaCuenta && dejaCuenta > 0){
+      nuevoTicket.restante = redondearPrecio(nuevoTicket.total - dejaCuenta);
+    }
     return nuevoTicket;
   }
   /* Yasai :D */

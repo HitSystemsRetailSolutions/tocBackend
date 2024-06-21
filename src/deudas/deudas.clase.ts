@@ -334,7 +334,7 @@ export class Deudas {
       codigoBarras = String(Ean13Utils.generate(codigoBarras));
       const movimientoGeneral: MovimientosInterface = {
         _id: Date.now(),
-        valor: Math.round((infoCobro.total-dejaCuenta)*100)/100,
+        valor: Math.round((infoCobro.total)*100)/100,
         concepto: concepto,
         idTicket: null,
         idTrabajador: infoCobro.idTrabajador,

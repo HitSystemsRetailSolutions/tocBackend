@@ -8,6 +8,9 @@ import { logger } from "src/logger";
 const dtoP = "DtoProducte";
 const dtoF = "DtoFamilia";
 export class Clientes {
+  async insertarCliente(clienteMDB: ClientesInterface) {
+    await schClientes.insertarCliente(clienteMDB);
+  }
   /* Eze 4.0. Busca tanto nombres como tarjeta cliente */
   buscar = async (cadena: string) => await schClientes.buscar(cadena);
 
