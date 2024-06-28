@@ -158,7 +158,6 @@ export class CajaClase {
       };
     });
     //console.log(detalleCierre)
-    cestasInstance.actualizarCestas();
     parametrosInstance.setContadoDatafono(1, 0);
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
     const totalDeudas = await deudasInstance.getTotalMoneyStandBy();
@@ -465,6 +464,9 @@ export class CajaClase {
             salidasAlbaran += arrayMovimientos[i].valor;
           }
           totalSalidas += arrayMovimientos[i].valor;
+          break;
+        case "TARJETA":
+        case "DEV_DATAFONO_PAYTEF":
           break;
         default:
           logger.Error(51, "Error, tipo de movimiento desconocido");
