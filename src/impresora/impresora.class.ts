@@ -2289,12 +2289,14 @@ export class Impresora {
         length += Buffer.from(it.payload).length;
       }
     }
-    if (length > 3300) {
+    if (length > 3000) {
       logger.info(
         "los datos al buffer: " +
           length +
-          ". Superan los 3300 bytes, puede que no imprima todo el ticket"
+          ". Superan los 3000 bytes, puede que no imprima todo el ticket"
       );
+    }else{
+      logger.info("los datos al buffer: " + length + ".");
     }
   }
   async abrirCajon() {
