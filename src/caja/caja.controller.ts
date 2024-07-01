@@ -172,9 +172,8 @@ export class CajaController {
   async imprimirUltimoCierre() {
     try {
       const ultimoCierre = await cajaInstance.getUltimoCierre();
-      if (ultimoCierre) impresoraInstance.imprimirCajaAsync(ultimoCierre);
-
-      throw Error("No se ha podido obtener el último cierre");
+      if (!ultimoCierre) throw Error("No se ha podido obtener el último cierre");
+      impresoraInstance.imprimirCajaAsync(ultimoCierre);
     } catch (err) {
       logger.Error(144, err);
       return false;

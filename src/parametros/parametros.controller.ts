@@ -181,7 +181,9 @@ export class ParametrosController {
       let startDate = await cajaInstance.getInicioTime();
       let localData = await parametrosInstance.totalPaytef();
       let paytefData = await paytefInstance.getRecuentoTotal(startDate);
-      if (paytefData == null) return [localData, true];
+      // devolerá el valor remoto, excepto que dé 0 y el local sea mayor
+      if (paytefData == null || (paytefData == 0 && localData > 0))
+        return [localData, true];
       return [paytefData, false];
     } catch (err) {
       let localData = await parametrosInstance.totalPaytef();
@@ -212,15 +214,15 @@ export class ParametrosController {
     }
   }
 
-@Get("getIpCashlogy")
-async getIpCashlogy() {
-  try {
-    return (await parametrosInstance.getParametros()).ipCashlogy;
-  } catch (err) {
-    logger.Error(46, err);
-    return null;
+  @Get("getIpCashlogy")
+  async getIpCashlogy() {
+    try {
+      return (await parametrosInstance.getParametros()).ipCashlogy;
+    } catch (err) {
+      logger.Error(46, err);
+      return null;
+    }
   }
-}
 }
 
 const parametrosController = new ParametrosController();
