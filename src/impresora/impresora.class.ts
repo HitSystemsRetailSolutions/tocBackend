@@ -2290,13 +2290,13 @@ export class Impresora {
       }
     }
     if (length > 3000) {
-      logger.info(
+      logger.Info(
         "los datos al buffer: " +
           length +
           ". Superan los 3000 bytes, puede que no imprima todo el ticket"
       );
     }else{
-      logger.info("los datos al buffer: " + length + ".");
+      logger.Info("los datos al buffer: " + length + ".");
     }
   }
   async abrirCajon() {
