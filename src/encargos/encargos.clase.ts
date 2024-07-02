@@ -201,8 +201,9 @@ export class Encargos {
     // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
-      .then((ok: boolean) => {
+      .then(async (ok: boolean) => {
         if (!ok) return { error: true, msg: "Error al crear el encargo" };
+        await cestasInstance.borrarArticulosCesta(encargo.cesta._id, true, true, false);
         return { error: false, msg: "Encargo creado" };
       })
       .catch((err: string) => ({ error: true, msg: err }));
