@@ -459,7 +459,7 @@ export class Impresora {
         arrayImprimir: mensajesPendientes,
         options: options,
       };
-      if(options.tipo == "cierreCaja") {
+      if (options.tipo == "cierreCaja") {
         logger.Info("Enviando cierre de caja a impresora por MQTT");
       }
       // cuando se conecta enviamos los datos
@@ -2271,7 +2271,6 @@ export class Impresora {
         { tipo: "text", payload: "" },
         { tipo: "cut", payload: "PAPER_FULL_CUT" },
       ]);
-      this.calcularDataBuffer(buffer);
       const options = { imprimirLogo: true, tipo: "cierreCaja" };
       this.enviarMQTT(buffer, options);
     } catch (err) {
@@ -2279,26 +2278,7 @@ export class Impresora {
       logger.Error(145, err);
     }
   }
-  // calcula la longitud del buffer que ocupará en la impresión
-  calcularDataBuffer(buffer: any) {
-    let length = 0;
-    for (const it of buffer) {
-      if (typeof it.payload !== "string") {
-        length += Buffer.from(it.payload.toString()).length;
-      } else {
-        length += Buffer.from(it.payload).length;
-      }
-    }
-    if (length > 3000) {
-      logger.Info(
-        "los datos al buffer: " +
-          length +
-          ". Superan los 3000 bytes, puede que no imprima todo el ticket"
-      );
-    }else{
-      logger.Info("los datos al buffer: " + length + ".");
-    }
-  }
+
   async abrirCajon() {
     const arrayImprimir = [{ tipo: "cashdraw", payload: 2 }];
     const options = { imprimirlogo: false };
