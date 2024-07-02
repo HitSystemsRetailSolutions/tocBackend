@@ -360,6 +360,25 @@ export class CestasController {
       logger.Error(135, error);
     }
   }
+
+  @Post("deselectClient")
+  async deselectClient(@Body() { idCesta }) {
+    try {
+      if (!idCesta) {
+        throw Error("faltan datos en deselectClient");
+      }
+      const cesta = await cestasInstance.getCestaById(idCesta);
+      cesta.idCliente = null;
+      cesta.nombreCliente = null;
+      if (await cestasInstance.updateCesta(cesta)) {
+        await cestasInstance.actualizarCestas();
+        return true;
+      }
+    } catch (error) {
+      logger.Error(136, error);
+    }
+
+  }
   // @Post("addSuplementos")
   // async addSuplementos(
   //   @Body() { idCesta, suplementos, idArticuloGeneral, unidades }
