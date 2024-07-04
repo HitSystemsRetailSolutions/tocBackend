@@ -436,6 +436,11 @@ export class Impresora {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
   }
+  private clientMqtt =
+    mqtt.connect(process.env.MQTT_URL) ||
+    mqtt.connect("mqtt://127.0.0.1:1883", {
+      username: "ImpresoraMQTT",
+    });
   // recovimos los datos de la impresion
   private enviarMQTT(encodedData, options) {
     // si el array de encodedData es mayor que 0 los añadimos al array de mensajes pendientes
@@ -450,11 +455,7 @@ export class Impresora {
     }
     // al terminar el timeout se envian los datos con el array de mensajes pendientes
     imprimirTimeout = setTimeout(() => {
-      var client =
-        mqtt.connect(process.env.MQTT_URL) ||
-        mqtt.connect("mqtt://127.0.0.1:1883", {
-          username: "ImpresoraMQTT",
-        });
+      var client = this.clientMqtt;
       const enviar = {
         arrayImprimir: mensajesPendientes,
         options: options,
@@ -462,11 +463,24 @@ export class Impresora {
       if (options.tipo == "cierreCaja") {
         logger.Info("Enviando cierre de caja a impresora por MQTT");
       }
-      // cuando se conecta enviamos los datos
-      client.on("connect", function () {
-        client.publish("hit.hardware/printer", JSON.stringify(enviar));
-      });
+      if (this.clientMqtt.connected) {
+        // cuando se conecta enviamos los datos
+        this.clientMqtt.publish("hit.hardware/printer", JSON.stringify(enviar));
 
+        this.clientMqtt.on("error", function (err) {
+          logger.Error("Error al enviar a impresora por MQTT", err);
+        });
+      } else {
+        this.clientMqtt.on("connect", function () {
+          this.clientMqtt.publish(
+            "hit.hardware/printer",
+            JSON.stringify(enviar)
+          );
+        });
+        this.clientMqtt.on("error", function (err) {
+          logger.Error("Error al enviar a impresora por MQTT", err);
+        });
+      }
       mensajesPendientes = [];
       clearTimeout(imprimirTimeout);
     }, 500);
@@ -2612,7 +2626,7 @@ export class Impresora {
       return { error: false, info: "OK" };
     } catch (err) {
       console.log(err);
-      logger.Error(145, err);
+      logger.Error(159, err);
       return { error: true, info: "Error en CATCH imprimirPedido()" };
     }
   }
