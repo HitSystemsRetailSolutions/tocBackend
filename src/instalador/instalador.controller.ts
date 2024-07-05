@@ -95,7 +95,7 @@ export class InstaladorController {
   }
 
 
-  public enviarMQTT(options) {
+  public enviarMQTT(n, options) {
     var client =
       mqtt.connect(process.env.MQTT_URL) ||
       mqtt.connect("mqtt://127.0.0.1:1883", {
@@ -103,7 +103,7 @@ export class InstaladorController {
       });
     // cuando se conecta enviamos los datos
     client.on("connect", function () {
-      client.publish("hit.hardware/autoSetup", JSON.stringify(options));
+      client.publish("hit.hardware/" + n, JSON.stringify(options));
     });
     return true;
   }
@@ -112,10 +112,21 @@ export class InstaladorController {
   @Post("sendTestPrint")
   async sendTestPrint(@Body()
   { type, value, rate }) {
-    return await this.enviarMQTT({ type, value, rate })
+    return await this.enviarMQTT("autoSetupPrinter", { type, value, rate })
 
   }
+  @Post("sendTestVisor")
+  async sendTestVisor(@Body()
+  { value, rate }) {
+    return await this.enviarMQTT("autoSetupVisor", { value, rate })
 
+  }
+  @Post("saveData")
+  async saveData(@Body()
+  { data }) {
+    return await this.enviarMQTT("autoSetupSave", data)
+
+  }
   /* Uri */
   @Post("pedirDatosQR")
   async instaladorQR(
