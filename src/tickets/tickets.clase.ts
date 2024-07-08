@@ -5,7 +5,10 @@ import { CestasInterface } from "../cestas/cestas.interface";
 import { io } from "../sockets.gateway";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import axios from "axios";
-import { convertirDineroEnPuntos } from "../funciones/funciones";
+import {
+  convertirDineroEnPuntos,
+  redondearPrecio,
+} from "../funciones/funciones";
 import { articulosInstance } from "../articulos/articulos.clase";
 import * as schMovimientos from "../movimientos/movimientos.mongodb";
 import { paytefInstance } from "../paytef/paytef.class";
@@ -14,6 +17,9 @@ import { ClientesInterface } from "src/clientes/clientes.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { MovimientosController } from "src/movimientos/movimientos.controller";
+import { deudasInstance } from "src/deudas/deudas.clase";
+import { impresoraInstance } from "src/impresora/impresora.class";
+import { cestasInstance } from "src/cestas/cestas.clase";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -58,6 +64,19 @@ export class TicketsClase {
           movimientos.length > 0 &&
           movimientos[0].tipo === "DATAFONO_3G")
       ) {
+        const allDatafono3G = movimientos.every(
+          (mov) => mov.tipo === "DATAFONO_3G"
+        );
+        if (allDatafono3G) {
+          // si la suma de los movs dat3G es 0, al ticket se le considera pago en efectivo
+          const sumAll = movimientos.reduce((acc, mov) => acc + mov.valor, 0);
+          if (sumAll == 0) {
+            return {
+              res: await schTickets.anularTicket(idTicket),
+              tipo: "EFECTIVO",
+            };
+          }
+        }
         if (await schTickets.anularTicket(idTicket, true)) {
           const devolucionCreada = await schTickets.getUltimoTicket();
           if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
@@ -115,7 +134,15 @@ export class TicketsClase {
     const ultimoIdTicket = await this.getUltimoIdTicket();
 
     if (typeof ultimoIdTicket === "number") {
-      return ultimoIdTicket + 1;
+      let newId = ultimoIdTicket + 1;
+      // si la id generada es igual a la de la ultima transaccion de paytef, se incrementa en 1
+      if (
+        paytefInstance.ultimaIniciarTransaccion &&
+        newId == paytefInstance.ultimaIniciarTransaccion.idTicket
+      ) {
+        newId++;
+      }
+      return newId;
     }
 
     throw Error("El ultimoIdTicket no es correcto");
@@ -150,12 +177,13 @@ export class TicketsClase {
           console.log(e);
         });
 
-      if (resDescuento?.data) return await schTickets.nuevoTicket(ticket);
-
-      throw Error("No se han podido descontar los puntos");
+      if (!resDescuento?.data)
+        throw Error("No se han podido descontar los puntos");
     }
-    // si no tenemos que descontar dinero, simplemente insertamos el ticket
-    return await schTickets.nuevoTicket(ticket);
+    const res = await schTickets.nuevoTicket(ticket);
+    // si ha ido bien actualizamos el último ticket
+    if (res) await parametrosInstance.updLastTicket(ticket._id);
+    return res;
   }
 
   /* Uri 4.0 */
@@ -208,7 +236,6 @@ export class TicketsClase {
           art.subtotal - art.subtotal * (cliente.descuento / 100);
       });
     }*/
-
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),
@@ -223,6 +250,9 @@ export class TicketsClase {
       consumoPersonal: consumoPersonal ? true : false,
       pantalla,
     };
+    if(dejaCuenta && dejaCuenta > 0){
+      nuevoTicket.restante = redondearPrecio(nuevoTicket.total - dejaCuenta);
+    }
     return nuevoTicket;
   }
   /* Yasai :D */
@@ -244,6 +274,9 @@ export class TicketsClase {
   /* Eze 4.0 */
   getTicketMasAntiguo = () => schTickets.getTicketMasAntiguo();
 
+  getTicketOtrosModificadoMasAntiguo = () =>
+    schTickets.getTicketOtrosModificadoMasAntiguo();
+
   /* Eze 4.0 */
   actualizarEstadoTicket = (ticket: TicketsInterface) =>
     schTickets.actualizarEstadoTicket(ticket);
@@ -253,7 +286,16 @@ export class TicketsClase {
     idTicket: TicketsInterface["_id"],
     enviado: boolean = true
   ) => schTickets.setTicketEnviado(idTicket, enviado);
-
+  /**
+   * marcar valor a true o false en otrosModificado
+   * @param idTicket interficie de ticket
+   * @param otrosModificado booleano que indica si se ha modificado el ticket en bbdd
+   * @returns resultado de la operación
+   */
+  setTicketOtrosModificado = (
+    idTicket: TicketsInterface["_id"],
+    otrosModificado: boolean = true
+  ) => schTickets.setTicketOtrosModificado(idTicket, otrosModificado);
   /* Uri 4.0 */
   setPagadoPaytef = async (idTicket: TicketsInterface["_id"]) => {
     let ticket = await schTickets.getTicketByID(idTicket);
@@ -269,65 +311,196 @@ export class TicketsClase {
 
   getTotalLocalPaytef = () => schTickets.getTotalLocalPaytef();
 
-  getTotalDatafono3G = async () => {
-    const superTicket = await movimientosInstance.construirArrayVentas();
-    let total3G = 0;
-    const cajaAbiertaActual = await cajaInstance.getInfoCajaAbierta();
-    const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
-    const finalTime = Date.now();
-    // recogemos los movimientos de DATAFONO_3G concepto deuda pagada
-    const mov3G = await movimientosInstance.getDat3GDeudaPagada(
-      inicioTurnoCaja,
-      finalTime
+  getTotalDatafono3G = async (horaInici, horaFinal) => {
+    const arrayMov3G = await schMovimientos.getMovsDatafono3G(
+      horaInici,
+      horaFinal
     );
-    if (superTicket && superTicket.length > 0) {
-      const tkrs = await movimientosInstance.getMovTkrsSinExcIntervalo(
-        inicioTurnoCaja,
-        finalTime
-      );
-
-      const tkrsIndexado = tkrs.reduce((acc, el) => {
-        acc[el.idTicket] = el;
-        return acc;
-      }, {});
-      const mov3GIndexado = mov3G.reduce((acc, el) => {
-        acc[el.idTicket] = el;
-        return acc;
-      }, {});
-      superTicket.forEach((ticket) => {
-        const idTicketVenta = ticket._id;
-        const entradaCorrespondiente = tkrsIndexado[idTicketVenta];
-        // revisamos si el ticket tiene un movimiento de 3G concepto Deuda Pagada
-        // para no sumarlo al total3G. Se sumará esos movs al terminar el foreach
-        const mov3GCorrespondiente = mov3GIndexado[idTicketVenta];
-        if (
-          !mov3GCorrespondiente &&
-          entradaCorrespondiente &&
-          (ticket.tipoPago.includes("DATAFONO_3G") || ticket.datafono3G)
-        ) {
-          total3G += ticket.total - entradaCorrespondiente.valor;
-        } else if (
-          (!mov3GCorrespondiente && ticket.tipoPago.includes("DATAFONO_3G")) ||
-          (ticket.anulado && ticket.datafono3G)
-        ) {
-          for (const item of ticket.cesta.lista) {
-            if (!item?.pagado) {
-              total3G += item.subtotal;
-              total3G = Math.round(total3G * 100) / 100;
-            }
-          }
-        }
-      });
+    let total3G = 0;
+    for (const mov of arrayMov3G) {
+      switch (mov.tipo) {
+        case "DATAFONO_3G":
+          total3G += mov.valor;
+          break;
+        case "DEV_DATAFONO_3G":
+          total3G -= mov.valor;
+          break;
+      }
     }
-    // sumamos los movimientos de 3G concepto Deuda Pagada.
-    // Se hacen fuera del foreach para no sumarlos varias veces
-    // y algunas tienen un idTicket de otra caja
-    mov3G.forEach((mov) => {
-      total3G += mov.valor;
-      total3G = Math.round(total3G * 100) / 100;
-    });
+    total3G = Math.round(total3G * 100) / 100;
     return total3G;
   };
+  // getTotalDatafono3G = async () => {
+  //   const superTicket = await movimientosInstance.construirArrayVentas();
+  //   let total3G = 0;
+  //   const cajaAbiertaActual = await cajaInstance.getInfoCajaAbierta();
+  //   const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
+  //   const finalTime = Date.now();
+  //   // recogemos los movimientos de DATAFONO_3G concepto deuda pagada
+  //   const mov3G = await movimientosInstance.getDat3GDeudaPagada(
+  //     inicioTurnoCaja,
+  //     finalTime
+  //   );
+  //   if (superTicket && superTicket.length > 0) {
+  //     const tkrs = await movimientosInstance.getMovTkrsSinExcIntervalo(
+  //       inicioTurnoCaja,
+  //       finalTime
+  //     );
+
+  //     const tkrsIndexado = tkrs.reduce((acc, el) => {
+  //       acc[el.idTicket] = el;
+  //       return acc;
+  //     }, {});
+  //     const mov3GIndexado = mov3G.reduce((acc, el) => {
+  //       acc[el.idTicket] = el;
+  //       return acc;
+  //     }, {});
+  //     superTicket.forEach((ticket) => {
+  //       const idTicketVenta = ticket._id;
+  //       const entradaCorrespondiente = tkrsIndexado[idTicketVenta];
+  //       // revisamos si el ticket tiene un movimiento de 3G concepto Deuda Pagada
+  //       // para no sumarlo al total3G. Se sumará esos movs al terminar el foreach
+  //       const mov3GCorrespondiente = mov3GIndexado[idTicketVenta];
+  //       if (
+  //         !mov3GCorrespondiente &&
+  //         entradaCorrespondiente &&
+  //         (ticket.tipoPago.includes("DATAFONO_3G") || ticket.datafono3G)
+  //       ) {
+  //         total3G += ticket.total - entradaCorrespondiente.valor;
+  //       } else if (
+  //         (!mov3GCorrespondiente && ticket.tipoPago.includes("DATAFONO_3G")) ||
+  //         (ticket.anulado && ticket.datafono3G)
+  //       ) {
+  //         for (const item of ticket.cesta.lista) {
+  //           if (!item?.pagado) {
+  //             total3G += item.subtotal;
+  //             total3G = Math.round(total3G * 100) / 100;
+  //           }
+  //         }
+  //       }
+  //     });
+  //   }
+  //   // sumamos los movimientos de 3G concepto Deuda Pagada.
+  //   // Se hacen fuera del foreach para no sumarlos varias veces
+  //   // y algunas tienen un idTicket de otra caja
+  //   mov3G.forEach((mov) => {
+  //     total3G += mov.valor;
+  //     total3G = Math.round(total3G * 100) / 100;
+  //   });
+  //   return total3G;
+  // };
+  async finalizarTicket(
+    ticket: TicketsInterface,
+    idTrabajador: number,
+    tipo: string,
+    concepto: string,
+    cesta: CestasInterface,
+    tkrsData: any
+  ) {
+    await cestasInstance.borrarArticulosCesta(cesta._id, true, true, false);
+    await cestasInstance.setClients(0, cesta._id);
+    if (tipo === "TARJETA") {
+      // paytefInstance.iniciarTransaccion(idTrabajador, ticket._id, total);
+      this.setPagadoPaytef(ticket._id);
+    } else if (
+      (tipo === "TKRS" && tkrsData) ||
+      (tkrsData?.cantidadTkrs > 0 &&
+        (tipo === "EFECTIVO" || tipo === "DATAFONO_3G"))
+    ) {
+      if (tkrsData.cantidadTkrs > ticket.total) {
+        await movimientosInstance.nuevoMovimiento(
+          ticket.total,
+          "",
+          "TKRS_SIN_EXCESO",
+          ticket._id,
+          idTrabajador
+        );
+        await movimientosInstance.nuevoMovimiento(
+          redondearPrecio(tkrsData.cantidadTkrs - ticket.total),
+          "",
+          "TKRS_CON_EXCESO",
+          ticket._id,
+          idTrabajador
+        );
+      } else if (tkrsData.cantidadTkrs < ticket.total) {
+        if (tipo === "DATAFONO_3G") {
+          let total3G =
+            Math.round((ticket.total - tkrsData.cantidadTkrs) * 100) / 100;
+          await movimientosInstance.nuevoMovimiento(
+            total3G,
+            "",
+            "DATAFONO_3G",
+            ticket._id,
+            idTrabajador
+          );
+        }
+        await movimientosInstance.nuevoMovimiento(
+          tkrsData.cantidadTkrs,
+          "",
+          "TKRS_SIN_EXCESO",
+          ticket._id,
+          idTrabajador
+        );
+      } else if (tkrsData.cantidadTkrs === ticket.total) {
+        await movimientosInstance.nuevoMovimiento(
+          ticket.total,
+          "",
+          "TKRS_SIN_EXCESO",
+          ticket._id,
+          idTrabajador
+        );
+      }
+    } else if (tipo === "DATAFONO_3G") {
+      await movimientosInstance.nuevoMovimiento(
+        ticket.total,
+        "",
+        "DATAFONO_3G",
+        ticket._id,
+        idTrabajador
+      );
+    } else if (tipo === "DEUDA") {
+      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      //como tipo DEUDA se utilizaba antes de crear deudas en la tabla deudas
+      // se diferenciara su uso cuando el concepto sea igual a DEUDA
+      if (concepto && concepto == "DEUDA") {
+        await movimientosInstance.nuevoMovimiento(
+          ticket.total,
+          "DEUDA",
+          "SALIDA",
+          ticket._id,
+          idTrabajador,
+          cliente.nombre
+        );
+        var deuda = {
+          idTicket: ticket._id,
+          cesta: cesta,
+          idTrabajador: idTrabajador,
+          idCliente: cesta.idCliente,
+          nombreCliente: cesta.nombreCliente,
+          total: ticket.total,
+          timestamp: ticket.timestamp,
+        };
+        await deudasInstance.setDeuda(deuda);
+      } else {
+        await movimientosInstance.nuevoMovimiento(
+          ticket.total,
+          "",
+          "DEUDA",
+          ticket._id,
+          idTrabajador
+        );
+      }
+    } else if (tipo !== "EFECTIVO" && tipo != "CONSUMO_PERSONAL") {
+      throw Error(
+        "Falta información del tkrs o bien ninguna forma de pago es correcta"
+      );
+    }
+    if (tipo !== "TARJETA" && concepto == "DEUDA") {
+      await impresoraInstance.abrirCajon();
+    }
+    this.actualizarTickets();
+    return ticket._id;
+  }
   actualizarTickets = async () => {
     const arrayVentas = await movimientosInstance.construirArrayVentas();
     if (arrayVentas) io.emit("cargarVentas", arrayVentas.reverse());

@@ -8,7 +8,9 @@ import {
 } from "./cestas.interface";
 import {
   construirObjetoIvas,
+  convertirDineroEnPuntos,
   fusionarObjetosDetalleIva,
+  redondearPrecio,
 } from "../funciones/funciones";
 import { Articulos, articulosInstance } from "../articulos/articulos.clase";
 import { cajaInstance } from "../caja/caja.clase";
@@ -29,7 +31,7 @@ import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 import { tarifasInstance } from "src/tarifas/tarifas.class";
 
 export class CestaClase {
-  async recalcularIvasDescuentoToGo(cesta: CestasInterface) {
+  async recalcularIvasDescuentoEspecial(cesta: CestasInterface) {
     let totalDeseado = 3.99;
     // Busca el objeto con el idCliente específico
     const clienteEspecial = descuentoEspecial.find(
@@ -55,29 +57,55 @@ export class CestaClase {
     const factorEscala = totalDeseado / sumaActualImportes;
 
     // Aplicar el factor de escala a las bases y valores de IVA
-    cesta.detalleIva.base1 *= factorEscala;
-    cesta.detalleIva.base2 *= factorEscala;
-    cesta.detalleIva.base3 *= factorEscala;
-    cesta.detalleIva.base4 *= factorEscala;
-    cesta.detalleIva.base5 *= factorEscala;
+    // Aplicar el factor de escala a las bases y valores de IVA
+    cesta.detalleIva.base1 = redondearPrecio(
+      cesta.detalleIva.base1 * factorEscala
+    );
+    cesta.detalleIva.base2 = redondearPrecio(
+      cesta.detalleIva.base2 * factorEscala
+    );
+    cesta.detalleIva.base3 = redondearPrecio(
+      cesta.detalleIva.base3 * factorEscala
+    );
+    cesta.detalleIva.base4 = redondearPrecio(
+      cesta.detalleIva.base4 * factorEscala
+    );
+    cesta.detalleIva.base5 = redondearPrecio(
+      cesta.detalleIva.base5 * factorEscala
+    );
 
-    cesta.detalleIva.valorIva1 *= factorEscala;
-    cesta.detalleIva.valorIva2 *= factorEscala;
-    cesta.detalleIva.valorIva3 *= factorEscala;
-    cesta.detalleIva.valorIva4 *= factorEscala;
-    cesta.detalleIva.valorIva5 *= factorEscala;
+    cesta.detalleIva.valorIva1 = redondearPrecio(
+      cesta.detalleIva.valorIva1 * factorEscala
+    );
+    cesta.detalleIva.valorIva2 = redondearPrecio(
+      cesta.detalleIva.valorIva2 * factorEscala
+    );
+    cesta.detalleIva.valorIva3 = redondearPrecio(
+      cesta.detalleIva.valorIva3 * factorEscala
+    );
+    cesta.detalleIva.valorIva4 = redondearPrecio(
+      cesta.detalleIva.valorIva4 * factorEscala
+    );
+    cesta.detalleIva.valorIva5 = redondearPrecio(
+      cesta.detalleIva.valorIva5 * factorEscala
+    );
 
     // Recalcular los importes según las nuevas bases y valores de IVA
-    cesta.detalleIva.importe1 =
-      cesta.detalleIva.base1 + cesta.detalleIva.valorIva1;
-    cesta.detalleIva.importe2 =
-      cesta.detalleIva.base2 + cesta.detalleIva.valorIva2;
-    cesta.detalleIva.importe3 =
-      cesta.detalleIva.base3 + cesta.detalleIva.valorIva3;
-    cesta.detalleIva.importe4 =
-      cesta.detalleIva.base4 + cesta.detalleIva.valorIva4;
-    cesta.detalleIva.importe5 =
-      cesta.detalleIva.base5 + cesta.detalleIva.valorIva5;
+    cesta.detalleIva.importe1 = redondearPrecio(
+      cesta.detalleIva.base1 + cesta.detalleIva.valorIva1
+    );
+    cesta.detalleIva.importe2 = redondearPrecio(
+      cesta.detalleIva.base2 + cesta.detalleIva.valorIva2
+    );
+    cesta.detalleIva.importe3 = redondearPrecio(
+      cesta.detalleIva.base3 + cesta.detalleIva.valorIva3
+    );
+    cesta.detalleIva.importe4 = redondearPrecio(
+      cesta.detalleIva.base4 + cesta.detalleIva.valorIva4
+    );
+    cesta.detalleIva.importe5 = redondearPrecio(
+      cesta.detalleIva.base5 + cesta.detalleIva.valorIva5
+    );
 
     if (await this.updateCesta(cesta)) {
       this.actualizarCestas();
@@ -103,20 +131,80 @@ export class CestaClase {
       }
     }
   }
-  /* Eze 4.0 */
+  /* Eze 4.0 */ /* Actualizado por Aga */
   async actualizarCestas() {
     const arrayCestas = await cestasInstance.getAllCestas();
     io.emit("cargarCestas", arrayCestas);
-    // cestasInstance
-    //   .getAllCestas()
-    //   .then((arrayCestas) => {
-
-    //   })
-    //   .catch((err) => {
-    //     logger.Error(119, err);
-    //   });
   }
 
+  async aplicarDescuento(cesta: CestasInterface, total: number) {
+    const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+    let descuento: any =
+      cliente && !cliente?.albaran && !cliente?.vip
+        ? Number(cliente.descuento)
+        : 0;
+    let importe =
+      cesta.detalleIva.importe1 +
+      cesta.detalleIva.importe2 +
+      cesta.detalleIva.importe3 +
+      cesta.detalleIva.importe4 +
+      cesta.detalleIva.importe5;
+    importe = redondearPrecio(importe);
+    //en ocasiones cuando un idcliente es trabajador y quiera consumo peronal,
+    // el modo de cesta debe cambiar a consumo_personal.
+    const clienteDescEsp = descuentoEspecial.find(
+      (cliente) => cliente.idCliente === cesta.idCliente
+    );
+    if (
+      cesta.modo !== "CONSUMO_PERSONAL" &&
+      descuento &&
+      descuento > 0 &&
+      !clienteDescEsp
+    ) {
+      cesta.lista.forEach((producto) => {
+        if (producto.arraySuplementos != null) {
+          producto.subtotal = redondearPrecio(
+            producto.subtotal - (producto.subtotal * descuento) / 100
+          );
+        } else if (producto.promocion == null)
+          producto.subtotal = redondearPrecio(
+            producto.subtotal - (producto.subtotal * descuento) / 100
+          ); // Modificamos el total para añadir el descuento especial del cliente
+      });
+    } else if (clienteDescEsp && importe == clienteDescEsp.precio) {
+      this.recalcularSubtotales(cesta, clienteDescEsp.precio);
+    } else if (cesta.modo == "CONSUMO_PERSONAL" && descuento) {
+      await cestasInstance.recalcularIvas(cesta);
+    }
+  }
+  recalcularSubtotales(cesta: CestasInterface, precio: number) {
+    const totalDeseado = precio;
+    let sumaSubtotales = 0;
+    cesta.lista.forEach((item) => {
+      item.subtotal = Number(item.subtotal.toFixed(2));
+      sumaSubtotales += item.subtotal;
+    });
+
+    const factorEscala = totalDeseado / sumaSubtotales;
+
+    sumaSubtotales = 0;
+    // Asignar subtotales ajustados y redondear a 2 decimales
+    cesta.lista.forEach((item) => {
+      item.subtotal *= factorEscala;
+      item.subtotal = Number(item.subtotal.toFixed(2));
+      sumaSubtotales += item.subtotal;
+    });
+
+    // Redondear la suma total al deseo y ajustar el último subtotal si es necesario
+    sumaSubtotales = Number(sumaSubtotales.toFixed(2));
+    if (sumaSubtotales !== totalDeseado) {
+      const ajuste = totalDeseado - sumaSubtotales;
+      cesta.lista[cesta.lista.length - 1].subtotal += ajuste;
+      cesta.lista[cesta.lista.length - 1].subtotal = Number(
+        cesta.lista[cesta.lista.length - 1].subtotal.toFixed(2)
+      );
+    }
+  }
   /* Eze 4.0 */
   getCestaById = async (idCesta: CestasInterface["_id"]) =>
     await schCestas.getCestaById(idCesta);
@@ -211,6 +299,10 @@ export class CestaClase {
     if (await schCestas.createCesta(nuevaCesta)) return nuevaCesta._id;
     throw Error("Error, no se ha podido crear la cesta");
   }
+
+  async findCestaDevolucion(trabajador: TrabajadoresInterface["_id"]) {
+    return await schCestas.findCestaDevolucion(trabajador);
+  }
   async CestaPagoDeuda(cestas) {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO DEUDA");
     nuevaCesta.indexMesa = null;
@@ -225,6 +317,41 @@ export class CestaClase {
           nuevaCesta.detalleIva
         );
       }
+      if (await this.updateCesta(nuevaCesta)) {
+        await this.actualizarCestas();
+      }
+      return id;
+    }
+  }
+
+  // generar cesta modo recoger encargo
+  async CestaRecogerEncargo(cestaEncargo: any) {
+    const nuevaCesta = this.generarObjetoCesta(
+      new ObjectId(),
+      "RECOGER ENCARGO"
+    );
+    nuevaCesta.indexMesa = null;
+    let id = undefined;
+    if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
+    if (id != undefined) {
+      const cliente: ClientesInterface = await clienteInstance.getClienteById(
+        cestaEncargo.idCliente
+      );
+      // Aplicamos los articulos a la cesta sin el descuento del cliente
+      if (cliente && cliente.descuento != 0) {
+        for (const articulo of cestaEncargo.lista) {
+          articulo.subtotal =
+            Math.round(
+              (articulo.subtotal +
+                (articulo.subtotal * cliente.descuento) / 100) *
+                100
+            ) / 100;
+        }
+      }
+      nuevaCesta.idCliente = cestaEncargo.idCliente;
+      nuevaCesta.nombreCliente = cestaEncargo.nombreCliente;
+      nuevaCesta.lista = cestaEncargo.lista;
+      nuevaCesta.detalleIva = cestaEncargo.detalleIva;
       if (await this.updateCesta(nuevaCesta)) {
         await this.actualizarCestas();
       }
@@ -287,7 +414,7 @@ export class CestaClase {
       if (cesta.lista[index]?.pagado) return null;
       let productos = [];
       productos.push(cesta.lista[index]);
-      await this.registroLogSantaAna(cesta, productos);
+      this.registroLogSantaAna(cesta, productos);
 
       cesta.lista.splice(index, 1);
       // Enviar por socket
@@ -502,6 +629,9 @@ export class CestaClase {
             // articulos pagados y no pagados de honei
             if (igual == cesta.lista[i].arraySuplementos.length) {
               cesta.lista[i].unidades += unidades;
+              if (articulo.puntos == null) {
+                await this.setPuntosPromoDscompteFixe(articulo);
+              }
               if (unidades > 0 && cesta.lista[i].puntos != null) {
                 cesta.lista[i].puntos += articulo.puntos * unidades;
               } else if (unidades < 0 && cesta.lista[i].puntos != null) {
@@ -521,6 +651,9 @@ export class CestaClase {
             cesta.lista[i].regalo == regalar
           ) {
             cesta.lista[i].unidades += unidades;
+            if (articulo.puntos == null) {
+              await this.setPuntosPromoDscompteFixe(articulo);
+            }
             if (unidades > 0 && cesta.lista[i].puntos != null) {
               cesta.lista[i].puntos += articulo.puntos * unidades;
             } else if (unidades < 0 && cesta.lista[i].puntos != null) {
@@ -537,13 +670,16 @@ export class CestaClase {
         }
       }
       const pagado = menu === "pagados";
-
       if (articuloNuevo) {
+        if (articulo.puntos == null) {
+          await this.setPuntosPromoDscompteFixe(articulo);
+        }
         cesta.lista.push({
           idArticulo: articulo._id,
           nombre: articulo.nombre,
           arraySuplementos: arraySuplementos,
           promocion: null,
+          varis: articulo.varis || false,
           regalo: false,
           puntos: articulo.puntos,
           impresora: articulo.impresora,
@@ -574,6 +710,18 @@ export class CestaClase {
     if (await schCestas.updateCesta(cesta)) return cesta;
 
     throw Error("Error updateCesta() - cesta.clase.ts");
+  }
+  async setPuntosPromoDscompteFixe(articulo: ArticulosInterface) {
+    const promocioDescompteFixe =
+      (await parametrosInstance.getParametros()).promocioDescompteFixe || 0;
+    if (promocioDescompteFixe > 0) {
+      let dineroToPuntos = convertirDineroEnPuntos(
+        articulo.precioConIva,
+        promocioDescompteFixe
+      );
+      if (dineroToPuntos > 0) articulo.puntos = dineroToPuntos;
+    }
+    return articulo;
   }
   /* Yasai :D */
   async insertarArticulosHonei(
@@ -665,8 +813,17 @@ export class CestaClase {
         );
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
-      articulo.nombre = nombre && nombre.length > 0 ? nombre : articulo.nombre;
+      // Si el nombre no está vacío, es un artículo 'varis' y se le asigna el nombre
 
+      if (
+        (nombre &&
+          nombre.length > 0 &&
+          articulo.nombre.toLowerCase().includes("varis")) ||
+        articulo.nombre.toLowerCase().includes("varios")
+      ) {
+        articulo.nombre = nombre;
+        articulo.varis = true;
+      }
       if (cesta.idCliente) {
         articulo = await articulosInstance.getPrecioConTarifa(
           articulo,
@@ -779,7 +936,57 @@ export class CestaClase {
     }
     return detalleIva;
   }
-
+  async comprobarRegalos(cesta: CestasInterface) {
+    // Si no hay cliente, no puede haber regalos
+    if (cesta.idCliente) return;
+    // Si no hay regalos, no hace falta comprobar nada
+    if (!cesta.lista.find((item) => item.regalo)) return;
+    if (!cesta.idCliente) {
+      // Verifica si no hay Cliente
+      for (const item of cesta.lista) {
+        item.regalo = false; // Cambiar el valor de regalo a false para todos los artículos en la cesta (al no haber cliente no deberia de haber regalo)
+      }
+    }
+    for (let i = 0; i < cesta.lista.length; i++) {
+      const currentItem = cesta.lista[i];
+      if (currentItem.gramos != null) {
+        continue;
+      }
+      let arraySuplCurrentItem = null;
+      if (currentItem.arraySuplementos) {
+        arraySuplCurrentItem = currentItem.arraySuplementos.slice().sort();
+      }
+      for (let j = i + 1; j < cesta.lista.length; j++) {
+        const nextItem = cesta.lista[j];
+        let arraySuplNextItem = null;
+        if (nextItem.arraySuplementos) {
+          arraySuplNextItem = nextItem.arraySuplementos.slice().sort();
+        }
+        if (
+          currentItem.idArticulo == nextItem.idArticulo &&
+          currentItem.regalo == nextItem.regalo &&
+          currentItem.idArticulo != -1 &&
+          arraySuplCurrentItem == null &&
+          arraySuplNextItem == null
+        ) {
+          currentItem.unidades += nextItem.unidades;
+          currentItem.puntos += nextItem.puntos;
+          cesta.lista.splice(j, 1);
+          j -= 1;
+        } else if (
+          currentItem.idArticulo == nextItem.idArticulo &&
+          currentItem.regalo == nextItem.regalo &&
+          currentItem.idArticulo != -1 &&
+          arraySuplCurrentItem == arraySuplNextItem
+        ) {
+          currentItem.unidades += nextItem.unidades;
+          currentItem.puntos += nextItem.puntos;
+          cesta.lista.splice(j, 1);
+          j -= 1;
+        }
+      }
+    }
+  }
   /* Eze 4.0 */
   async recalcularIvas(
     cesta: CestasInterface,
@@ -805,6 +1012,7 @@ export class CestaClase {
     const cliente = cesta.idCliente
       ? await clienteInstance.getClienteById(cesta.idCliente)
       : null;
+    await this.comprobarRegalos(cesta);
     let descuento: any =
       cesta.modo !== "CONSUMO_PERSONAL" &&
       cliente &&
@@ -824,6 +1032,7 @@ export class CestaClase {
         let articulo = await articulosInstance.getInfoArticulo(
           cesta.lista[i].idArticulo
         );
+        let tarifaEsp = false;
         // encuentra el posible descuento del cliente albaran
         let dto = 0;
         if (
@@ -836,10 +1045,16 @@ export class CestaClase {
           cliente && cliente.albaran && cliente?.noPagaEnTienda
             ? articulo.precioBase
             : articulo.precioConIva;
+        const artPrecioIvaSinTarifa = articulo.precioConIva;
         articulo = await articulosInstance.getPrecioConTarifa(
           articulo,
           cesta.idCliente
         );
+
+        if (artPrecioIvaSinTarifa != articulo.precioConIva) {
+          precioArt = articulo.precioConIva;
+          tarifaEsp = true;
+        }
         if (cesta.indexMesa != null) {
           precioArt =
             (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
@@ -866,15 +1081,22 @@ export class CestaClase {
         } else if (!dto && cesta.lista[i]?.dto) {
           delete cesta.lista[i].dto;
         }
+        if (tarifaEsp && !cesta.lista[i]?.tarifaEsp) {
+          cesta.lista[i].tarifaEsp = true;
+        } else if (!tarifaEsp && cesta.lista[i]?.tarifaEsp) {
+          delete cesta.lista[i].tarifaEsp;
+        }
         // Si el cliente es albaran y no paga en tienda, se guarda el IVA correspondiente
         // para mostrarlo en el ticket y en el frontend.
         if (
           cliente?.albaran &&
           cliente?.noPagaEnTienda &&
-          !cesta.lista[i]?.iva
+          !cesta.lista[i]?.iva &&
+          !tarifaEsp
         ) {
           switch (articulo.tipoIva) {
             case 1:
+            default:
               cesta.lista[i].iva = 4;
               break;
             case 2:
@@ -915,7 +1137,7 @@ export class CestaClase {
           precioArt,
           articulo.tipoIva,
           cesta.lista[i].unidades,
-          cliente?.albaran && cliente?.noPagaEnTienda,
+          cliente?.albaran && cliente?.noPagaEnTienda && !tarifaEsp,
           dto
         );
 
@@ -962,6 +1184,16 @@ export class CestaClase {
             detalleDeSuplementos.importe5;*/
         }
       }
+    }
+    let total = 0;
+    let clienteDescEsp = descuentoEspecial.find(
+      (desc) => desc.idCliente == cesta.idCliente
+    );
+    for (let i = 0; i < cesta.lista.length; i++) {
+      total += cesta.lista[i].subtotal;
+    }
+    if (clienteDescEsp && total >= clienteDescEsp.activacion) {
+      await this.recalcularIvasDescuentoEspecial(cesta);
     }
     if (cesta.lista.length > 0) {
       if (
@@ -1171,6 +1403,24 @@ export class CestaClase {
   updateCesta = async (cesta: CestasInterface) =>
     await schCestas.updateCesta(cesta);
 
+  /* uri House */
+  setArticuloImprimido = async (
+    idCesta: CestasInterface["_id"],
+    articulosIDs: number[],
+    printed: boolean
+  ) => {
+    const cesta = await this.getCestaById(idCesta);
+    for (let x = 0; x < cesta.lista.length; x++) {
+      if (articulosIDs.includes(cesta.lista[x].idArticulo)) {
+        cesta.lista[x].printed = printed;
+      }
+    }
+    if (await this.updateCesta(cesta)) {
+      this.actualizarCestas();
+    }
+    return true;
+  };
+
   /* Eze 4.0 */
   async regalarItem(idCesta: CestasInterface["_id"], index: number) {
     const cesta = await cestasInstance.getCestaById(idCesta);
@@ -1284,14 +1534,15 @@ export class CestaClase {
               (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
             );
       let parametros = await parametrosInstance.getParametros();
-
+      // si la cesta pertenece a una mesa, cogemos la dependienta en el array
+      let dependienta = cesta.trabajador || cesta.trabajadores[0];
       let lista = {
         timestamp: new Date().getTime(),
         botiga: parametros.codigoTienda,
         bbdd: parametros.database,
         accio: "ArticleEsborrat",
         productos: productos,
-        dependienta: cesta.trabajador,
+        dependienta: dependienta,
         descuento: cliente,
         idCliente: cesta.idCliente,
       };
@@ -1301,6 +1552,9 @@ export class CestaClase {
     } catch (error) {
       console.error("Error al enviar el registro a Santa Ana:", error.message);
     }
+  }
+  async borrarCestas() {
+    await schCestas.borrarCestas();
   }
 }
 

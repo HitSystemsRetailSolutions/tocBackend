@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 
 export interface CajaAbiertaInterface {
+  _id?: ObjectId;
   inicioTime: number;
   idDependientaApertura: number;
   totalApertura: number;

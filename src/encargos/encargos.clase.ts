@@ -29,6 +29,7 @@ import {
   PromocionesInterface,
 } from "src/promociones/promociones.interface";
 import { cajaInstance } from "src/caja/caja.clase";
+import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 
 export class Encargos {
   async pruebaImportar() {
@@ -158,8 +159,12 @@ export class Encargos {
   };
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
   setEncargo = async (encargo) => {
+    var TEncargo1 = performance.now();
     const cliente = await clienteInstance.getClienteById(encargo.idCliente);
-    let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
+    let descuento: any =
+      cliente && !cliente?.albaran && !cliente?.vip
+        ? Number(cliente.descuento)
+        : 0;
     if (descuento && descuento > 0) {
       for (let i = 0; i < encargo.productos.length; i++) {
         const producto = encargo.productos[i];
@@ -181,16 +186,24 @@ export class Encargos {
 
     encargo.timestamp = timestamp;
     encargo.enviado = false;
-    encargo.estado = "SIN_RECOGER";
+
+    encargo.estado = encargo?.pedido ? "RECOGIDO" : "SIN_RECOGER";
     encargo.codigoBarras = codigoBarras;
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
-    await impresoraInstance.imprimirEncargo(encargoCopia);
-
+    if (encargo?.pedido) {
+      await impresoraInstance.imprimirPedido(encargoCopia);
+    } else {
+      await impresoraInstance.imprimirEncargo(encargoCopia);
+    }
+    var TEncargo2 = performance.now();
+    var TiempoEncargo = TEncargo2 - TEncargo1;
+    logger.Info("TiempoEncargo", TiempoEncargo.toFixed(4) + " ms");
     // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
-      .then((ok: boolean) => {
+      .then(async (ok: boolean) => {
         if (!ok) return { error: true, msg: "Error al crear el encargo" };
+        await cestasInstance.borrarArticulosCesta(encargo.cesta._id, true, true, false);
         return { error: false, msg: "Encargo creado" };
       })
       .catch((err: string) => ({ error: true, msg: err }));
@@ -245,9 +258,13 @@ export class Encargos {
     await schEncargos.getEncargoCreadoMasAntiguo();
   getEncargoFinalizadoMasAntiguo = async () =>
     await schEncargos.getEncargoFinalizadoMasAntiguo();
-
+  getEncargoPedidoCaducadoMasAntiguo = async () =>
+    await schEncargos.getEncargoPedidoCaducadoMasAntiguo();
   setFinalizado = (idDeuda: EncargosInterface["_id"]) =>
     schEncargos.setFinalizado(idDeuda);
+
+  setFinalizadoFalse = (idDeuda: EncargosInterface["_id"]) =>
+    schEncargos.setFinalizadoFalse(idDeuda);
 
   public async generateId(
     formatDate: string,
@@ -261,23 +278,25 @@ export class Encargos {
     fecha: string | null,
     hora: string | null,
     format: string,
-    amPm: string | null
+    amPm: string | null,
+    timestamp: number
   ): Promise<string> {
+    // genera la fecha de un formato especifico si opcion es hoy
     if (tipo === OpcionRecogida.HOY && format !== "YYYYMMDDHHmmss") {
-      fecha = moment(Date.now()).format("YYYY-MM-DD");
+      fecha = moment(fecha).format("YYYY-MM-DD");
       hora = moment(Date.now())
         .set({ hour: amPm === "am" ? 12 : 17, minute: 0 })
         .format("HH:mm");
       return moment(new Date(`${fecha}:${hora}`).getTime()).format(format);
     }
-
+    // genera la fecha de un formato especifico si opcion es otroDia
     if (tipo === OpcionRecogida.OTRO_DIA && format !== "YYYYMMDDHHmmss")
       return moment(new Date(`${fecha}:${hora}`).getTime()).format(format);
-
+    // genera la fecha de un formato especifico si opcion es repeticion
     if (tipo === OpcionRecogida.REPETICION && format !== "YYYYMMDDHHmmss")
       return fecha;
-
-    return moment(Date.now()).format(format);
+    // genera la fecha de un formato predeterminado para después construir el id del encargo
+    return moment(timestamp).format(format);
   }
   public async formatPeriode(dias) {
     return dias.reduce((arr, { nDia }) => {
@@ -339,6 +358,7 @@ export class Encargos {
       console.log("Error insertEncargos:", error);
     }
   }
+  private parametros: ParametrosInterface= null;
   async insertarEncargo(encargo: any, cesta: CestasInterface) {
     // convertimos en  array el string de detall
     const detallesArray = [];
@@ -404,7 +424,10 @@ export class Encargos {
         }
       }
       const cliente = await clienteInstance.getClienteById(detallesArray[0].Id);
-      let descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
+      let descuento: any =
+        cliente && !cliente?.albaran && !cliente?.vip
+          ? Number(cliente.descuento)
+          : 0;
 
       // modificamos precios con el descuentro del cliente
       if (descuento && descuento > 0) {
@@ -419,18 +442,21 @@ export class Encargos {
           }
         }
       }
-      let dependenta = await trabajadoresInstance.getTrabajadorById(
-        idDependenta
-      );
+      let dependenta : TrabajadoresInterface=
+        await trabajadoresInstance.getTrabajadorById(idDependenta);
 
       for (const key in cestaEncargo.detalleIva) {
         if (key.startsWith("importe")) {
-          total += Math.round( cestaEncargo.detalleIva[key] * 100) / 100;
+          total += Math.round(cestaEncargo.detalleIva[key] * 100) / 100;
         }
       }
       total = Number((Math.round(total * 100) / 100).toFixed(2));
       // creamos una data mogodb de encargo
-      const mongodbEncargo = {
+      const parametros = this.parametros || (await parametrosInstance.getParametros());
+      if(this.parametros==null){
+        this.parametros=parametros;
+      }
+      const mongodbEncargo: EncargosInterface = {
         idCliente: idCliente,
         nombreCliente: client.nombre,
         opcionRecogida: opcionRecogida,
@@ -449,6 +475,10 @@ export class Encargos {
         estado: "SIN_RECOGER",
         codigoBarras: codigoBarras,
       };
+      if ( parametros && parametros.codigoTienda && idCliente == "CliBoti_" + parametros.codigoTienda + "_pedidosTienda") {
+        mongodbEncargo.pedido = true;
+        mongodbEncargo.estado = "RECOGIDO";
+      }
       // se vacia la lista para no duplicar posibles productos en la siguiente creacion de un encargo
 
       cesta.lista = [];
@@ -551,9 +581,8 @@ export class Encargos {
           idSec = null;
 
           const unidades = unidadArtPrinc / promoEncontrado.cantidadPrincipal;
-          const articuloPrincipal = await articulosInstance.getInfoArticulo(
-            idPrinc
-          );
+          const articuloPrincipal =
+            await articulosInstance.getInfoArticulo(idPrinc);
           const nombre = "Promo. " + articuloPrincipal.nombre;
           const productoCesta = {
             arraySuplementos: null,
@@ -597,12 +626,10 @@ export class Encargos {
 
           const unidades = unidadArtPrinc / promoEncontrado.cantidadPrincipal;
 
-          const articuloPrincipal = await articulosInstance.getInfoArticulo(
-            idPrinc
-          );
-          const articuloSecundario = await articulosInstance.getInfoArticulo(
-            idSec
-          );
+          const articuloPrincipal =
+            await articulosInstance.getInfoArticulo(idPrinc);
+          const articuloSecundario =
+            await articulosInstance.getInfoArticulo(idSec);
           const infoFinal: InfoPromocionCombo = {
             seAplican: unidades,
             sobranPrincipal: 0,

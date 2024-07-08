@@ -2,17 +2,20 @@ import { ParametrosInterface } from "./parametros.interface";
 import * as schParametros from "./parametros.mongodb";
 
 export class ParametrosClase {
+
   /* Eze 4.0 */
-  getParametros = async (): Promise<ParametrosInterface> =>
-    await schParametros.getParametros();
+  getParametros = async (): Promise<ParametrosInterface> => {
+    return await schParametros.getParametros();
+  };
 
   /* Eze 4.0 */
   actParametros = async (params: ParametrosInterface) =>
     await schParametros.setParametros(params);
 
   /* Eze 4.0 */
-  setParametros = async (params: ParametrosInterface): Promise<boolean> =>
-    await schParametros.setParametros(params);
+  setParametros = async (params: ParametrosInterface): Promise<boolean> => {
+    return await schParametros.setParametros(params);
+  };
 
   /* Eze 4.0 */
   async todoInstalado(): Promise<boolean> {
@@ -99,6 +102,9 @@ export class ParametrosClase {
       token: undefined,
       payteftcod: "",
     };
+  }
+  updLastTicket(idTicket: number) {
+    schParametros.setUltimoTicket(idTicket);
   }
 }
 

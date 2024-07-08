@@ -24,17 +24,21 @@ import {
 } from "./encargos/encargos.interface";
 import * as moment from "moment";
 import { AlbaranesInstance } from "./albaranes/albaranes.clase";
-import { clienteInstance } from "./clientes/clientes.clase";
-import { TicketsInterface } from "./tickets/tickets.interface";
 import { pantallaInstance } from "./pantallaManager/pantallaManager.class";
+import {
+  SuperTicketInterface,
+  TicketsInterface,
+} from "./tickets/tickets.interface";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
 let enProcesoDeudasFinalizadas = false;
 let enProcesoEncargosCreados = false;
 let enProcesoEncargosFinalizados = false;
+let enProcesoEncargosPedidosCaducados = false;
 let enProcesoAlbaranesCreados = false;
-
+let enprocesoTicketsOtros = false;
+let idsTicketsOtrosReenviar: TicketsInterface["_id"][] = [];
 let idsTicketsReenviar: TicketsInterface["_id"][] = [];
 
 // reenviar ticket, pone el ticket en una lista para que sincronizarTickets ponga el ticket en no enviado, y lo envie.
@@ -45,6 +49,14 @@ async function reenviarTicket(idTicket: TicketsInterface["_id"]) {
   // se pone el ticket en no enviado por si se apaga el programa antes de sincronizarTickets
   await ticketsInstance.setTicketEnviado(idTicket, false);
   idsTicketsReenviar.push(idTicket);
+}
+// se pone el ticket otrosModificado en no enviado por si se apaga el programa antes de sincronizarTicketsOtrosModificado
+async function reenviarTicketPago(idTicket: TicketsInterface["_id"]) {
+  if (!idsTicketsOtrosReenviar.includes(idTicket)) {
+    // Si no está presente en el array, se pone el ticket en no enviado y se agrega al array
+    await ticketsInstance.setTicketOtrosModificado(idTicket, false);
+    idsTicketsOtrosReenviar.push(idTicket);
+  }
 }
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -62,15 +74,19 @@ async function sincronizarTickets() {
           let idTicket = idsTicketsReenviar.shift();
           await ticketsInstance.setTicketEnviado(idTicket, false);
         }
-        const ticket = await ticketsInstance.getTicketMasAntiguo();
+        const ticket: TicketsInterface =
+          await ticketsInstance.getTicketMasAntiguo();
         if (ticket) {
           await nuevaInstancePromociones.deshacerPromociones(ticket);
-          let lic =
-            (await pantallaInstance.getInfoScreen(ticket.pantalla)).lic ||
-            parametros.licencia;
-          const res = await axios.post("tickets/enviarTicket", { ticket, lic });
+          const superTicket = { ...ticket, tipoPago: null, movimientos: null };
+          superTicket.movimientos =
+            await movimientosInstance.getMovimientosDelTicket(ticket._id);
+          superTicket.tipoPago =
+            await movimientosInstance.calcularFormaPago(superTicket);
+          const res = await axios.post("tickets/enviarTicket", {
+            ticket: superTicket,
+          });
           //.catch((e) => {console.log("error",e)});
-
           if (res.data) {
             if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
               // si el ticket no se va ha reenviar marcarlo como enviado
@@ -92,6 +108,58 @@ async function sincronizarTickets() {
     logger.Error(5, err);
   } finally {
     enProcesoTickets = false;
+  }
+}
+/**
+ * recoge tickets con otrosModificado=false y los envia al servidor
+ * @returns nothing
+ */
+async function sincronizarTicketsOtrosModificado() {
+  if (enprocesoTicketsOtros) return; // salir si ya hay un proceso sincronizando
+  try {
+    enprocesoTicketsOtros = true; // try-finally volvera a poner enprocesoTicketsOtros=false al salir
+    const parametros = await parametrosInstance.getParametros();
+    if (parametros != null) {
+      let enviarMasTicketsOtros = true;
+      while (enviarMasTicketsOtros) {
+        while (idsTicketsOtrosReenviar.length) {
+          let idTicket = idsTicketsOtrosReenviar.shift();
+          await ticketsInstance.setTicketOtrosModificado(idTicket, false);
+        }
+        const ticket: TicketsInterface =
+          await ticketsInstance.getTicketOtrosModificadoMasAntiguo();
+        if (ticket) {
+          await nuevaInstancePromociones.deshacerPromociones(ticket);
+          const superTicket = { ...ticket, tipoPago: null, movimientos: null };
+          superTicket.movimientos =
+            await movimientosInstance.getMovimientosDelTicket(ticket._id);
+          superTicket.tipoPago =
+            await movimientosInstance.calcularFormaPago(superTicket);
+          const res = await axios.post("tickets/updOtros", {
+            ticket: superTicket,
+          });
+          //.catch((e) => {console.log("error",e)});
+          if (res.data) {
+            if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
+              // si el ticket no se va ha reenviar marcarlo como enviado
+              await ticketsInstance.setTicketOtrosModificado(ticket._id, true);
+            }
+          } else enviarMasTicketsOtros = false; // si error en server salir y esperar a la siguiente sincronización
+        } else {
+          // no hay ticket mas antiguo
+          if (idsTicketsReenviar.length == 0)
+            // no hay mas tickets que reenviar
+            enviarMasTicketsOtros = false;
+        }
+        if (enviarMasTicketsOtros) await sleep(100);
+      }
+    } else {
+      logger.Error(4, "No hay parámetros definidos en la BBDD");
+    }
+  } catch (err) {
+    logger.Error(5, err);
+  } finally {
+    enprocesoTicketsOtros = false;
   }
 }
 async function sincronizarCajas() {
@@ -224,6 +292,7 @@ async function sincronizarDeudasCreadas() {
             estat: 0,
             tipus: 1,
             import: deuda.total,
+            dejaCuenta: deuda.dejaCuenta ? deuda.dejaCuenta : 0,
             botiga: parametros.licencia,
             idTicket: deuda.idTicket,
             bbdd: parametros.database,
@@ -275,7 +344,8 @@ async function sincronizarEncargosCreados() {
             encargo.fecha,
             encargo.hora,
             "YYYY-MM-DD HH:mm:ss.S",
-            encargo.amPm
+            encargo.amPm,
+            encargo.timestamp
           );
           const encargo_santAna = {
             id: await encargosInstance.generateId(
@@ -284,7 +354,8 @@ async function sincronizarEncargosCreados() {
                 encargo.fecha,
                 encargo.hora,
                 "YYYYMMDDHHmmss",
-                encargo.amPm
+                encargo.amPm,
+                encargo.timestamp
               ),
               encargo.idTrabajador.toString(),
               parametros
@@ -304,6 +375,7 @@ async function sincronizarEncargosCreados() {
                 ? await encargosInstance.formatPeriode(encargo.dias)
                 : 0,
             bbdd: parametros.database,
+            licencia: parametros.licencia, 
             productos: encargo.productos,
             idTrabajador: encargo.idTrabajador,
             recogido: false,
@@ -316,19 +388,26 @@ async function sincronizarEncargosCreados() {
             .catch((e) => {
               console.log(e);
             });
-          if (res.data && !res.data.error) {
-            if (await encargosInstance.setEnviado(encargo._id)) {
-              enProcesoEncargosCreados = false;
-              setTimeout(sincronizarEncargosCreados, 100);
-            } else {
-              enProcesoEncargosCreados = false;
-            }
+            if (res.data) {
+              if (!res.data.error) {
+                  if (await encargosInstance.setEnviado(encargo._id)) {
+                      enProcesoEncargosCreados = false;
+                      setTimeout(sincronizarEncargosCreados, 100);
+                  }
+              } else {
+                console.log(res.data.msg)
+                  logger.Error(
+                      153,
+                      "Error: no se ha podido crear el encargo en el SantaAna"
+                  );
+                  enProcesoEncargosCreados = false;
+              }
           } else {
-            logger.Error(
-              153,
-              "Error: no se ha podido crear el encargo en el SantaAna"
-            );
-            enProcesoEncargosCreados = false;
+              logger.Error(
+                  153.1,
+                  "Error: no ha habido respuesta en SantaAna"
+              );
+              enProcesoEncargosCreados = false;
           }
         } else {
           enProcesoEncargosCreados = false;
@@ -368,6 +447,7 @@ async function sincronizarDeudasFinalizadas() {
             estat: 0,
             tipus: 1,
             import: deuda.total,
+            dejaCuenta: deuda.dejaCuenta ? deuda.dejaCuenta : 0,
             botiga: parametros.licencia,
             idTicket: deuda.idTicket,
             bbdd: parametros.database,
@@ -420,7 +500,9 @@ async function sincronizarEncargosFinalizados() {
           let encargoGraella = {
             tmStmp: encargo.timestamp,
             bbdd: parametros.database,
+            licencia: parametros.licencia,
             data: encargo.fecha,
+            productos: encargo.productos,
             id: await encargosInstance.generateId(
               moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
               encargo.idTrabajador.toString(),
@@ -454,6 +536,59 @@ async function sincronizarEncargosFinalizados() {
     }
   } catch (err) {
     enProcesoEncargosFinalizados = false;
+    logger.Error(5, err);
+  }
+}
+
+// buscara pedido caducado y enviara una consulta para que lo marque como recogido
+async function sincronizarPedidosCaducados() {
+  try {
+    if (!enProcesoEncargosPedidosCaducados) {
+      enProcesoEncargosPedidosCaducados = true;
+      const parametros = await parametrosInstance.getParametros();
+      if (parametros != null) {
+        const encargo = await encargosInstance.getEncargoPedidoCaducadoMasAntiguo();
+        if (encargo) {
+          let url = "encargos/updateEncargoGraella";
+          let encargoGraella = {
+            tmStmp: encargo.timestamp,
+            bbdd: parametros.database,
+            licencia: parametros.licencia,
+            productos: encargo.productos,
+            data: encargo.fecha,
+            id: await encargosInstance.generateId(
+              moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+              encargo.idTrabajador.toString(),
+              parametros
+            ),
+          };
+          const res: any = await axios.post(url, encargoGraella).catch((e) => {
+            console.log(e);
+          });
+          if (res.data && !res.data.error) {
+            if (await encargosInstance.setFinalizado(encargo._id)) {
+              enProcesoEncargosPedidosCaducados = false;
+              setTimeout(sincronizarPedidosCaducados, 100);
+            } else {
+              enProcesoEncargosPedidosCaducados = false;
+            }
+          } else {
+            logger.Error(
+              156,
+              "Error: no se ha podido crear el encargo en el SantaAna"
+            );
+            enProcesoEncargosPedidosCaducados = false;
+          }
+        } else {
+          enProcesoEncargosPedidosCaducados = false;
+        }
+      } else {
+        enProcesoEncargosPedidosCaducados = false;
+        logger.Error(4, "No hay parámetros definidos en la BBDD");
+      }
+    }
+  } catch (err) {
+    enProcesoEncargosPedidosCaducados = false;
     logger.Error(5, err);
   }
 }
@@ -550,14 +685,17 @@ setInterval(sincronizarDeudasFinalizadas, 10000);
 setInterval(sincronizarEncargosCreados, 9000);
 setInterval(sincronizarEncargosFinalizados, 10000);
 setInterval(sincronizarAlbaranesCreados, 11000);
-setInterval(actualizarTeclados, 3600000);
-setInterval(actualizarTarifas, 3600000);
+// setInterval(actualizarTeclados, 3600000);
+// setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);
-setInterval(actualizarTrabajadores, 3600000);
+setInterval(sincronizarTicketsOtrosModificado, 16000);
+// setInterval(actualizarTrabajadores, 3600000);
 // setInterval(actualizarMesas, 3600000);
+setInterval(sincronizarPedidosCaducados, 60000);
 
 export {
   reenviarTicket,
+  reenviarTicketPago,
   // sincronizarTickets,
   // sincronizarCajas,
   // sincronizarMovimientos,

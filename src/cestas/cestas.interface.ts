@@ -54,10 +54,13 @@ export type ItemLista = {
   puntos: number;
   gramos: number;
   impresora: string;
+  printed?: boolean;
   regalo: boolean;
   dto?: number;
   iva?: number;
   pagado?: boolean;
+  tarifaEsp?: boolean;
+  varis?: boolean;
 };
 
 export type DetalleIvaInterface = {
@@ -84,4 +87,5 @@ export type ModoCesta =
   | "CONSUMO_PERSONAL"
   | "DEVOLUCION"
   | "PAGO SEPARADO"
-  | "PAGO DEUDA";
+  | "PAGO DEUDA"
+  | "RECOGER ENCARGO";

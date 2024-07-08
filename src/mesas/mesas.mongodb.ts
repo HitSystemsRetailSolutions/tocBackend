@@ -40,7 +40,6 @@ export async function insertMesas(arrayMesas: MesaInterface[]) {
   const resultado = await mesasCollection.replaceOne(
     { _id: "MESAS" },
     {
-      _id: "MESAS",
       estructura: arrayMesas,
     },
     { upsert: true }

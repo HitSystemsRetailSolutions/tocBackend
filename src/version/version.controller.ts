@@ -10,14 +10,14 @@ export class VersionController {
     axios
       .post("/parametros/actualizarVersion", {
         version: process.env.npm_package_version,
-        licencia: parametros.licencia,
+        licencia: parametros?.licencia,
       })
       .catch((e) => {
         // console.log(e);
       });
     return {
       version: process.env.npm_package_version,
-      nombreTienda: parametros.nombreTienda,
+      nombreTienda: parametros?.nombreTienda,
     };
   }
 }

@@ -10,7 +10,7 @@ import { cajaInstance } from "src/caja/caja.clase";
 export class MovimientosController {
   /* Yasai :D */
   @Post("nuevoMovimiento") // Solo para entradas o salidas manuales (idTicket = null)
-  async nuevoMovimiento(@Body() { cantidad, concepto, idTrabajador, tipo }) {
+  async nuevoMovimiento(@Body() { cantidad, concepto, idTrabajador, tipo, nombreCliente=null }) {
     try {
       if (
         cantidad &&
@@ -21,7 +21,8 @@ export class MovimientosController {
           concepto,
           tipo,
           null,
-          idTrabajador
+          idTrabajador,
+          nombreCliente
         );
       }
       throw Error("Error, faltan datos en nuevoMovimiento() controller");
@@ -129,6 +130,18 @@ export class MovimientosController {
     try {
       return await movimientosInstance.PayWith3G(idTicket);
       return null;
+    } catch (err) {
+      logger.Error(99, err);
+      console.log(err);
+      return 0;
+    }
+  }
+  @Post("getMovsDatafono3G")
+  async getMovsDatafono3G() {
+    try {
+      const inicioTime = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
+      const finalTime = Date.now();
+      return await movimientosInstance.getMovsDatafono3G(inicioTime, finalTime);
     } catch (err) {
       logger.Error(99, err);
       console.log(err);

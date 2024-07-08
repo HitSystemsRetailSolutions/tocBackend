@@ -10,10 +10,12 @@ export interface ParametrosInterface {
   ultimoTicket: number;
   header: string;
   footer: string;
+  promocioDescompteFixe?: number;
   token: string;
   contadorPaytef: number;
   params?: any;
   ipTefpay?: string;
+  ipCashlogy?: string;
   contadorPaytefDate?: string;
   tarifaMesa: string;
   payteftcod: string;

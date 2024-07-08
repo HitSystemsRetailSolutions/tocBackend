@@ -2,7 +2,7 @@ import { DetalleIvaInterface } from "../cestas/cestas.interface";
 import { TiposIva } from "../articulos/articulos.interface";
 
 /* Eze 4.0 (REDONDEA AL SEGUNDO DECIMAL) */
-const redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
+export const redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
 
 /* Eze 4.0 */
 export function construirObjetoIvas(
@@ -32,6 +32,7 @@ export function construirObjetoIvas(
   // Puede contener dto, por lo que se le aplica el dto a base
   switch (tipoIva) {
     case 1:
+    default:
       base1 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
         : (precio / 1.04) * unidades - (precio / 1.04) * unidades * (dto / 100);
@@ -66,56 +67,59 @@ export function construirObjetoIvas(
       valor5 = base5 * 0.05;
       importe5 = base5 + valor5;
       break;
-    default:
       break;
   }
-// Redondeo con Math.Round y no con toFixed para evitar un almacenado con pérdida de precisión(6.3449999999662,6.3550000002).
+  // Redondeo con Math.Round y no con toFixed para evitar un almacenado con pérdida de precisión(6.3449999999662,6.3550000002).
   return {
-    base1: Math.round(base1*1000)/1000,
-    base2: Math.round(base2*1000)/1000,
-    base3: Math.round(base3*1000)/1000,
-    base4: Math.round(base4*1000)/1000,
-    base5: Math.round(base5*1000)/1000,
-    valorIva1: Math.round(valor1*1000)/1000,
-    valorIva2: Math.round(valor2*1000)/1000,
-    valorIva3: Math.round(valor3*1000)/1000,
-    valorIva4: Math.round(valor4*1000)/1000,
-    valorIva5: Math.round(valor5*1000)/1000,
-    importe1: Math.round(importe1*1000)/1000,
-    importe2: Math.round(importe2*1000)/1000,
-    importe3: Math.round(importe3*1000)/1000,
-    importe4: Math.round(importe4*1000)/1000,
-    importe5: Math.round(importe5*1000)/1000,
+    base1: Math.round(base1 * 1000) / 1000,
+    base2: Math.round(base2 * 1000) / 1000,
+    base3: Math.round(base3 * 1000) / 1000,
+    base4: Math.round(base4 * 1000) / 1000,
+    base5: Math.round(base5 * 1000) / 1000,
+    valorIva1: Math.round(valor1 * 1000) / 1000,
+    valorIva2: Math.round(valor2 * 1000) / 1000,
+    valorIva3: Math.round(valor3 * 1000) / 1000,
+    valorIva4: Math.round(valor4 * 1000) / 1000,
+    valorIva5: Math.round(valor5 * 1000) / 1000,
+    importe1: Math.round(importe1 * 1000) / 1000,
+    importe2: Math.round(importe2 * 1000) / 1000,
+    importe3: Math.round(importe3 * 1000) / 1000,
+    importe4: Math.round(importe4 * 1000) / 1000,
+    importe5: Math.round(importe5 * 1000) / 1000,
   };
 }
 
 /* Eze 4.0 */
-export const convertirPuntosEnDinero = (puntos: number): number =>
-  Math.trunc(puntos * 0.03 * 0.02);
-
+export const convertirPuntosEnDinero = (
+  puntos: number,
+  porcentajeConversion: number
+): number => Math.trunc(puntos * 0.03 * (porcentajeConversion / 100));
+// en las licencias el porcentajeConversion suele ser 2%
 /* Eze 4.0 */
-export const convertirDineroEnPuntos = (total: number): number =>
-  Math.trunc(total / (0.03 * 0.02));
+export const convertirDineroEnPuntos = (
+  total: number,
+  pocentajeConversion: number
+): number => Math.trunc(total / (0.03 * (pocentajeConversion / 100)));
 /* Eze 4.0 */
 export function fusionarObjetosDetalleIva(
   obj1: DetalleIvaInterface,
   obj2: DetalleIvaInterface
 ): DetalleIvaInterface {
   return {
-    base1: Math.round((obj1.base1 + obj2.base1)*100)/100,
-    base2: Math.round((obj1.base2 + obj2.base2)*100)/100,
-    base3: Math.round((obj1.base3 + obj2.base3)*100)/100,
-    base4: Math.round((obj1.base4 + obj2.base4)*100)/100,
-    base5: Math.round((obj1.base5 + obj2.base5)*100)/100,
-    valorIva1: Math.round((obj1.valorIva1 + obj2.valorIva1)*100)/100,
-    valorIva2: Math.round((obj1.valorIva2 + obj2.valorIva2)*100)/100,
-    valorIva3: Math.round((obj1.valorIva3 + obj2.valorIva3)*100)/100,
-    valorIva4: Math.round((obj1.valorIva4 + obj2.valorIva4)*100)/100,
-    valorIva5: Math.round((obj1.valorIva5 + obj2.valorIva5)*100)/100,
-    importe1: Math.round((obj1.importe1 + obj2.importe1)*100)/100,
-    importe2: Math.round((obj1.importe2 + obj2.importe2)*100)/100,
-    importe3: Math.round((obj1.importe3 + obj2.importe3)*100)/100,
-    importe4: Math.round((obj1.importe4 + obj2.importe4)*100)/100,
-    importe5: Math.round((obj1.importe5 + obj2.importe5)*100)/100,
+    base1: Math.round((obj1.base1 + obj2.base1) * 100) / 100,
+    base2: Math.round((obj1.base2 + obj2.base2) * 100) / 100,
+    base3: Math.round((obj1.base3 + obj2.base3) * 100) / 100,
+    base4: Math.round((obj1.base4 + obj2.base4) * 100) / 100,
+    base5: Math.round((obj1.base5 + obj2.base5) * 100) / 100,
+    valorIva1: Math.round((obj1.valorIva1 + obj2.valorIva1) * 100) / 100,
+    valorIva2: Math.round((obj1.valorIva2 + obj2.valorIva2) * 100) / 100,
+    valorIva3: Math.round((obj1.valorIva3 + obj2.valorIva3) * 100) / 100,
+    valorIva4: Math.round((obj1.valorIva4 + obj2.valorIva4) * 100) / 100,
+    valorIva5: Math.round((obj1.valorIva5 + obj2.valorIva5) * 100) / 100,
+    importe1: Math.round((obj1.importe1 + obj2.importe1) * 100) / 100,
+    importe2: Math.round((obj1.importe2 + obj2.importe2) * 100) / 100,
+    importe3: Math.round((obj1.importe3 + obj2.importe3) * 100) / 100,
+    importe4: Math.round((obj1.importe4 + obj2.importe4) * 100) / 100,
+    importe5: Math.round((obj1.importe5 + obj2.importe5) * 100) / 100,
   };
 }

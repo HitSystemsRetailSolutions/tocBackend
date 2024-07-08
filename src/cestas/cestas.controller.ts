@@ -5,6 +5,7 @@ import { logger } from "../logger";
 import { UtilesModule } from "../utiles/utiles.module";
 import axios from "axios";
 import { articulosInstance } from "../articulos/articulos.clase";
+import { encargosInstance } from "src/encargos/encargos.clase";
 
 @Controller("cestas")
 export class CestasController {
@@ -108,9 +109,22 @@ export class CestasController {
       if (cestas) {
         return await cestasInstance.CestaPagoDeuda(cestas);
       }
+      throw Error("Error, faltan datos en cetsaDeudas() controller");
+    } catch (err) {
+      logger.Error(61, "PagarDeuda: " + err);
+      return null;
+    }
+  }
+
+  @Post("generarCestaEncargos")
+  async cestaEncargos(@Body() { cestaEncargo }) {
+    try {
+      if (cestaEncargo) {
+        return await cestasInstance.CestaRecogerEncargo(cestaEncargo);
+      }
       throw Error("Error, faltan datos en PagarDeuda() controller");
     } catch (err) {
-      logger.Error(60, "PagarDeuda: "+err);
+      logger.Error(63, "cestaEncargo: " + err);
       return null;
     }
   }
@@ -164,7 +178,23 @@ export class CestasController {
       return false;
     }
   }
-
+  @Post("findCestaDevolucion")
+  async findCestaDevolucion(@Body() { idTrabajador }) {
+    try {
+      if (idTrabajador) {
+        const result = await cestasInstance.findCestaDevolucion(idTrabajador);
+        if (result) {
+          await trabajadoresInstance.setIdCesta(idTrabajador, result._id);
+          await trabajadoresInstance.actualizarTrabajadoresFrontend();
+          return true;
+        }
+      }
+      throw Error("Error, faltan datos en crearCesta controller");
+    } catch (err) {
+      logger.Error(61, err);
+      return false;
+    }
+  }
   /* Eze 4.0 */
   @Post("onlyCrearCestaParaMesa")
   async onlyCrearCesta(@Body() { indexMesa }) {
@@ -288,18 +318,31 @@ export class CestasController {
     }
   }
 
-  @Post("recalcularIvasDescuentoToGo")
-  async recalcularIvasDescuentoToGo(@Body() { idCesta }) {
+  /* Uri House */
+  @Post("setArticuloImprimido")
+  async setArticuloImprimido(@Body() { idCesta, articulos, printed }) {
     try {
-      if (!idCesta) {
-        throw Error("faltan datos en recalcularIvasDescuentoToGo");
+      if (idCesta && articulos && printed != null) {
+        return await cestasInstance.setArticuloImprimido(idCesta, articulos, printed);
       }
-      const cesta = await cestasInstance.getCestaById(idCesta);
-      await cestasInstance.recalcularIvasDescuentoToGo(cesta);
-    } catch (error) {
-      logger.Error(134, error);
+      throw Error("Error, faltan datos en cestas/insertarArtsPagados");
+    } catch (err) {
+      logger.Error(133, err);
     }
   }
+
+  // @Post("recalcularIvasDescuentoToGo")
+  // async recalcularIvasDescuentoToGo(@Body() { idCesta }) {
+  //   try {
+  //     if (!idCesta) {
+  //       throw Error("faltan datos en recalcularIvasDescuentoToGo");
+  //     }
+  //     const cesta = await cestasInstance.getCestaById(idCesta);
+  //     await cestasInstance.recalcularIvasDescuentoToGo(cesta);
+  //   } catch (error) {
+  //     logger.Error(134, error);
+  //   }
+  // }
 
   @Post("recalcularIvas")
   async recalcularIvas(@Body() { idCesta }) {
@@ -316,6 +359,25 @@ export class CestasController {
     } catch (error) {
       logger.Error(135, error);
     }
+  }
+
+  @Post("deselectClient")
+  async deselectClient(@Body() { idCesta }) {
+    try {
+      if (!idCesta) {
+        throw Error("faltan datos en deselectClient");
+      }
+      const cesta = await cestasInstance.getCestaById(idCesta);
+      cesta.idCliente = null;
+      cesta.nombreCliente = null;
+      if (await cestasInstance.updateCesta(cesta)) {
+        await cestasInstance.actualizarCestas();
+        return true;
+      }
+    } catch (error) {
+      logger.Error(136, error);
+    }
+
   }
   // @Post("addSuplementos")
   // async addSuplementos(
