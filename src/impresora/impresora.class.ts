@@ -436,6 +436,11 @@ export class Impresora {
       mqttInstance.loggerMQTT("Error impresora: " + err);
     }
   }
+  private clientMqtt =
+    mqtt.connect(process.env.MQTT_URL) ||
+    mqtt.connect("mqtt://127.0.0.1:1883", {
+      username: "ImpresoraMQTT",
+    });
   // recovimos los datos de la impresion
   private enviarMQTT(encodedData, options) {
     // si el array de encodedData es mayor que 0 los añadimos al array de mensajes pendientes
@@ -450,23 +455,32 @@ export class Impresora {
     }
     // al terminar el timeout se envian los datos con el array de mensajes pendientes
     imprimirTimeout = setTimeout(() => {
-      var client =
-        mqtt.connect(process.env.MQTT_URL) ||
-        mqtt.connect("mqtt://127.0.0.1:1883", {
-          username: "ImpresoraMQTT",
-        });
+      var client = this.clientMqtt;
       const enviar = {
         arrayImprimir: mensajesPendientes,
         options: options,
       };
-      if(options.tipo == "cierreCaja") {
+      if (options.tipo == "cierreCaja") {
         logger.Info("Enviando cierre de caja a impresora por MQTT");
       }
-      // cuando se conecta enviamos los datos
-      client.on("connect", function () {
-        client.publish("hit.hardware/printer", JSON.stringify(enviar));
-      });
+      if (this.clientMqtt.connected) {
+        // cuando se conecta enviamos los datos
+        this.clientMqtt.publish("hit.hardware/printer", JSON.stringify(enviar));
 
+        this.clientMqtt.on("error", function (err) {
+          logger.Error("Error al enviar a impresora por MQTT", err);
+        });
+      } else {
+        this.clientMqtt.on("connect", function () {
+          this.clientMqtt.publish(
+            "hit.hardware/printer",
+            JSON.stringify(enviar)
+          );
+        });
+        this.clientMqtt.on("error", function (err) {
+          logger.Error("Error al enviar a impresora por MQTT", err);
+        });
+      }
       mensajesPendientes = [];
       clearTimeout(imprimirTimeout);
     }, 500);
@@ -2271,7 +2285,6 @@ export class Impresora {
         { tipo: "text", payload: "" },
         { tipo: "cut", payload: "PAPER_FULL_CUT" },
       ]);
-      this.calcularDataBuffer(buffer);
       const options = { imprimirLogo: true, tipo: "cierreCaja" };
       this.enviarMQTT(buffer, options);
     } catch (err) {
@@ -2279,26 +2292,7 @@ export class Impresora {
       logger.Error(145, err);
     }
   }
-  // calcula la longitud del buffer que ocupará en la impresión
-  calcularDataBuffer(buffer: any) {
-    let length = 0;
-    for (const it of buffer) {
-      if (typeof it.payload !== "string") {
-        length += Buffer.from(it.payload.toString()).length;
-      } else {
-        length += Buffer.from(it.payload).length;
-      }
-    }
-    if (length > 3000) {
-      logger.info(
-        "los datos al buffer: " +
-          length +
-          ". Superan los 3000 bytes, puede que no imprima todo el ticket"
-      );
-    }else{
-      logger.info("los datos al buffer: " + length + ".");
-    }
-  }
+
   async abrirCajon() {
     const arrayImprimir = [{ tipo: "cashdraw", payload: 2 }];
     const options = { imprimirlogo: false };
@@ -2632,7 +2626,7 @@ export class Impresora {
       return { error: false, info: "OK" };
     } catch (err) {
       console.log(err);
-      logger.Error(145, err);
+      logger.Error(159, err);
       return { error: true, info: "Error en CATCH imprimirPedido()" };
     }
   }
