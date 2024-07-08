@@ -156,82 +156,101 @@ export class CajaClase {
     totalHonei: number,
     cambioEmergenciaCierre: number
   ): Promise<boolean> {
-    if (!(await this.cajaAbierta()))
-      throw Error("Error al cerrar caja: La caja ya está cerrada");
+    try {
+      if (!(await this.cajaAbierta()))
+        throw Error("Error al cerrar caja: La caja ya está cerrada");
 
-    detalleCierre = detalleCierre.map((item) => {
-      return {
-        _id: item._id,
-        valor: parseFloat(item.valor.toFixed(3)),
-        unidades: item.unidades,
-      };
-    });
-    //console.log(detalleCierre)
-    parametrosInstance.setContadoDatafono(1, 0);
-    const cajaAbiertaActual = await this.getInfoCajaAbierta();
-    const totalDeudas = await deudasInstance.getTotalMoneyStandBy();
-    const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
-    const finalTime = await this.getFechaCierre(
-      inicioTurnoCaja,
-      cierreAutomatico
-    );
-    const cajaCerradaActual = await this.getDatosCierre(
-      cajaAbiertaActual,
-      totalCierre,
-      detalleCierre,
-      idDependientaCierre,
-      cantidadPaytef,
-      totalLocalPaytef,
-      cantidadLocal3G,
-      totalDatafono3G,
-      finalTime.time,
-      totalHonei,
-      // TODO: Propina
-      await this.getPropina(),
-      totalDeudas,
-      Number(cambioEmergenciaCierre.toFixed(2))
-    );
-    // Entra para calclular el cierre de caja que no se ha añadido al ser un cierre automático
-    if (cierreAutomatico) {
-      let cierreCaja = 0;
-      // Si el descuadre es negativo, le falta el valor del cierre de caja
-      // Si no entra, o la apertura era 0 o
-      if (cajaCerradaActual.descuadre < 0) {
-        cierreCaja = cajaCerradaActual.descuadre * -1;
-        // Si el cierre es automático, el descuadre se le añade el total del cierre caja
-        cajaCerradaActual.descuadre += cierreCaja;
-        cajaCerradaActual.recaudado += cierreCaja;
-      }
-      // Se añade el cierre de caja al detalle de cierre
-      cajaCerradaActual.detalleCierre[0].unidades +=
-        Math.round(cierreCaja * 100 * 100) / 100;
-      cajaCerradaActual.detalleCierre[0].valor += cierreCaja;
-      guardarInfoMonedas[0] += cajaCerradaActual.detalleCierre[0].unidades;
-    }
-    if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
-      const ultimaCaja = await this.getUltimoCierre();
-      impresoraInstance.imprimirCajaAsync(ultimaCaja);
-      if (await this.resetCajaAbierta()) {
-        await cestasInstance.borrarCestas();
-        if (!finalTime.estadoTurno) {
-          io.emit("cargarVentas", []);
+      detalleCierre = detalleCierre.map((item) => {
+        return {
+          _id: item._id,
+          valor: parseFloat(item.valor.toFixed(3)),
+          unidades: item.unidades,
+        };
+      });
+      //console.log(detalleCierre)
+      parametrosInstance.setContadoDatafono(1, 0);
+      const cajaAbiertaActual = await this.getInfoCajaAbierta();
+      if (!cajaAbiertaActual)
+        throw new Error("Error al obtener información de caja abierta");
+
+      const totalDeudas = await deudasInstance.getTotalMoneyStandBy();
+      if (totalDeudas == null)
+        throw new Error("Error al obtener total de deudas");
+
+      const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
+      const finalTime = await this.getFechaCierre(
+        inicioTurnoCaja,
+        cierreAutomatico
+      );
+      if (!finalTime) throw new Error("Error al obtener la fecha de cierre");
+      const cajaCerradaActual = await this.getDatosCierre(
+        cajaAbiertaActual,
+        totalCierre,
+        detalleCierre,
+        idDependientaCierre,
+        cantidadPaytef,
+        totalLocalPaytef,
+        cantidadLocal3G,
+        totalDatafono3G,
+        finalTime.time,
+        totalHonei,
+        // TODO: Propina
+        await this.getPropina(),
+        totalDeudas,
+        Number(cambioEmergenciaCierre.toFixed(2))
+      );
+      if (!cajaCerradaActual)
+        throw new Error("Error al obtener datos de cierre de caja actual");
+
+      // Entra para calclular el cierre de caja que no se ha añadido al ser un cierre automático
+      if (cierreAutomatico) {
+        let cierreCaja = 0;
+        // Si el descuadre es negativo, le falta el valor del cierre de caja
+        // Si no entra, o la apertura era 0 o
+        if (cajaCerradaActual.descuadre < 0) {
+          cierreCaja = cajaCerradaActual.descuadre * -1;
+          // Si el cierre es automático, el descuadre se le añade el total del cierre caja
+          cajaCerradaActual.descuadre += cierreCaja;
+          cajaCerradaActual.recaudado += cierreCaja;
         }
-        cajaInstance
-          .guardarMonedas(
-            guardarInfoMonedas,
-            cambioEmergenciaCierre,
-            "CLAUSURA"
-          )
-          .then((res2) => {
-            if (res2) {
-              return true;
-            }
-            return false;
-          });
-        return true;
+        // Se añade el cierre de caja al detalle de cierre
+        cajaCerradaActual.detalleCierre[0].unidades +=
+          Math.round(cierreCaja * 100 * 100) / 100;
+        cajaCerradaActual.detalleCierre[0].valor += cierreCaja;
+        guardarInfoMonedas[0] += cajaCerradaActual.detalleCierre[0].unidades;
       }
+      if (
+        await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)
+      ) {
+        const ultimaCaja = await this.getUltimoCierre();
+        if (!ultimaCaja) throw new Error("Error al obtener último cierre");
+        impresoraInstance.imprimirCajaAsync(ultimaCaja);
+        if (await this.resetCajaAbierta()) {
+          await cestasInstance.borrarCestas();
+          if (!finalTime.estadoTurno) {
+            io.emit("cargarVentas", []);
+          }
+          cajaInstance
+            .guardarMonedas(
+              guardarInfoMonedas,
+              cambioEmergenciaCierre,
+              "CLAUSURA"
+            )
+            .then((res2) => {
+              if (res2) {
+                return true;
+              }
+              throw Error("Error en guardarMonedas");
+            });
+          return true;
+        }
+        throw Error("Error en resetCajaAbierta");
+      }
+      throw Error("Error en nuevoItemSincroCajas");
+    } catch (error) {
+      logger.Error("Error en el proceso de cierre de caja:", error.message, error.stack);
+      return false;
     }
-    return false;
   }
 
   /* Eze 4.0 */
