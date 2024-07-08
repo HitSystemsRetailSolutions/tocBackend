@@ -24,6 +24,12 @@ import { deudasInstance } from "src/deudas/deudas.clase";
 require("dotenv").config();
 const mqtt = require("mqtt");
 export class CajaClase {
+  private mqttOptions = {
+    host: process.env.MQTT_HOST,
+    username: process.env.MQTT_USER,
+    password: process.env.MQTT_PASSWORD,
+  };
+  private client = mqtt.connect(this.mqttOptions);
   async mqttAbrirCaja(inicioTime: number) {
     try {
       const parametros = await parametrosInstance.getParametros();
@@ -35,20 +41,23 @@ export class CajaClase {
         CaixaDataInici: date,
       };
       let url = `/Hit/Serveis/Contable/Licencia/Apertura`;
-      const mqttOptions = {
-        host: process.env.MQTT_HOST,
-        username: process.env.MQTT_USER,
-        password: process.env.MQTT_PASSWORD,
-      };
-      const client = mqtt.connect(mqttOptions);
+
       // cuando se conecta enviamos los datos
-      client.on("connect", function () {
-        // console.log("Conectado a MQTT apertura");
-        client.publish(url, JSON.stringify(ticketJSON));
-      });
-      client.on("error", (err) => {
-        console.error("Error en el client MQTT:", err);
-      });
+      if (this.client.connected) {
+        // Publica los datos
+        this.client.publish(url, JSON.stringify(ticketJSON));
+        this.client.on("error", (err) => {
+          logger.Error("Error en el client MQTT obreCaixa:", err);
+        });
+      } else {
+        // Si no está conectado, espera a que se conecte antes de publicar
+        this.client.on("connect", () => {
+          this.client.publish(url, JSON.stringify(ticketJSON));
+        });
+        this.client.on("error", (err) => {
+          logger.Error("Error en el client MQTT obreCaixa:", err);
+        });
+      }
     } catch (error) {
       logger.Error(53.2, "Error en mqttAbrirCaja: " + error);
     }
@@ -158,7 +167,6 @@ export class CajaClase {
       };
     });
     //console.log(detalleCierre)
-    cestasInstance.actualizarCestas();
     parametrosInstance.setContadoDatafono(1, 0);
     const cajaAbiertaActual = await this.getInfoCajaAbierta();
     const totalDeudas = await deudasInstance.getTotalMoneyStandBy();
@@ -204,6 +212,7 @@ export class CajaClase {
       const ultimaCaja = await this.getUltimoCierre();
       impresoraInstance.imprimirCajaAsync(ultimaCaja);
       if (await this.resetCajaAbierta()) {
+        await cestasInstance.borrarCestas();
         if (!finalTime.estadoTurno) {
           io.emit("cargarVentas", []);
         }
@@ -464,6 +473,9 @@ export class CajaClase {
             salidasAlbaran += arrayMovimientos[i].valor;
           }
           totalSalidas += arrayMovimientos[i].valor;
+          break;
+        case "TARJETA":
+        case "DEV_DATAFONO_PAYTEF":
           break;
         default:
           logger.Error(51, "Error, tipo de movimiento desconocido");

@@ -162,7 +162,7 @@ export class TicketsController {
         await encargosInstance.updateEncargoGraella(idEncargo);
       if (!graellaModificada) return false;
       const ticket = await ticketsInstance.generarNuevoTicket(
-        total - dejaCuenta,
+        total,
         idTrabajador,
         cestaEncargo.cesta,
         tipo === "CONSUMO_PERSONAL",
@@ -210,6 +210,7 @@ export class TicketsController {
       tkrsData,
       concepto,
       honei,
+      dejaCuenta = 0,
     }: {
       total: number;
       idCesta: TicketsInterface["cesta"]["_id"];
@@ -221,6 +222,7 @@ export class TicketsController {
       };
       concepto?: MovimientosInterface["concepto"];
       honei?: boolean;
+      dejaCuenta?: number;
     }
   ) {
     const cesta = await cestasInstance.getCestaById(idCesta);
@@ -235,7 +237,8 @@ export class TicketsController {
       cesta,
       tipo === "CONSUMO_PERSONAL",
       tipo.includes("HONEI") || honei,
-      tkrsData?.cantidadTkrs > 0
+      tkrsData?.cantidadTkrs > 0,
+      dejaCuenta
     );
     // id temporal para el ticketPaytef
     let idTransaccion = await ticketsInstance.getProximoId();
@@ -248,6 +251,8 @@ export class TicketsController {
       .iniciarTransaccion(idTrabajador, idTransaccion, total)
       .then(async (x) => {
         if (x) {
+          if(dejaCuenta > 0)
+            ticketTemp.total += dejaCuenta;
           if (await ticketsInstance.insertarTicket(ticketTemp, this.fiskaly)) {
             // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
             // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
@@ -296,6 +301,7 @@ export class TicketsController {
       tkrsData,
       concepto,
       honei,
+      dejaCuenta = 0,
     }: {
       total: number;
       idCesta: TicketsInterface["cesta"]["_id"];
@@ -307,6 +313,7 @@ export class TicketsController {
       };
       concepto?: MovimientosInterface["concepto"];
       honei?: boolean;
+      dejaCuenta?: number;
     }
   ) {
     try {
@@ -328,12 +335,13 @@ export class TicketsController {
         paytefInstance.deleteUltimaIniciarTransaccion();
       }
       const ticket = await ticketsInstance.generarNuevoTicket(
-        total,
+        total+dejaCuenta,
         idTrabajador,
         cesta,
         tipo === "CONSUMO_PERSONAL",
         tipo.includes("HONEI") || honei,
-        tkrsData?.cantidadTkrs > 0
+        tkrsData?.cantidadTkrs > 0,
+        dejaCuenta
       );
 
       if (!ticket) {
@@ -365,7 +373,6 @@ export class TicketsController {
           tkrsData
         );
       }
-      console.log("4");
       throw Error(
         "Error, no se ha podido crear el ticket en crearTicket() controller 2"
       );

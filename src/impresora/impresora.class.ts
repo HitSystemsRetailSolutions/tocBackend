@@ -165,7 +165,7 @@ export class Impresora {
     const trabajador: TrabajadoresInterface =
       await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
     // Preparamos el objeto que vamos a mandar a la impresora
-    let sendObject: Object;
+    let sendObject;
     // Si el ticket existe y el trabajador tambien
     if (ticket && trabajador) {
       let infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
@@ -241,6 +241,9 @@ export class Impresora {
               : ticket.cesta.indexMesa,
           comensales: ticket?.cesta?.comensales || null,
         };
+      }
+      if (ticket.restante > 0) {
+        sendObject.restante = ticket.restante;
       }
       // enviamos el objeto
       if (infoCliente?.albaran) {
@@ -319,6 +322,9 @@ export class Impresora {
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
         };
+      }
+      if (ticket.restante > 0) {
+        sendObject.restante = ticket.restante;
       }
       // funcion parecida a _venta pero imprime dos veces el ticket una de las dos con firma
       // por que existe esta guarrada? para evitar que se imprima solo una de dos.
@@ -453,10 +459,14 @@ export class Impresora {
         arrayImprimir: mensajesPendientes,
         options: options,
       };
+      if(options.tipo == "cierreCaja") {
+        logger.Info("Enviando cierre de caja a impresora por MQTT");
+      }
       // cuando se conecta enviamos los datos
       client.on("connect", function () {
         client.publish("hit.hardware/printer", JSON.stringify(enviar));
       });
+
       mensajesPendientes = [];
       clearTimeout(imprimirTimeout);
     }, 500);
@@ -504,7 +514,7 @@ export class Impresora {
       clientTitle = "\nCLIENT:";
       detalleClienteVip = `\n${infoClienteVip.nombre}`;
       if (infoClienteVip.nif)
-        detalleClienteVip += `\nNIF: ${infoClienteVip.nif}`;
+        detalleClienteVip += `\x1B\x45\x00 \nNIF: ${infoClienteVip.nif}`;
       if (infoClienteVip.direccion)
         detalleClienteVip += `\n${infoClienteVip.direccion}`;
     }
@@ -541,11 +551,10 @@ export class Impresora {
       (!clienteDescEsp || clienteDescEsp.precio != total)
     ) {
       detalleDescuento += detalleDescuento += `Total sense descompte: ${(
-        (total + dejaCuenta) /
+        total /
         (1 - infoCliente.descuento / 100)
       ).toFixed(2)}€\nDescompte total: ${(
-        (((total + dejaCuenta) / (1 - infoCliente.descuento / 100)) *
-          infoCliente.descuento) /
+        ((total / (1 - infoCliente.descuento / 100)) * infoCliente.descuento) /
         100
       ).toFixed(2)}€\n`;
     }
@@ -632,7 +641,10 @@ export class Impresora {
           diasSemana[fechaEspaña.format("d")]
         } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
-      { tipo: "text", payload: "Factura simplificada N: " + numFactura },
+      {
+        tipo: "text",
+        payload: `\x1B\x45\x01 Factura simplificada N: ${numFactura}\x1B\x45\x00`,
+      },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
     ];
     if (info.mesa)
@@ -665,9 +677,13 @@ export class Impresora {
         { tipo: "size", payload: [0, 0] },
         {
           tipo: "text",
-          payload: `${infoCliente.telefono ? `${infoCliente.telefono}\n` : ""}${
-            detallePuntosCliente ? `${detallePuntosCliente}\n` : ""
-          }${clienteDescuento ? `${clienteDescuento}\n` : ""}`,
+          payload: `${
+            infoCliente.telefono
+              ? `\x1B\x45\x01 ${infoCliente.telefono} \x1B\x45\x00 \n`
+              : ""
+          }${detallePuntosCliente ? `${detallePuntosCliente}\n` : ""}${
+            clienteDescuento ? `${clienteDescuento}\n` : ""
+          }`,
         }
       );
 
@@ -703,9 +719,12 @@ export class Impresora {
     arrayImprimir.push({ tipo: "size", payload: [1, 1] });
     if (pagoDevolucion)
       arrayImprimir.push({ tipo: "text", payload: pagoDevolucion });
+    let totalImporte = total;
+    // si hay deja cuenta restamos el total, menos si esta anulado el ticket
+    if (info?.restante) totalImporte = info.restante;
     arrayImprimir.push(
       { tipo: "align", payload: "RT" },
-      { tipo: "text", payload: "TOTAL: " + total.toFixed(2) + " €" },
+      { tipo: "text", payload: "TOTAL: " + totalImporte.toFixed(2) + " €" },
       { tipo: "control", payload: "LF" },
       { tipo: "size", payload: [0, 0] },
       { tipo: "align", payload: "CT" },
@@ -1134,10 +1153,6 @@ export class Impresora {
     let cliente = idCliente
       ? await clienteInstance.getClienteById(idCliente)
       : null;
-    let descuento: any =
-      cliente && !cliente?.albaran && !cliente?.vip
-        ? Number(cliente.descuento)
-        : 0;
 
     const albaranNPT =
       cliente?.albaran && cliente?.noPagaEnTienda ? true : false;
@@ -1162,8 +1177,7 @@ export class Impresora {
     let detalles = "";
 
     for (let i = 0; i < arrayCompra.length; i++) {
-      arrayCompra[i].subtotal =
-        arrayCompra[i].subtotal - arrayCompra[i].subtotal * (descuento / 100);
+      arrayCompra[i].subtotal = arrayCompra[i].subtotal;
 
       arrayCompra[i]["preuU"] = albaranNPT
         ? Number(
@@ -1859,6 +1873,10 @@ export class Impresora {
       for (let i = 0; i < arrayMovimientos.length; i++) {
         const auxFecha = new Date(arrayMovimientos[i]._id);
         switch (arrayMovimientos[i].tipo) {
+          case "DEV_DATAFONO_PAYTEF":
+            break;
+          case "DEV_DATAFONO_3G":
+            break;
           case "TARJETA":
             break;
           case "TKRS_CON_EXCESO":
@@ -2253,7 +2271,7 @@ export class Impresora {
         { tipo: "text", payload: "" },
         { tipo: "cut", payload: "PAPER_FULL_CUT" },
       ]);
-
+      this.calcularDataBuffer(buffer);
       const options = { imprimirLogo: true, tipo: "cierreCaja" };
       this.enviarMQTT(buffer, options);
     } catch (err) {
@@ -2261,7 +2279,26 @@ export class Impresora {
       logger.Error(145, err);
     }
   }
-
+  // calcula la longitud del buffer que ocupará en la impresión
+  calcularDataBuffer(buffer: any) {
+    let length = 0;
+    for (const it of buffer) {
+      if (typeof it.payload !== "string") {
+        length += Buffer.from(it.payload.toString()).length;
+      } else {
+        length += Buffer.from(it.payload).length;
+      }
+    }
+    if (length > 3000) {
+      logger.Info(
+        "los datos al buffer: " +
+          length +
+          ". Superan los 3000 bytes, puede que no imprima todo el ticket"
+      );
+    }else{
+      logger.Info("los datos al buffer: " + length + ".");
+    }
+  }
   async abrirCajon() {
     const arrayImprimir = [{ tipo: "cashdraw", payload: 2 }];
     const options = { imprimirlogo: false };
@@ -2451,9 +2488,13 @@ export class Impresora {
     // Imprimir las deudas por orden de fecha
     await deudas.forEach((deuda) => {
       const date = new Date(deuda.timestamp);
-      const dateOptions: Intl.DateTimeFormatOptions  = { day: '2-digit', month: '2-digit', year: 'numeric' };
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      };
       const options = { hour12: false };
-      const fecha = date.toLocaleDateString('es-ES', dateOptions);
+      const fecha = date.toLocaleDateString("es-ES", dateOptions);
       const hora = date.toLocaleTimeString(undefined, options);
 
       string += `\n${fecha} ${hora}`;
@@ -2489,7 +2530,112 @@ export class Impresora {
     );
     return { error: false, msg: "Good work bro" };
   }
+  async imprimirPedido(encargo: EncargosInterface) {
+    const parametros = await parametrosInstance.getParametros();
+    const trabajador: TrabajadoresInterface =
+      await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
 
+    const cabecera = parametros?.header == undefined ? "" : parametros.header;
+    const moment = require("moment-timezone");
+    const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
+    let detalles = await this.detallesTicket(
+      encargo.cesta.lista,
+      encargo.idCliente
+    );
+    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
+      encargo.cesta.lista,
+      encargo.idCliente
+    );
+    let detalleImporte = "";
+    let importe = "Total:" + encargo.total.toFixed(2) + " €";
+
+    const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
+    let detalleIva = "";
+    detalleIva =
+      detallesIva.detalleIva0 +
+      detallesIva.detalleIva4 +
+      detallesIva.detalleIva5 +
+      detallesIva.detalleIva10 +
+      detallesIva.detalleIva21;
+    // mostramos las observaciones de los productos
+    let observacions = "";
+    for (const producto of encargo.productos) {
+      if (producto.comentario != "") {
+        const nombreLimpio = producto.nombre.startsWith("+")
+          ? producto.nombre.substring(1)
+          : producto.nombre;
+        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;
+      }
+    }
+    let fechaEncargo = encargo.fecha + " " + encargo.hora;
+    try {
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
+      const options = { imprimirLogo: true };
+
+      this.enviarMQTT(
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "Comanda" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: cabecera },
+          {
+            tipo: "text",
+            payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
+          },
+          { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
+          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+          { tipo: "control", payload: "LF" },
+          {
+            tipo: "text",
+            payload: formatoDetalle[tipoFormatoDetalle],
+          },
+          {
+            tipo: "text",
+            payload: "------------------------------------------",
+          },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: detalles },
+          {
+            tipo: "text",
+            payload: "------------------------------------------",
+          },
+          { tipo: "text", payload: detalleImporte },
+          { tipo: "text", payload: "" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: importe },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "Observacions:" },
+          { tipo: "text", payload: observacions },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "CT" },
+          { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+          { tipo: "text", payload: detalleIva },
+          { tipo: "text", payload: "-- ES COPIA --" },
+          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: "ID: " + random() + " - " + random() },
+          {
+            tipo: "barcode",
+            payload: [encargo.codigoBarras.toString().slice(0, 12), "EAN13", 4],
+          },
+
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],
+        options
+      );
+      return { error: false, info: "OK" };
+    } catch (err) {
+      console.log(err);
+      logger.Error(145, err);
+      return { error: true, info: "Error en CATCH imprimirPedido()" };
+    }
+  }
   async imprimirEncargo(encargo: EncargosInterface) {
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface =
@@ -2501,6 +2647,7 @@ export class Impresora {
       cliente && !cliente?.albaran && !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
+    const clienteEnc = cliente && cliente?.nombre ? cliente.nombre : "No en té";
     const telefono: ClientesInterface["telefono"] =
       cliente?.telefono && cliente?.telefono.length > 1
         ? cliente.telefono
@@ -2624,7 +2771,7 @@ export class Impresora {
             payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
-          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Client: " + clienteEnc },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },
@@ -2677,7 +2824,7 @@ export class Impresora {
             payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
-          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Client: " + clienteEnc },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },
@@ -2730,7 +2877,7 @@ export class Impresora {
             payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
-          { tipo: "text", payload: "Client: " + encargo.nombreCliente },
+          { tipo: "text", payload: "Client: " + clienteEnc },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
           { tipo: "control", payload: "LF" },

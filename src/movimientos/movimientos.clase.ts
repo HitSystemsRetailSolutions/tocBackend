@@ -611,7 +611,7 @@ export class MovimientosClase {
             .length > 1 &&
           superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
             0 &&
-          superTicket.movimientos.filter((e) => e.concepto === "dejaACuenta")
+          superTicket.movimientos.filter((e) => e.concepto === "dejaACuentaDeuda")
             .length > 0
         ) {
           return "EFECTIVO";

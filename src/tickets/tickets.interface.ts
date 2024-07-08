@@ -20,6 +20,7 @@ export interface TicketsInterface {
   consumoPersonal: boolean;
   anulado?: Anulado;
   imprimir?: boolean;
+  restante?: number;
   enviado: boolean;
   otrosModificado?: boolean;
   fiskalyId?: string;

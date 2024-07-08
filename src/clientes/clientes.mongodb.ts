@@ -75,3 +75,16 @@ export async function eliminarCliente(
   const resultado = await clientes.deleteOne({ id: idCliente });
   return resultado.acknowledged && resultado.deletedCount === 1;
 }
+
+export async function getClientePedidosTienda(codigoTienda: number) {
+  const database = (await conexion).db("tocgame");
+  const clientes = database.collection<ClientesInterface>("clientes");
+  const resultado = await clientes.findOne({ id: `CliBoti_${codigoTienda}_pedidosTienda` });
+  return resultado;
+}
+
+export async function insertarCliente(clienteMDB: ClientesInterface) {
+  const database = (await conexion).db("tocgame");
+  const clientes = database.collection("clientes");
+  return clientes.insertOne(clienteMDB);
+}

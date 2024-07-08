@@ -205,37 +205,82 @@ export class ClientesController {
   ) {
     try {
       const parametros = await parametrosInstance.getParametros();
-
-      if (nombre) {
-        if (nombre.length >= 3) {
-          const hola = {
-            nombre,
-            telefono,
-            email,
-            direccion,
-            tarjetaCliente,
-            nif,
-            descuento,
-            idCliente: `CliBoti_${parametros.codigoTienda}_${Date.now()}`,
-            idTarjetaCliente: tarjetaCliente,
-          };
-          await axios
-            .post("clientes/crearNuevoCliente", hola)
-            .then((res) => {
-              return !!res.data;
-            })
-            .finally(async () => {
-              await this.descargarClientesFinales();
-            })
-            .catch((err) => {
-              return false;
-            });
-        }
+  
+      if (!nombre || nombre.length < 3) {
+        throw new Error("Error, faltan datos en crearNuevoCliente() controller");
       }
-      throw Error("Error, faltan datos en crearNuevoCliente() controller");
+  
+      const nuevoCliente = {
+        nombre,
+        telefono,
+        email,
+        direccion,
+        tarjetaCliente,
+        nif,
+        descuento,
+        idCliente: `CliBoti_${parametros.codigoTienda}_${Date.now()}`,
+        idTarjetaCliente: tarjetaCliente,
+      };
+  
+      let response;
+      try {
+        response = await axios.post("clientes/crearNuevoCliente", nuevoCliente);
+      } catch (axiosError) {
+        throw {
+          type: "AxiosError",
+          message: "Error al crear el cliente en el servidor remoto",
+          details: axiosError.message,
+        };
+      }
+  
+      if (response.data) {
+        const clienteMDB: ClientesInterface = {
+          id: nuevoCliente.idCliente,
+          nombre: nuevoCliente.nombre,
+          tarjetaCliente: nuevoCliente.tarjetaCliente,
+          descuento: nuevoCliente.descuento,
+          nif: nuevoCliente.nif.toString(),
+          telefono: nuevoCliente.telefono,
+          direccion: nuevoCliente.direccion,
+          email: nuevoCliente.email,
+          albaran: false,
+          noPagaEnTienda: false,
+          vip: false,
+        };
+  
+        try {
+          await clienteInstance.insertarCliente(clienteMDB);
+          return {
+            success: true,
+            message: "Cliente creado exitosamente",
+            idCliente: nuevoCliente.idCliente,
+          };
+        } catch (dbError) {
+          throw {
+            type: "DatabaseError",
+            message: "Error al insertar el cliente en la base de datos",
+            details: dbError.message,
+          };
+        }
+      } else {
+        throw new Error("Error desconocido al crear el cliente en el servidor remoto");
+      }
     } catch (err) {
-      logger.Error(68, err);
-      return false;
+      if (err.type === "AxiosError" || err.type === "DatabaseError") {
+        logger.Error(err.message, err.details);
+        return {
+          success: false,
+          message: err.message,
+          details: err.details,
+        };
+      } else {
+        logger.Error(68, err);
+        return {
+          success: false,
+          message: "Error general en crearNuevoCliente()",
+          details: err.message,
+        };
+      }
     }
   }
 
@@ -333,6 +378,15 @@ export class ClientesController {
       return arrayClientesFacturacion;
     } catch (error) {
       logger.Error(138, "En getEsClientFacturacion:", error);
+      return false;
+    }
+  }
+  @Get("getClientePedidosTienda")
+  async getClientePedidosTienda() {
+    try {
+      return await clienteInstance.getClientePedidosTienda();
+    } catch (error) {
+      logger.Error(158, "En getEsClientFacturacion:", error);
       return false;
     }
   }
