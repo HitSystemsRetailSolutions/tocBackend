@@ -86,6 +86,9 @@ export class Deudas {
   async getDeudas() {
     return await schDeudas.getDeudas();
   }
+  async getDeudasByIdCliente(idCliente: DeudasInterface["idCliente"]) {
+    return await schDeudas.getDeudasByIdCliente(idCliente);
+  }
   async getAllDeudas() {
     return await schDeudas.getAllDeudas();
   }

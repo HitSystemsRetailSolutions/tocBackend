@@ -56,7 +56,9 @@ export class Encargos {
       })
       .catch((err: string) => ({ error: true, msg: err }));
   };
-
+async getEncargosByIdCliente(idCliente: string) {
+    return await schEncargos.getEncargosByIdCliente(idCliente);
+  }
   ordenarImpresion = async (orden, encargos) => {
     if (orden == "Cliente") {
       this.imprimirClientesPorProducto(encargos);

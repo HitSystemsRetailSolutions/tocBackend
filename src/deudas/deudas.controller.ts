@@ -40,6 +40,16 @@ export class DeudasController {
       return null;
     }
   }
+  @Post("getDeudasByIdCliente")
+  async getDeudasByIdCliente(@Body() data) {
+    try {
+      if (!data.idCliente) return null;
+      return await deudasInstance.getDeudasByIdCliente(data.idCliente);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
 
   @Post("ticketPagado")
   async ticketPagado(@Body() data) {
