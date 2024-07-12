@@ -77,8 +77,14 @@ export class Deudas {
     deuda.estado = "SIN_PAGAR";
     return schDeudas
       .setDeuda(deuda)
-      .then((ok: boolean) => {
+      .then(async (ok: boolean) => {
         if (!ok) return { error: true, msg: "Error al crear la deuda" };
+        await cestasInstance.borrarArticulosCesta(
+          deuda.cesta._id,
+          true,
+          true,
+          false
+        );
         return { error: false, msg: "Deuda creada" };
       })
       .catch((err: string) => ({ error: true, msg: err }));
@@ -225,8 +231,7 @@ export class Deudas {
           } else if (cantidadTkrs < total) {
             // Acciones si la cantidad de TKRS no cubre la deuda completa
             if (infoCobro.tipo === "DATAFONO_3G") {
-              let total3G =
-                Math.round((total - cantidadTkrs) * 100) / 100;
+              let total3G = Math.round((total - cantidadTkrs) * 100) / 100;
               await movimientosInstance.nuevoMovimientoForDeudas(
                 Date.now(),
                 total3G,
@@ -337,7 +342,7 @@ export class Deudas {
       codigoBarras = String(Ean13Utils.generate(codigoBarras));
       const movimientoGeneral: MovimientosInterface = {
         _id: Date.now(),
-        valor: Math.round((infoCobro.total)*100)/100,
+        valor: Math.round(infoCobro.total * 100) / 100,
         concepto: concepto,
         idTicket: null,
         idTrabajador: infoCobro.idTrabajador,

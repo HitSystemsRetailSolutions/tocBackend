@@ -56,7 +56,7 @@ export class Encargos {
       })
       .catch((err: string) => ({ error: true, msg: err }));
   };
-async getEncargosByIdCliente(idCliente: string) {
+  async getEncargosByIdCliente(idCliente: string) {
     return await schEncargos.getEncargosByIdCliente(idCliente);
   }
   ordenarImpresion = async (orden, encargos) => {
@@ -205,7 +205,12 @@ async getEncargosByIdCliente(idCliente: string) {
       .setEncargo(encargo)
       .then(async (ok: boolean) => {
         if (!ok) return { error: true, msg: "Error al crear el encargo" };
-        await cestasInstance.borrarArticulosCesta(encargo.cesta._id, true, true, false);
+        await cestasInstance.borrarArticulosCesta(
+          encargo.cesta._id,
+          true,
+          true,
+          false
+        );
         return { error: false, msg: "Encargo creado" };
       })
       .catch((err: string) => ({ error: true, msg: err }));
@@ -360,7 +365,7 @@ async getEncargosByIdCliente(idCliente: string) {
       console.log("Error insertEncargos:", error);
     }
   }
-  private parametros: ParametrosInterface= null;
+  private parametros: ParametrosInterface = null;
   async insertarEncargo(encargo: any, cesta: CestasInterface) {
     // convertimos en  array el string de detall
     const detallesArray = [];
@@ -444,7 +449,7 @@ async getEncargosByIdCliente(idCliente: string) {
           }
         }
       }
-      let dependenta : TrabajadoresInterface=
+      let dependenta: TrabajadoresInterface =
         await trabajadoresInstance.getTrabajadorById(idDependenta);
 
       for (const key in cestaEncargo.detalleIva) {
@@ -454,9 +459,10 @@ async getEncargosByIdCliente(idCliente: string) {
       }
       total = Number((Math.round(total * 100) / 100).toFixed(2));
       // creamos una data mogodb de encargo
-      const parametros = this.parametros || (await parametrosInstance.getParametros());
-      if(this.parametros==null){
-        this.parametros=parametros;
+      const parametros =
+        this.parametros || (await parametrosInstance.getParametros());
+      if (this.parametros == null) {
+        this.parametros = parametros;
       }
       const mongodbEncargo: EncargosInterface = {
         idCliente: idCliente,
@@ -477,7 +483,11 @@ async getEncargosByIdCliente(idCliente: string) {
         estado: "SIN_RECOGER",
         codigoBarras: codigoBarras,
       };
-      if ( parametros && parametros.codigoTienda && idCliente == "CliBoti_" + parametros.codigoTienda + "_pedidosTienda") {
+      if (
+        parametros &&
+        parametros.codigoTienda &&
+        idCliente == "CliBoti_" + parametros.codigoTienda + "_pedidosTienda"
+      ) {
         mongodbEncargo.pedido = true;
         mongodbEncargo.estado = "RECOGIDO";
       }
