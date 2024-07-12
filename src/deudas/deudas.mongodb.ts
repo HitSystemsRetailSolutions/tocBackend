@@ -20,6 +20,13 @@ export async function getDeudas(): Promise<DeudasInterface[]> {
   const deudas = database.collection<DeudasInterface>("deudas");
   return await deudas.find({ estado: "SIN_PAGAR" }).toArray();
 }
+export async function getDeudasByIdCliente(
+  idCliente: DeudasInterface["idCliente"]
+): Promise<DeudasInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const deudas = database.collection<DeudasInterface>("deudas");
+  return await deudas.find({ idCliente: idCliente, estado: "SIN_PAGAR" }).toArray();
+}
 export async function getAllDeudas(): Promise<DeudasInterface[]> {
   const database = (await conexion).db("tocgame");
   const deudas = database.collection<DeudasInterface>("deudas");
