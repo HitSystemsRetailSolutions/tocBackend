@@ -15,6 +15,16 @@ export class EncargosController {
       return null;
     }
   }
+  @Post("getEncargosByIdCliente")
+  async getEncargosByIdCliente(@Body() data) {
+    try {
+      if (!data.idCliente) return null;
+      return await encargosInstance.getEncargosByIdCliente(data.idCliente);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
   @Post("setEncargo")
   async setEncargo(@Body() data) {
     try {
