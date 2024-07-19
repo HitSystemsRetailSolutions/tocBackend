@@ -50,3 +50,12 @@ export async function getDevolucionById(
     database.collection<DevolucionesInterface>("devoluciones");
   return await devoluciones.findOne({ _id: id });
 }
+
+export async function verifyCurrentBoxReturns(
+  inicioTime: number
+): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const devoluciones =
+    database.collection<DevolucionesInterface>("devoluciones");
+  return (await devoluciones.countDocuments({ timestamp: { $gt: inicioTime } })) > 0;
+}

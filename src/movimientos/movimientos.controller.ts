@@ -148,4 +148,14 @@ export class MovimientosController {
       return 0;
     }
   }
+
+  @Get("verifyCurrentBoxEntregaDiaria")
+  async verifyCurrentBoxEntregaDiaria() {
+    try {
+      return await movimientosInstance.verifyCurrentBoxEntregaDiaria();
+    } catch (err) {
+      logger.Error(102, err);
+      return false;
+    }
+  }
 }

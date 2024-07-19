@@ -611,8 +611,9 @@ export class MovimientosClase {
             .length > 1 &&
           superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
             0 &&
-          superTicket.movimientos.filter((e) => e.concepto === "dejaACuentaDeuda")
-            .length > 0
+          superTicket.movimientos.filter(
+            (e) => e.concepto === "dejaACuentaDeuda"
+          ).length > 0
         ) {
           return "EFECTIVO";
         }
@@ -721,6 +722,24 @@ export class MovimientosClase {
   }
   getMovsDatafono3G = async (inicioTime: number, finalTime: number) =>
     await schMovimientos.getMovsDatafono3G(inicioTime, finalTime);
+  
+  async verifyCurrentBoxEntregaDiaria() {
+    const infoCaja = await cajaInstance.getInfoCajaAbierta();
+    if (infoCaja) {
+      const inicioCaja = infoCaja.inicioTime;
+      const final = Date.now();
+      const movimientos = await this.getMovimientosIntervalo(inicioCaja, final);
+      if (movimientos.length > 0) {
+        const findEntregaDiaria = movimientos.find(
+          (mov) => mov.concepto === "Entrega Diària"
+        );
+        if (findEntregaDiaria) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }
 
 export const movimientosInstance = new MovimientosClase();
