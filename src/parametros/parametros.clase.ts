@@ -4,9 +4,8 @@ import * as schParametros from "./parametros.mongodb";
 export class ParametrosClase {
 
   /* Eze 4.0 */
-  getParametros = async (): Promise<ParametrosInterface> => {
-    return await schParametros.getParametros();
-  };
+  getParametros = async (): Promise<ParametrosInterface> =>
+    await schParametros.getParametros();
 
   /* Eze 4.0 */
   actParametros = async (params: ParametrosInterface) =>
@@ -71,6 +70,9 @@ export class ParametrosClase {
   /* Uri*/
   setIpPaytef = async (ip: string): Promise<boolean> =>
     await schParametros.setIpPaytef(ip);
+
+  setIpCashlogy = async (ip: string): Promise<boolean> =>
+    await schParametros.setIpCashlogy(ip);
 
   /* Uri*/
   setTcod = async (ip: string): Promise<boolean> =>

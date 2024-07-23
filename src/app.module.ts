@@ -33,6 +33,7 @@ import { checkers } from "./checkers/checkers.controller";
 import { balancaController } from "./balanca/balanca.clase";
 import { AlbaranesController } from "./albaranes/albaranes.controller";
 import { contableController } from "./contable/contable.controller";
+import { CashlogyController } from "./cashlogy/cashlogy.controller"
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { contableController } from "./contable/contable.controller";
     DeudasController,
     CargarImagenController,
     AlbaranesController,
+    CashlogyController,
   ],
   // providers: [SocketGateway],
 })
