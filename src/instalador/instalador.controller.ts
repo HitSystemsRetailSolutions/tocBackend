@@ -111,8 +111,8 @@ export class InstaladorController {
   /* Uri */
   @Post("sendTestPrint")
   async sendTestPrint(@Body()
-  { type, value, rate }) {
-    return await this.enviarMQTT("autoSetupPrinter", { type, value, rate })
+  { type, value, rate, vid , pid }) {
+    return await this.enviarMQTT("autoSetupPrinter", { type, value, rate, vid, pid })
 
   }
   @Post("sendTestVisor")
