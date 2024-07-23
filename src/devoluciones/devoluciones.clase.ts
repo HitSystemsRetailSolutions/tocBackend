@@ -4,6 +4,7 @@ import { impresoraInstance } from "../impresora/impresora.class";
 import { cestasInstance } from "../cestas/cestas.clase";
 import { DevolucionesInterface } from "./devoluciones.interface";
 import * as schDevoluciones from "./devoluciones.mongodb";
+import { cajaInstance } from "src/caja/caja.clase";
 
 export class Devoluciones {
   /* Eze 4.0 */
@@ -53,5 +54,12 @@ export class Devoluciones {
   /* Eze 4.0 */
   getDevolucionById = async (id: ObjectId) =>
     await schDevoluciones.getDevolucionById(id);
+
+  async verifyCurrentBoxReturns() {
+    const currentBox = await cajaInstance.getInfoCajaAbierta();
+    if (currentBox == null) return false;
+    return await schDevoluciones.verifyCurrentBoxReturns(currentBox.inicioTime);
+
+  }
 }
 export const devolucionesInstance = new Devoluciones();

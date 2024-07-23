@@ -316,3 +316,28 @@ export async function getDetalleActual(): Promise<
     return false;
   }
 }
+/**
+ * 
+ * @param fechaInicio 
+ * @param fechaFin 
+ * @returns array de cajas sincronizadas
+ */
+export async function getTotalsIntervalo(
+  fechaInicio: number,
+  fechaFin: number
+): Promise<CajaSincro[]> {
+  try {
+    const database = (await conexion).db("tocgame");
+    const caja = database.collection<CajaSincro>("sincro-cajas");
+    const arraySincroCajas= await caja
+      .find({
+        inicioTime: { $lte: Number(fechaFin), $gte: Number(fechaInicio) },
+      })
+      .toArray();
+
+    return arraySincroCajas;
+  } catch (error) {
+    logger.Error(137, error);
+    return [];
+  }
+}

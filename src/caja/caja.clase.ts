@@ -7,7 +7,10 @@ import {
 } from "./caja.interface";
 import * as schCajas from "./caja.mongodb";
 import * as schTickets from "../tickets/tickets.mongodb";
-import { TicketsInterface } from "../tickets/tickets.interface";
+import {
+  SuperTicketInterface,
+  TicketsInterface,
+} from "../tickets/tickets.interface";
 import { MovimientosInterface } from "../movimientos/movimientos.interface";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { ObjectId } from "mongodb";
@@ -21,6 +24,7 @@ import * as moment from "moment";
 import { parametrosController } from "src/parametros/parametros.controller";
 import { ticketsInstance } from "src/tickets/tickets.clase";
 import { deudasInstance } from "src/deudas/deudas.clase";
+import { redondearPrecio } from "src/funciones/funciones";
 require("dotenv").config();
 const mqtt = require("mqtt");
 export class CajaClase {
@@ -248,7 +252,11 @@ export class CajaClase {
       }
       throw Error("Error en nuevoItemSincroCajas");
     } catch (error) {
-      logger.Error("Error en el proceso de cierre de caja:", error.message, error.stack);
+      logger.Error(
+        "Error en el proceso de cierre de caja:",
+        error.message,
+        error.stack
+      );
       return false;
     }
   }
@@ -601,6 +609,113 @@ export class CajaClase {
     await schCajas.setDetalleActual(detalleActual);
 
   getDetalleActual = async () => await schCajas.getDetalleActual();
+
+  /**
+   *  obtiene los datos de las cajas de un intervalo de tiempo y devuelve los datos agrupados por días
+   * @param fechaInicio 
+   * @param fechaFin 
+   * @returns  array {Fecha: string, "Total tarjeta": number, "Total efectivo": number, Total: number}
+   */
+  async getTotalsIntervalo(fechaInicio: number, fechaFin: number) {
+    const arrayCajas: CajaSincro[] = await schCajas.getTotalsIntervalo(
+      fechaInicio,
+      fechaFin
+    );
+
+    const groupByDays = this.groupByDays(arrayCajas);
+    const latestDate = this.findLatestDateInGroupedData(groupByDays);
+    const arrayTicketsCaja: SuperTicketInterface[] = await movimientosInstance.construirArrayVentas();
+  
+    const totalTickets = arrayTicketsCaja.reduce((total, ticket) => total + ticket.total, 0);
+    const totalPaytef = await parametrosController.totalPaytef();
+    const inicioTime = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
+    const finalTime = Date.now();
+    const total3G = await ticketsInstance.getTotalDatafono3G(inicioTime, finalTime);
+  
+    const formattedTotalTarjeta = redondearPrecio(totalPaytef[0] + total3G);
+    const formattedTotalEfectivo = redondearPrecio(totalTickets - totalPaytef[0]);
+  
+    const objTotal = {
+      id: inicioTime,
+      total: totalTickets,
+      totalTarjeta: formattedTotalTarjeta,
+      totalEfectivo: formattedTotalEfectivo,
+    };
+  
+    const formattedDate = new Date(inicioTime).toISOString().split("T")[0];
+  
+    if (latestDate === formattedDate) {
+      groupByDays[latestDate].push(objTotal);
+    } else {
+      groupByDays[formattedDate] = [objTotal];
+    }
+  
+    return this.convertGroupedData(groupByDays);
+  }
+  
+  /**
+   * encuentra la fecha más reciente en un objeto de datos agrupados
+   * @param groupedData 
+   * @returns string, fecha más reciente
+   */
+  private findLatestDateInGroupedData(groupedData) {
+    if (!groupedData) {
+      return null;
+    }
+    const dates = Object.keys(groupedData);
+    const latestDate = dates.reduce((latest, current) => {
+      return new Date(current) > new Date(latest) ? current : latest;
+    });
+    return latestDate;
+  }
+  /**
+   *  agrupa los datos por días
+   * @param array 
+   * @returns 
+   */
+  private groupByDays(array: CajaSincro[]) {
+    if (!array) {
+      return {};
+    }
+    return array.reduce((acc, obj) => {
+      const date = new Date(obj.inicioTime).toISOString().split("T")[0];
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      const totalTarjeta = redondearPrecio(obj.cantidadPaytef + obj.totalDatafono3G);
+      const totalEfectivo = redondearPrecio(obj.calaixFetZ - totalTarjeta);
+      acc[date].push({
+        id: obj._id,
+        total: obj.calaixFetZ,
+        totalTarjeta: totalTarjeta,
+        totalEfectivo: totalEfectivo,
+      });
+      return acc;
+    }, {});
+  }
+
+  /**
+   *  cambia el formato de los datos agrupados para que se puedan mostrar en la tabl del frontend
+   * @param groupedData 
+   * @returns array {Fecha: string, "Total tarjeta": number, "Total efectivo": number, Total: number}
+   */
+  private convertGroupedData(groupedData) {
+    if (!groupedData) {
+      return [];
+    }
+    return Object.keys(groupedData).map((date) => {
+      const dayItems = groupedData[date];
+      const totalTarjeta = dayItems.reduce((sum, item) => sum + item.totalTarjeta, 0);
+      const totalEfectivo = dayItems.reduce((sum, item) => sum + item.totalEfectivo, 0);
+      const total = dayItems.reduce((sum, item) => sum + item.total, 0);
+      return {
+        Fecha: date,
+        "Total tarjeta": redondearPrecio(totalTarjeta),
+        "Total efectivo": redondearPrecio(totalEfectivo),
+        Total: redondearPrecio(total),
+      };
+    });
+  }
 }
 
 export const cajaInstance = new CajaClase();

@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body,Get } from "@nestjs/common";
 import { devolucionesInstance } from "./devoluciones.clase";
 import { logger } from "../logger";
 
@@ -17,6 +17,16 @@ export class DevolucionesController {
       throw Error("Error, faltan datos en nuevaDevolucion() controller");
     } catch (err) {
       logger.Error(69, err);
+      return false;
+    }
+  }
+
+  @Get("verifyCurrentBoxReturns")
+  async verifyCurrentBoxReturns() {
+    try {
+      return await devolucionesInstance.verifyCurrentBoxReturns();
+    } catch (err) {
+      logger.Error(70, err);
       return false;
     }
   }
