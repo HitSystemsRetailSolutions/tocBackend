@@ -48,27 +48,31 @@ function random() {
   return numero.toString(16).slice(0, 8);
 }
 
-function encryptWhatsapp(text: string) {
-  let encoding: BufferEncoding = "hex";
+// function encryptWhatsapp(text: string) {
+//   let encoding: BufferEncoding = "hex";
 
-  let key: string = "buscoUnTrosDAhirPerEncriptarHITs";
+//   let key: string = "buscoUnTrosDAhirPerEncriptarHITs";
 
-  function encrypt(plaintext: string) {
-    try {
-      const iv = CryptoJS.randomBytes(16);
-      const cipher = CryptoJS.createCipheriv("aes-256-cbc", key, iv);
+//   function encrypt(plaintext: string) {
+//     try {
+//       const iv = CryptoJS.randomBytes(16);
+//       const cipher = CryptoJS.createCipheriv("aes-256-cbc", key, iv);
 
-      const encrypted = Buffer.concat([
-        cipher.update(plaintext, "utf-8"),
-        cipher.final(),
-      ]);
+//       const encrypted = Buffer.concat([
+//         cipher.update(plaintext, "utf-8"),
+//         cipher.final(),
+//       ]);
 
-      return iv.toString(encoding) + encrypted.toString(encoding);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  return encrypt(text);
+//       return iv.toString(encoding) + encrypted.toString(encoding);
+//     } catch (e) {
+//       console.error(e);
+//     }
+//   }
+//   return encrypt(text);
+// }
+
+function encryptWhatsapp(text) {
+  return Buffer.from(text, "utf8").toString("base64");
 }
 
 // consts para detalles al imprimir
