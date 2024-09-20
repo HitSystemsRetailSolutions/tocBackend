@@ -1155,6 +1155,32 @@ export class Impresora {
 
     return detalle;
   }
+
+  async obtenerPrecioUnitario(item, albaranNPT) {
+    if (item.gramos > 0) {
+      try {
+        const infoArticulo = await articulosInstance.getInfoArticulo(
+          item.idArticulo
+        );
+        return albaranNPT ? infoArticulo.precioBase : infoArticulo.precioConIva;
+      } catch (error) {
+        logger.Error(
+          `Error al obtener información del artículo con ID ${item.idArticulo}:`,
+          error
+        );
+        return this.calcularPrecioUnitario(item, albaranNPT);
+      }
+    } else {
+      return this.calcularPrecioUnitario(item, albaranNPT);
+    }
+  }
+
+  calcularPrecioUnitario(item, albaranNPT) {
+    const precioUnitario = albaranNPT
+      ? item.precioOrig / item.unidades
+      : item.subtotal / item.unidades;
+    return Number(precioUnitario.toFixed(2));
+  }
   // funcion para imprimir detalles ticket vip
   async detallesTicket(
     arrayCompra: CestasInterface["lista"],
@@ -1195,15 +1221,24 @@ export class Impresora {
     let detalles = "";
 
     for (let i = 0; i < arrayCompra.length; i++) {
-      arrayCompra[i].subtotal = arrayCompra[i].subtotal;
-
-      arrayCompra[i]["preuU"] = albaranNPT
-        ? Number(
-            (arrayCompra[i].precioOrig / arrayCompra[i].unidades).toFixed(2)
-          )
-        : Number(
-            (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
-          );
+      // obtener precio unitario
+      // si contiene gramos, obtenemos el precio unitario de la base de datos para evitar errores de redondeo en el calculo.
+      try {
+        arrayCompra[i]["preuU"] = await this.obtenerPrecioUnitario(
+          arrayCompra[i],
+          albaranNPT
+        );
+      } catch (error) {
+        console.error(
+          `Error al procesar el artículo en el índice ${i}:`,
+          error
+        );
+        // Asignar un valor por defecto en caso de error en la función obtenerPrecioUnitario
+        arrayCompra[i]["preuU"] = this.calcularPrecioUnitario(
+          arrayCompra[i],
+          albaranNPT
+        );
+      }
 
       if (thereIsDto && !albaranNPT) {
         let dto = arrayCompra[i].dto ? arrayCompra[i].dto + "%" : "";
