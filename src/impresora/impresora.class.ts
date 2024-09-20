@@ -183,7 +183,7 @@ export class Impresora {
             ? Number(infoCliente.descuento)
             : 0;
 
-        let informacionVip = infoCliente.albaran
+        let informacionVip = infoCliente
           ? {
               nombre: infoCliente.nombre,
               nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
@@ -191,6 +191,7 @@ export class Impresora {
                 infoCliente["direccion"] === "0"
                   ? ""
                   : infoCliente["direccion"],
+              telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
             }
           : null;
 
@@ -270,14 +271,17 @@ export class Impresora {
 
     let infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
 
-    let informacionVip = infoCliente.albaran
-      ? {
-          nombre: infoCliente.nombre,
-          nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-          direccion:
-            infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
-        }
-      : null;
+    let informacionVip = infoCliente
+          ? {
+              nombre: infoCliente.nombre,
+              nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+              direccion:
+                infoCliente["direccion"] === "0"
+                  ? ""
+                  : infoCliente["direccion"],
+              telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+            }
+          : null;
 
     const descuento =
       infoCliente && !infoCliente?.albaran && !infoCliente?.vip
@@ -532,7 +536,7 @@ export class Impresora {
       clientTitle = "\nCLIENT:";
       detalleClienteVip = `\n${infoClienteVip.nombre}`;
       if (infoClienteVip.nif)
-        detalleClienteVip += `\x1B\x45\x00 \nNIF: ${infoClienteVip.nif}`;
+        detalleClienteVip += `\x1B\x45\x00 \nDNI/NIF: ${infoClienteVip.nif}`;
       if (infoClienteVip.direccion)
         detalleClienteVip += `\n${infoClienteVip.direccion}`;
     }
@@ -686,9 +690,9 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: `${detalleClienteVip ? `${detalleClienteVip}\n` : ""}${
-            detalleNombreCliente
-              ? `\x1B\x45\x01 ${detalleNombreCliente} \x1B\x45\x00`
+          payload: `${
+            infoClienteVip.nombre
+              ? `\x1B\x45\x01 ${infoClienteVip.nombre} \x1B\x45\x00 \n`
               : ""
           }`,
         },
@@ -696,8 +700,16 @@ export class Impresora {
         {
           tipo: "text",
           payload: `${
-            infoCliente.telefono
-              ? `\x1B\x45\x01 ${infoCliente.telefono} \x1B\x45\x00 \n`
+            infoClienteVip.telefono
+              ? `\x1B\x45\x01 tel.: ${infoClienteVip.telefono} \x1B\x45\x00 \n`
+              : ""
+          }${
+            infoClienteVip.nif
+              ? `\x1B\x45\x01 DNI/NIF: ${infoClienteVip.nif} \x1B\x45\x00 \n`
+              : ""
+          }${
+            infoClienteVip.direccion
+              ? `\x1B\x45\x01 direccion: ${infoClienteVip.direccion} \x1B\x45\x00 \n`
               : ""
           }${detallePuntosCliente ? `${detallePuntosCliente}\n` : ""}${
             clienteDescuento ? `${clienteDescuento}\n` : ""
@@ -821,9 +833,9 @@ export class Impresora {
       clientTitle = "\nCLIENT:";
       detalleClienteVip = `\n${infoClienteVip.nombre}`;
       if (infoClienteVip.nif)
-        detalleClienteVip += `\nNIF: ${infoClienteVip.nif}`;
+        detalleClienteVip += `\nDNI/NIF: ${infoClienteVip.nif}`;
       if (infoClienteVip.direccion)
-        detalleClienteVip += `\n${infoClienteVip.direccion}`;
+        detalleClienteVip += `\nDir.: ${infoClienteVip.direccion}`;
     }
     // recojemos datos del cliente si nos los han mandado
     const clienteDescEsp = descuentoEspecial.find(
