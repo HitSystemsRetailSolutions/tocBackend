@@ -1258,7 +1258,7 @@ export class CestaClase {
       total += cesta.lista[i].subtotal;
     }
     if (clienteDescEsp && total >= clienteDescEsp.activacion) {
-      logger.Info("Descuento especial activado");
+      logger.Info("Descuento especial activado en recalcularIvas");
       await this.recalcularIvasDescuentoEspecial(cesta);
     }
     if (cesta.lista.length > 0) {
