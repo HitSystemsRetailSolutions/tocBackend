@@ -37,7 +37,7 @@ export class ParametrosController {
     try {
       return await this.getConfiguradorDB();
     } catch (err) {
-      logger.Error(41, err);
+      logger.Error(43, err);
       return null;
     }
   }
@@ -79,6 +79,7 @@ export class ParametrosController {
 
   /* Uri */
   async getConfiguradorDB() {
+
     const parametros = await parametrosInstance.getParametros();
     const res: any = await axios
       .post("configurador/getConfiguration", {

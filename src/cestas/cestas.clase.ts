@@ -29,6 +29,7 @@ import axios from "axios";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 import { tarifasInstance } from "src/tarifas/tarifas.class";
+import { tiposIvaInstance} from "../tiposIva/tiposIva.clase"
 
 export class CestaClase {
   async recalcularIvasDescuentoEspecial(cesta: CestasInterface) {
@@ -1074,6 +1075,7 @@ export class CestaClase {
       importe4: 0,
       importe5: 0,
     };
+    const arrayIvas = tiposIvaInstance.arrayIvas;
     const cliente = cesta.idCliente
       ? await clienteInstance.getClienteById(cesta.idCliente)
       : null;
@@ -1159,24 +1161,27 @@ export class CestaClase {
           !cesta.lista[i]?.iva &&
           !tarifaEsp
         ) {
-          switch (articulo.tipoIva) {
-            case 1:
-            default:
-              cesta.lista[i].iva = 4;
-              break;
-            case 2:
-              cesta.lista[i].iva = 10;
-              break;
-            case 3:
-              cesta.lista[i].iva = 21;
-              break;
-            case 4:
-              cesta.lista[i].iva = 0;
-              break;
-            case 5:
-              cesta.lista[i].iva = 5;
-              break;
-          }
+          const tipoIvaStr = articulo.tipoIva.toString();
+          const ivaObject = arrayIvas.find(item => item.tipus === tipoIvaStr);
+          cesta.lista[i].iva = ivaObject.iva;
+          // switch (articulo.tipoIva) {
+          //   case 1:
+          //   default:
+          //     cesta.lista[i].iva = arrayIvas;
+          //     break;
+          //   case 2:
+          //     cesta.lista[i].iva = 10;
+          //     break;
+          //   case 3:
+          //     cesta.lista[i].iva = 21;
+          //     break;
+          //   case 4:
+          //     cesta.lista[i].iva = 0;
+          //     break;
+          //   case 5:
+          //     cesta.lista[i].iva = 5;
+          //     break;
+          // }
         } else if (!cliente?.albaran && cesta.lista[i]?.iva) {
           delete cesta.lista[i].precioOrig;
           delete cesta.lista[i].iva;

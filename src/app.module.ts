@@ -33,7 +33,7 @@ import { checkers } from "./checkers/checkers.controller";
 import { balancaController } from "./balanca/balanca.clase";
 import { AlbaranesController } from "./albaranes/albaranes.controller";
 import { contableController } from "./contable/contable.controller";
-
+import { TiposIvaController } from "./tiposIva/tiposIva.controller";
 @Module({
   imports: [
     ServeStaticModule.forRoot({
@@ -73,6 +73,7 @@ import { contableController } from "./contable/contable.controller";
     DeudasController,
     CargarImagenController,
     AlbaranesController,
+    TiposIvaController,
   ],
   // providers: [SocketGateway],
 })
