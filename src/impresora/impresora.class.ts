@@ -31,6 +31,8 @@ import { TicketsInterface } from "src/tickets/tickets.interface";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { CestasController } from "src/cestas/cestas.controller";
 import { info } from "console";
+import { tiposIvaInstance } from "../tiposIva/tiposIva.clase";
+
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -48,27 +50,31 @@ function random() {
   return numero.toString(16).slice(0, 8);
 }
 
-function encryptWhatsapp(text: string) {
-  let encoding: BufferEncoding = "hex";
+// function encryptWhatsapp(text: string) {
+//   let encoding: BufferEncoding = "hex";
 
-  let key: string = "buscoUnTrosDAhirPerEncriptarHITs";
+//   let key: string = "buscoUnTrosDAhirPerEncriptarHITs";
 
-  function encrypt(plaintext: string) {
-    try {
-      const iv = CryptoJS.randomBytes(16);
-      const cipher = CryptoJS.createCipheriv("aes-256-cbc", key, iv);
+//   function encrypt(plaintext: string) {
+//     try {
+//       const iv = CryptoJS.randomBytes(16);
+//       const cipher = CryptoJS.createCipheriv("aes-256-cbc", key, iv);
 
-      const encrypted = Buffer.concat([
-        cipher.update(plaintext, "utf-8"),
-        cipher.final(),
-      ]);
+//       const encrypted = Buffer.concat([
+//         cipher.update(plaintext, "utf-8"),
+//         cipher.final(),
+//       ]);
 
-      return iv.toString(encoding) + encrypted.toString(encoding);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  return encrypt(text);
+//       return iv.toString(encoding) + encrypted.toString(encoding);
+//     } catch (e) {
+//       console.error(e);
+//     }
+//   }
+//   return encrypt(text);
+// }
+
+function encryptWhatsapp(text) {
+  return Buffer.from(text, "utf8").toString("base64");
 }
 
 // consts para detalles al imprimir
@@ -179,7 +185,7 @@ export class Impresora {
             ? Number(infoCliente.descuento)
             : 0;
 
-        let informacionVip = infoCliente.albaran
+        let informacionVip = infoCliente
           ? {
               nombre: infoCliente.nombre,
               nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
@@ -187,6 +193,7 @@ export class Impresora {
                 infoCliente["direccion"] === "0"
                   ? ""
                   : infoCliente["direccion"],
+              telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
             }
           : null;
 
@@ -266,14 +273,17 @@ export class Impresora {
 
     let infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
 
-    let informacionVip = infoCliente.albaran
-      ? {
-          nombre: infoCliente.nombre,
-          nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-          direccion:
-            infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
-        }
-      : null;
+    let informacionVip = infoCliente
+          ? {
+              nombre: infoCliente.nombre,
+              nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+              direccion:
+                infoCliente["direccion"] === "0"
+                  ? ""
+                  : infoCliente["direccion"],
+              telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+            }
+          : null;
 
     const descuento =
       infoCliente && !infoCliente?.albaran && !infoCliente?.vip
@@ -528,7 +538,7 @@ export class Impresora {
       clientTitle = "\nCLIENT:";
       detalleClienteVip = `\n${infoClienteVip.nombre}`;
       if (infoClienteVip.nif)
-        detalleClienteVip += `\x1B\x45\x00 \nNIF: ${infoClienteVip.nif}`;
+        detalleClienteVip += `\x1B\x45\x00 \nDNI/NIF: ${infoClienteVip.nif}`;
       if (infoClienteVip.direccion)
         detalleClienteVip += `\n${infoClienteVip.direccion}`;
     }
@@ -599,11 +609,11 @@ export class Impresora {
 
     let detalleIva = "";
     detalleIva =
-      detallesIva.detalleIva0 +
-      detallesIva.detalleIva4 +
-      detallesIva.detalleIva5 +
-      detallesIva.detalleIva10 +
-      detallesIva.detalleIva21;
+      detallesIva.detalleIvaTipo4 +
+      detallesIva.detalleIvaTipo1 +
+      detallesIva.detalleIvaTipo5 +
+      detallesIva.detalleIvaTipo2 +
+      detallesIva.detalleIvaTipo3;
 
     let infoConsumoPersonal = "";
     if (tipoPago == "CONSUMO_PERSONAL") {
@@ -682,9 +692,9 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: `${detalleClienteVip ? `${detalleClienteVip}\n` : ""}${
-            detalleNombreCliente
-              ? `\x1B\x45\x01 ${detalleNombreCliente} \x1B\x45\x00`
+          payload: `${
+            infoClienteVip.nombre
+              ? `\x1B\x45\x01 ${infoClienteVip.nombre} \x1B\x45\x00 \n`
               : ""
           }`,
         },
@@ -692,8 +702,16 @@ export class Impresora {
         {
           tipo: "text",
           payload: `${
-            infoCliente.telefono
-              ? `\x1B\x45\x01 ${infoCliente.telefono} \x1B\x45\x00 \n`
+            infoClienteVip.telefono
+              ? `\x1B\x45\x01 tel.: ${infoClienteVip.telefono} \x1B\x45\x00 \n`
+              : ""
+          }${
+            infoClienteVip.nif
+              ? `\x1B\x45\x01 DNI/NIF: ${infoClienteVip.nif} \x1B\x45\x00 \n`
+              : ""
+          }${
+            infoClienteVip.direccion
+              ? `\x1B\x45\x01 direccion: ${infoClienteVip.direccion} \x1B\x45\x00 \n`
               : ""
           }${detallePuntosCliente ? `${detallePuntosCliente}\n` : ""}${
             clienteDescuento ? `${clienteDescuento}\n` : ""
@@ -817,9 +835,9 @@ export class Impresora {
       clientTitle = "\nCLIENT:";
       detalleClienteVip = `\n${infoClienteVip.nombre}`;
       if (infoClienteVip.nif)
-        detalleClienteVip += `\nNIF: ${infoClienteVip.nif}`;
+        detalleClienteVip += `\nDNI/NIF: ${infoClienteVip.nif}`;
       if (infoClienteVip.direccion)
-        detalleClienteVip += `\n${infoClienteVip.direccion}`;
+        detalleClienteVip += `\nDir.: ${infoClienteVip.direccion}`;
     }
     // recojemos datos del cliente si nos los han mandado
     const clienteDescEsp = descuentoEspecial.find(
@@ -889,11 +907,11 @@ export class Impresora {
 
     let detalleIva = "";
     detalleIva =
-      detallesIva.detalleIva0 +
-      detallesIva.detalleIva4 +
-      detallesIva.detalleIva5 +
-      detallesIva.detalleIva10 +
-      detallesIva.detalleIva21;
+      detallesIva.detalleIvaTipo4 +
+      detallesIva.detalleIvaTipo1 +
+      detallesIva.detalleIvaTipo5 +
+      detallesIva.detalleIvaTipo2 +
+      detallesIva.detalleIvaTipo3;
 
     let infoConsumoPersonal = "";
     if (tipoPago == "CONSUMO_PERSONAL") {
@@ -1075,6 +1093,7 @@ export class Impresora {
     this.enviarMQTT(arrayImprimir, options);
   }
   async getDetallesIva(tiposIva) {
+    const arrayIvas = tiposIvaInstance.arrayIvas;
     let str1 = "          ";
     let str2 = "                 ";
     let str3 = "              ";
@@ -1082,17 +1101,18 @@ export class Impresora {
     let valorIva = "";
     let importe = "";
     const detalle = {
-      detalleIva4: "",
-      detalleIva10: "",
-      detalleIva21: "",
-      detalleIva0: "",
-      detalleIva5: "",
+      detalleIvaTipo1: "",
+      detalleIvaTipo2: "",
+      detalleIvaTipo3: "",
+      detalleIvaTipo4: "",
+      detalleIvaTipo5: "",
     };
     if (tiposIva.importe1 > 0) {
       base = tiposIva.base1.toFixed(2) + " €";
-      valorIva = "4%: " + tiposIva.valorIva1.toFixed(2) + " €";
+      const iva1= arrayIvas.find((item) => item.tipus === "1");
+      valorIva = iva1.iva+"%: " + tiposIva.valorIva1.toFixed(2) + " €";
       importe = tiposIva.importe1.toFixed(2) + " €\n";
-      detalle.detalleIva4 =
+      detalle.detalleIvaTipo1 =
         str1.substring(0, str1.length - base.length) +
         base +
         str2.substring(0, str2.length - valorIva.length) +
@@ -1101,10 +1121,11 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe2 > 0) {
+      const iva2= arrayIvas.find((item) => item.tipus === "2");
       base = tiposIva.base2.toFixed(2) + " €";
-      valorIva = "10%: " + tiposIva.valorIva2.toFixed(2) + " €";
+      valorIva = iva2.iva+"%: " + tiposIva.valorIva2.toFixed(2) + " €";
       importe = tiposIva.importe2.toFixed(2) + " €\n";
-      detalle.detalleIva10 =
+      detalle.detalleIvaTipo2 =
         str1.substring(0, str1.length - base.length) +
         base +
         str2.substring(0, str2.length - valorIva.length) +
@@ -1113,10 +1134,11 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe3 > 0) {
+      const iva3= arrayIvas.find((item) => item.tipus === "3");
       base = tiposIva.base3.toFixed(2) + " €";
-      valorIva = "21%: " + tiposIva.valorIva3.toFixed(2) + " €";
+      valorIva = iva3.iva+"%: " + tiposIva.valorIva3.toFixed(2) + " €";
       importe = tiposIva.importe3.toFixed(2) + " €\n";
-      detalle.detalleIva21 =
+      detalle.detalleIvaTipo3 =
         str1.substring(0, str1.length - base.length) +
         base +
         str2.substring(0, str2.length - valorIva.length) +
@@ -1125,10 +1147,11 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe4 > 0) {
+      const iva4= arrayIvas.find((item) => item.tipus === "4");
       base = tiposIva.base4.toFixed(2) + " €";
-      valorIva = "0%: " + tiposIva.valorIva4.toFixed(2) + " €";
+      valorIva = iva4.iva+"%: " + tiposIva.valorIva4.toFixed(2) + " €";
       importe = tiposIva.importe4.toFixed(2) + " €\n";
-      detalle.detalleIva0 =
+      detalle.detalleIvaTipo4 =
         str1.substring(0, str1.length - base.length) +
         base +
         str2.substring(0, str2.length - valorIva.length) +
@@ -1137,10 +1160,11 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe5 > 0) {
+      const iva5= arrayIvas.find((item) => item.tipus === "5");
       base = tiposIva.base5.toFixed(2) + " €";
-      valorIva = "5%: " + tiposIva.valorIva5.toFixed(2) + " €";
+      valorIva = iva5.iva+"%: " + tiposIva.valorIva5.toFixed(2) + " €";
       importe = tiposIva.importe5.toFixed(2) + " €\n";
-      detalle.detalleIva5 =
+      detalle.detalleIvaTipo5 =
         str1.substring(0, str1.length - base.length) +
         base +
         str2.substring(0, str2.length - valorIva.length) +
@@ -1150,6 +1174,32 @@ export class Impresora {
     }
 
     return detalle;
+  }
+
+  async obtenerPrecioUnitario(item, albaranNPT) {
+    if (item.gramos > 0) {
+      try {
+        const infoArticulo = await articulosInstance.getInfoArticulo(
+          item.idArticulo
+        );
+        return albaranNPT ? infoArticulo.precioBase : infoArticulo.precioConIva;
+      } catch (error) {
+        logger.Error(
+          `Error al obtener información del artículo con ID ${item.idArticulo}:`,
+          error
+        );
+        return this.calcularPrecioUnitario(item, albaranNPT);
+      }
+    } else {
+      return this.calcularPrecioUnitario(item, albaranNPT);
+    }
+  }
+
+  calcularPrecioUnitario(item, albaranNPT) {
+    const precioUnitario = albaranNPT
+      ? item.precioOrig / item.unidades
+      : item.subtotal / item.unidades;
+    return Number(precioUnitario.toFixed(2));
   }
   // funcion para imprimir detalles ticket vip
   async detallesTicket(
@@ -1191,15 +1241,24 @@ export class Impresora {
     let detalles = "";
 
     for (let i = 0; i < arrayCompra.length; i++) {
-      arrayCompra[i].subtotal = arrayCompra[i].subtotal;
-
-      arrayCompra[i]["preuU"] = albaranNPT
-        ? Number(
-            (arrayCompra[i].precioOrig / arrayCompra[i].unidades).toFixed(2)
-          )
-        : Number(
-            (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
-          );
+      // obtener precio unitario
+      // si contiene gramos, obtenemos el precio unitario de la base de datos para evitar errores de redondeo en el calculo.
+      try {
+        arrayCompra[i]["preuU"] = await this.obtenerPrecioUnitario(
+          arrayCompra[i],
+          albaranNPT
+        );
+      } catch (error) {
+        console.error(
+          `Error al procesar el artículo en el índice ${i}:`,
+          error
+        );
+        // Asignar un valor por defecto en caso de error en la función obtenerPrecioUnitario
+        arrayCompra[i]["preuU"] = this.calcularPrecioUnitario(
+          arrayCompra[i],
+          albaranNPT
+        );
+      }
 
       if (thereIsDto && !albaranNPT) {
         let dto = arrayCompra[i].dto ? arrayCompra[i].dto + "%" : "";
@@ -2546,11 +2605,11 @@ export class Impresora {
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
     detalleIva =
-      detallesIva.detalleIva0 +
-      detallesIva.detalleIva4 +
-      detallesIva.detalleIva5 +
-      detallesIva.detalleIva10 +
-      detallesIva.detalleIva21;
+      detallesIva.detalleIvaTipo4 +
+      detallesIva.detalleIvaTipo1 +
+      detallesIva.detalleIvaTipo5 +
+      detallesIva.detalleIvaTipo2 +
+      detallesIva.detalleIvaTipo3;
     // mostramos las observaciones de los productos
     let observacions = "";
     for (const producto of encargo.productos) {
@@ -2691,11 +2750,11 @@ export class Impresora {
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
     detalleIva =
-      detallesIva.detalleIva0 +
-      detallesIva.detalleIva4 +
-      detallesIva.detalleIva5 +
-      detallesIva.detalleIva10 +
-      detallesIva.detalleIva21;
+      detallesIva.detalleIvaTipo4 +
+      detallesIva.detalleIvaTipo1 +
+      detallesIva.detalleIvaTipo5 +
+      detallesIva.detalleIvaTipo2 +
+      detallesIva.detalleIvaTipo3;
     // mostramos las observaciones de los productos
     let observacions = "";
     for (const producto of encargo.productos) {

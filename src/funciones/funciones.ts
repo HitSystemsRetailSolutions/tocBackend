@@ -1,6 +1,6 @@
 import { DetalleIvaInterface } from "../cestas/cestas.interface";
 import { TiposIva } from "../articulos/articulos.interface";
-
+import { tiposIvaInstance } from "src/tiposIva/tiposIva.clase";
 /* Eze 4.0 (REDONDEA AL SEGUNDO DECIMAL) */
 export const redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
 
@@ -12,6 +12,7 @@ export function construirObjetoIvas(
   albaranNPT: boolean = false,
   dto: number = 0
 ): DetalleIvaInterface {
+  const arrayIvasDecimals = tiposIvaInstance.arrayDecimal;
   let base1 = 0,
     base2 = 0,
     base3 = 0,
@@ -33,40 +34,49 @@ export function construirObjetoIvas(
   switch (tipoIva) {
     case 1:
     default:
+      const iva1 = arrayIvasDecimals.find((iva) => iva.tipus === "1")?.iva;
+      const iva1Mod = 1 + iva1;
       base1 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / 1.04) * unidades - (precio / 1.04) * unidades * (dto / 100);
-      valor1 = base1 * 0.04;
+        : (precio / iva1Mod) * unidades - (precio / iva1Mod) * unidades * (dto / 100);
+      valor1 = base1 * iva1;
       importe1 = base1 + valor1;
       break;
     case 2:
+      const iva2 = arrayIvasDecimals.find((iva) => iva.tipus === "2")?.iva;
+      const iva2Mod = 1 + iva2;
       base2 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / 1.1) * unidades - (precio / 1.1) * unidades * (dto / 100);
-      valor2 = base2 * 0.1;
+        : (precio / iva2Mod) * unidades - (precio / iva2Mod) * unidades * (dto / 100);
+      valor2 = base2 * iva2;
       importe2 = base2 + valor2;
       break;
     case 3:
+      const iva3 = arrayIvasDecimals.find((iva) => iva.tipus === "3")?.iva;
+      const iva3Mod = 1 + iva3;
       base3 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / 1.21) * unidades - (precio / 1.21) * unidades * (dto / 100);
-      valor3 = base3 * 0.21;
+        : (precio / iva3Mod) * unidades - (precio / iva3Mod) * unidades * (dto / 100);
+      valor3 = base3 * iva3;
       importe3 = base3 + valor3;
       break;
     case 4:
+      const iva4 = arrayIvasDecimals.find((iva) => iva.tipus === "4")?.iva;
+      const iva4Mod = 1 + iva4;
       base4 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / 1) * unidades - (precio / 1) * unidades * (dto / 100);
-      valor4 = base4 * 0;
+        : (precio / iva4Mod) * unidades - (precio / iva4Mod) * unidades * (dto / 100);
+      valor4 = base4 * iva4;
       importe4 = base4 + valor4;
       break;
     case 5:
+      const iva5 = arrayIvasDecimals.find((iva) => iva.tipus === "5")?.iva;
+      const iva5Mod = 1 + iva5;
       base5 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / 1.05) * unidades - (precio / 1.05) * unidades * (dto / 100);
-      valor5 = base5 * 0.05;
+        : (precio / iva5Mod) * unidades - (precio / iva5Mod) * unidades * (dto / 100);
+      valor5 = base5 * iva5;
       importe5 = base5 + valor5;
-      break;
       break;
   }
   // Redondeo con Math.Round y no con toFixed para evitar un almacenado con pérdida de precisión(6.3449999999662,6.3550000002).

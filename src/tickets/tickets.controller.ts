@@ -249,8 +249,7 @@ export class TicketsController {
       .iniciarTransaccion(idTrabajador, idTransaccion, total)
       .then(async (x) => {
         if (x) {
-          if(dejaCuenta > 0)
-            ticketTemp.total += dejaCuenta;
+          if (dejaCuenta > 0) ticketTemp.total += dejaCuenta;
           if (await ticketsInstance.insertarTicket(ticketTemp)) {
             // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
             // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
@@ -320,6 +319,18 @@ export class TicketsController {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
+
+      // comprobar la cesta de un cliente con descuento especial
+      let clienteDescEsp = descuentoEspecial.find(
+        (desc) => desc.idCliente == cesta.idCliente
+      );
+      if (clienteDescEsp && total != clienteDescEsp.precio) {
+        logger.Info("Descuento especial activado en crearTicket");
+        // si el precio de la cesta no coincide con el precio del descuento especial, se recalcula
+        await cestasInstance.recalcularIvasDescuentoEspecial(cesta);
+        total = clienteDescEsp.precio;
+      }
+
       if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
 
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
@@ -332,7 +343,7 @@ export class TicketsController {
         paytefInstance.deleteUltimaIniciarTransaccion();
       }
       const ticket = await ticketsInstance.generarNuevoTicket(
-        total+dejaCuenta,
+        total + dejaCuenta,
         idTrabajador,
         cesta,
         tipo === "CONSUMO_PERSONAL",
