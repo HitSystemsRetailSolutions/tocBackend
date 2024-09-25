@@ -31,6 +31,8 @@ import { TicketsInterface } from "src/tickets/tickets.interface";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { CestasController } from "src/cestas/cestas.controller";
 import { info } from "console";
+import { tiposIvaInstance } from "../tiposIva/tiposIva.clase";
+
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -607,11 +609,11 @@ export class Impresora {
 
     let detalleIva = "";
     detalleIva =
-      detallesIva.detalleIva0 +
-      detallesIva.detalleIva4 +
-      detallesIva.detalleIva5 +
-      detallesIva.detalleIva10 +
-      detallesIva.detalleIva21;
+      detallesIva.detalleIvaTipo4 +
+      detallesIva.detalleIvaTipo1 +
+      detallesIva.detalleIvaTipo5 +
+      detallesIva.detalleIvaTipo2 +
+      detallesIva.detalleIvaTipo3;
 
     let infoConsumoPersonal = "";
     if (tipoPago == "CONSUMO_PERSONAL") {
@@ -905,11 +907,11 @@ export class Impresora {
 
     let detalleIva = "";
     detalleIva =
-      detallesIva.detalleIva0 +
-      detallesIva.detalleIva4 +
-      detallesIva.detalleIva5 +
-      detallesIva.detalleIva10 +
-      detallesIva.detalleIva21;
+      detallesIva.detalleIvaTipo4 +
+      detallesIva.detalleIvaTipo1 +
+      detallesIva.detalleIvaTipo5 +
+      detallesIva.detalleIvaTipo2 +
+      detallesIva.detalleIvaTipo3;
 
     let infoConsumoPersonal = "";
     if (tipoPago == "CONSUMO_PERSONAL") {
@@ -1091,6 +1093,7 @@ export class Impresora {
     this.enviarMQTT(arrayImprimir, options);
   }
   async getDetallesIva(tiposIva) {
+    const arrayIvas = tiposIvaInstance.arrayIvas;
     let str1 = "          ";
     let str2 = "                 ";
     let str3 = "              ";
@@ -1098,17 +1101,18 @@ export class Impresora {
     let valorIva = "";
     let importe = "";
     const detalle = {
-      detalleIva4: "",
-      detalleIva10: "",
-      detalleIva21: "",
-      detalleIva0: "",
-      detalleIva5: "",
+      detalleIvaTipo1: "",
+      detalleIvaTipo2: "",
+      detalleIvaTipo3: "",
+      detalleIvaTipo4: "",
+      detalleIvaTipo5: "",
     };
     if (tiposIva.importe1 > 0) {
       base = tiposIva.base1.toFixed(2) + " €";
-      valorIva = "4%: " + tiposIva.valorIva1.toFixed(2) + " €";
+      const iva1= arrayIvas.find((item) => item.tipus === "1");
+      valorIva = iva1.iva+"%: " + tiposIva.valorIva1.toFixed(2) + " €";
       importe = tiposIva.importe1.toFixed(2) + " €\n";
-      detalle.detalleIva4 =
+      detalle.detalleIvaTipo1 =
         str1.substring(0, str1.length - base.length) +
         base +
         str2.substring(0, str2.length - valorIva.length) +
@@ -1117,10 +1121,11 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe2 > 0) {
+      const iva2= arrayIvas.find((item) => item.tipus === "2");
       base = tiposIva.base2.toFixed(2) + " €";
-      valorIva = "10%: " + tiposIva.valorIva2.toFixed(2) + " €";
+      valorIva = iva2.iva+"%: " + tiposIva.valorIva2.toFixed(2) + " €";
       importe = tiposIva.importe2.toFixed(2) + " €\n";
-      detalle.detalleIva10 =
+      detalle.detalleIvaTipo2 =
         str1.substring(0, str1.length - base.length) +
         base +
         str2.substring(0, str2.length - valorIva.length) +
@@ -1129,10 +1134,11 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe3 > 0) {
+      const iva3= arrayIvas.find((item) => item.tipus === "3");
       base = tiposIva.base3.toFixed(2) + " €";
-      valorIva = "21%: " + tiposIva.valorIva3.toFixed(2) + " €";
+      valorIva = iva3.iva+"%: " + tiposIva.valorIva3.toFixed(2) + " €";
       importe = tiposIva.importe3.toFixed(2) + " €\n";
-      detalle.detalleIva21 =
+      detalle.detalleIvaTipo3 =
         str1.substring(0, str1.length - base.length) +
         base +
         str2.substring(0, str2.length - valorIva.length) +
@@ -1141,10 +1147,11 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe4 > 0) {
+      const iva4= arrayIvas.find((item) => item.tipus === "4");
       base = tiposIva.base4.toFixed(2) + " €";
-      valorIva = "0%: " + tiposIva.valorIva4.toFixed(2) + " €";
+      valorIva = iva4.iva+"%: " + tiposIva.valorIva4.toFixed(2) + " €";
       importe = tiposIva.importe4.toFixed(2) + " €\n";
-      detalle.detalleIva0 =
+      detalle.detalleIvaTipo4 =
         str1.substring(0, str1.length - base.length) +
         base +
         str2.substring(0, str2.length - valorIva.length) +
@@ -1153,10 +1160,11 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe5 > 0) {
+      const iva5= arrayIvas.find((item) => item.tipus === "5");
       base = tiposIva.base5.toFixed(2) + " €";
-      valorIva = "5%: " + tiposIva.valorIva5.toFixed(2) + " €";
+      valorIva = iva5.iva+"%: " + tiposIva.valorIva5.toFixed(2) + " €";
       importe = tiposIva.importe5.toFixed(2) + " €\n";
-      detalle.detalleIva5 =
+      detalle.detalleIvaTipo5 =
         str1.substring(0, str1.length - base.length) +
         base +
         str2.substring(0, str2.length - valorIva.length) +
@@ -2597,11 +2605,11 @@ export class Impresora {
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
     detalleIva =
-      detallesIva.detalleIva0 +
-      detallesIva.detalleIva4 +
-      detallesIva.detalleIva5 +
-      detallesIva.detalleIva10 +
-      detallesIva.detalleIva21;
+      detallesIva.detalleIvaTipo4 +
+      detallesIva.detalleIvaTipo1 +
+      detallesIva.detalleIvaTipo5 +
+      detallesIva.detalleIvaTipo2 +
+      detallesIva.detalleIvaTipo3;
     // mostramos las observaciones de los productos
     let observacions = "";
     for (const producto of encargo.productos) {
@@ -2742,11 +2750,11 @@ export class Impresora {
     const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
     let detalleIva = "";
     detalleIva =
-      detallesIva.detalleIva0 +
-      detallesIva.detalleIva4 +
-      detallesIva.detalleIva5 +
-      detallesIva.detalleIva10 +
-      detallesIva.detalleIva21;
+      detallesIva.detalleIvaTipo4 +
+      detallesIva.detalleIvaTipo1 +
+      detallesIva.detalleIvaTipo5 +
+      detallesIva.detalleIvaTipo2 +
+      detallesIva.detalleIvaTipo3;
     // mostramos las observaciones de los productos
     let observacions = "";
     for (const producto of encargo.productos) {
