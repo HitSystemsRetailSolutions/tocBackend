@@ -158,6 +158,8 @@ export class NuevaPromocion {
               const articuloSecundario =
                 await articulosInstance.getInfoArticulo(idArticulo);
 
+                const puntosArtPrinc = articuloPrincipal.puntos;
+                const puntosArtSec = articuloSecundario.puntos;
               const infoFinal: InfoPromocionCombo = {
                 ...infoPromoAplicar,
                 indexListaOriginalPrincipal: otraMediaPartePromo.indexCesta,
@@ -193,9 +195,9 @@ export class NuevaPromocion {
                 preciosReales
               );
               if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(cesta, infoFinal);
+                this.aplicarSobraComboPrincipal(cesta, infoFinal, puntosArtPrinc);
               if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(cesta, infoFinal);
+                this.aplicarSobraComboSecundario(cesta, infoFinal, puntosArtSec);
               return true;
             }
           } else if (mediaPromo.tipo === "PRINCIPAL") {
@@ -215,6 +217,8 @@ export class NuevaPromocion {
                 await articulosInstance.getInfoArticulo(
                   cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
                 );
+                const puntosArtPrinc = articuloPrincipal.puntos;
+                const puntosArtSec = articuloSecundario.puntos;
 
               const infoFinal: InfoPromocionCombo = {
                 ...infoPromoAplicar,
@@ -251,9 +255,9 @@ export class NuevaPromocion {
                 preciosReales
               );
               if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(cesta, infoFinal);
+                this.aplicarSobraComboPrincipal(cesta, infoFinal, puntosArtPrinc);
               if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(cesta, infoFinal);
+                this.aplicarSobraComboSecundario(cesta, infoFinal, puntosArtSec);
               return true;
             }
           }
@@ -282,7 +286,8 @@ export class NuevaPromocion {
               );
               const articuloSecundario =
                 await articulosInstance.getInfoArticulo(idArticulo);
-
+              const puntosArtPrinc = articuloPrincipal.puntos;
+              const puntosArtSec = articuloSecundario.puntos;
               const infoFinal: InfoPromocionCombo = {
                 ...infoPromoAplicar,
                 indexListaOriginalPrincipal: otraMediaPartePromo.indexCesta,
@@ -318,9 +323,9 @@ export class NuevaPromocion {
                 preciosReales
               );
               if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(cesta, infoFinal);
+                this.aplicarSobraComboPrincipal(cesta, infoFinal, puntosArtPrinc);
               if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(cesta, infoFinal);
+                this.aplicarSobraComboSecundario(cesta, infoFinal, puntosArtSec);
               return true;
             }
           } else if (mediaPromo.tipo === "PRINCIPAL") {
@@ -340,6 +345,8 @@ export class NuevaPromocion {
                 await articulosInstance.getInfoArticulo(
                   cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
                 );
+              const puntosArtPrinc = articuloPrincipal.puntos;
+              const puntosArtSec = articuloSecundario.puntos;
 
               const infoFinal: InfoPromocionCombo = {
                 ...infoPromoAplicar,
@@ -376,9 +383,17 @@ export class NuevaPromocion {
                 preciosReales
               );
               if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(cesta, infoFinal);
+                this.aplicarSobraComboPrincipal(
+                  cesta,
+                  infoFinal,
+                  puntosArtPrinc
+                );
               if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(cesta, infoFinal);
+                this.aplicarSobraComboSecundario(
+                  cesta,
+                  infoFinal,
+                  puntosArtSec
+                );
               return true;
             }
           }
@@ -1183,36 +1198,40 @@ export class NuevaPromocion {
 */
   private aplicarSobraComboPrincipal(
     cesta: CestasInterface,
-    data: InfoPromocionCombo
+    data: InfoPromocionCombo,
+    puntos: number
   ) {
     cesta.lista.push({
-      arraySuplementos: null,
-      gramos: 0,
       idArticulo: data.idArticuloPrincipal,
       nombre: data.nombrePrincipal,
+      arraySuplementos: null,
       promocion: null,
-      puntos: null,
+      varis: false,
       regalo: false,
+      puntos: puntos * data.sobranPrincipal,
       impresora: null,
       subtotal: null,
       unidades: data.sobranPrincipal,
+      gramos: null,
     });
   }
   private aplicarSobraComboSecundario(
     cesta: CestasInterface,
-    data: InfoPromocionCombo
+    data: InfoPromocionCombo,
+    puntos: number
   ) {
     cesta.lista.push({
-      arraySuplementos: null,
-      gramos: 0,
       idArticulo: data.idArticuloSecundario,
       nombre: data.nombreSecundario,
+      arraySuplementos: null,
       promocion: null,
-      puntos: null,
+      varis: false,
       regalo: false,
-      subtotal: null,
+      puntos: puntos * data.sobranSecundario,
       impresora: null,
+      subtotal: null,
       unidades: data.sobranSecundario,
+      gramos: null,
     });
   }
 

@@ -29,7 +29,8 @@ import axios from "axios";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 import { tarifasInstance } from "src/tarifas/tarifas.class";
-import { tiposIvaInstance} from "../tiposIva/tiposIva.clase"
+import { tiposIvaInstance } from "../tiposIva/tiposIva.clase";
+import { info } from "console";
 
 export class CestaClase {
   async recalcularIvasDescuentoEspecial(cesta: CestasInterface) {
@@ -1002,6 +1003,83 @@ export class CestaClase {
     }
     return detalleIva;
   }
+
+  async removePromos(cesta: CestasInterface) {
+    const cloneCesta: CestasInterface = JSON.parse(JSON.stringify(cesta));
+
+    const updateOrAddArticle = async (
+      idArticulo,
+      cantidad,
+      unidadesOferta,
+      cloneCesta
+    ) => {
+      const infoArticulo = await articulosInstance.getInfoArticulo(idArticulo);
+      let articuloExistente = cloneCesta.lista.find(
+        (item) => item.idArticulo === idArticulo
+      );
+
+      if (articuloExistente) {
+        // Si existe, actualizar cantidades y subtotal
+        articuloExistente.unidades += cantidad * unidadesOferta;
+        articuloExistente.subtotal +=
+          cantidad * unidadesOferta * infoArticulo.precioConIva;
+        articuloExistente.puntos +=
+          infoArticulo.puntos * unidadesOferta * cantidad;
+      } else {
+        // Si no existe, añadir el nuevo artículo
+        cloneCesta.lista.push({
+          idArticulo: idArticulo,
+          nombre: infoArticulo.nombre,
+          arraySuplementos: null,
+          promocion: null,
+          varis: false,
+          regalo: false,
+          puntos: infoArticulo.puntos * unidadesOferta * cantidad,
+          impresora: null,
+          subtotal: cantidad * unidadesOferta * infoArticulo.precioConIva,
+          unidades: cantidad * unidadesOferta,
+          gramos: null,
+        });
+      }
+    };
+
+    for (const product of cesta.lista) {
+      if (product.promocion) {
+        const unidadesOferta = product.unidades;
+        const idArtPrinc = product.promocion.idArticuloPrincipal;
+        const cantidadArtPrinc = product.promocion.cantidadArticuloPrincipal;
+
+        // Actualiza o añade el artículo principal
+        await updateOrAddArticle(
+          idArtPrinc,
+          cantidadArtPrinc,
+          unidadesOferta,
+          cloneCesta
+        );
+
+        if (product.promocion.tipoPromo === "COMBO") {
+          const idArtSec = product.promocion.idArticuloSecundario;
+          const cantidadArtSec = product.promocion.cantidadArticuloSecundario;
+
+          // Actualiza o añade el artículo secundario
+          await updateOrAddArticle(
+            idArtSec,
+            cantidadArtSec,
+            unidadesOferta,
+            cloneCesta
+          );
+        }
+
+        cloneCesta.lista = cloneCesta.lista.filter(
+          (item) =>
+            item.nombre !== product.nombre || item.subtotal !== product.subtotal
+        );
+      }
+    }
+
+    cesta.lista = cloneCesta.lista;
+    return cesta;
+  }
   async comprobarRegalos(cesta: CestasInterface) {
     // Si no hay cliente, no puede haber regalos
     if (cesta.idCliente) return;
@@ -1087,6 +1165,10 @@ export class CestaClase {
       !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
+    let vipOalbaran = cliente?.albaran || cliente?.vip;
+    if (vipOalbaran) {
+      await this.removePromos(cesta);
+    }
     for (let i = 0; i < cesta.lista.length; i++) {
       if (cesta.lista[i].regalo) continue;
       if (cesta.lista[i].promocion) {
@@ -1162,7 +1244,7 @@ export class CestaClase {
           !tarifaEsp
         ) {
           const tipoIvaStr = articulo.tipoIva.toString();
-          const ivaObject = arrayIvas.find(item => item.tipus === tipoIvaStr);
+          const ivaObject = arrayIvas.find((item) => item.tipus === tipoIvaStr);
           cesta.lista[i].iva = ivaObject.iva;
           // switch (articulo.tipoIva) {
           //   case 1:
