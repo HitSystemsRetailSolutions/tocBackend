@@ -23,8 +23,9 @@ export class TecladoController {
     }
   ) {
     const sourceProgram = headers["x-source-program"];
-    const article = headers["article"];
-    const worker = headers["worker"];
+    // decodeURIComponent para que no haya problemas con los caracteres especiales pasados por headers
+    let article = decodeURIComponent(headers["article"]);
+    const worker = decodeURIComponent(headers["worker"]);
     logger.Info(
       `nombre_programa: ${sourceProgram}, articulo: ${article}, unidades: ${unidades}, dependienta: ${worker}`
     );
