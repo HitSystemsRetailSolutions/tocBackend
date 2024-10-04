@@ -253,7 +253,7 @@ export class Impresora {
         sendObject.restante = ticket.restante;
       }
       // enviamos el objeto
-      if (infoCliente?.albaran) {
+      if (infoCliente?.albaran && infoCliente?.noPagaEnTienda) {
         await this.imprimirAlbaran(sendObject);
       } else {
         await this._venta(sendObject);
@@ -1219,7 +1219,7 @@ export class Impresora {
       : null;
 
     const albaranNPT_o_vipPT =
-      (cliente?.albaran && cliente?.noPagaEnTienda)||(cliente?.vip && !cliente?.noPagaEnTienda) ? true : false;
+      (cliente?.albaran && cliente?.noPagaEnTienda)||((cliente?.vip || cliente?.albaran)  && !cliente?.noPagaEnTienda) ? true : false;
 
     // Longitudes relacionadas con el formato
     let longDto = albaranNPT_o_vipPT ? 0 : thereIsDto ? cLongDto : 0;
@@ -2985,7 +2985,7 @@ export class Impresora {
     // comprueba si hay param dto y param iva
     const thereIsDto = lista.find((item) => "dto" in item) !== undefined;
     const thereIsIva = lista.find((item) => "iva" in item) !== undefined;
-    if (cliente && ((cliente.albaran && cliente.noPagaEnTienda)||(cliente?.vip && !cliente?.noPagaEnTienda))) {
+    if (cliente && ((cliente.albaran && cliente.noPagaEnTienda)||((cliente?.vip || cliente?.albaran)  && !cliente?.noPagaEnTienda))) {
       // formato albaranNPT
       return 4;
     } else if (preuUnitari && thereIsDto) {
