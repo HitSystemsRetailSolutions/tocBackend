@@ -1285,12 +1285,16 @@ export class CestaClase {
         }
         cesta.lista[i].subtotal =
           Math.round(cesta.lista[i].subtotal * 100) / 100;
+
+        // si la cesta proviene de descargas, se añade el timestamp de la cesta para calcular la trama de iva correcta a su fecha de creacion
+        const cestaOfDownloads = menu == "descargas" ? true : false;
         const auxDetalleIva = construirObjetoIvas(
           precioArt,
           articulo.tipoIva,
           cesta.lista[i].unidades,
           cliente?.albaran && cliente?.noPagaEnTienda && !tarifaEsp,
-          dto
+          dto,
+          cestaOfDownloads ? cesta.timestamp : null
         );
 
         cesta.detalleIva = fusionarObjetosDetalleIva(

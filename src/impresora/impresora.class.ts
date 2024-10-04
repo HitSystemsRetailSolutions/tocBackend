@@ -193,7 +193,8 @@ export class Impresora {
                 infoCliente["direccion"] === "0"
                   ? ""
                   : infoCliente["direccion"],
-              telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+              telefono:
+                infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
             }
           : null;
 
@@ -224,6 +225,7 @@ export class Impresora {
           dejaCuenta: ticket.dejaCuenta,
           idCliente: ticket.idCliente,
           totalSinDescuento: totalSinDescuento,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       } else {
         // si no tenemos cliente preparamos el objeto sin los datos del cliente
@@ -247,6 +249,7 @@ export class Impresora {
               ? null
               : ticket.cesta.indexMesa,
           comensales: ticket?.cesta?.comensales || null,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       }
       if (ticket.restante > 0) {
@@ -274,16 +277,15 @@ export class Impresora {
     let infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
 
     let informacionVip = infoCliente
-          ? {
-              nombre: infoCliente.nombre,
-              nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-              direccion:
-                infoCliente["direccion"] === "0"
-                  ? ""
-                  : infoCliente["direccion"],
-              telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
-            }
-          : null;
+      ? {
+          nombre: infoCliente.nombre,
+          nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+          direccion:
+            infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
+          telefono:
+            infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+        }
+      : null;
 
     const descuento =
       infoCliente && !infoCliente?.albaran && !infoCliente?.vip
@@ -315,6 +317,7 @@ export class Impresora {
           },
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       } else {
         sendObject = {
@@ -331,6 +334,7 @@ export class Impresora {
           infoCliente: null,
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       }
       if (ticket.restante > 0) {
@@ -366,6 +370,7 @@ export class Impresora {
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
+          tmstpCesta: devolucion.cesta.timestamp,
         };
 
         await this._venta(sendObject);
@@ -1092,8 +1097,8 @@ export class Impresora {
     // lo mandamos a la funcion enviarMQTT que se supone que imprime
     this.enviarMQTT(arrayImprimir, options);
   }
-  async getDetallesIva(tiposIva) {
-    const arrayIvas = tiposIvaInstance.arrayIvas;
+  async getDetallesIva(tiposIva, timestamp = null) {
+    const arrayIvas = timestamp ? tiposIvaInstance.getIvasDefault(timestamp): tiposIvaInstance.arrayIvas;
     let str1 = "          ";
     let str2 = "                 ";
     let str3 = "              ";
@@ -1109,8 +1114,8 @@ export class Impresora {
     };
     if (tiposIva.importe1 > 0) {
       base = tiposIva.base1.toFixed(2) + " €";
-      const iva1= arrayIvas.find((item) => item.tipus === "1");
-      valorIva = iva1.iva+"%: " + tiposIva.valorIva1.toFixed(2) + " €";
+      const iva1 = arrayIvas.find((item) => item.tipus === "1");
+      valorIva = iva1.iva + "%: " + tiposIva.valorIva1.toFixed(2) + " €";
       importe = tiposIva.importe1.toFixed(2) + " €\n";
       detalle.detalleIvaTipo1 =
         str1.substring(0, str1.length - base.length) +
@@ -1121,9 +1126,9 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe2 > 0) {
-      const iva2= arrayIvas.find((item) => item.tipus === "2");
+      const iva2 = arrayIvas.find((item) => item.tipus === "2");
       base = tiposIva.base2.toFixed(2) + " €";
-      valorIva = iva2.iva+"%: " + tiposIva.valorIva2.toFixed(2) + " €";
+      valorIva = iva2.iva + "%: " + tiposIva.valorIva2.toFixed(2) + " €";
       importe = tiposIva.importe2.toFixed(2) + " €\n";
       detalle.detalleIvaTipo2 =
         str1.substring(0, str1.length - base.length) +
@@ -1134,9 +1139,9 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe3 > 0) {
-      const iva3= arrayIvas.find((item) => item.tipus === "3");
+      const iva3 = arrayIvas.find((item) => item.tipus === "3");
       base = tiposIva.base3.toFixed(2) + " €";
-      valorIva = iva3.iva+"%: " + tiposIva.valorIva3.toFixed(2) + " €";
+      valorIva = iva3.iva + "%: " + tiposIva.valorIva3.toFixed(2) + " €";
       importe = tiposIva.importe3.toFixed(2) + " €\n";
       detalle.detalleIvaTipo3 =
         str1.substring(0, str1.length - base.length) +
@@ -1147,9 +1152,9 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe4 > 0) {
-      const iva4= arrayIvas.find((item) => item.tipus === "4");
+      const iva4 = arrayIvas.find((item) => item.tipus === "4");
       base = tiposIva.base4.toFixed(2) + " €";
-      valorIva = iva4.iva+"%: " + tiposIva.valorIva4.toFixed(2) + " €";
+      valorIva = iva4.iva + "%: " + tiposIva.valorIva4.toFixed(2) + " €";
       importe = tiposIva.importe4.toFixed(2) + " €\n";
       detalle.detalleIvaTipo4 =
         str1.substring(0, str1.length - base.length) +
@@ -1160,9 +1165,9 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe5 > 0) {
-      const iva5= arrayIvas.find((item) => item.tipus === "5");
+      const iva5 = arrayIvas.find((item) => item.tipus === "5");
       base = tiposIva.base5.toFixed(2) + " €";
-      valorIva = iva5.iva+"%: " + tiposIva.valorIva5.toFixed(2) + " €";
+      valorIva = iva5.iva + "%: " + tiposIva.valorIva5.toFixed(2) + " €";
       importe = tiposIva.importe5.toFixed(2) + " €\n";
       detalle.detalleIvaTipo5 =
         str1.substring(0, str1.length - base.length) +

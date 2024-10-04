@@ -17,6 +17,7 @@ import { Timestamp } from "mongodb";
 import { info, log } from "console";
 import { Ean13Utils } from "ean13-lib";
 import { MovimientosInterface } from "src/movimientos/movimientos.interface";
+import { construirObjetoIvas, fusionarObjetosDetalleIva } from "src/funciones/funciones";
 export class Deudas {
   async getDate(timestamp: any) {
     var date = new Date(timestamp);
@@ -450,7 +451,6 @@ export class Deudas {
 
     // Convierte el objeto de grupos en un array de arrays
     const deudasAgrupadas = Object.values(grupos).map((subarray) => subarray);
-
     try {
       for (const item of deudasAgrupadas) {
         await this.insertarDeuda(item, cesta);
@@ -484,6 +484,7 @@ export class Deudas {
       const detall = deuda[0].Detall;
       let inicio = detall.indexOf("DejaACuenta:");
       let dejaCuenta = 0;
+      if (idTicket == 0) return;
       if (inicio !== -1) {
         // Ajustar el índice para comenzar desde después de ":"
         inicio += "DejaACuenta:".length;
@@ -505,7 +506,8 @@ export class Deudas {
       cesta.idCliente = idCliente;
       cesta.nombreCliente = cliente.nombre;
       cesta.trabajador = idDependenta;
-
+      // insertamos el tmstp de la deuda en la cesta para usar el iva correcto al insertar los productos
+      cesta.timestamp = timestamp;
       await cestasInstance.updateCesta(cesta);
       const cestaDeuda = await this.postCestaDeuda(deuda, cesta);
 
@@ -532,10 +534,12 @@ export class Deudas {
         }
       }
       total = Number((Math.round(total * 100) / 100).toFixed(2));
+      console.log("total1", total,"descuento:",descuento," cestaDeudaLista1",cestaDeuda.lista,"cestaDeudaDetalleIva1",cestaDeuda.detalleIva);
+      const cestaCopia = JSON.parse(JSON.stringify(cestaDeuda));
       const mongodbDeuda = {
         idTicket: idTicket,
         idSql: idSql,
-        cesta: cestaDeuda,
+        cesta: cestaCopia,
         idTrabajador: idDependenta,
         idCliente: idCliente,
         nombreCliente: nombreCliente,
@@ -549,6 +553,25 @@ export class Deudas {
       // se vacia la lista para no duplicar posibles productos en la siguiente creacion de un encargo
 
       cesta.lista = [];
+      cesta.detalleIva = {
+        base1: 0,
+        base2: 0,
+        base3: 0,
+        base4: 0,
+        base5: 0,
+        valorIva1: 0,
+        valorIva2: 0,
+        valorIva3: 0,
+        valorIva4: 0,
+        valorIva5: 0,
+        importe1: 0,
+        importe2: 0,
+        importe3: 0,
+        importe4: 0,
+        importe5: 0,
+      };
+      console.log("total2", total,"cestaDeudaLista2",cestaDeuda.lista,"cestaDeudaDetalleIva2",cestaDeuda.detalleIva);
+
       return schDeudas
         .setDeuda(mongodbDeuda)
         .then((ok: boolean) => {
@@ -563,6 +586,7 @@ export class Deudas {
   }
   async postCestaDeuda(deuda: any, cesta: CestasInterface) {
     try {
+      console.log("deuda", deuda); 
       // insertar productos restantes
       for (const [index, item] of deuda.entries()) {
         const arraySuplementos =
@@ -573,23 +597,46 @@ export class Deudas {
                 deuda[index]?.FormaMarcar.split(",").map(Number)
               )
             : null;
-
-        for (let i = 0; i < item.Quantitat; i++) {
-          cesta = await cestasInstance.clickTeclaArticulo(
-            item.Plu,
-            0,
-            cesta._id,
-            1,
-            arraySuplementos,
-            "",
-            "descargas"
-          );
-        }
+        // if (arraySuplementos) {
+          for (let i = 0; i < item.Quantitat; i++) {
+            cesta = await cestasInstance.clickTeclaArticulo(
+              item.Plu,
+              0,
+              cesta._id,
+              1,
+              arraySuplementos,
+              "",
+              "descargas"
+            );
+          }
+        // } else {
+        //   console.log("no hay suplementos");
+        //   const infoArt = await articulosInstance.getInfoArticulo(item.Plu);
+        //   cesta.lista.push({
+        //     idArticulo: item.Plu,
+        //     nombre: infoArt.nombre,
+        //     arraySuplementos: arraySuplementos,
+        //     promocion: null,
+        //     varis: false,
+        //     regalo: false,
+        //     puntos: infoArt.puntos,
+        //     impresora: infoArt.impresora,
+        //     subtotal: item.Import,
+        //     unidades: item.Quantitat,
+        //     gramos: null,
+        //     pagado: false,
+        //   });
+        //   const objectIva = construirObjetoIvas(item.Import, infoArt.tipoIva, 1, false, 0, cesta.timestamp);
+        //   console.log("objectIva", objectIva);
+        //   cesta.detalleIva = fusionarObjetosDetalleIva(objectIva,cesta.detalleIva );
+        // }
+        // await cestasInstance.updateCesta(cesta);
       }
+
     } catch (error) {
       console.log("error crear cesta de deuda", error);
     }
-
+    console.log("cesta.lista.length", cesta.lista.length,cesta.lista,cesta.detalleIva);
     return cesta;
   }
   async getDeudasCajaAsync() {
