@@ -39,6 +39,7 @@ export class Clientes {
       })
       .catch((e) => {
         console.log(e);
+        return null;
       });
     return x?.data;
   }
