@@ -9,7 +9,8 @@ export async function insertarTarifas(
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const tarifas = database.collection<TarifaInterface>("tarifas");
-  return (await tarifas.insertMany(arrayTarifas)).acknowledged;
+  const res = await tarifas.insertMany(arrayTarifas);
+  return res.acknowledged;
 }
 
 /* Eze 4.0 */

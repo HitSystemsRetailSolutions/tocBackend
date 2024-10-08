@@ -1208,7 +1208,6 @@ export class CestaClase {
           articulo,
           cesta.idCliente
         );
-
         if (artPrecioIvaSinTarifa != articulo.precioConIva) {
           precioArt = articulo.precioConIva;
           tarifaEsp = true;
@@ -1249,10 +1248,8 @@ export class CestaClase {
         if (
           ((cliente?.albaran && cliente?.noPagaEnTienda) ||
             ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda)) &&
-          !cesta.lista[i]?.iva &&
-          !tarifaEsp
+          !cesta.lista[i]?.iva
         ) {
-          console.log("añadir iva");
           const tipoIvaStr = articulo.tipoIva.toString();
           const ivaObject = arrayIvas.find((item) => item.tipus === tipoIvaStr);
           cesta.lista[i].iva = ivaObject.iva;
@@ -1279,26 +1276,23 @@ export class CestaClase {
             (!cliente?.albaran && !cliente?.vip && !cliente?.noPagaEnTienda)) &&
           cesta.lista[i]?.iva
         ) {
-          console.log("borrar iva");
           delete cesta.lista[i].precioOrig;
           delete cesta.lista[i].iva;
         }
-        console.log(
-          cliente,
-          cliente?.albaran,
-          cliente?.vip,
-          cliente?.noPagaEnTienda,
-          cesta.lista[i]?.iva
-        );
-        console.log(cesta.lista[i]?.iva, cesta.lista[i]?.dto);
+
         // si contiene dto o iva, añadir precio original para mostrarlo en el ticket
         if (cesta.lista[i]?.iva || cesta.lista[i]?.dto) {
+          if(!tarifaEsp)
           cesta.lista[i].precioOrig = precioArt * cesta.lista[i].unidades;
+          else{
+            const ivaDec= redondearPrecio(1+cesta.lista[i]?.iva/100);
+            cesta.lista[i].precioOrig = redondearPrecio(precioArt / ivaDec);
+          }
         } else if (cesta.lista[i]?.precioOrig) {
           delete cesta.lista[i].precioOrig;
         }
 
-        if (cesta.lista[i].iva) {
+        if (cesta.lista[i].iva && !tarifaEsp) {
           cesta.lista[i].subtotal =
             cesta.lista[i].subtotal * (1 + cesta.lista[i].iva / 100);
         }
