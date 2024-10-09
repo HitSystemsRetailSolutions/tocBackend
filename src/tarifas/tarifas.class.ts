@@ -25,8 +25,10 @@ export class TarifasClass {
 
   /* Eze 4.0 */
   async actualizarTarifas(): Promise<boolean> {
-    await schTarifas.borrarTarifas();
+
     const arrayTarifas = await this.descargarTarifasEspeciales();
+    if(!arrayTarifas) return false;
+    await schTarifas.borrarTarifas();
     return await this.guardarTarifasEspeciales(arrayTarifas);
   }
 
