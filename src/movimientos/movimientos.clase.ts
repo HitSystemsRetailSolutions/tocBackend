@@ -631,7 +631,7 @@ export class MovimientosClase {
           superTicket.movimientos[0].tipo === "SALIDA" &&
           superTicket.movimientos[1].tipo === "ENTRADA_DINERO"
         ) {
-          if (superTicket.movimientos[1].concepto === "dejaACuenta")
+          if (superTicket.movimientos[1].concepto === "dejaACuentaDeuda")
             return "DEUDA";
           // CASO DEUDA PAGADA
           const debeSerCero =

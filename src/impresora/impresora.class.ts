@@ -225,6 +225,7 @@ export class Impresora {
           dejaCuenta: ticket.dejaCuenta,
           idCliente: ticket.idCliente,
           totalSinDescuento: totalSinDescuento,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       } else {
         // si no tenemos cliente preparamos el objeto sin los datos del cliente
@@ -248,6 +249,7 @@ export class Impresora {
               ? null
               : ticket.cesta.indexMesa,
           comensales: ticket?.cesta?.comensales || null,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       }
       if (ticket.restante > 0) {
@@ -315,6 +317,7 @@ export class Impresora {
           },
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       } else {
         sendObject = {
@@ -331,6 +334,7 @@ export class Impresora {
           infoCliente: null,
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       }
       if (ticket.restante > 0) {
@@ -366,6 +370,7 @@ export class Impresora {
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
+          tmstpCesta: devolucion.cesta.timestamp,
         };
 
         await this._venta(sendObject);
@@ -1100,8 +1105,8 @@ export class Impresora {
     // lo mandamos a la funcion enviarMQTT que se supone que imprime
     this.enviarMQTT(arrayImprimir, options);
   }
-  async getDetallesIva(tiposIva) {
-    const arrayIvas = tiposIvaInstance.arrayIvas;
+  async getDetallesIva(tiposIva, timestamp = null) {
+    const arrayIvas = timestamp ? tiposIvaInstance.getIvasDefault(timestamp): tiposIvaInstance.arrayIvas;
     let str1 = "          ";
     let str2 = "                 ";
     let str3 = "              ";

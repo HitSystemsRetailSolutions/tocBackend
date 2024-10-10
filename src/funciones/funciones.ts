@@ -10,9 +10,10 @@ export function construirObjetoIvas(
   tipoIva: TiposIva,
   unidades: number,
   albaranNPT: boolean = false,
-  dto: number = 0
+  dto: number = 0,
+  timestamp: number = null,
 ): DetalleIvaInterface {
-  const arrayIvasDecimals = tiposIvaInstance.arrayDecimal;
+  const arrayIvasDecimals = timestamp ? tiposIvaInstance.getIvasDecWithTmstpCesta(timestamp) : tiposIvaInstance.arrayDecimal;
   let base1 = 0,
     base2 = 0,
     base3 = 0,
