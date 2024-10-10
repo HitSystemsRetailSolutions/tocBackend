@@ -256,7 +256,7 @@ export class Impresora {
         sendObject.restante = ticket.restante;
       }
       // enviamos el objeto
-      if (infoCliente?.albaran) {
+      if (infoCliente?.albaran && infoCliente?.noPagaEnTienda) {
         await this.imprimirAlbaran(sendObject);
       } else {
         await this._venta(sendObject);
@@ -556,9 +556,13 @@ export class Impresora {
       clientTitle = "\nCLIENT:";
       detalleNombreCliente = infoCliente.nombre;
       if (infoClienteVip) detalleNombreCliente = "";
-      detallePuntosCliente =
-        "Punts restants: " +
-          (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+      if (infoCliente.puntos == null) {
+        detallePuntosCliente = "Punts pendents d'actualitzar";
+      } else {
+        detallePuntosCliente =
+          "Punts restants: " +
+            (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+      }
       if (!clienteDescEsp || clienteDescEsp.precio != total) {
         clienteDescuento =
           "Descompte de client: " +
@@ -852,9 +856,13 @@ export class Impresora {
       clientTitle = "\nCLIENT:";
       detalleNombreCliente = infoCliente.nombre;
       if (infoClienteVip) detalleNombreCliente = "";
-      detallePuntosCliente =
-        "Punts restants: " +
-          (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+      if (infoCliente.puntos == null) {
+        detallePuntosCliente = "Punts pendents d'actualitzar";
+      } else {
+        detallePuntosCliente =
+          "Punts restants: " +
+            (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+      }
       if (!clienteDescEsp || clienteDescEsp.precio != total) {
         clienteDescuento =
           "Descompte de client: " +
@@ -1223,14 +1231,17 @@ export class Impresora {
       ? await clienteInstance.getClienteById(idCliente)
       : null;
 
-    const albaranNPT =
-      cliente?.albaran && cliente?.noPagaEnTienda ? true : false;
+    const albaranNPT_o_vipPT =
+      (cliente?.albaran && cliente?.noPagaEnTienda) ||
+      ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda)
+        ? true
+        : false;
 
     // Longitudes relacionadas con el formato
-    let longDto = albaranNPT ? 0 : thereIsDto ? cLongDto : 0;
+    let longDto = albaranNPT_o_vipPT ? 0 : thereIsDto ? cLongDto : 0;
     let longQuant = cLongQuant;
-    let longPreuU = albaranNPT ? 0 : preuUnitari ? cLongPreuU : 0;
-    let longImporte = albaranNPT ? 0 : cLongImporte;
+    let longPreuU = albaranNPT_o_vipPT ? 0 : preuUnitari ? cLongPreuU : 0;
+    let longImporte = albaranNPT_o_vipPT ? 0 : cLongImporte;
     let longArticulo = inicializarLongArticulo();
     let margen = cMargen;
 
@@ -1251,7 +1262,7 @@ export class Impresora {
       try {
         arrayCompra[i]["preuU"] = await this.obtenerPrecioUnitario(
           arrayCompra[i],
-          albaranNPT
+          albaranNPT_o_vipPT
         );
       } catch (error) {
         console.error(
@@ -1261,11 +1272,11 @@ export class Impresora {
         // Asignar un valor por defecto en caso de error en la función obtenerPrecioUnitario
         arrayCompra[i]["preuU"] = this.calcularPrecioUnitario(
           arrayCompra[i],
-          albaranNPT
+          albaranNPT_o_vipPT
         );
       }
 
-      if (thereIsDto && !albaranNPT) {
+      if (thereIsDto && !albaranNPT_o_vipPT) {
         let dto = arrayCompra[i].dto ? arrayCompra[i].dto + "%" : "";
         descuentoStr = sprintf(`%${longDto}s`, dto);
       } else {
@@ -1456,7 +1467,7 @@ export class Impresora {
       }
       function setImporteStr() {
         let str = "";
-        if (albaranNPT) {
+        if (albaranNPT_o_vipPT) {
           str = `${arrayCompra[i]["preuU"]} p/u`;
           str +=
             arrayCompra[i]?.dto != undefined
@@ -2990,7 +3001,11 @@ export class Impresora {
     // comprueba si hay param dto y param iva
     const thereIsDto = lista.find((item) => "dto" in item) !== undefined;
     const thereIsIva = lista.find((item) => "iva" in item) !== undefined;
-    if (cliente && cliente.albaran && cliente.noPagaEnTienda) {
+    if (
+      cliente &&
+      ((cliente.albaran && cliente.noPagaEnTienda) ||
+        ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda))
+    ) {
       // formato albaranNPT
       return 4;
     } else if (preuUnitari && thereIsDto) {
