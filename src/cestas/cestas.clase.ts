@@ -1286,7 +1286,8 @@ export class CestaClase {
           cesta.lista[i].precioOrig = precioArt * cesta.lista[i].unidades;
           else{
             const ivaDec= redondearPrecio(1+cesta.lista[i]?.iva/100);
-            cesta.lista[i].precioOrig = redondearPrecio(precioArt / ivaDec);
+            const precioUnidad = redondearPrecio(precioArt/ivaDec);
+            cesta.lista[i].precioOrig = redondearPrecio(precioUnidad*cesta.lista[i].unidades);
           }
         } else if (cesta.lista[i]?.precioOrig) {
           delete cesta.lista[i].precioOrig;
