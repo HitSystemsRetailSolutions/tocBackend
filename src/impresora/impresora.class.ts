@@ -30,8 +30,9 @@ import { EncargosInterface } from "src/encargos/encargos.interface";
 import { TicketsInterface } from "src/tickets/tickets.interface";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { CestasController } from "src/cestas/cestas.controller";
-import { info } from "console";
+import { Console, info } from "console";
 import { tiposIvaInstance } from "../tiposIva/tiposIva.clase";
+import { redondearPrecio } from "src/funciones/funciones";
 
 moment.locale("es");
 const escpos = require("escpos");
@@ -583,13 +584,27 @@ export class Impresora {
       infoCliente.descuento != 0 &&
       (!clienteDescEsp || clienteDescEsp.precio != total)
     ) {
-      detalleDescuento += detalleDescuento += `Total sense descompte: ${(
-        total /
-        (1 - infoCliente.descuento / 100)
-      ).toFixed(2)}€\nDescompte total: ${(
-        ((total / (1 - infoCliente.descuento / 100)) * infoCliente.descuento) /
-        100
-      ).toFixed(2)}€\n`;
+      let baseTotal = 0; // Inicializamos la variable para totalizar las bases
+      let ivaTotal = 0; // Inicializamos la variable para totalizar los IVA
+
+      // Iterar sobre cada objeto en tiposIva
+      for (const key in tiposIva) {
+        if (key.includes("base")) {
+          baseTotal += tiposIva[key]; // Sumamos el valor a baseTotal
+        }
+        if (key.includes("valorIva")) {
+          ivaTotal += tiposIva[key]; // Sumamos el valor a ivaTotal
+        }
+      }
+      // Sumamos el total de las bases y el total de los IVA
+      detalleDescuento +=
+        detalleDescuento += `Total sense descompte: ${redondearPrecio(
+          (baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)
+        )}€\nDescompte total: ${redondearPrecio(
+          (((baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)) *
+            infoCliente.descuento) /
+            100
+        )}€\n`;
     }
 
     const moment = require("moment-timezone");
@@ -1106,7 +1121,9 @@ export class Impresora {
     this.enviarMQTT(arrayImprimir, options);
   }
   async getDetallesIva(tiposIva, timestamp = null) {
-    const arrayIvas = timestamp ? tiposIvaInstance.getIvasDefault(timestamp): tiposIvaInstance.arrayIvas;
+    const arrayIvas = timestamp
+      ? tiposIvaInstance.getIvasDefault(timestamp)
+      : tiposIvaInstance.arrayIvas;
     let str1 = "          ";
     let str2 = "                 ";
     let str3 = "              ";
@@ -1783,6 +1800,62 @@ export class Impresora {
         {
           tipo: "text",
           payload: "Total pagado:",
+        },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.valor + "€" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Concepto" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.concepto },
+      ];
+
+      if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
+        buffer.push({
+          tipo: "barcode",
+          payload: [movimiento.codigoBarras.slice(0, 12), "EAN13", 4],
+        });
+      }
+      buffer.push({
+        tipo: "text",
+        payload: "\n\n\n",
+      });
+      buffer.push({
+        tipo: "cut",
+        payload: "PAPER_FULL_CUT",
+      });
+
+      const options = {
+        imprimirLogo: false,
+        tipo: "entrada",
+      };
+      this.enviarMQTT(buffer, options);
+    } catch (err) {
+      console.log(err);
+      mqttInstance.loggerMQTT(err);
+    }
+  }
+  async imprimirMov3G(movimiento: MovimientosInterface, client: string) {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      const imprimirMov3G = parametros["params"]["imprimirMov3G"] == "Si";
+      if (!imprimirMov3G) return;
+
+      const moment = require("moment-timezone");
+      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
+      const strCliente = client ? "Cliente: " + client : "Cliente general";
+      let buffer = [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: parametros.nombreTienda },
+        { tipo: "text", payload: fechaStr.format("DD-MM-YYYY HH:mm") },
+        { tipo: "text", payload: strCliente },
+        {
+          tipo: "text",
+          payload: "Total 3G:",
         },
         { tipo: "size", payload: [1, 1] },
         { tipo: "text", payload: movimiento.valor + "€" },
