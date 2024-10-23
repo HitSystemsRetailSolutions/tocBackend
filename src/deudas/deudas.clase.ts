@@ -17,6 +17,10 @@ import { Timestamp } from "mongodb";
 import { info, log } from "console";
 import { Ean13Utils } from "ean13-lib";
 import { MovimientosInterface } from "src/movimientos/movimientos.interface";
+import {
+  construirObjetoIvas,
+  fusionarObjetosDetalleIva,
+} from "src/funciones/funciones";
 export class Deudas {
   async getDate(timestamp: any) {
     var date = new Date(timestamp);
@@ -421,6 +425,7 @@ export class Deudas {
     schDeudas.setFinalizado(idDeuda);
 
   public async insertarDeudas(deudas: any) {
+
     if (deudas.length == 0) return;
     let cajaAbierta = await cajaInstance.cajaAbierta();
     // abrimos caja temporalmente para poder utilizar la cesta
@@ -450,7 +455,6 @@ export class Deudas {
 
     // Convierte el objeto de grupos en un array de arrays
     const deudasAgrupadas = Object.values(grupos).map((subarray) => subarray);
-
     try {
       for (const item of deudasAgrupadas) {
         await this.insertarDeuda(item, cesta);
@@ -480,10 +484,11 @@ export class Deudas {
       const idDependenta = deuda[0].Dependenta;
       const idCliente = deuda[0].Otros.match(/\[Id:(.*?)\]/)?.[1] || "";
       const cliente = await clienteInstance.getClienteById(idCliente);
-      const nombreCliente = cliente.nombre;
+      const nombreCliente = cliente?.nombre;
       const detall = deuda[0].Detall;
       let inicio = detall.indexOf("DejaACuenta:");
       let dejaCuenta = 0;
+ 
       if (inicio !== -1) {
         // Ajustar el índice para comenzar desde después de ":"
         inicio += "DejaACuenta:".length;
@@ -503,16 +508,41 @@ export class Deudas {
 
       const timestamp = fechaGMT.getTime();
       cesta.idCliente = idCliente;
-      cesta.nombreCliente = cliente.nombre;
+      cesta.nombreCliente = nombreCliente;
       cesta.trabajador = idDependenta;
-
+      // insertamos el tmstp de la deuda en la cesta para usar el iva correcto al insertar los productos
+      cesta.timestamp = timestamp;
       await cestasInstance.updateCesta(cesta);
-      const cestaDeuda = await this.postCestaDeuda(deuda, cesta);
-
+      let cestaDeuda = JSON.parse(JSON.stringify(cesta))
       let descuento: any =
         cliente && !cliente?.albaran && !cliente?.vip
           ? Number(cliente.descuento)
           : 0;
+      if (idTicket == 0){
+        cestaDeuda.detalleIva = {
+          base1: 0,
+          base2: deuda[0].Import,
+          base3: 0,
+          base4: 0,
+          base5: 0,
+          valorIva1: 0,
+          valorIva2: 0,
+          valorIva3: 0,
+          valorIva4: 0,
+          valorIva5: 0,
+          importe1: 0,
+          importe2: deuda[0].Import,
+          importe3: 0,
+          importe4: 0,
+          importe5: 0,
+        }
+        //total = deuda[0].Import; se inserta aqui dependiendo de si le meto iva o no
+      } else {
+        cestaDeuda = await this.postCestaDeuda(deuda, cestaDeuda, descuento);
+      }
+      // el descuento se aplica dependiendo de si se ha usado insertarArticulo en cesta
+      // Si no se ha usado insertarArticulo, el descuento tambien se aplica en detallesIva
+      
 
       // modificamos precios con el descuentro del cliente
       if (descuento && descuento > 0) {
@@ -532,10 +562,12 @@ export class Deudas {
         }
       }
       total = Number((Math.round(total * 100) / 100).toFixed(2));
+      const cestaCopia = JSON.parse(JSON.stringify(cestaDeuda));
+
       const mongodbDeuda = {
         idTicket: idTicket,
         idSql: idSql,
-        cesta: cestaDeuda,
+        cesta: cestaCopia,
         idTrabajador: idDependenta,
         idCliente: idCliente,
         nombreCliente: nombreCliente,
@@ -549,6 +581,24 @@ export class Deudas {
       // se vacia la lista para no duplicar posibles productos en la siguiente creacion de un encargo
 
       cesta.lista = [];
+      cesta.detalleIva = {
+        base1: 0,
+        base2: 0,
+        base3: 0,
+        base4: 0,
+        base5: 0,
+        valorIva1: 0,
+        valorIva2: 0,
+        valorIva3: 0,
+        valorIva4: 0,
+        valorIva5: 0,
+        importe1: 0,
+        importe2: 0,
+        importe3: 0,
+        importe4: 0,
+        importe5: 0,
+      };
+
       return schDeudas
         .setDeuda(mongodbDeuda)
         .then((ok: boolean) => {
@@ -561,8 +611,9 @@ export class Deudas {
     }
     throw new Error("Method not implemented.");
   }
-  async postCestaDeuda(deuda: any, cesta: CestasInterface) {
+  async postCestaDeuda(deuda: any, cesta: CestasInterface, dto: number) {
     try {
+
       // insertar productos restantes
       for (const [index, item] of deuda.entries()) {
         const arraySuplementos =
@@ -573,18 +624,50 @@ export class Deudas {
                 deuda[index]?.FormaMarcar.split(",").map(Number)
               )
             : null;
+        if (arraySuplementos) {
+          for (let i = 0; i < item.Quantitat; i++) {
+            cesta = await cestasInstance.clickTeclaArticulo(
+              item.Plu,
+              0,
+              cesta._id,
+              1,
+              arraySuplementos,
+              "",
+              "descargas"
+            );
+          }
+        } else {
 
-        for (let i = 0; i < item.Quantitat; i++) {
-          cesta = await cestasInstance.clickTeclaArticulo(
-            item.Plu,
-            0,
-            cesta._id,
+          const infoArt = await articulosInstance.getInfoArticulo(item.Plu);
+          cesta.lista.push({
+            idArticulo: item.Plu,
+            nombre: infoArt.nombre,
+            arraySuplementos: arraySuplementos,
+            promocion: null,
+            varis: false,
+            regalo: false,
+            puntos: infoArt.puntos,
+            impresora: infoArt.impresora,
+            subtotal: item.Import,
+            unidades: item.Quantitat,
+            gramos: null,
+            pagado: false,
+          });
+          const objectIva = construirObjetoIvas(
+            item.Import,
+            infoArt.tipoIva,
             1,
-            arraySuplementos,
-            "",
-            "descargas"
+            false,
+            dto,
+            cesta.timestamp
+          );
+
+          cesta.detalleIva = fusionarObjetosDetalleIva(
+            objectIva,
+            cesta.detalleIva
           );
         }
+        await cestasInstance.updateCesta(cesta);
       }
     } catch (error) {
       console.log("error crear cesta de deuda", error);

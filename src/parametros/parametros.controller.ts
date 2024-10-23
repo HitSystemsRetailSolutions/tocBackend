@@ -73,7 +73,7 @@ export class ParametrosController {
         console.log(e);
       });
     if (!res) {
-      throw Error("Error al sincronizar con SantaAna");
+      logger.Error("Error al sincronizar con SantaAna");
     }
   }
 

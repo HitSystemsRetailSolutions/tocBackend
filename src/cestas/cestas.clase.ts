@@ -217,16 +217,29 @@ export class CestaClase {
       descuento > 0 &&
       !clienteDescEsp
     ) {
-      cesta.lista.forEach((producto) => {
-        if (producto.arraySuplementos != null) {
-          producto.subtotal = redondearPrecio(
-            producto.subtotal - (producto.subtotal * descuento) / 100
+      for (const producto of cesta.lista) {
+        if (producto.arraySuplementos != null || producto.promocion == null) {
+          const infoArticulo = await articulosInstance.getInfoArticulo(
+            producto.idArticulo
           );
-        } else if (producto.promocion == null)
-          producto.subtotal = redondearPrecio(
-            producto.subtotal - (producto.subtotal * descuento) / 100
-          ); // Modificamos el total para añadir el descuento especial del cliente
-      });
+          const objIva = construirObjetoIvas(
+            infoArticulo.precioConIva,
+            infoArticulo.tipoIva,
+            producto.unidades,
+            false,
+            descuento
+          );
+          producto.subtotal =
+            Object.entries(objIva)
+              .filter(
+                ([key, value]) =>
+                  key.includes("importe") &&
+                  typeof value === "number" &&
+                  value > 0
+              )
+              .map(([key, value]) => value)[0] || null;
+        } // Modificamos el total para añadir el descuento especial del cliente
+      }
     } else if (clienteDescEsp && importe == clienteDescEsp.precio) {
       this.recalcularSubtotales(cesta, clienteDescEsp.precio);
     } else if (cesta.modo == "CONSUMO_PERSONAL" && descuento) {
@@ -1282,11 +1295,14 @@ export class CestaClase {
 
         // si contiene dto o iva, añadir precio original para mostrarlo en el ticket
         if (cesta.lista[i]?.iva || cesta.lista[i]?.dto) {
-          if(!tarifaEsp)
-          cesta.lista[i].precioOrig = precioArt * cesta.lista[i].unidades;
-          else{
-            const ivaDec= redondearPrecio(1+cesta.lista[i]?.iva/100);
-            cesta.lista[i].precioOrig = redondearPrecio(precioArt / ivaDec);
+          if (!tarifaEsp)
+            cesta.lista[i].precioOrig = precioArt * cesta.lista[i].unidades;
+          else {
+            const ivaDec = redondearPrecio(1 + cesta.lista[i]?.iva / 100);
+            const precioUnidad = redondearPrecio(precioArt / ivaDec);
+            cesta.lista[i].precioOrig = redondearPrecio(
+              precioUnidad * cesta.lista[i].unidades
+            );
           }
         } else if (cesta.lista[i]?.precioOrig) {
           delete cesta.lista[i].precioOrig;
@@ -1302,6 +1318,9 @@ export class CestaClase {
         }
         cesta.lista[i].subtotal =
           Math.round(cesta.lista[i].subtotal * 100) / 100;
+
+        // si la cesta proviene de descargas, se añade el timestamp de la cesta para calcular la trama de iva correcta a su fecha de creacion
+        const cestaOfDownloads = menu == "descargas" ? true : false;
         const auxDetalleIva = construirObjetoIvas(
           precioArt,
           articulo.tipoIva,
@@ -1309,7 +1328,8 @@ export class CestaClase {
           ((cliente?.albaran && cliente?.noPagaEnTienda) ||
             ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda)) &&
             !tarifaEsp,
-          dto
+          dto,
+          cestaOfDownloads ? cesta.timestamp : null
         );
 
         cesta.detalleIva = fusionarObjetosDetalleIva(
