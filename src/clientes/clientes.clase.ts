@@ -42,6 +42,13 @@ export class Clientes {
       });
     return x?.data;
   }
+  async getDescuentos() {
+    const parametros = await parametrosInstance.getParametros();
+    if (parametros) {
+      return parametros.descuentosTienda || [];
+    }
+    throw new Error("Method not implemented.");
+  }
   getDtoAlbaran(cliente: ClientesInterface, articulo: ArticulosInterface) {
     const dtoFamilia = this.getDtoFamilia(cliente, articulo);
     const dtoSubFamilia = this.getDtoSubFamilia(cliente, articulo);

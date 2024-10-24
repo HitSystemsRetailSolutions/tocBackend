@@ -128,10 +128,11 @@ export class TiposIvaClase {
 
         if (dataMongo.length) {
           this.arrayIvas = dataMongo;
+        } else {
+          throw new Error(
+            "Error al obtener ivas de MongoDB, usando valores Defaults"
+          );
         }
-        throw new Error(
-          "Error al obtener ivas de MongoDB, usando valores Defaults"
-        );
       }
       return this.arrayIvas;
     } catch (error) {

@@ -101,6 +101,7 @@ export class ParametrosClase {
       contadorPaytef: 0,
       token: undefined,
       payteftcod: "",
+      descuentosTienda: [],
     };
   }
   updLastTicket(idTicket: number) {

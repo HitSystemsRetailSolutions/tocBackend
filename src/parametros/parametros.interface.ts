@@ -19,6 +19,10 @@ export interface ParametrosInterface {
   contadorPaytefDate?: string;
   tarifaMesa: string;
   payteftcod: string;
+  descuentosTienda: DescuentosTienda[];
 }
-
+export interface DescuentosTienda {
+  descuentoFamilia: number;
+  valor: number;
+}
 export type TiposDatafono = "3G" | "PAYTEF" | "CLEARONE";
