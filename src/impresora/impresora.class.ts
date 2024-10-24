@@ -30,8 +30,9 @@ import { EncargosInterface } from "src/encargos/encargos.interface";
 import { TicketsInterface } from "src/tickets/tickets.interface";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { CestasController } from "src/cestas/cestas.controller";
-import { info } from "console";
+import { Console, info } from "console";
 import { tiposIvaInstance } from "../tiposIva/tiposIva.clase";
+import { redondearPrecio } from "src/funciones/funciones";
 
 moment.locale("es");
 const escpos = require("escpos");
@@ -193,7 +194,8 @@ export class Impresora {
                 infoCliente["direccion"] === "0"
                   ? ""
                   : infoCliente["direccion"],
-              telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+              telefono:
+                infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
             }
           : null;
 
@@ -224,6 +226,7 @@ export class Impresora {
           dejaCuenta: ticket.dejaCuenta,
           idCliente: ticket.idCliente,
           totalSinDescuento: totalSinDescuento,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       } else {
         // si no tenemos cliente preparamos el objeto sin los datos del cliente
@@ -247,13 +250,14 @@ export class Impresora {
               ? null
               : ticket.cesta.indexMesa,
           comensales: ticket?.cesta?.comensales || null,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       }
       if (ticket.restante > 0) {
         sendObject.restante = ticket.restante;
       }
       // enviamos el objeto
-      if (infoCliente?.albaran) {
+      if (infoCliente?.albaran && infoCliente?.noPagaEnTienda) {
         await this.imprimirAlbaran(sendObject);
       } else {
         await this._venta(sendObject);
@@ -274,16 +278,15 @@ export class Impresora {
     let infoCliente = await clienteInstance.getClienteById(ticket.idCliente);
 
     let informacionVip = infoCliente
-          ? {
-              nombre: infoCliente.nombre,
-              nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-              direccion:
-                infoCliente["direccion"] === "0"
-                  ? ""
-                  : infoCliente["direccion"],
-              telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
-            }
-          : null;
+      ? {
+          nombre: infoCliente.nombre,
+          nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+          direccion:
+            infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
+          telefono:
+            infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+        }
+      : null;
 
     const descuento =
       infoCliente && !infoCliente?.albaran && !infoCliente?.vip
@@ -315,6 +318,7 @@ export class Impresora {
           },
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       } else {
         sendObject = {
@@ -331,6 +335,7 @@ export class Impresora {
           infoCliente: null,
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
+          tmstpCesta: ticket.cesta.timestamp,
         };
       }
       if (ticket.restante > 0) {
@@ -366,6 +371,7 @@ export class Impresora {
           nombreTrabajador: trabajador.nombreCorto,
           infoClienteVip: null, // Mirar bien para terminar todo
           infoCliente: null,
+          tmstpCesta: devolucion.cesta.timestamp,
         };
 
         await this._venta(sendObject);
@@ -551,9 +557,13 @@ export class Impresora {
       clientTitle = "\nCLIENT:";
       detalleNombreCliente = infoCliente.nombre;
       if (infoClienteVip) detalleNombreCliente = "";
-      detallePuntosCliente =
-        "Punts restants: " +
-          (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+      if (infoCliente.puntos == null) {
+        detallePuntosCliente = "Punts pendents d'actualitzar";
+      } else {
+        detallePuntosCliente =
+          "Punts restants: " +
+            (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+      }
       if (!clienteDescEsp || clienteDescEsp.precio != total) {
         clienteDescuento =
           "Descompte de client: " +
@@ -574,13 +584,27 @@ export class Impresora {
       infoCliente.descuento != 0 &&
       (!clienteDescEsp || clienteDescEsp.precio != total)
     ) {
-      detalleDescuento += detalleDescuento += `Total sense descompte: ${(
-        total /
-        (1 - infoCliente.descuento / 100)
-      ).toFixed(2)}€\nDescompte total: ${(
-        ((total / (1 - infoCliente.descuento / 100)) * infoCliente.descuento) /
-        100
-      ).toFixed(2)}€\n`;
+      let baseTotal = 0; // Inicializamos la variable para totalizar las bases
+      let ivaTotal = 0; // Inicializamos la variable para totalizar los IVA
+
+      // Iterar sobre cada objeto en tiposIva
+      for (const key in tiposIva) {
+        if (key.includes("base")) {
+          baseTotal += tiposIva[key]; // Sumamos el valor a baseTotal
+        }
+        if (key.includes("valorIva")) {
+          ivaTotal += tiposIva[key]; // Sumamos el valor a ivaTotal
+        }
+      }
+      // Sumamos el total de las bases y el total de los IVA
+      detalleDescuento +=
+        detalleDescuento += `Total sense descompte: ${redondearPrecio(
+          (baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)
+        )}€\nDescompte total: ${redondearPrecio(
+          (((baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)) *
+            infoCliente.descuento) /
+            100
+        )}€\n`;
     }
 
     const moment = require("moment-timezone");
@@ -847,9 +871,13 @@ export class Impresora {
       clientTitle = "\nCLIENT:";
       detalleNombreCliente = infoCliente.nombre;
       if (infoClienteVip) detalleNombreCliente = "";
-      detallePuntosCliente =
-        "Punts restants: " +
-          (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+      if (infoCliente.puntos == null) {
+        detallePuntosCliente = "Punts pendents d'actualitzar";
+      } else {
+        detallePuntosCliente =
+          "Punts restants: " +
+            (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+      }
       if (!clienteDescEsp || clienteDescEsp.precio != total) {
         clienteDescuento =
           "Descompte de client: " +
@@ -1092,8 +1120,10 @@ export class Impresora {
     // lo mandamos a la funcion enviarMQTT que se supone que imprime
     this.enviarMQTT(arrayImprimir, options);
   }
-  async getDetallesIva(tiposIva) {
-    const arrayIvas = tiposIvaInstance.arrayIvas;
+  async getDetallesIva(tiposIva, timestamp = null) {
+    const arrayIvas = timestamp
+      ? tiposIvaInstance.getIvasDefault(timestamp)
+      : tiposIvaInstance.arrayIvas;
     let str1 = "          ";
     let str2 = "                 ";
     let str3 = "              ";
@@ -1109,8 +1139,8 @@ export class Impresora {
     };
     if (tiposIva.importe1 > 0) {
       base = tiposIva.base1.toFixed(2) + " €";
-      const iva1= arrayIvas.find((item) => item.tipus === "1");
-      valorIva = iva1.iva+"%: " + tiposIva.valorIva1.toFixed(2) + " €";
+      const iva1 = arrayIvas.find((item) => item.tipus === "1");
+      valorIva = iva1.iva + "%: " + tiposIva.valorIva1.toFixed(2) + " €";
       importe = tiposIva.importe1.toFixed(2) + " €\n";
       detalle.detalleIvaTipo1 =
         str1.substring(0, str1.length - base.length) +
@@ -1121,9 +1151,9 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe2 > 0) {
-      const iva2= arrayIvas.find((item) => item.tipus === "2");
+      const iva2 = arrayIvas.find((item) => item.tipus === "2");
       base = tiposIva.base2.toFixed(2) + " €";
-      valorIva = iva2.iva+"%: " + tiposIva.valorIva2.toFixed(2) + " €";
+      valorIva = iva2.iva + "%: " + tiposIva.valorIva2.toFixed(2) + " €";
       importe = tiposIva.importe2.toFixed(2) + " €\n";
       detalle.detalleIvaTipo2 =
         str1.substring(0, str1.length - base.length) +
@@ -1134,9 +1164,9 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe3 > 0) {
-      const iva3= arrayIvas.find((item) => item.tipus === "3");
+      const iva3 = arrayIvas.find((item) => item.tipus === "3");
       base = tiposIva.base3.toFixed(2) + " €";
-      valorIva = iva3.iva+"%: " + tiposIva.valorIva3.toFixed(2) + " €";
+      valorIva = iva3.iva + "%: " + tiposIva.valorIva3.toFixed(2) + " €";
       importe = tiposIva.importe3.toFixed(2) + " €\n";
       detalle.detalleIvaTipo3 =
         str1.substring(0, str1.length - base.length) +
@@ -1147,9 +1177,9 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe4 > 0) {
-      const iva4= arrayIvas.find((item) => item.tipus === "4");
+      const iva4 = arrayIvas.find((item) => item.tipus === "4");
       base = tiposIva.base4.toFixed(2) + " €";
-      valorIva = iva4.iva+"%: " + tiposIva.valorIva4.toFixed(2) + " €";
+      valorIva = iva4.iva + "%: " + tiposIva.valorIva4.toFixed(2) + " €";
       importe = tiposIva.importe4.toFixed(2) + " €\n";
       detalle.detalleIvaTipo4 =
         str1.substring(0, str1.length - base.length) +
@@ -1160,9 +1190,9 @@ export class Impresora {
         importe;
     }
     if (tiposIva.importe5 > 0) {
-      const iva5= arrayIvas.find((item) => item.tipus === "5");
+      const iva5 = arrayIvas.find((item) => item.tipus === "5");
       base = tiposIva.base5.toFixed(2) + " €";
-      valorIva = iva5.iva+"%: " + tiposIva.valorIva5.toFixed(2) + " €";
+      valorIva = iva5.iva + "%: " + tiposIva.valorIva5.toFixed(2) + " €";
       importe = tiposIva.importe5.toFixed(2) + " €\n";
       detalle.detalleIvaTipo5 =
         str1.substring(0, str1.length - base.length) +
@@ -1218,14 +1248,17 @@ export class Impresora {
       ? await clienteInstance.getClienteById(idCliente)
       : null;
 
-    const albaranNPT =
-      cliente?.albaran && cliente?.noPagaEnTienda ? true : false;
+    const albaranNPT_o_vipPT =
+      (cliente?.albaran && cliente?.noPagaEnTienda) ||
+      ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda)
+        ? true
+        : false;
 
     // Longitudes relacionadas con el formato
-    let longDto = albaranNPT ? 0 : thereIsDto ? cLongDto : 0;
+    let longDto = albaranNPT_o_vipPT ? 0 : thereIsDto ? cLongDto : 0;
     let longQuant = cLongQuant;
-    let longPreuU = albaranNPT ? 0 : preuUnitari ? cLongPreuU : 0;
-    let longImporte = albaranNPT ? 0 : cLongImporte;
+    let longPreuU = albaranNPT_o_vipPT ? 0 : preuUnitari ? cLongPreuU : 0;
+    let longImporte = albaranNPT_o_vipPT ? 0 : cLongImporte;
     let longArticulo = inicializarLongArticulo();
     let margen = cMargen;
 
@@ -1246,7 +1279,7 @@ export class Impresora {
       try {
         arrayCompra[i]["preuU"] = await this.obtenerPrecioUnitario(
           arrayCompra[i],
-          albaranNPT
+          albaranNPT_o_vipPT
         );
       } catch (error) {
         console.error(
@@ -1256,11 +1289,11 @@ export class Impresora {
         // Asignar un valor por defecto en caso de error en la función obtenerPrecioUnitario
         arrayCompra[i]["preuU"] = this.calcularPrecioUnitario(
           arrayCompra[i],
-          albaranNPT
+          albaranNPT_o_vipPT
         );
       }
 
-      if (thereIsDto && !albaranNPT) {
+      if (thereIsDto && !albaranNPT_o_vipPT) {
         let dto = arrayCompra[i].dto ? arrayCompra[i].dto + "%" : "";
         descuentoStr = sprintf(`%${longDto}s`, dto);
       } else {
@@ -1451,7 +1484,7 @@ export class Impresora {
       }
       function setImporteStr() {
         let str = "";
-        if (albaranNPT) {
+        if (albaranNPT_o_vipPT) {
           str = `${arrayCompra[i]["preuU"]} p/u`;
           str +=
             arrayCompra[i]?.dto != undefined
@@ -1767,6 +1800,62 @@ export class Impresora {
         {
           tipo: "text",
           payload: "Total pagado:",
+        },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.valor + "€" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "Concepto" },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: movimiento.concepto },
+      ];
+
+      if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
+        buffer.push({
+          tipo: "barcode",
+          payload: [movimiento.codigoBarras.slice(0, 12), "EAN13", 4],
+        });
+      }
+      buffer.push({
+        tipo: "text",
+        payload: "\n\n\n",
+      });
+      buffer.push({
+        tipo: "cut",
+        payload: "PAPER_FULL_CUT",
+      });
+
+      const options = {
+        imprimirLogo: false,
+        tipo: "entrada",
+      };
+      this.enviarMQTT(buffer, options);
+    } catch (err) {
+      console.log(err);
+      mqttInstance.loggerMQTT(err);
+    }
+  }
+  async imprimirMov3G(movimiento: MovimientosInterface, client: string) {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      const imprimirMov3G = parametros["params"]["imprimirMov3G"] == "Si";
+      if (!imprimirMov3G) return;
+
+      const moment = require("moment-timezone");
+      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
+      const strCliente = client ? "Cliente: " + client : "Cliente general";
+      let buffer = [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: parametros.nombreTienda },
+        { tipo: "text", payload: fechaStr.format("DD-MM-YYYY HH:mm") },
+        { tipo: "text", payload: strCliente },
+        {
+          tipo: "text",
+          payload: "Total 3G:",
         },
         { tipo: "size", payload: [1, 1] },
         { tipo: "text", payload: movimiento.valor + "€" },
@@ -2985,7 +3074,11 @@ export class Impresora {
     // comprueba si hay param dto y param iva
     const thereIsDto = lista.find((item) => "dto" in item) !== undefined;
     const thereIsIva = lista.find((item) => "iva" in item) !== undefined;
-    if (cliente && cliente.albaran && cliente.noPagaEnTienda) {
+    if (
+      cliente &&
+      ((cliente.albaran && cliente.noPagaEnTienda) ||
+        ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda))
+    ) {
       // formato albaranNPT
       return 4;
     } else if (preuUnitari && thereIsDto) {

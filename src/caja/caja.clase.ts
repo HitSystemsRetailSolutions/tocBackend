@@ -234,18 +234,14 @@ export class CajaClase {
           if (!finalTime.estadoTurno) {
             io.emit("cargarVentas", []);
           }
-          cajaInstance
-            .guardarMonedas(
-              guardarInfoMonedas,
-              cambioEmergenciaCierre,
-              "CLAUSURA"
-            )
-            .then((res2) => {
-              if (res2) {
-                return true;
-              }
-              throw Error("Error en guardarMonedas");
-            });
+          const res2 = await cajaInstance.guardarMonedas(
+            guardarInfoMonedas,
+            cambioEmergenciaCierre,
+            "CLAUSURA"
+          );
+          if (!res2) {
+            logger.Error(53.1, "Error al guardar monedas en mongodb");
+          }
           return true;
         }
         throw Error("Error en resetCajaAbierta");
@@ -612,8 +608,8 @@ export class CajaClase {
 
   /**
    *  obtiene los datos de las cajas de un intervalo de tiempo y devuelve los datos agrupados por días
-   * @param fechaInicio 
-   * @param fechaFin 
+   * @param fechaInicio
+   * @param fechaFin
    * @returns  array {Fecha: string, "Total tarjeta": number, "Total efectivo": number, Total: number}
    */
   async getTotalsIntervalo(fechaInicio: number, fechaFin: number) {
@@ -624,38 +620,47 @@ export class CajaClase {
 
     const groupByDays = this.groupByDays(arrayCajas);
     const latestDate = this.findLatestDateInGroupedData(groupByDays);
-    const arrayTicketsCaja: SuperTicketInterface[] = await movimientosInstance.construirArrayVentas();
-  
-    const totalTickets = arrayTicketsCaja.reduce((total, ticket) => total + ticket.total, 0);
+    const arrayTicketsCaja: SuperTicketInterface[] =
+      await movimientosInstance.construirArrayVentas();
+
+    const totalTickets = arrayTicketsCaja.reduce(
+      (total, ticket) => total + ticket.total,
+      0
+    );
     const totalPaytef = await parametrosController.totalPaytef();
     const inicioTime = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
     const finalTime = Date.now();
-    const total3G = await ticketsInstance.getTotalDatafono3G(inicioTime, finalTime);
-  
+    const total3G = await ticketsInstance.getTotalDatafono3G(
+      inicioTime,
+      finalTime
+    );
+
     const formattedTotalTarjeta = redondearPrecio(totalPaytef[0] + total3G);
-    const formattedTotalEfectivo = redondearPrecio(totalTickets - totalPaytef[0]);
-  
+    const formattedTotalEfectivo = redondearPrecio(
+      totalTickets - totalPaytef[0]
+    );
+
     const objTotal = {
       id: inicioTime,
       total: totalTickets,
       totalTarjeta: formattedTotalTarjeta,
       totalEfectivo: formattedTotalEfectivo,
     };
-  
+
     const formattedDate = new Date(inicioTime).toISOString().split("T")[0];
-  
+
     if (latestDate === formattedDate) {
       groupByDays[latestDate].push(objTotal);
     } else {
       groupByDays[formattedDate] = [objTotal];
     }
-  
+
     return this.convertGroupedData(groupByDays);
   }
-  
+
   /**
    * encuentra la fecha más reciente en un objeto de datos agrupados
-   * @param groupedData 
+   * @param groupedData
    * @returns string, fecha más reciente
    */
   private findLatestDateInGroupedData(groupedData) {
@@ -670,8 +675,8 @@ export class CajaClase {
   }
   /**
    *  agrupa los datos por días
-   * @param array 
-   * @returns 
+   * @param array
+   * @returns
    */
   private groupByDays(array: CajaSincro[]) {
     if (!array) {
@@ -682,7 +687,9 @@ export class CajaClase {
       if (!acc[date]) {
         acc[date] = [];
       }
-      const totalTarjeta = redondearPrecio(obj.cantidadPaytef + obj.totalDatafono3G);
+      const totalTarjeta = redondearPrecio(
+        obj.cantidadPaytef + obj.totalDatafono3G
+      );
       const totalEfectivo = redondearPrecio(obj.calaixFetZ - totalTarjeta);
       acc[date].push({
         id: obj._id,
@@ -696,7 +703,7 @@ export class CajaClase {
 
   /**
    *  cambia el formato de los datos agrupados para que se puedan mostrar en la tabl del frontend
-   * @param groupedData 
+   * @param groupedData
    * @returns array {Fecha: string, "Total tarjeta": number, "Total efectivo": number, Total: number}
    */
   private convertGroupedData(groupedData) {
@@ -705,8 +712,14 @@ export class CajaClase {
     }
     return Object.keys(groupedData).map((date) => {
       const dayItems = groupedData[date];
-      const totalTarjeta = dayItems.reduce((sum, item) => sum + item.totalTarjeta, 0);
-      const totalEfectivo = dayItems.reduce((sum, item) => sum + item.totalEfectivo, 0);
+      const totalTarjeta = dayItems.reduce(
+        (sum, item) => sum + item.totalTarjeta,
+        0
+      );
+      const totalEfectivo = dayItems.reduce(
+        (sum, item) => sum + item.totalEfectivo,
+        0
+      );
       const total = dayItems.reduce((sum, item) => sum + item.total, 0);
       return {
         Fecha: date,

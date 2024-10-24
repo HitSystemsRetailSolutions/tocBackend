@@ -90,8 +90,8 @@ export class TiposIvaClase {
   private sortAndReturn(data: TiposIvaFormat[]): TiposIvaFormat[] {
     return data.sort((a, b) => a.tipus.localeCompare(b.tipus));
   }
-  private getDefaultArray(): TiposIvaFormat[] {
-    const currentDate = new Date();
+  private getDefaultArray(timestamp: number = null): TiposIvaFormat[] {
+    const currentDate = timestamp ? new Date(timestamp) : new Date();
     if (currentDate >= new Date("2025-01-01")) {
       logger.Info("Usando ivas 2025 Jan");
       return this.arrayDefault2025JAN;
@@ -103,7 +103,13 @@ export class TiposIvaClase {
       return this.arrayDefault2023JAN;
     }
   }
-
+  public getIvasDecWithTmstpCesta(timestamp: number): TiposIvaFormat[] {
+    const arrayDefaultIva = this.getDefaultArray(timestamp);
+    return this.calculateArrayDecimal(arrayDefaultIva);
+  }
+  public getIvasDefault(timestamp: number = null): TiposIvaFormat[] {
+    return this.getDefaultArray(timestamp);
+  }
   public async getTypesOfIVASantaAna(): Promise<TiposIvaFormat[]> {
     try {
       const parameters = await parametrosInstance.getParametros();
@@ -142,10 +148,13 @@ export class TiposIvaClase {
       this.getArrayDecimal();
     }
   }
-  getArrayDecimal() {
-    this.arrayDecimal = this.arrayIvas.map((iva) => {
+  calculateArrayDecimal(arrayIvas: TiposIvaFormat[]): TiposIvaFormat[] {
+    return arrayIvas.map((iva) => {
       return { tipus: iva.tipus, iva: iva.iva / 100 };
     });
+  }
+  getArrayDecimal() {
+    this.arrayDecimal = this.calculateArrayDecimal(this.arrayIvas);
   }
 }
 

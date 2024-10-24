@@ -113,13 +113,14 @@ export class MovimientosClase {
         impresoraInstance.imprimirDeuda(nuevoMovimiento, nombreCliente);
       } else if (concepto == "DEUDA" && tipo === "SALIDA") {
         await this.imprimirDeudaSalida(nuevoMovimiento, idTicket);
+      } else if (tipo === "DATAFONO_3G") {
+        await this.imprimirMov3G(nuevoMovimiento, idTicket);
       } else if (
         concepto !== "Targeta" &&
         concepto !== "DEUDA" &&
         concepto !== "dejaACuenta" &&
         concepto !== "Albaran" &&
         concepto !== "Paytef" &&
-        tipo !== "DATAFONO_3G" &&
         tipo !== "DEV_DATAFONO_PAYTEF" &&
         tipo !== "DEV_DATAFONO_3G"
       ) {
@@ -176,6 +177,16 @@ export class MovimientosClase {
       return true;
     }
     return false;
+  }
+  async imprimirMov3G(nuevoMovimiento: MovimientosInterface, idTicket: number) {
+    try {
+      const ticket = await ticketsInstance.getTicketById(idTicket);
+      const client = await clienteInstance.getClienteById(ticket.idCliente);
+      let nombreCliente = client? client.nombre: null;
+      impresoraInstance.imprimirMov3G(nuevoMovimiento, nombreCliente);
+    } catch (error) {
+      logger.Error(211, error.message)
+    }
   }
   async imprimirDeudaSalida(
     nuevoMovimiento: MovimientosInterface,
@@ -631,7 +642,7 @@ export class MovimientosClase {
           superTicket.movimientos[0].tipo === "SALIDA" &&
           superTicket.movimientos[1].tipo === "ENTRADA_DINERO"
         ) {
-          if (superTicket.movimientos[1].concepto === "dejaACuenta")
+          if (superTicket.movimientos[1].concepto === "dejaACuentaDeuda")
             return "DEUDA";
           // CASO DEUDA PAGADA
           const debeSerCero =
@@ -722,7 +733,7 @@ export class MovimientosClase {
   }
   getMovsDatafono3G = async (inicioTime: number, finalTime: number) =>
     await schMovimientos.getMovsDatafono3G(inicioTime, finalTime);
-  
+
   async verifyCurrentBoxEntregaDiaria() {
     const infoCaja = await cajaInstance.getInfoCajaAbierta();
     if (infoCaja) {
