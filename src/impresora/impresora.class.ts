@@ -471,34 +471,37 @@ export class Impresora {
     }
     // al terminar el timeout se envian los datos con el array de mensajes pendientes
     imprimirTimeout = setTimeout(() => {
-      var client = this.clientMqtt;
+      const { clientMqtt } = this;
       const enviar = {
         arrayImprimir: mensajesPendientes,
         options: options,
       };
-      if (options.tipo == "cierreCaja") {
+
+      if (options.tipo === "cierreCaja") {
         logger.Info("Enviando cierre de caja a impresora por MQTT");
       }
-      if (this.clientMqtt.connected) {
-        // cuando se conecta enviamos los datos
-        this.clientMqtt.publish("hit.hardware/printer", JSON.stringify(enviar));
 
-        this.clientMqtt.on("error", function (err) {
-          logger.Error("Error al enviar a impresora por MQTT", err);
-        });
+      const publishToPrinter = () => {
+        clientMqtt.publish(
+          "hit.hardware/printer",
+          JSON.stringify(enviar),
+          (err) => {
+            if (err) {
+              logger.Error("Error al enviar a impresora por MQTT", err);
+            } else {
+              logger.Info("Mensaje enviado a impresora por MQTT");
+            }
+          }
+        );
+      };
+
+      if (clientMqtt.connected) {
+        // Si ya está conectado, enviamos los datos directamente
+        publishToPrinter();
       } else {
-        this.clientMqtt.on("connect", function () {
-          this.clientMqtt.publish(
-            "hit.hardware/printer",
-            JSON.stringify(enviar)
-          );
-        });
-        this.clientMqtt.on("error", function (err) {
-          logger.Error("Error al enviar a impresora por MQTT", err);
-        });
+        // Suscribimos al evento 'connect' solo una vez para manejar la conexión
+        clientMqtt.once("connect", publishToPrinter);
       }
-      mensajesPendientes = [];
-      clearTimeout(imprimirTimeout);
     }, 500);
   }
 
@@ -1834,51 +1837,56 @@ export class Impresora {
       mqttInstance.loggerMQTT(err);
     }
   }
-  async imprimirMov3G(movimiento: MovimientosInterface, client: string) {
+
+  // ========================================================================
+  // PRINT 3G MOVEMENT
+  // ========================================================================
+
+  async imprimirMov3G(movement: MovimientosInterface, client: string) {
     try {
-      const parametros = await parametrosInstance.getParametros();
-      const imprimirMov3G = parametros["params"]["imprimirMov3G"] == "Si";
-      if (!imprimirMov3G) return;
+      const parameters = await parametrosInstance.getParametros();
+      const printMov3G = parameters["params"]["imprimirMov3G"] == "Si";
+      if (!printMov3G) return;
 
       const moment = require("moment-timezone");
-      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
+      const dateStr = moment(movement._id).tz("Europe/Madrid");
       const strCliente = client ? "Cliente: " + client : "Cliente general";
-      let buffer = [
-        { tipo: "setCharacterCodeTable", payload: 19 },
-        { tipo: "encode", payload: "CP858" },
-        { tipo: "font", payload: "a" },
-        { tipo: "style", payload: "b" },
-        { tipo: "align", payload: "CT" },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "text", payload: parametros.nombreTienda },
-        { tipo: "text", payload: fechaStr.format("DD-MM-YYYY HH:mm") },
-        { tipo: "text", payload: strCliente },
-        {
-          tipo: "text",
-          payload: "Total 3G:",
-        },
-        { tipo: "size", payload: [1, 1] },
-        { tipo: "text", payload: movimiento.valor + "€" },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "text", payload: "Concepto" },
-        { tipo: "size", payload: [1, 1] },
-        { tipo: "text", payload: movimiento.concepto },
-      ];
+      // add elements to buffer
+      const addToBuffer = (tipo, payload) => buffer.push({ tipo, payload });
 
-      if (movimiento.codigoBarras && movimiento.codigoBarras !== "") {
-        buffer.push({
-          tipo: "barcode",
-          payload: [movimiento.codigoBarras.slice(0, 12), "EAN13", 4],
-        });
+      const buffer = [];
+
+      // initial configuration
+      addToBuffer("setCharacterCodeTable", 19);
+      addToBuffer("encode", "CP858");
+      addToBuffer("font", "a");
+      addToBuffer("style", "b");
+      addToBuffer("align", "CT");
+      addToBuffer("size", [0, 0]);
+
+      // add text
+      addToBuffer("text", parameters.nombreTienda);
+      addToBuffer("text", dateStr.format("DD-MM-YYYY HH:mm"));
+      addToBuffer("text", strCliente);
+      addToBuffer("text", "Total 3G:");
+
+      addToBuffer("size", [1, 1]);
+      addToBuffer("text", `${movement.valor}€`);
+
+      addToBuffer("size", [0, 0]);
+      addToBuffer("text", movement?.concepto ? "Concepte" : "");
+      addToBuffer("size", [1, 1]);
+      addToBuffer("text", movement?.concepto || "");
+
+      if (movement.codigoBarras && movement.codigoBarras !== "") {
+        addToBuffer("barcode", [
+          movement.codigoBarras.slice(0, 12),
+          "EAN13",
+          4,
+        ]);
       }
-      buffer.push({
-        tipo: "text",
-        payload: "\n\n\n",
-      });
-      buffer.push({
-        tipo: "cut",
-        payload: "PAPER_FULL_CUT",
-      });
+      addToBuffer("text", "\n\n\n");
+      addToBuffer("cut", "PAPER_FULL_CUT");
 
       const options = {
         imprimirLogo: false,
