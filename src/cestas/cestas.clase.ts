@@ -508,7 +508,7 @@ export class CestaClase {
             ? ""
             : cesta.lista[cesta.lista.length - 1]?.nombre;
         impresoraInstance.mostrarVisor({
-          total: total.toFixed(2),
+          total: redondearPrecio(total),
           precio: precio,
           texto: nombre,
           numProductos: numProductos,
@@ -785,8 +785,8 @@ export class CestaClase {
       // menus con estos valores no se muestran en el visor
       if (menu != "honei" && menu != "pagados" && menu != "descargas") {
         impresoraInstance.mostrarVisor({
-          total: total.toFixed(2),
-          precio: precioUltArticulo.toFixed(2).toString(),
+          total: redondearPrecio(total),
+          precio: redondearPrecio(precioUltArticulo),
           texto: articulo.nombre,
           numProductos: numProductos,
         });
@@ -1405,10 +1405,9 @@ export class CestaClase {
         }
         if (menu != "descargas") {
           impresoraInstance.mostrarVisor({
-            total: total.toFixed(2),
-            precio: cesta.lista[cesta.lista.length - 1].subtotal
-              .toFixed(2)
-              .toString(),
+            total: redondearPrecio(total),
+            precio: redondearPrecio(cesta.lista[cesta.lista.length - 1].subtotal)
+              ,
             texto: cesta.lista[cesta.lista.length - 1].nombre,
             numProductos: numProductos,
           });
