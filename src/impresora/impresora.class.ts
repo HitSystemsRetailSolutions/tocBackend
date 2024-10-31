@@ -502,6 +502,8 @@ export class Impresora {
         // Suscribimos al evento 'connect' solo una vez para manejar la conexión
         clientMqtt.once("connect", publishToPrinter);
       }
+      mensajesPendientes = [];
+      clearTimeout(imprimirTimeout);
     }, 500);
   }
 
