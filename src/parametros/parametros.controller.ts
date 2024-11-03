@@ -102,7 +102,7 @@ export class ParametrosController {
     try {
       const res: any = await axios
         .get("parametros/getParametros")
-        .catch((e) => {});
+        .catch((e) => { });
 
       if (res.data) {
         delete res.data.database;
@@ -219,6 +219,15 @@ export class ParametrosController {
   async getIpCashlogy() {
     try {
       return (await parametrosInstance.getParametros()).ipCashlogy;
+    } catch (err) {
+      logger.Error(46, err);
+      return null;
+    }
+  }
+  @Get("getContrasenaAdministrador")
+  async getContrasenaAdministrador() {
+    try {
+      return (await parametrosInstance.getContrasenaAdministrador());
     } catch (err) {
       logger.Error(46, err);
       return null;

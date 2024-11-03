@@ -1,3 +1,4 @@
+import axios from "axios";
 import { ParametrosInterface } from "./parametros.interface";
 import * as schParametros from "./parametros.mongodb";
 
@@ -17,6 +18,14 @@ export class ParametrosClase {
     return await schParametros.setParametros(params);
   };
 
+  getContrasenaAdministrador = async (): Promise<string> => {
+    const parametros = await this.getParametros();
+    return (await axios.post("configurador/getAdminPassword", {
+      database: parametros.database,
+      licencia: parametros.licencia,
+    })).data;
+
+  }
   /* Eze 4.0 */
   async todoInstalado(): Promise<boolean> {
     const params = await this.getParametros();
