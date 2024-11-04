@@ -18,11 +18,12 @@ export class ParametrosClase {
     return await schParametros.setParametros(params);
   };
 
-  getContrasenaAdministrador = async (): Promise<string> => {
+  getContrasenaAdministrador = async (idTrabajador): Promise<string> => {
     const parametros = await this.getParametros();
     return (await axios.post("configurador/getAdminPassword", {
       database: parametros.database,
       licencia: parametros.licencia,
+      idTrabajador: idTrabajador,
     })).data;
 
   }

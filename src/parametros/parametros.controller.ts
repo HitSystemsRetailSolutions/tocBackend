@@ -224,10 +224,10 @@ export class ParametrosController {
       return null;
     }
   }
-  @Get("getContrasenaAdministrador")
-  async getContrasenaAdministrador() {
+  @Post("getContrasenaAdministrador")
+  async getContrasenaAdministrador(@Body() { idTrabajador }) {
     try {
-      return (await parametrosInstance.getContrasenaAdministrador());
+      return (await parametrosInstance.getContrasenaAdministrador(idTrabajador));
     } catch (err) {
       logger.Error(46, err);
       return null;
