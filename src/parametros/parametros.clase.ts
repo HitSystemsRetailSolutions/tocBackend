@@ -18,7 +18,7 @@ export class ParametrosClase {
     return await schParametros.setParametros(params);
   };
 
-  getContrasenaAdministrador = async (idTrabajador): Promise<string> => {
+  getContrasenaAdministrador = async (idTrabajador) => {
     const parametros = await this.getParametros();
     return (await axios.post("configurador/getAdminPassword", {
       database: parametros.database,
