@@ -22,7 +22,6 @@ export class receiveItemsMQTTClass {
             "",
             ""
         );
-        console.log(resultado)
         await cestasInstance.actualizarCestas();
 
     }
