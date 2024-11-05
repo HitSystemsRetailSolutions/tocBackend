@@ -11,7 +11,7 @@ export class receiveItemsMQTTClass {
 
     async addItemToTable(idItem, grams, table, units, suplements) {
         let idcesta = await this.getIdCesta(table);
-        let arraySuplementos = await Promise.all(suplements.map((suplement) => articulosInstance.getSuplementos(suplement)));
+        let arraySuplementos = await articulosInstance.getSuplementos(suplements);
 
         const resultado = await cestasInstance.clickTeclaArticulo(
             idItem,
