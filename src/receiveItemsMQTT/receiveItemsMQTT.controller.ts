@@ -8,7 +8,7 @@ const mqttOptions = {
 const client = mqtt.connect(mqttOptions);
 import { parametrosController } from "src/parametros/parametros.controller";
 import { io } from "../sockets.gateway";
-import * as schContable from "./contable.mongodb";
+import { receiveItemsMQTTInstance } from "./receiveItemsMQTT.class";
 require("dotenv").config();
 
 //--------------------------------------------------------------
@@ -16,10 +16,10 @@ client.on("connect", async () => {
   console.log("Conectado a MQTT" + client.connected);
   const parametros = await parametrosController.getParametros();
   try {
-    client.subscribe(`/Hit/Serveis/Contable/Estock/${parametros.licencia}`);
+    client.subscribe(`/Hit/Serveis/receiveItemsMQTT/${parametros.licencia}`);
   } catch (error) {
     console.log(
-      "error en contable.controller parametros o direccion no encontrados: ",
+      "error en receiveItemsMQTT.controller parametros o direccion no encontrados: ",
       error.message
     );
   }
@@ -35,36 +35,34 @@ client.on("message", async (topic, message) => {
     message = JSON.parse(message.toString());
     if (
       message &&
-      message.articleCodi &&
-      message.EstocActualitzat &&
-      message.FontSize &&
-      message.FontColor &&
+      message.itemCode &&
+      message.table &&
       message.Llicencia == parametros.licencia
     ) {
-      let item = message.articleCodi;
-      let stock = message.EstocActualitzat;
-      let fontSize = message.FontSize;
-      let fontColor = message.FontColor;
+      let idItem = message.itemCode;
+      let grams = message.grams;
+      let table = message.mesa;
+      let units = message.qty;
+      let suplements = message.suplements
       try {
-        //schContable.setItemStock(Number(item), Number(stock));
-        io.emit("stock", { item, stock, fontSize, fontColor });
+        receiveItemsMQTTInstance.addItemToTable(idItem, grams, table, units, suplements);
       } catch (error) {
         console.log(
-          "error en contable.controller > setItemStock: ",
+          "error en receiveItemsMQTT.controller > setItemStock: ",
           error.message
         );
       }
     } else {
-      console.log("error en contable.controller > message: ", message);
+      console.log("error en receiveItemsMQTT.controller > message: ", message);
     }
   } catch (error) {
     console.log(
-      "error en contable.controller > client.on(message): ",
+      "error en receiveItemsMQTT.controller > client.on(message): ",
       error.message
     );
   }
 });
 //--------------------------------------------------------------
 
-@Controller("/contable/")
-export class contableController { }
+@Controller("/receiveItemsMQTT/")
+export class receiveItemsMQTTController { }

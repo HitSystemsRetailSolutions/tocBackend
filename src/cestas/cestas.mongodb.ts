@@ -15,6 +15,14 @@ export async function getCestaById(
   return await cesta.findOne({ _id: new ObjectId(idCesta) });
 }
 
+export async function getCestaByMesa(
+  mesa: CestasInterface["indexMesa"]
+): Promise<CestasInterface> {
+  const database = (await conexion).db("tocgame");
+  const cesta = database.collection<CestasInterface>("cestas");
+  return await cesta.findOne({ indexMesa: mesa });
+}
+
 /* Eze 4.0 */
 export async function deleteCesta(
   trabajador: TrabajadoresInterface["_id"]
@@ -211,15 +219,13 @@ export async function findCestaDevolucion(
 
 export async function borrarCestas() {
   try {
-    
-  
-  const database = (await conexion).db("tocgame");
-  const cestas = database.collection<CestasInterface>("cestas");
-  const resultado = await cestas.deleteMany({
-    indexMesa: null,
-  });
-  return resultado.acknowledged;
-} catch (error) {
-    logger.Error('777',error);
-}
+    const database = (await conexion).db("tocgame");
+    const cestas = database.collection<CestasInterface>("cestas");
+    const resultado = await cestas.deleteMany({
+      indexMesa: null,
+    });
+    return resultado.acknowledged;
+  } catch (error) {
+    logger.Error('777', error);
+  }
 }
