@@ -41,7 +41,7 @@ client.on("message", async (topic, message) => {
     ) {
       let idItem = message.itemCode;
       let grams = message.grams;
-      let table = message.mesa;
+      let table = message.table;
       let units = message.qty;
       let suplements = message.suplements
       try {
