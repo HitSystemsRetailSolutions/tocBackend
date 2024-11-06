@@ -33,6 +33,7 @@ import { checkers } from "./checkers/checkers.controller";
 import { balancaController } from "./balanca/balanca.clase";
 import { AlbaranesController } from "./albaranes/albaranes.controller";
 import { contableController } from "./contable/contable.controller";
+import { receiveItemsMQTTController } from "./receiveItemsMQTT/receiveItemsMQTT.controller";
 import { TiposIvaController } from "./tiposIva/tiposIva.controller";
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { TiposIvaController } from "./tiposIva/tiposIva.controller";
     DevolucionesController,
     MovimientosController,
     PruebasController,
+    receiveItemsMQTTController,
     InstaladorController,
     PaytefController,
     VersionController,
@@ -77,4 +79,4 @@ import { TiposIvaController } from "./tiposIva/tiposIva.controller";
   ],
   // providers: [SocketGateway],
 })
-export class AppModule {}
+export class AppModule { }
