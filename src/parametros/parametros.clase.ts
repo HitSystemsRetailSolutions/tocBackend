@@ -2,7 +2,6 @@ import { ParametrosInterface } from "./parametros.interface";
 import * as schParametros from "./parametros.mongodb";
 
 export class ParametrosClase {
-
   /* Eze 4.0 */
   getParametros = async (): Promise<ParametrosInterface> => {
     return await schParametros.getParametros();
@@ -106,6 +105,10 @@ export class ParametrosClase {
   }
   updLastTicket(idTicket: number) {
     schParametros.setUltimoTicket(idTicket);
+  }
+
+  async setDiscountsShop(discounts: ParametrosInterface["descuentosTienda"]) {
+    return await schParametros.setDiscountsShop(discounts);
   }
 }
 

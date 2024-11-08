@@ -51,6 +51,8 @@ export type ItemLista = {
     unidadesOferta: number;
     tipoPromo: TiposPromociones;
   };
+  tipoIva?: number;
+  descuentoTienda?: number;
   puntos: number;
   gramos: number;
   impresora: string;

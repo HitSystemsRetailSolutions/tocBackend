@@ -237,13 +237,41 @@ export class CestaClase {
                   typeof value === "number" &&
                   value > 0
               )
-              .map(([key, value]) => value)[0] || null;
+              .map(([key, value]) => value)[0] || 0;
         } // Modificamos el total para añadir el descuento especial del cliente
+        producto.subtotal = redondearPrecio(producto.subtotal);
       }
     } else if (clienteDescEsp && importe == clienteDescEsp.precio) {
       this.recalcularSubtotales(cesta, clienteDescEsp.precio);
     } else if (cesta.modo == "CONSUMO_PERSONAL" && descuento) {
       await cestasInstance.recalcularIvas(cesta);
+    }
+  }
+
+  async applyDiscountShop(cesta: CestasInterface, precio: number) {
+    for (const producto of cesta.lista) {
+      if (producto.arraySuplementos != null || producto.promocion == null) {
+        const infoArticulo = await articulosInstance.getInfoArticulo(
+          producto.idArticulo
+        );
+        const objIva = construirObjetoIvas(
+          infoArticulo.precioConIva,
+          infoArticulo.tipoIva,
+          producto.unidades,
+          false,
+          producto.descuentoTienda
+        );
+        producto.subtotal =
+          Object.entries(objIva)
+            .filter(
+              ([key, value]) =>
+                key.includes("importe") &&
+                typeof value === "number" &&
+                value > 0
+            )
+            .map(([key, value]) => value)[0] || 0;
+      } // Modificamos el total para añadir el descuento especial del cliente
+      producto.subtotal = redondearPrecio(producto.subtotal);
     }
   }
   recalcularSubtotales(cesta: CestasInterface, precio: number) {
@@ -1221,6 +1249,23 @@ export class CestaClase {
           articulo,
           cesta.idCliente
         );
+        if (
+          cesta.modo === "CONSUMO_PERSONAL" &&
+          (!cesta.lista[i].descuentoTienda || !cesta.lista[i].tipoIva)
+        ) {
+          // productos con tipoiVA 4 no se cobra
+          cesta.lista[i].descuentoTienda = 0;
+          cesta.lista[i].tipoIva = articulo.tipoIva;
+          cesta.lista[i].precioOrig = redondearPrecio(
+            precioArt * cesta.lista[i].unidades
+          );
+        } else if (
+          cesta.modo !== "CONSUMO_PERSONAL" &&
+          (cesta.lista[i].descuentoTienda || cesta.lista[i].tipoIva)
+        ) {
+          delete cesta.lista[i].descuentoTienda;
+          delete cesta.lista[i].tipoIva;
+        }
         if (artPrecioIvaSinTarifa != articulo.precioConIva) {
           precioArt = articulo.precioConIva;
           tarifaEsp = true;
@@ -1266,30 +1311,11 @@ export class CestaClase {
           const tipoIvaStr = articulo.tipoIva.toString();
           const ivaObject = arrayIvas.find((item) => item.tipus === tipoIvaStr);
           cesta.lista[i].iva = ivaObject.iva;
-          // switch (articulo.tipoIva) {
-          //   case 1:
-          //   default:
-          //     cesta.lista[i].iva = arrayIvas;
-          //     break;
-          //   case 2:
-          //     cesta.lista[i].iva = 10;
-          //     break;
-          //   case 3:
-          //     cesta.lista[i].iva = 21;
-          //     break;
-          //   case 4:
-          //     cesta.lista[i].iva = 0;
-          //     break;
-          //   case 5:
-          //     cesta.lista[i].iva = 5;
-          //     break;
-          // }
         } else if (
           (cliente === null || // Cliente es null
             (!cliente?.albaran && !cliente?.vip && !cliente?.noPagaEnTienda)) &&
           cesta.lista[i]?.iva
         ) {
-          delete cesta.lista[i].precioOrig;
           delete cesta.lista[i].iva;
         }
 
@@ -1304,7 +1330,10 @@ export class CestaClase {
               precioUnidad * cesta.lista[i].unidades
             );
           }
-        } else if (cesta.lista[i]?.precioOrig) {
+        } else if (
+          cesta.lista[i]?.precioOrig &&
+          cesta.modo !== "CONSUMO_PERSONAL"
+        ) {
           delete cesta.lista[i].precioOrig;
         }
 
@@ -1328,7 +1357,9 @@ export class CestaClase {
           ((cliente?.albaran && cliente?.noPagaEnTienda) ||
             ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda)) &&
             !tarifaEsp,
-          dto,
+          cesta.modo == "CONSUMO_PERSONAL"
+            ? cesta.lista[i].descuentoTienda
+            : dto,
           cestaOfDownloads ? cesta.timestamp : null
         );
 
@@ -1758,6 +1789,16 @@ export class CestaClase {
   }
   async borrarCestas() {
     await schCestas.borrarCestas();
+  }
+  async setDiscountShop(
+    cesta: CestasInterface,
+    discount: number,
+    index: number
+  ) {
+    if (cesta.lista[index]) {
+      cesta.lista[index].descuentoTienda = discount;
+    }
+    await this.recalcularIvas(cesta);
   }
 }
 
