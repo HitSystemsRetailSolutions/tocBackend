@@ -10,7 +10,7 @@ export interface CestasInterface {
   modo: ModoCesta;
   idCliente: ClientesInterface["id"];
   nombreCliente?: string;
-  indexMesa?: boolean;
+  indexMesa?: number;
   albaran?: boolean;
   vip?: boolean;
   trabajador: number;
