@@ -306,9 +306,11 @@ export class CestaClase {
   getCestaById = async (idCesta: CestasInterface["_id"]) =>
     await schCestas.getCestaById(idCesta);
 
-  getCestaByMesa = async (mesa: CestasInterface["indexMesa"]): Promise<CestasInterface["_id"]> => {
+  getCestaByMesa = async (
+    mesa: CestasInterface["indexMesa"]
+  ): Promise<CestasInterface["_id"]> => {
     return (await schCestas.getCestaByMesa(mesa))._id;
-  }
+  };
 
   /* Eze 4.0 */
   private generarObjetoCesta(
@@ -445,7 +447,7 @@ export class CestaClase {
             Math.round(
               (articulo.subtotal +
                 (articulo.subtotal * cliente.descuento) / 100) *
-              100
+                100
             ) / 100;
         }
       }
@@ -678,8 +680,8 @@ export class CestaClase {
       : null;
     const precioArt =
       cliente &&
-        ((cliente.albaran && cliente?.noPagaEnTienda) ||
-          ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda))
+      ((cliente.albaran && cliente?.noPagaEnTienda) ||
+        ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda))
         ? articulo.precioBase
         : articulo.precioConIva;
     // si es una promocion lo gestionamos de otra forma
@@ -1013,7 +1015,7 @@ export class CestaClase {
       const unidadesTotales = itemPromocion.promocion.cantidadArticuloPrincipal
         ? itemPromocion.promocion.cantidadArticuloPrincipal
         : itemPromocion.promocion.cantidadArticuloSecundario *
-        itemPromocion.unidades;
+          itemPromocion.unidades;
       detalleIva = construirObjetoIvas(
         importeRealUnitario,
         articulo.tipoIva,
@@ -1212,9 +1214,9 @@ export class CestaClase {
     await this.comprobarRegalos(cesta);
     let descuento: any =
       cesta.modo !== "CONSUMO_PERSONAL" &&
-        cliente &&
-        !cliente?.albaran &&
-        !cliente?.vip
+      cliente &&
+      !cliente?.albaran &&
+      !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
     let vipOalbaran = cliente?.albaran || cliente?.vip;
@@ -1244,8 +1246,8 @@ export class CestaClase {
           dto = await clienteInstance.getDtoAlbaran(cliente, articulo);
         let precioArt =
           cliente &&
-            ((cliente.albaran && cliente?.noPagaEnTienda) ||
-              ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda))
+          ((cliente.albaran && cliente?.noPagaEnTienda) ||
+            ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda))
             ? articulo.precioBase
             : articulo.precioConIva;
         const artPrecioIvaSinTarifa = articulo.precioConIva;
@@ -1260,6 +1262,9 @@ export class CestaClase {
           // productos con tipoiVA 4 no se cobra
           cesta.lista[i].descuentoTienda = 0;
           cesta.lista[i].tipoIva = articulo.tipoIva;
+          if (articulo.tipoIva == 4) {
+            cesta.lista[i].descuentoTienda = 100;
+          }
           cesta.lista[i].precioOrig = redondearPrecio(
             precioArt * cesta.lista[i].unidades
           );
@@ -1277,10 +1282,10 @@ export class CestaClase {
         if (cesta.indexMesa != null) {
           precioArt =
             (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
-              null
+            null
               ? precioArt
               : (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo))
-                .precioConIva;
+                  .precioConIva;
         }
         if (menu.length > 0) {
           let preu = await tarifasInstance.tarifaMenu(
@@ -1441,8 +1446,9 @@ export class CestaClase {
         if (menu != "descargas") {
           impresoraInstance.mostrarVisor({
             total: redondearPrecio(total),
-            precio: redondearPrecio(cesta.lista[cesta.lista.length - 1].subtotal)
-            ,
+            precio: redondearPrecio(
+              cesta.lista[cesta.lista.length - 1].subtotal
+            ),
             texto: cesta.lista[cesta.lista.length - 1].nombre,
             numProductos: numProductos,
           });
@@ -1521,8 +1527,8 @@ export class CestaClase {
       );
       let precioArt =
         cliente &&
-          ((cliente.albaran && cliente.noPagaEnTienda) ||
-            ((cliente?.vip || cliente?.albaran) && !cliente.noPagaEnTienda))
+        ((cliente.albaran && cliente.noPagaEnTienda) ||
+          ((cliente?.vip || cliente?.albaran) && !cliente.noPagaEnTienda))
           ? articulo.precioBase
           : articulo.precioConIva;
       if (descuento) {
@@ -1534,7 +1540,7 @@ export class CestaClase {
           articulo.tipoIva,
           unidades,
           (cliente?.albaran && cliente?.noPagaEnTienda) ||
-          ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda),
+            ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda),
           dto
         ),
         objetoIva
@@ -1765,11 +1771,11 @@ export class CestaClase {
     try {
       let cliente: number =
         (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
-          undefined
+        undefined
           ? 0
           : Number(
-            (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
-          );
+              (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
+            );
       let parametros = await parametrosInstance.getParametros();
       // si la cesta pertenece a una mesa, cogemos la dependienta en el array
       let dependienta = cesta.trabajador || cesta.trabajadores[0];
