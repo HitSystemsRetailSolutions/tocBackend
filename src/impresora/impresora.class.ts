@@ -529,7 +529,11 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    let detalles = await this.detallesTicket(arrayCompra, info.idCliente);
+    let detalles = await this.detallesTicket(
+      arrayCompra,
+      info.idCliente,
+      tipoPago
+    );
     let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
       arrayCompra,
       info.idCliente
@@ -562,29 +566,32 @@ export class Impresora {
       clientTitle = "\nCLIENT:";
       detalleNombreCliente = infoCliente.nombre;
       if (infoClienteVip) detalleNombreCliente = "";
-      if (infoCliente.puntos == null) {
-        detallePuntosCliente = "Punts pendents d'actualitzar";
-      } else {
-        detallePuntosCliente =
-          "Punts restants: " +
-            (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
-      }
-      if (!clienteDescEsp || clienteDescEsp.precio != total) {
-        clienteDescuento =
-          "Descompte de client: " +
-          (infoCliente.descuento ?? "0") +
-          " %" +
-          "\nVenta registrada.";
-        if (infoCliente.descuento == 0) clienteDescuento = "Venta registrada.";
-      } else if (clienteDescEsp.precio == total) {
-        const activacionDescEsp =
-          clienteDescEsp?.activacion && clienteDescEsp?.activacion
-            ? "Total >= " + clienteDescEsp.activacion
-            : infoCliente.nombre;
-        clienteDescuento = "Descompte Especial " + activacionDescEsp;
+      if (tipoPago !== "CONSUMO_PERSONAL") {
+        if (infoCliente.puntos == null) {
+          detallePuntosCliente = "Punts pendents d'actualitzar";
+        } else {
+          detallePuntosCliente =
+            "Punts restants: " +
+              (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+        }
+        if (!clienteDescEsp || clienteDescEsp.precio != total) {
+          clienteDescuento =
+            "Descompte de client: " +
+            (infoCliente.descuento ?? "0") +
+            " %" +
+            "\nVenta registrada.";
+          if (infoCliente.descuento == 0)
+            clienteDescuento = "Venta registrada.";
+        } else if (clienteDescEsp.precio == total) {
+          const activacionDescEsp =
+            clienteDescEsp?.activacion && clienteDescEsp?.activacion
+              ? "Total >= " + clienteDescEsp.activacion
+              : infoCliente.nombre;
+          clienteDescuento = "Descompte Especial " + activacionDescEsp;
+        }
       }
     }
-    if (
+    if ( tipoPago !== "CONSUMO_PERSONAL" &&
       infoCliente?.descuento &&
       infoCliente.descuento != 0 &&
       (!clienteDescEsp || clienteDescEsp.precio != total)
@@ -646,7 +653,7 @@ export class Impresora {
 
     let infoConsumoPersonal = "";
     if (tipoPago == "CONSUMO_PERSONAL") {
-      infoConsumoPersonal = "---------------- Dte. 100% --------------";
+      infoConsumoPersonal = "---------------- CONSUM PERSONAL --------------";
       detalleIva = "";
     }
 
@@ -841,7 +848,8 @@ export class Impresora {
 
     let detalles = await this.detallesTicket(
       arrayCompra,
-      infoCliente?.idCliente
+      infoCliente?.idCliente,
+      tipoPago
     );
     let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
       arrayCompra,
@@ -947,10 +955,6 @@ export class Impresora {
       detallesIva.detalleIvaTipo3;
 
     let infoConsumoPersonal = "";
-    if (tipoPago == "CONSUMO_PERSONAL") {
-      infoConsumoPersonal = "---------------- Dte. 100% --------------";
-      detalleIva = "";
-    }
 
     const diasSemana = [
       "Diumenge",
@@ -1211,7 +1215,7 @@ export class Impresora {
     return detalle;
   }
 
-  async obtenerPrecioUnitario(item, albaranNPT) {
+  async obtenerPrecioUnitario(item, albaranNPT, tipoPago) {
     if (item.gramos > 0) {
       try {
         const infoArticulo = await articulosInstance.getInfoArticulo(
@@ -1223,23 +1227,25 @@ export class Impresora {
           `Error al obtener información del artículo con ID ${item.idArticulo}:`,
           error
         );
-        return this.calcularPrecioUnitario(item, albaranNPT);
+        return this.calcularPrecioUnitario(item, albaranNPT, tipoPago);
       }
     } else {
-      return this.calcularPrecioUnitario(item, albaranNPT);
+      return this.calcularPrecioUnitario(item, albaranNPT, tipoPago);
     }
   }
 
-  calcularPrecioUnitario(item, albaranNPT) {
-    const precioUnitario = albaranNPT
-      ? item.precioOrig / item.unidades
-      : item.subtotal / item.unidades;
+  calcularPrecioUnitario(item, albaranNPT, tipoPago) {
+    const precioUnitario =
+      albaranNPT || tipoPago == "CONSUMO_PERSONAL"
+        ? item.precioOrig / item.unidades
+        : item.subtotal / item.unidades;
     return Number(precioUnitario.toFixed(2));
   }
   // funcion para imprimir detalles ticket vip
   async detallesTicket(
     arrayCompra: CestasInterface["lista"],
-    idCliente: ClientesInterface["id"] = null
+    idCliente: ClientesInterface["id"] = null,
+    tipoPago: string = ""
   ) {
     // recoje los parametros y saber si mostrar el precio unitario
     const preuUnitari =
@@ -1247,6 +1253,8 @@ export class Impresora {
       "Si";
     // comprueba si hay param dto y param iva
     const thereIsDto = arrayCompra.find((item) => "dto" in item) !== undefined;
+    const thereIsDtoTienda =
+      arrayCompra.find((item) => "descuentoTienda" in item) !== undefined;
     const thereIsIva = arrayCompra.find((item) => "iva" in item) !== undefined;
     // recoje el cliente si lo hay
     let cliente = idCliente
@@ -1260,7 +1268,11 @@ export class Impresora {
         : false;
 
     // Longitudes relacionadas con el formato
-    let longDto = albaranNPT_o_vipPT ? 0 : thereIsDto ? cLongDto : 0;
+    let longDto = albaranNPT_o_vipPT
+      ? 0
+      : thereIsDto || thereIsDtoTienda
+      ? cLongDto
+      : 0;
     let longQuant = cLongQuant;
     let longPreuU = albaranNPT_o_vipPT ? 0 : preuUnitari ? cLongPreuU : 0;
     let longImporte = albaranNPT_o_vipPT ? 0 : cLongImporte;
@@ -1284,7 +1296,8 @@ export class Impresora {
       try {
         arrayCompra[i]["preuU"] = await this.obtenerPrecioUnitario(
           arrayCompra[i],
-          albaranNPT_o_vipPT
+          albaranNPT_o_vipPT,
+          tipoPago
         );
       } catch (error) {
         console.error(
@@ -1294,12 +1307,21 @@ export class Impresora {
         // Asignar un valor por defecto en caso de error en la función obtenerPrecioUnitario
         arrayCompra[i]["preuU"] = this.calcularPrecioUnitario(
           arrayCompra[i],
-          albaranNPT_o_vipPT
+          albaranNPT_o_vipPT,
+          tipoPago
         );
       }
 
       if (thereIsDto && !albaranNPT_o_vipPT) {
         let dto = arrayCompra[i].dto ? arrayCompra[i].dto + "%" : "";
+        descuentoStr = sprintf(`%${longDto}s`, dto);
+      } else {
+        descuentoStr = "";
+      }
+      if (thereIsDtoTienda) {
+        let dto = arrayCompra[i].descuentoTienda
+          ? arrayCompra[i].descuentoTienda + "%"
+          : "";
         descuentoStr = sprintf(`%${longDto}s`, dto);
       } else {
         descuentoStr = "";
@@ -1329,7 +1351,7 @@ export class Impresora {
           margenStr +
           precioUnitarioStr +
           margenStr +
-          (thereIsDto ? descuentoStr : "") +
+          (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
           margenStr +
           importeStr;
         detalles += lineaTicket + "\n";
@@ -1414,7 +1436,7 @@ export class Impresora {
           margenStr +
           precioUnitarioStr +
           margenStr +
-          (thereIsDto ? descuentoStr : "") +
+          (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
           margenStr +
           importeStr;
         detalles += lineaTicket + "\n";
@@ -1437,7 +1459,7 @@ export class Impresora {
             margenStr +
             precioUnitarioStr +
             margenStr +
-            (thereIsDto ? descuentoStr : "") +
+            (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
             margenStr +
             importeStr
           }`;
@@ -1460,7 +1482,7 @@ export class Impresora {
           margenStr +
           precioUnitarioStr +
           margenStr +
-          (thereIsDto ? descuentoStr : "") +
+          (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
           margenStr +
           importeStr;
         detalles += lineaTicket + "\n";
@@ -3083,6 +3105,8 @@ export class Impresora {
       "Si";
     // comprueba si hay param dto y param iva
     const thereIsDto = lista.find((item) => "dto" in item) !== undefined;
+    const thereIsDtoTienda =
+      lista.find((item) => "descuentoTienda" in item) !== undefined;
     const thereIsIva = lista.find((item) => "iva" in item) !== undefined;
     if (
       cliente &&
@@ -3091,7 +3115,7 @@ export class Impresora {
     ) {
       // formato albaranNPT
       return 4;
-    } else if (preuUnitari && thereIsDto) {
+    } else if (preuUnitari && (thereIsDto || thereIsDtoTienda)) {
       // "preuUnitari y con DTO")
       return 0;
     } else if (!preuUnitari && thereIsDto) {
