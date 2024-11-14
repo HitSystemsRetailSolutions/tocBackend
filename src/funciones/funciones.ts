@@ -82,21 +82,21 @@ export function construirObjetoIvas(
   }
   // Redondeo con Math.Round y no con toFixed para evitar un almacenado con pérdida de precisión(6.3449999999662,6.3550000002).
   return {
-    base1: Math.round(base1 * 1000) / 1000,
-    base2: Math.round(base2 * 1000) / 1000,
-    base3: Math.round(base3 * 1000) / 1000,
-    base4: Math.round(base4 * 1000) / 1000,
-    base5: Math.round(base5 * 1000) / 1000,
-    valorIva1: Math.round(valor1 * 1000) / 1000,
-    valorIva2: Math.round(valor2 * 1000) / 1000,
-    valorIva3: Math.round(valor3 * 1000) / 1000,
-    valorIva4: Math.round(valor4 * 1000) / 1000,
-    valorIva5: Math.round(valor5 * 1000) / 1000,
-    importe1: Math.round(importe1 * 1000) / 1000,
-    importe2: Math.round(importe2 * 1000) / 1000,
-    importe3: Math.round(importe3 * 1000) / 1000,
-    importe4: Math.round(importe4 * 1000) / 1000,
-    importe5: Math.round(importe5 * 1000) / 1000,
+    base1: Math.round(base1 * 100) / 100,
+    base2: Math.round(base2 * 100) / 100,
+    base3: Math.round(base3 * 100) / 100,
+    base4: Math.round(base4 * 100) / 100,
+    base5: Math.round(base5 * 100) / 100,
+    valorIva1: Math.round(valor1 * 100) / 100,
+    valorIva2: Math.round(valor2 * 100) / 100,
+    valorIva3: Math.round(valor3 * 100) / 100,
+    valorIva4: Math.round(valor4 * 100) / 100,
+    valorIva5: Math.round(valor5 * 100) / 100,
+    importe1: Math.round(importe1 * 100) / 100,
+    importe2: Math.round(importe2 * 100) / 100,
+    importe3: Math.round(importe3 * 100) / 100,
+    importe4: Math.round(importe4 * 100) / 100,
+    importe5: Math.round(importe5 * 100) / 100,
   };
 }
 
