@@ -5,6 +5,7 @@ import { parametrosInstance } from "../parametros/parametros.clase";
 import { tarifasInstance } from "../tarifas/tarifas.class";
 import { ArticulosInterface } from "src/articulos/articulos.interface";
 import { logger } from "src/logger";
+import { get } from "http";
 const dtoP = "DtoProducte";
 const dtoF = "DtoFamilia";
 export class Clientes {
@@ -42,6 +43,39 @@ export class Clientes {
         return null;
       });
     return x?.data;
+  }
+
+  async getDiscountsSantaAna() {
+    return await axios.get("clientes/getDescuentoValor");
+  }
+  async getDescuentos() {
+
+    try {
+      const { data: discounts } = await this.getDiscountsSantaAna();
+
+      if (discounts) {
+        await parametrosInstance.setDiscountsShop(discounts);
+        return discounts;
+      }
+      throw new Error("No se han podido obtener los descuentos santaAna, buscando en mongoDB");
+    } catch (error) {
+      logger.Error(158.1, error);
+      return this.getDiscountsMongo();
+    }
+  }
+  async getDiscountsMongo() {
+    try {
+      const parametros = await parametrosInstance.getParametros();
+      // Retornamos los descuentos almacenados si existen
+      if (parametros?.descuentosTienda?.length) {
+        return parametros.descuentosTienda;
+      }
+
+      throw new Error("No se han podido obtener los descuentos de la tienda en MongoDB");
+    } catch (error) {
+      logger.Error(158.2, error);
+      return [];
+    }
   }
   getDtoAlbaran(cliente: ClientesInterface, articulo: ArticulosInterface) {
     const dtoFamilia = this.getDtoFamilia(cliente, articulo);

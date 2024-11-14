@@ -335,6 +335,8 @@ export class TicketsController {
 
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
       await cestasInstance.aplicarDescuento(cesta, total);
+      if(cesta.modo == "CONSUMO_PERSONAL")
+      await cestasInstance.applyDiscountShop(cesta, total);
       // caso doble tpv; borrar registro de la última transacción de Paytef cuando no se ha iniciado una transacción
       if (
         !paytefInstance.dentroIniciarTransaccion &&
