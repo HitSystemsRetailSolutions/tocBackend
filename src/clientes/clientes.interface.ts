@@ -11,6 +11,7 @@ export interface ClientesInterface {
   email?: string;
   dto?: Dto[];
   vip?: boolean;
+  descTE?: boolean;
 }
 export interface Dto {
   variable: string;
