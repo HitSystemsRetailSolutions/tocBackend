@@ -206,7 +206,6 @@ export class TrabajadoresClase {
   removeActiveEmployers = async () => {
     try {
       await schTrabajadores.removeActiveEmployers().then((res) => {
-        io.emit("preguntarFichadosEnUso");
       });
     } catch (err) {
       logger.Error(36, err);

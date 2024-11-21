@@ -105,6 +105,7 @@ export class TrabajadoresController {
           .catch((e) => {
             console.log(e);
           });
+          await trabajadoresInstance.usarTrabajador(idTrabajador, false);
         return await trabajadoresInstance.desficharTrabajador(idTrabajador);
       }
       throw Error("Error, faltan datos en desfichar() controller");

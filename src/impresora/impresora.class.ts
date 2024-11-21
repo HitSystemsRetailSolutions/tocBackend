@@ -591,7 +591,8 @@ export class Impresora {
         }
       }
     }
-    if ( tipoPago !== "CONSUMO_PERSONAL" &&
+    if (
+      tipoPago !== "CONSUMO_PERSONAL" &&
       infoCliente?.descuento &&
       infoCliente.descuento != 0 &&
       (!clienteDescEsp || clienteDescEsp.precio != total)
@@ -1215,24 +1216,7 @@ export class Impresora {
     return detalle;
   }
 
-  async obtenerPrecioUnitario(item, albaranNPT, tipoPago) {
-    if (item.gramos > 0) {
-      try {
-        const infoArticulo = await articulosInstance.getInfoArticulo(
-          item.idArticulo
-        );
-        return albaranNPT ? infoArticulo.precioBase : infoArticulo.precioConIva;
-      } catch (error) {
-        logger.Error(
-          `Error al obtener información del artículo con ID ${item.idArticulo}:`,
-          error
-        );
-        return this.calcularPrecioUnitario(item, albaranNPT, tipoPago);
-      }
-    } else {
-      return this.calcularPrecioUnitario(item, albaranNPT, tipoPago);
-    }
-  }
+
 
   calcularPrecioUnitario(item, albaranNPT, tipoPago) {
     const precioUnitario =
@@ -1294,11 +1278,28 @@ export class Impresora {
       // obtener precio unitario
       // si contiene gramos, obtenemos el precio unitario de la base de datos para evitar errores de redondeo en el calculo.
       try {
-        arrayCompra[i]["preuU"] = await this.obtenerPrecioUnitario(
-          arrayCompra[i],
-          albaranNPT_o_vipPT,
-          tipoPago
-        );
+        if (arrayCompra[i].gramos > 0) {
+          let infoArt = await articulosInstance.getInfoArticulo(
+            arrayCompra[i].idArticulo
+          );
+          const precioTarifa = await articulosInstance.getPrecioConTarifa(
+            infoArt,
+            idCliente
+          );
+          if (precioTarifa.precioConIva != infoArt.precioConIva && !albaranNPT_o_vipPT) {
+            arrayCompra[i]["preuU"] = precioTarifa.precioConIva;
+          }else if(precioTarifa.precioBase != infoArt.precioBase && albaranNPT_o_vipPT){
+            arrayCompra[i]["preuU"] = precioTarifa.precioBase;
+          }else{
+            arrayCompra[i]["preuU"] = albaranNPT_o_vipPT ? infoArt.precioBase : infoArt.precioConIva;
+          }
+        } else {
+          arrayCompra[i]["preuU"] = await this.calcularPrecioUnitario(
+            arrayCompra[i],
+            albaranNPT_o_vipPT,
+            tipoPago
+          );
+        }
       } catch (error) {
         console.error(
           `Error al procesar el artículo en el índice ${i}:`,
