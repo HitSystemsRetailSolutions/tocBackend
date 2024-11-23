@@ -803,7 +803,7 @@ export class CestaClase {
           promocion: null,
           varis: articulo.varis || false,
           regalo: false,
-          puntos: articulo.puntos,
+          puntos: articulo.puntos*unidades,
           impresora: articulo.impresora,
           subtotal: unidades * precioArt,
           unidades: unidades,
