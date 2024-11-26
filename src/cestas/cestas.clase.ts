@@ -803,7 +803,7 @@ export class CestaClase {
           promocion: null,
           varis: articulo.varis || false,
           regalo: false,
-          puntos: articulo.puntos,
+          puntos: articulo.puntos*unidades,
           impresora: articulo.impresora,
           subtotal: unidades * precioArt,
           unidades: unidades,
@@ -1360,13 +1360,13 @@ export class CestaClase {
           delete cesta.lista[i].precioOrig;
         }
         if (cesta.lista[i].dto) {
-          cesta.lista[i].subtotal =
-            cesta.lista[i].subtotal * (1 - cesta.lista[i].dto / 100);
+          cesta.lista[i].subtotal =redondearPrecio(
+            cesta.lista[i].subtotal * (1 - cesta.lista[i].dto / 100));
         }
 
         if (cesta.lista[i].iva || (clienteFacturacion && cesta.lista[i].iva)) {
-          cesta.lista[i].subtotal =
-            cesta.lista[i].subtotal * (1 + cesta.lista[i].iva / 100);
+          cesta.lista[i].subtotal =redondearPrecio(
+            cesta.lista[i].subtotal * (1 + cesta.lista[i].iva / 100));
         }
         cesta.lista[i].subtotal =
           Math.round(cesta.lista[i].subtotal * 100) / 100;
