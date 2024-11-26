@@ -33,12 +33,13 @@ export class TrabajadoresController {
   }
 
   @Get("getFichajesIntervalo")
-  async getTotalsIntervalo(@Query() data: { inicioTime, finalTime }) {
+  async getTotalsIntervalo(@Query() data: { inicioTime, finalTime, trabajador }) {
     try {
-      if (!data.inicioTime || !data.finalTime) {
+
+      if (!data.inicioTime || !data.finalTime || !data.trabajador) {
         throw Error("faltan datos en getFichajesIntervalo");
       }
-      return await trabajadoresInstance.getFichajesIntervalo(data.inicioTime, data.finalTime);
+      return await trabajadoresInstance.getFichajesIntervalo(data.inicioTime, data.finalTime, data.trabajador);
     } catch (error) {
       logger.Error(137, error);
       return null;
@@ -50,6 +51,19 @@ export class TrabajadoresController {
   async buscar(@Body() { busqueda }) {
     try {
       return await trabajadoresInstance.buscar(busqueda);
+
+    } catch (err) {
+      logger.Error(111, err);
+      return null;
+    }
+  }
+
+  /* Eze 4.0 */
+  @Post("buscarSinFichar")
+  async buscarSinFichar(@Body() { busqueda }) {
+    try {
+      let x = await trabajadoresInstance.buscarSinFichar(busqueda);
+      return x
     } catch (err) {
       logger.Error(111, err);
       return null;

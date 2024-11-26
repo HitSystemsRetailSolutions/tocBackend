@@ -21,6 +21,8 @@ export class TrabajadoresClase {
   /* Eze 4.0 */
   buscar = async (busqueda: string) => await schTrabajadores.buscar(busqueda);
 
+  buscarSinFichar = async (busqueda: string) => await schTrabajadores.buscarSinFichar(busqueda);
+
   /* Eze 4.0 */
   async mantenerTrabajadoresFichados(
     nuevoArray: TrabajadoresInterface[]
@@ -212,7 +214,7 @@ export class TrabajadoresClase {
     }
   };
 
-  getFichajesIntervalo = async (fechaInicio, fechaFin) => { return await schTrabajadores.getFichajesIntervalo(fechaInicio, fechaFin); }
+  getFichajesIntervalo = async (fechaInicio, fechaFin, trabajador) => { return await schTrabajadores.getFichajesIntervalo(fechaInicio, fechaFin, trabajador); }
 }
 
 export const trabajadoresInstance = new TrabajadoresClase();
