@@ -124,7 +124,7 @@ export class TrabajadoresClase {
         idTrabajador: idTrabajador,
         fecha: {
           year: auxTime.getFullYear(),
-          month: auxTime.getMonth()+1,//Enero equivale al mes 0
+          month: auxTime.getMonth() + 1,//Enero equivale al mes 0
           day: auxTime.getDate(),
           hours: auxTime.getHours(),
           minutes: auxTime.getMinutes(),
@@ -211,6 +211,8 @@ export class TrabajadoresClase {
       logger.Error(36, err);
     }
   };
+
+  getFichajesIntervalo = async (fechaInicio, fechaFin) => { return await schTrabajadores.getFichajesIntervalo(fechaInicio, fechaFin); }
 }
 
 export const trabajadoresInstance = new TrabajadoresClase();

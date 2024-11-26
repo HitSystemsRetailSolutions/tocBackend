@@ -70,6 +70,40 @@ export async function removeActiveEmployers(): Promise<boolean> {
   return true;
 }
 
+export const getFichajesIntervalo = async (fechaInicio, fechaFin): Promise<any> => {
+  const database = (await conexion).db("tocgame");
+  const trabajadores = database.collection<SincroFichajesInterface>("sincro-fichajes");
+  let [fechaInicio_year, fechaInicio_month, fechaInicio_day] = fechaInicio.split("-");
+  let [fechaFin_year, fechaFin_month, fechaFin_day] = fechaFin.split("-");
+  const workers = await database.collection("sincro-fichajes").aggregate([
+    {
+      $match: {
+        "infoFichaje.fecha.year": { $gte: parseInt(fechaInicio_year), $lte: parseInt(fechaFin_year) },
+        "infoFichaje.fecha.month": { $gte: parseInt(fechaInicio_month), $lte: parseInt(fechaFin_month) },
+        "infoFichaje.fecha.day": { $gte: parseInt(fechaInicio_day), $lte: parseInt(fechaFin_day) }
+      }
+    },
+    {
+      $lookup: {
+        from: "trabajadores", // Colección relacionada
+        localField: "infoFichaje.idTrabajador", // Campo en `sincro-fichajes`
+        foreignField: "idTrabajador", // Campo en `trabajadores`
+        as: "trabajadorInfo" // Resultado de la unión
+      }
+    },
+    {
+      $project: {
+        _id: 0, // Excluye el campo `_id` si no lo necesitas
+        "infoFichaje.idTrabajador": 1,
+        "infoFichaje.fecha": 1,
+        "tipo": 1,
+        "trabajadorInfo.nombreCorto": 1
+      }
+    }
+  ]).toArray();
+  return workers;
+}
+
 /* Eze 4.0 */
 export async function getTrabajadoresFichados(): Promise<
   TrabajadoresInterface[]

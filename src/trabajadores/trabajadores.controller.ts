@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get } from "@nestjs/common";
+import { Body, Controller, Post, Get, Query } from "@nestjs/common";
 import { trabajadoresInstance } from "./trabajadores.clase";
 import { cestasInstance } from "../cestas/cestas.clase";
 import { logger } from "../logger";
@@ -29,6 +29,19 @@ export class TrabajadoresController {
     } catch (err) {
       logger.Error(110, err);
       return false;
+    }
+  }
+
+  @Get("getFichajesIntervalo")
+  async getTotalsIntervalo(@Query() data: { inicioTime, finalTime }) {
+    try {
+      if (!data.inicioTime || !data.finalTime) {
+        throw Error("faltan datos en getFichajesIntervalo");
+      }
+      return await trabajadoresInstance.getFichajesIntervalo(data.inicioTime, data.finalTime);
+    } catch (error) {
+      logger.Error(137, error);
+      return null;
     }
   }
 
