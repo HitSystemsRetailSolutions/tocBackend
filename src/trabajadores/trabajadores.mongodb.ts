@@ -42,6 +42,26 @@ export async function buscar(
 }
 
 /* Eze 4.0 */
+export async function buscarSinFichar(
+  busqueda: string
+): Promise<TrabajadoresInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const trabajadores =
+    database.collection<TrabajadoresInterface>("trabajadores");
+  return await trabajadores
+    .find(
+      {
+        $or: [
+          { nombre: { $regex: new RegExp(busqueda, "i") } },
+          { nombreCorto: { $regex: new RegExp(busqueda, "i") } },
+        ],
+      },
+      { limit: 4 }
+    )
+    .toArray();
+}
+
+/* Eze 4.0 */
 export async function getTrabajador(
   idTrabajador: number
 ): Promise<TrabajadoresInterface> {
@@ -70,7 +90,16 @@ export async function removeActiveEmployers(): Promise<boolean> {
   return true;
 }
 
-export const getFichajesIntervalo = async (fechaInicio, fechaFin): Promise<any> => {
+const getTrabajadorByName = async (name: string): Promise<TrabajadoresInterface["_id"]> => {
+  const database = (await conexion).db("tocgame");
+  const trabajadores =
+    database.collection<TrabajadoresInterface>("trabajadores");
+  return (await trabajadores.findOne({
+    nombre: name,
+  }))._id;
+}
+
+export const getFichajesIntervalo = async (fechaInicio, fechaFin, trabajador): Promise<any> => {
   const database = (await conexion).db("tocgame");
   const trabajadores = database.collection<SincroFichajesInterface>("sincro-fichajes");
   let [fechaInicio_year, fechaInicio_month, fechaInicio_day] = fechaInicio.split("-");
@@ -80,7 +109,8 @@ export const getFichajesIntervalo = async (fechaInicio, fechaFin): Promise<any> 
       $match: {
         "infoFichaje.fecha.year": { $gte: parseInt(fechaInicio_year), $lte: parseInt(fechaFin_year) },
         "infoFichaje.fecha.month": { $gte: parseInt(fechaInicio_month), $lte: parseInt(fechaFin_month) },
-        "infoFichaje.fecha.day": { $gte: parseInt(fechaInicio_day), $lte: parseInt(fechaFin_day) }
+        "infoFichaje.fecha.day": { $gte: parseInt(fechaInicio_day), $lte: parseInt(fechaFin_day) },
+        "infoFichaje.idTrabajador": await getTrabajadorByName(trabajador)
       }
     },
     {
