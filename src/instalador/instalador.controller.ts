@@ -356,6 +356,7 @@ export class InstaladorController {
           );
         }
         let monedas = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let idMonedas = ['0.01', '0.02', '0.05', '0.1', '0.2', '0.5', '1', '2', '5', '10', '20', '50', '100', '200', '500'];
         let monedasCaja = [];
         let totalMonedas = 0;
         let cambioEmergencia = 0;
@@ -364,19 +365,26 @@ export class InstaladorController {
             cambioEmergencia = res.data.ultimoCambEmCierre[0].Import
           }
           monedas = [];
-          res.data.UltimoCierre.forEach((element) => {
-            monedas.push(
-              element.Import /
-              Number(element.Motiu.toString().replace("En : ", ""))
-            );
-            monedasCaja.push({
-              _id: element.Motiu.toString().replace("En : ", ""),
-              valor: element.Import,
-              unidades:
-                element.Import /
-                Number(element.Motiu.toString().replace("En : ", "")),
-            });
+          const aperturaUltimoCierre = res.data.UltimoCierre || [];
+          idMonedas.forEach((id) => {
+            let moneda = aperturaUltimoCierre.find((m) => m.Motiu.startsWith(`En : ${id}`));
+            if (moneda) {
+              monedas.push(moneda.Import / Number(id));
+              monedasCaja.push({
+                _id: id,
+                valor: moneda.Import,
+                unidades: moneda.Import / Number(id),
+              });
+            } else {
+              monedas.push(0);
+              monedasCaja.push({
+                _id: id,
+                valor: 0,
+                unidades: 0,
+              });
+            }
           });
+
           const UltimoCierre = await cajaInstance.guardarMonedas(
             monedas,
             cambioEmergencia,
