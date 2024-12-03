@@ -196,10 +196,10 @@ export class Deudas {
       ));
       const saldoPendiente = pagoParcial ? importeDeudas - pagoParcial : 0;
       const hayParcial = saldoPendiente > 0;
-
-      const deudaMinima = Math.min(
+      const deudaMaxima = Math.max(
         ...arrayDeudas.map((deuda) => deuda.total - deuda.dejaCuenta));
-      const indexDeudaMinima = arrayDeudas.map(deuda => deuda.total - deuda.dejaCuenta).indexOf(deudaMinima);
+      const indexDeudaMaxima = arrayDeudas.map(deuda => deuda.total - deuda.dejaCuenta).indexOf(deudaMaxima);
+      
 
       let albaran = null;
       let id = null;
@@ -217,8 +217,8 @@ export class Deudas {
         }
         albaran = deuda.albaran;
         id = deuda.idTicket;
-        // aplicar el parcial a la deuda minima
-        if(indexDeudaMinima === arrayDeudas.indexOf(deuda) && hayParcial) {
+        // aplicar el parcial a la deuda mas grande
+        if(indexDeudaMaxima === arrayDeudas.indexOf(deuda) && hayParcial) {
           total = this.redondearPrecio(total - saldoPendiente);
           deudaPendiente = deuda;
         }
