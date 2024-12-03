@@ -114,7 +114,7 @@ export class Articulos {
         .catch((e) => {
           console.log(e);
         });
-      if (arrayArticulos.data) {
+      if (arrayArticulos?.data) {
         return await this.insertarArticulos(arrayArticulos.data);
       } else {
         return false;

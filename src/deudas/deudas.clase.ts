@@ -21,6 +21,7 @@ import {
   construirObjetoIvas,
   fusionarObjetosDetalleIva,
 } from "src/funciones/funciones";
+import { TicketsController } from "src/tickets/tickets.controller";
 export class Deudas {
   async getDate(timestamp: any) {
     var date = new Date(timestamp);
@@ -183,20 +184,32 @@ export class Deudas {
    *
    * @param arrayDeudas contiene las deudas a pagar
    * @param infoCobro datos de la cesta
+   * @param pagoParcial cantidad de dinero que se ha pagado inferior al total
    * @param visa booleano que indica si se ha pagado con visa/paytef
    * @returns
    */
-  async pagarDeuda(arrayDeudas, infoCobro, visa = false) {
+  async pagarDeuda(arrayDeudas, infoCobro, pagoParcial = 0, visa = false) {
     try {
-      let deuda = null;
+      const importeDeudas = this.redondearPrecio(arrayDeudas.reduce(
+        (acc, deuda) => acc + deuda.total - deuda.dejaCuenta,
+        0
+      ));
+      const saldoPendiente = pagoParcial ? importeDeudas - pagoParcial : 0;
+      const hayParcial = saldoPendiente > 0;
+
+      const deudaMinima = Math.min(
+        ...arrayDeudas.map((deuda) => deuda.total - deuda.dejaCuenta));
+      const indexDeudaMinima = arrayDeudas.map(deuda => deuda.total - deuda.dejaCuenta).indexOf(deudaMinima);
+
       let albaran = null;
       let id = null;
       let concepto = null;
       let cantidadTkrs = infoCobro.tkrsData?.cantidadTkrs || 0;
       let dejaCuenta = 0;
+      let deudaPendiente = null;
       // recorre las deudas para pagarlas
-      for (const iterator of arrayDeudas) {
-        deuda = iterator;
+      for (const deuda of arrayDeudas) {
+        
         let total = deuda.total;
         if (deuda.dejaCuenta > 0) {
           dejaCuenta += deuda.dejaCuenta;
@@ -204,6 +217,11 @@ export class Deudas {
         }
         albaran = deuda.albaran;
         id = deuda.idTicket;
+        // aplicar el parcial a la deuda minima
+        if(indexDeudaMinima === arrayDeudas.indexOf(deuda) && hayParcial) {
+          total = this.redondearPrecio(total - saldoPendiente);
+          deudaPendiente = deuda;
+        }
         // creacion de mov si se ha utilizado tkrs
         if (
           (infoCobro.tipo === "TKRS" && infoCobro.tkrsData) ||
@@ -346,7 +364,7 @@ export class Deudas {
       codigoBarras = String(Ean13Utils.generate(codigoBarras));
       const movimientoGeneral: MovimientosInterface = {
         _id: Date.now(),
-        valor: Math.round(infoCobro.total * 100) / 100,
+        valor: Math.round((infoCobro.total-saldoPendiente) * 100) / 100,
         concepto: concepto,
         idTicket: null,
         idTrabajador: infoCobro.idTrabajador,
@@ -355,6 +373,9 @@ export class Deudas {
         enviado: false,
         ExtraData: [],
       };
+      if (deudaPendiente) {
+        await this.crearDeudaSaldoPendiente(deudaPendiente, saldoPendiente);
+      }
       const cliente = await clienteInstance.getClienteById(
         arrayDeudas[0].idCliente
       );
@@ -386,6 +407,20 @@ export class Deudas {
       return true;
     }
     return false;
+  }
+  async crearDeudaSaldoPendiente(deuda: DeudasInterface, saldoPendiente: number) {
+    const deudaPendiente = {
+      idTicket: deuda.idTicket,
+      cesta: deuda.cesta,
+      idTrabajador: deuda.idTrabajador,
+      idCliente: deuda.idCliente,
+      nombreCliente: deuda.nombreCliente,
+      total: deuda.total,
+      timestamp: new Date().getTime(),
+      dejaCuenta: this.redondearPrecio(deuda.total - saldoPendiente),
+    };
+    await this.setDeuda(deudaPendiente);
+
   }
   eliminarDeuda = async (idDeuda, albaran) => {
     try {
@@ -425,7 +460,6 @@ export class Deudas {
     schDeudas.setFinalizado(idDeuda);
 
   public async insertarDeudas(deudas: any) {
-
     if (deudas.length == 0) return;
     let cajaAbierta = await cajaInstance.cajaAbierta();
     // abrimos caja temporalmente para poder utilizar la cesta
@@ -488,7 +522,7 @@ export class Deudas {
       const detall = deuda[0].Detall;
       let inicio = detall.indexOf("DejaACuenta:");
       let dejaCuenta = 0;
- 
+
       if (inicio !== -1) {
         // Ajustar el índice para comenzar desde después de ":"
         inicio += "DejaACuenta:".length;
@@ -513,12 +547,12 @@ export class Deudas {
       // insertamos el tmstp de la deuda en la cesta para usar el iva correcto al insertar los productos
       cesta.timestamp = timestamp;
       await cestasInstance.updateCesta(cesta);
-      let cestaDeuda = JSON.parse(JSON.stringify(cesta))
+      let cestaDeuda = JSON.parse(JSON.stringify(cesta));
       let descuento: any =
         cliente && !cliente?.albaran && !cliente?.vip
           ? Number(cliente.descuento)
           : 0;
-      if (idTicket == 0){
+      if (idTicket == 0) {
         cestaDeuda.detalleIva = {
           base1: 0,
           base2: deuda[0].Import,
@@ -535,14 +569,13 @@ export class Deudas {
           importe3: 0,
           importe4: 0,
           importe5: 0,
-        }
+        };
         //total = deuda[0].Import; se inserta aqui dependiendo de si le meto iva o no
       } else {
         cestaDeuda = await this.postCestaDeuda(deuda, cestaDeuda, descuento);
       }
       // el descuento se aplica dependiendo de si se ha usado insertarArticulo en cesta
       // Si no se ha usado insertarArticulo, el descuento tambien se aplica en detallesIva
-      
 
       // modificamos precios con el descuentro del cliente
       if (descuento && descuento > 0) {
@@ -613,7 +646,6 @@ export class Deudas {
   }
   async postCestaDeuda(deuda: any, cesta: CestasInterface, dto: number) {
     try {
-
       // insertar productos restantes
       for (const [index, item] of deuda.entries()) {
         const arraySuplementos =
@@ -637,7 +669,6 @@ export class Deudas {
             );
           }
         } else {
-
           const infoArt = await articulosInstance.getInfoArticulo(item.Plu);
           cesta.lista.push({
             idArticulo: item.Plu,
