@@ -29,12 +29,14 @@ export class TiposIvaClase {
   /* el iva 2025 Jan pendiente de confirmar si tipo 5 es 7.5 o 10 y si tipo 4 es 2 0 4. 
    El cambio de 7.5 a 10 y de 2 a 4 hay dos maneras. Se modifica el valor en tipo 5 (7.5 a 10) 
    o se selecciona el tipo 2 que ya tiene el 10% */
+  //  Respuesta: en 2025, los tipos seran escalables, nuevo iva, nuevo tipo.
   private arrayDefault2025JAN: TiposIvaFormat[] = [
     { tipus: "1", iva: 4 },
     { tipus: "2", iva: 10 },
     { tipus: "3", iva: 21 },
-    { tipus: "4", iva: 4 },
-    { tipus: "5", iva: 10 },
+    { tipus: "4", iva: 2 },
+    { tipus: "5", iva: 7.5 },
+    { tipus: "6", iva: 0 },
   ];
   constructor() {
     this.getArrayIvas();
