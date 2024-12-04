@@ -182,10 +182,10 @@ export class MovimientosClase {
     try {
       const ticket = await ticketsInstance.getTicketById(idTicket);
       const client = await clienteInstance.getClienteById(ticket.idCliente);
-      let nombreCliente = client? client.nombre: null;
+      let nombreCliente = client ? client.nombre : null;
       impresoraInstance.imprimirMov3G(nuevoMovimiento, nombreCliente);
     } catch (error) {
-      logger.Error(211, error.message)
+      logger.Error(211, error.message);
     }
   }
   async imprimirDeudaSalida(
@@ -411,6 +411,22 @@ export class MovimientosClase {
     }
     return false;
   }
+
+  public async comprobarDeudaParcial(superTicket: SuperTicketInterface) {
+    const total = superTicket.total;
+    // devolver el valor de movimientos con concepto dejaACuentaDeuda
+    
+    const montosParciales = superTicket.movimientos.filter(
+      (mov) => mov.tipo === "ENTRADA_DINERO" && mov.concepto === "DEUDA"
+    );
+    let totalParcial = montosParciales.reduce((acc, mov) => acc + mov.valor, 0);
+    totalParcial = totalParcial;
+    if (totalParcial < total) {
+      return "DEUDA";
+    } else {
+      return "EFECTIVO";
+    }
+  }
   // funcion con muchas comprobaciones para calcular el tipo de pago en el ticket, se puede simplificar
   /* Eze 4.0 */
   public async calcularFormaPago(
@@ -418,6 +434,14 @@ export class MovimientosClase {
   ): Promise<FormaPago> {
     // let movTicket = (await this.getMovimentOfTicket(superTicket._id)) || null;
     try {
+      const coincidenciasDeuda = superTicket.movimientos.filter(
+        (movimiento) =>
+          movimiento.concepto === "DEUDA" &&
+          movimiento.tipo === "ENTRADA_DINERO"
+      );
+      if (coincidenciasDeuda.length > 1) {
+        return this.comprobarDeudaParcial(superTicket);
+      }
       if (superTicket.honei) {
         const todoHonei = superTicket.cesta.lista.every((art) => art.pagado);
         switch (true) {

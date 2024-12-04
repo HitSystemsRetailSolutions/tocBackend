@@ -789,8 +789,8 @@ export class Impresora {
     if (pagoDevolucion)
       arrayImprimir.push({ tipo: "text", payload: pagoDevolucion });
     let totalImporte = total;
-    // si hay deja cuenta restamos el total, menos si esta anulado el ticket
-    if (info?.restante) totalImporte = info.restante;
+
+    
     arrayImprimir.push(
       { tipo: "align", payload: "RT" },
       { tipo: "text", payload: "TOTAL: " + totalImporte.toFixed(2) + " €" },

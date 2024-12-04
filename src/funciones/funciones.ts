@@ -2,7 +2,8 @@ import { DetalleIvaInterface } from "../cestas/cestas.interface";
 import { TiposIva } from "../articulos/articulos.interface";
 import { tiposIvaInstance } from "src/tiposIva/tiposIva.clase";
 /* Eze 4.0 (REDONDEA AL SEGUNDO DECIMAL) */
-export const redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
+export const redondearPrecio = (precio: number) =>
+  Math.round(precio * 100) / 100;
 
 /* Eze 4.0 */
 export function construirObjetoIvas(
@@ -11,9 +12,11 @@ export function construirObjetoIvas(
   unidades: number,
   albaranNPT: boolean = false,
   dto: number = 0,
-  timestamp: number = null,
+  timestamp: number = null
 ): DetalleIvaInterface {
-  const arrayIvasDecimals = timestamp ? tiposIvaInstance.getIvasDecWithTmstpCesta(timestamp) : tiposIvaInstance.arrayDecimal;
+  const arrayIvasDecimals = timestamp
+    ? tiposIvaInstance.getIvasDecWithTmstpCesta(timestamp)
+    : tiposIvaInstance.arrayDecimal;
   let base1 = 0,
     base2 = 0,
     base3 = 0,
@@ -39,7 +42,8 @@ export function construirObjetoIvas(
       const iva1Mod = 1 + iva1;
       base1 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / iva1Mod) * unidades - (precio / iva1Mod) * unidades * (dto / 100);
+        : (precio / iva1Mod) * unidades -
+          (precio / iva1Mod) * unidades * (dto / 100);
       valor1 = base1 * iva1;
       importe1 = base1 + valor1;
       break;
@@ -48,7 +52,8 @@ export function construirObjetoIvas(
       const iva2Mod = 1 + iva2;
       base2 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / iva2Mod) * unidades - (precio / iva2Mod) * unidades * (dto / 100);
+        : (precio / iva2Mod) * unidades -
+          (precio / iva2Mod) * unidades * (dto / 100);
       valor2 = base2 * iva2;
       importe2 = base2 + valor2;
       break;
@@ -57,7 +62,8 @@ export function construirObjetoIvas(
       const iva3Mod = 1 + iva3;
       base3 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / iva3Mod) * unidades - (precio / iva3Mod) * unidades * (dto / 100);
+        : (precio / iva3Mod) * unidades -
+          (precio / iva3Mod) * unidades * (dto / 100);
       valor3 = base3 * iva3;
       importe3 = base3 + valor3;
       break;
@@ -66,7 +72,8 @@ export function construirObjetoIvas(
       const iva4Mod = 1 + iva4;
       base4 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / iva4Mod) * unidades - (precio / iva4Mod) * unidades * (dto / 100);
+        : (precio / iva4Mod) * unidades -
+          (precio / iva4Mod) * unidades * (dto / 100);
       valor4 = base4 * iva4;
       importe4 = base4 + valor4;
       break;
@@ -75,13 +82,14 @@ export function construirObjetoIvas(
       const iva5Mod = 1 + iva5;
       base5 = albaranNPT
         ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / iva5Mod) * unidades - (precio / iva5Mod) * unidades * (dto / 100);
+        : (precio / iva5Mod) * unidades -
+          (precio / iva5Mod) * unidades * (dto / 100);
       valor5 = base5 * iva5;
       importe5 = base5 + valor5;
       break;
   }
   // Redondeo con Math.Round y no con toFixed para evitar un almacenado con pérdida de precisión(6.3449999999662,6.3550000002).
-  return {
+  const auxDetalleIva = {
     base1: Math.round(base1 * 100) / 100,
     base2: Math.round(base2 * 100) / 100,
     base3: Math.round(base3 * 100) / 100,
@@ -98,6 +106,41 @@ export function construirObjetoIvas(
     importe4: Math.round(importe4 * 100) / 100,
     importe5: Math.round(importe5 * 100) / 100,
   };
+  return ajustarAuxDetalleIva(auxDetalleIva);
+}
+
+export function ajustarAuxDetalleIva(auxDetalleIva) {
+  const baseKeys = Object.keys(auxDetalleIva).filter((key) =>
+    key.startsWith("base")
+  );
+  const ivaKeys = Object.keys(auxDetalleIva).filter((key) =>
+    key.startsWith("valorIva")
+  );
+  const importeKeys = Object.keys(auxDetalleIva).filter((key) =>
+    key.startsWith("importe")
+  );
+
+  // Verificar que las claves coincidan
+  for (let i = 0; i < baseKeys.length; i++) {
+    const baseKey = baseKeys[i];
+    const ivaKey = ivaKeys[i];
+    const importeKey = importeKeys[i];
+
+    if (baseKey && ivaKey && importeKey) {
+      let base = auxDetalleIva[baseKey];
+      let valorIva = auxDetalleIva[ivaKey];
+      let importe = auxDetalleIva[importeKey];
+
+      // Ajustar la base si la suma no coincide con el importe
+      const sumaActual = base + valorIva;
+      if (Math.abs(sumaActual - importe) > 0.0001) {
+        // Tolerancia por redondeo
+        auxDetalleIva[baseKey] = importe - valorIva;
+      }
+    }
+  }
+
+  return auxDetalleIva;
 }
 
 /* Eze 4.0 */
@@ -116,18 +159,18 @@ export function fusionarObjetosDetalleIva(
   obj1: DetalleIvaInterface,
   obj2: DetalleIvaInterface
 ): DetalleIvaInterface {
-    const base1= Math.round((obj1.base1 + obj2.base1) * 100) / 100;
-    const base2= Math.round((obj1.base2 + obj2.base2) * 100) / 100;
-    const base3= Math.round((obj1.base3 + obj2.base3) * 100) / 100;
-    const base4= Math.round((obj1.base4 + obj2.base4) * 100) / 100;
-    const base5= Math.round((obj1.base5 + obj2.base5) * 100) / 100;
-    const valorIva1= Math.round((obj1.valorIva1 + obj2.valorIva1) * 100) / 100;
-    const valorIva2= Math.round((obj1.valorIva2 + obj2.valorIva2) * 100) / 100;
-    const valorIva3= Math.round((obj1.valorIva3 + obj2.valorIva3) * 100) / 100;
-    const valorIva4= Math.round((obj1.valorIva4 + obj2.valorIva4) * 100) / 100;
-    const valorIva5= Math.round((obj1.valorIva5 + obj2.valorIva5) * 100) / 100;
+  const base1 = Math.round((obj1.base1 + obj2.base1) * 100) / 100;
+  const base2 = Math.round((obj1.base2 + obj2.base2) * 100) / 100;
+  const base3 = Math.round((obj1.base3 + obj2.base3) * 100) / 100;
+  const base4 = Math.round((obj1.base4 + obj2.base4) * 100) / 100;
+  const base5 = Math.round((obj1.base5 + obj2.base5) * 100) / 100;
+  const valorIva1 = Math.round((obj1.valorIva1 + obj2.valorIva1) * 100) / 100;
+  const valorIva2 = Math.round((obj1.valorIva2 + obj2.valorIva2) * 100) / 100;
+  const valorIva3 = Math.round((obj1.valorIva3 + obj2.valorIva3) * 100) / 100;
+  const valorIva4 = Math.round((obj1.valorIva4 + obj2.valorIva4) * 100) / 100;
+  const valorIva5 = Math.round((obj1.valorIva5 + obj2.valorIva5) * 100) / 100;
   return {
-    base1:base1,
+    base1: base1,
     base2: base2,
     base3: base3,
     base4: base4,
@@ -140,7 +183,7 @@ export function fusionarObjetosDetalleIva(
     importe1: Math.round((base1 + valorIva1) * 100) / 100,
     importe2: Math.round((base2 + valorIva2) * 100) / 100,
     importe3: Math.round((base3 + valorIva3) * 100) / 100,
-    importe4: Math.round((base4+ valorIva4) * 100) / 100,
+    importe4: Math.round((base4 + valorIva4) * 100) / 100,
     importe5: Math.round((base5 + valorIva5) * 100) / 100,
   };
 }

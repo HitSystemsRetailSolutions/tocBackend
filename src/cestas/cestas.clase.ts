@@ -7,6 +7,7 @@ import {
   itemHonei,
 } from "./cestas.interface";
 import {
+  ajustarAuxDetalleIva,
   construirObjetoIvas,
   convertirDineroEnPuntos,
   fusionarObjetosDetalleIva,
