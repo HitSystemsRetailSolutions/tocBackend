@@ -20,9 +20,6 @@ export async function getArticulos(): Promise<ArticulosInterface[]> {
 
 /* Eze 4.0 */
 export async function insertarArticulos(arrayArticulos: ArticulosInterface[]) {
-  arrayArticulos.forEach(articulo => {
-    articulo.precioBase = Math.round(articulo.precioBase*100)/100;
-  });
   await borrarArticulos();
   const database = (await conexion).db("tocgame");
   const articulos = database.collection<ArticulosInterface>("articulos");
@@ -92,7 +89,7 @@ export async function insertarTeclasNuevos(
       color: 16769279,
       esSumable: esSumable,
       precioConIva: preuIva,
-      precioBase: Math.round(preuBase * 100) / 100,
+      precioBase: Math.round(preuBase * 1000) / 1000,
     },
   ];
   return await articulos.insertMany(valors);
