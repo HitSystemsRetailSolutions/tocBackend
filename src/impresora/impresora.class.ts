@@ -2813,8 +2813,10 @@ export class Impresora {
   }
   async imprimirEncargo(encargo: EncargosInterface) {
     const parametros = await parametrosInstance.getParametros();
-    const trabajador: TrabajadoresInterface =
-      await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
+    const trabajador: TrabajadoresInterface|any =
+      await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador) || {
+        nombreCorto: "No en té",
+      };
     const cliente: ClientesInterface = await clienteInstance.isClienteDescuento(
       encargo.idCliente
     );
@@ -3095,7 +3097,187 @@ export class Impresora {
       );
       return { error: false, info: "OK" };
     } catch (err) {
-      mqttInstance.loggerMQTT(err);
+      console.log(err);
+      mqttInstance.loggerMQTT(err.toString());
+      return { error: true, info: "Error en CATCH imprimirEntregas() 2" };
+    }
+  }
+  async imprimirEncargoSelected(encargo: EncargosInterface) {
+    const parametros = await parametrosInstance.getParametros();
+    const trabajador: TrabajadoresInterface|any =
+      await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador) || {
+        nombreCorto: "No en té",
+      };
+    const cliente: ClientesInterface = await clienteInstance.isClienteDescuento(
+      encargo.idCliente
+    );
+    const descuento: any =
+      cliente && !cliente?.albaran && !cliente?.vip
+        ? Number(cliente.descuento)
+        : 0;
+    const clienteEnc = cliente && cliente?.nombre ? cliente.nombre : "No en té";
+    const telefono: ClientesInterface["telefono"] =
+      cliente?.telefono && cliente?.telefono.length > 1
+        ? cliente.telefono
+        : "No en té";
+    const cabecera = parametros?.header == undefined ? "" : parametros.header;
+    const moment = require("moment-timezone");
+    const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
+    let detalles = await this.detallesTicket(
+      encargo.cesta.lista,
+      encargo.idCliente
+    );
+    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
+      encargo.cesta.lista,
+      encargo.idCliente
+    );
+    let detalleImporte = "";
+    let importe = "";
+    if (encargo.dejaCuenta == 0) {
+      if (descuento && descuento != 0) {
+        detalleImporte = `Total sense descompte: ${(
+          encargo.total /
+          (1 - descuento / 100)
+        ).toFixed(2)}€\nDescompte total: ${(
+          (encargo.total * descuento) /
+          100
+        ).toFixed(2)}€ \n`;
+      }
+      importe = "Total:" + encargo.total.toFixed(2) + " €";
+    } else {
+      if (descuento && descuento != 0) {
+        detalleImporte = `Total sense descompte: ${(
+          encargo.total /
+          (1 - descuento / 100)
+        ).toFixed(2)}€\nDescompte total: ${(
+          (encargo.total * descuento) /
+          100
+        ).toFixed(2)}€ \n`;
+      }
+      detalleImporte += `Import total:${encargo.total.toFixed(2)}\n`;
+      importe =
+        `Import pagat: ${encargo.dejaCuenta.toFixed(2)} €\n` +
+        "Total restant:" +
+        (encargo.total - encargo.dejaCuenta).toFixed(2) +
+        " €";
+    }
+
+    const detallesIva = await this.getDetallesIva(encargo.cesta.detalleIva);
+    let detalleIva = "";
+    detalleIva =
+      detallesIva.detalleIvaTipo4 +
+      detallesIva.detalleIvaTipo1 +
+      detallesIva.detalleIvaTipo5 +
+      detallesIva.detalleIvaTipo2 +
+      detallesIva.detalleIvaTipo3;
+    // mostramos las observaciones de los productos
+    let observacions = "";
+    for (const producto of encargo.productos) {
+      if (producto.comentario && producto.comentario !== "0") {
+        const nombreLimpio = producto.nombre.startsWith("+")
+          ? producto.nombre.substring(1)
+          : producto.nombre;
+        observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;
+      }
+    }
+
+    if(observacions.length == 0) observacions = "No hi ha observacions\n";
+    let fechaEncargo = "";
+    if (encargo.opcionRecogida == 1 && encargo.amPm == "pm") {
+      encargo.hora = encargo.fecha + "torn de tarda";
+    } else if (encargo.opcionRecogida == 1 && encargo.amPm == "am") {
+      encargo.hora = encargo.fecha + "torn de matí";
+    } else if (encargo.opcionRecogida == 3) {
+      let diaSemana = "";
+      switch (encargo.dias[0].dia) {
+        case "Lunes":
+          diaSemana = "Dilluns";
+          break;
+        case "Martes":
+          diaSemana = "Dimarts";
+          break;
+        case "Miércoles":
+          diaSemana = "Dimecres";
+          break;
+        case "Jueves":
+          diaSemana = "Dijous";
+          break;
+        case "Viernes":
+          diaSemana = "Divendres";
+          break;
+        case "Sábado":
+          diaSemana = "Dissabte";
+          break;
+        case "Domingo":
+          diaSemana = "Diumenge";
+          break;
+        default:
+          break;
+      }
+      fechaEncargo =
+        "Cada " + diaSemana + ",\n proper " + diaSemana + " " + encargo.fecha;
+    } else {
+      fechaEncargo = encargo.fecha + " " + encargo.hora;
+    }
+    try {
+      const device = new escpos.Network();
+      const printer = new escpos.Printer(device);
+      const options = { imprimirLogo: true };
+
+      this.enviarMQTT(
+        [
+          { tipo: "setCharacterCodeTable", payload: 19 },
+          { tipo: "encode", payload: "CP858" },
+          { tipo: "font", payload: "a" },
+          { tipo: "style", payload: "b" },
+          { tipo: "align", payload: "CT" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "ENTREGA " },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: cabecera },
+          {
+            tipo: "text",
+            payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
+          },
+          { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
+          { tipo: "text", payload: "Client: " + clienteEnc },
+          { tipo: "text", payload: "Telèfon Client: " + telefono },
+          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+          { tipo: "control", payload: "LF" },
+          {
+            tipo: "text",
+            payload: formatoDetalle[tipoFormatoDetalle],
+          },
+          {
+            tipo: "text",
+            payload: "------------------------------------------",
+          },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: detalles },
+          {
+            tipo: "text",
+            payload: "------------------------------------------",
+          },
+          { tipo: "text", payload: detalleImporte },
+          { tipo: "text", payload: "" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: importe },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: "Observacions:" },
+          { tipo: "text", payload: observacions },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "CT" },
+          { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+          { tipo: "text", payload: detalleIva },
+          { tipo: "text", payload: "-- ES COPIA --" },
+          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: "ID: " + random() + " - " + random() },
+          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        ],options);
+    } catch (err) {
+      console.log(err);
+      mqttInstance.loggerMQTT(err.toString());
       return { error: true, info: "Error en CATCH imprimirEntregas() 2" };
     }
   }

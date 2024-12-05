@@ -744,6 +744,13 @@ export class Encargos {
   async getUpdateEncargos() {
     return await schEncargos.getUpdateEncargos();
   }
+  async imprimirEncargoSelected(encargo) {
+    if(!encargo) return;
+    if(!encargo.codigoBarras){
+      encargo.codigoBarras = ""
+    }
+    impresoraInstance.imprimirEncargoSelected(encargo);
+  }
 }
 
 const encargosInstance = new Encargos();
