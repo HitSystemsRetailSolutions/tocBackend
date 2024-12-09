@@ -3,6 +3,7 @@ import { logger } from "../logger";
 import { encargosInstance } from "./encargos.clase";
 import axios from "axios";
 import { parametrosInstance } from "src/parametros/parametros.clase";
+import { impresoraInstance } from "src/impresora/impresora.class";
 
 @Controller("encargos")
 export class EncargosController {
@@ -55,6 +56,28 @@ export class EncargosController {
     }
   }
 
+  @Post("imprimirEncargo")
+  async imprimirEncargo(@Body() data) {
+    try {
+
+      if (!data.id)
+        return {
+          error: true,
+          msg: "Faltan datos.",
+        };
+      const encargo = await encargosInstance.getEncargoById(data.id);
+      if (!encargo)
+        return {
+          error: true,
+          msg: "Error al obtener el encargo.",
+        };
+
+      return await encargosInstance.imprimirEncargoSelected(encargo);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
   @Post("imprimirEncargosHoy")
   async imprimirEncargosHoy(@Body() data) {
     try {

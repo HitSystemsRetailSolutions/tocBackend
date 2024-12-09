@@ -1244,6 +1244,7 @@ export class CestaClase {
         let articulo = await articulosInstance.getInfoArticulo(
           cesta.lista[i].idArticulo
         );
+
         let tarifaEsp = false;
         // encuentra el posible descuento del cliente albaran
         let dto = 0;
