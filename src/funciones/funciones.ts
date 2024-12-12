@@ -43,7 +43,6 @@ export function construirObjetoIvas(
   resultado[`base${tipoIva}`] = Math.round(base * 100) / 100;
   resultado[`valorIva${tipoIva}`] = Math.round(valorIva * 100) / 100;
   resultado[`importe${tipoIva}`] = Math.round(importe * 100) / 100;
-  console.log(resultado);
   return ajustarAuxDetalleIva(resultado);
 }
 
@@ -117,6 +116,5 @@ export function fusionarObjetosDetalleIva(
       resultado[`importe${index}`] = Math.round((base + valorIva) * 100) / 100;
     }
   });
-  console.log(resultado);
   return resultado
 }
