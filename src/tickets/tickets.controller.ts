@@ -75,7 +75,7 @@ export class TicketsController {
       var TDeuda1 = performance.now();
       const cesta = await cestasInstance.getCestaById(idCesta);
       const ticket = await ticketsInstance.generarNuevoTicket(
-        total - dejaCuenta,
+        total,
         idTrabajador,
         cesta,
         tipo === "CONSUMO_PERSONAL",
@@ -102,7 +102,7 @@ export class TicketsController {
         };
         await deudasInstance.setDeuda(deuda);
         await movimientosInstance.nuevoMovimiento(
-          total - dejaCuenta,
+          total,
           "DEUDA",
           "SALIDA",
           ticket._id,
@@ -245,11 +245,12 @@ export class TicketsController {
       `crearTicketPaytef entrada (${idTransaccion})`,
       "tickets.controller"
     );
+    const transaccion = this.redondearPrecio(total - dejaCuenta);
     return await paytefInstance
-      .iniciarTransaccion(idTrabajador, idTransaccion, total)
+      .iniciarTransaccion(idTrabajador, idTransaccion, transaccion)
       .then(async (x) => {
         if (x) {
-          if (dejaCuenta > 0) ticketTemp.total += dejaCuenta;
+          
           if (await ticketsInstance.insertarTicket(ticketTemp)) {
             // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
             // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
@@ -345,7 +346,7 @@ export class TicketsController {
         paytefInstance.deleteUltimaIniciarTransaccion();
       }
       const ticket = await ticketsInstance.generarNuevoTicket(
-        total + dejaCuenta,
+        total,
         idTrabajador,
         cesta,
         tipo === "CONSUMO_PERSONAL",
