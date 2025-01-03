@@ -10,7 +10,7 @@ import { cajaInstance } from "src/caja/caja.clase";
 export class MovimientosController {
   /* Yasai :D */
   @Post("nuevoMovimiento") // Solo para entradas o salidas manuales (idTicket = null)
-  async nuevoMovimiento(@Body() { cantidad, concepto, idTrabajador, tipo, nombreCliente=null }) {
+  async nuevoMovimiento(@Body() { cantidad, concepto, idTrabajador, tipo, nombreCliente=null,idTicket=null }) {
     try {
       if (
         cantidad &&
@@ -20,7 +20,7 @@ export class MovimientosController {
           cantidad,
           concepto,
           tipo,
-          null,
+          idTicket,
           idTrabajador,
           nombreCliente
         );
