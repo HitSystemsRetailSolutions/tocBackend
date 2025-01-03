@@ -78,7 +78,7 @@ export class TicketsController {
         total,
         idTrabajador,
         cesta,
-        tipo === "CONSUMO_PERSONAL",
+        ticketsInstance.esConsumoPersonal(tipo, cesta.modo),
         false,
         tkrsData?.cantidadTkrs > 0,
         dejaCuenta
@@ -163,7 +163,7 @@ export class TicketsController {
         total,
         idTrabajador,
         cestaEncargo.cesta,
-        tipo === "CONSUMO_PERSONAL",
+        ticketsInstance.esConsumoPersonal(tipo, cestaEncargo.cesta.modo),
         false,
         false,
         dejaCuenta
@@ -226,6 +226,8 @@ export class TicketsController {
     const cesta = await cestasInstance.getCestaById(idCesta);
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     await cestasInstance.aplicarDescuento(cesta, total);
+    if(cesta.modo == "CONSUMO_PERSONAL")
+    await cestasInstance.applyDiscountShop(cesta, total);
     // elimina la última transacción de Paytef
     paytefInstance.deleteUltimaIniciarTransaccion();
     // genera un ticket temporal hasta que se confirme o se anule el pago
@@ -233,7 +235,7 @@ export class TicketsController {
       total,
       idTrabajador,
       cesta,
-      tipo === "CONSUMO_PERSONAL",
+      ticketsInstance.esConsumoPersonal(tipo, cesta.modo),
       tipo.includes("HONEI") || honei,
       tkrsData?.cantidadTkrs > 0,
       dejaCuenta
@@ -349,7 +351,7 @@ export class TicketsController {
         total,
         idTrabajador,
         cesta,
-        tipo === "CONSUMO_PERSONAL",
+        ticketsInstance.esConsumoPersonal(tipo, cesta.modo),
         tipo.includes("HONEI") || honei,
         tkrsData?.cantidadTkrs > 0,
         dejaCuenta
@@ -411,7 +413,7 @@ export class TicketsController {
           total,
           idTrabajador,
           cesta,
-          tipo === "CONSUMO_PERSONAL",
+          ticketsInstance.esConsumoPersonal(tipo, cesta.modo),
           null,
           tipo.includes("HONEI")
         );
