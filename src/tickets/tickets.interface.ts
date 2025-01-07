@@ -23,6 +23,7 @@ export interface TicketsInterface {
   restante?: number;
   enviado: boolean;
   otrosModificado?: boolean;
+  dataVersion?: string;
 }
 export interface Anulado {
   idTicketPositivo: number;

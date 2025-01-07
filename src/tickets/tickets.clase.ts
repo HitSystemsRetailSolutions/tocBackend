@@ -7,6 +7,7 @@ import { movimientosInstance } from "../movimientos/movimientos.clase";
 import axios from "axios";
 import {
   convertirDineroEnPuntos,
+  getDataVersion,
   redondearPrecio,
 } from "../funciones/funciones";
 import { articulosInstance } from "../articulos/articulos.clase";
@@ -20,6 +21,7 @@ import { MovimientosController } from "src/movimientos/movimientos.controller";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { impresoraInstance } from "src/impresora/impresora.class";
 import { cestasInstance } from "src/cestas/cestas.clase";
+import { get } from "http";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -247,6 +249,7 @@ export class TicketsClase {
       cesta,
       enviado: false,
       consumoPersonal: consumoPersonal ? true : false,
+      dataVersion: getDataVersion(),
     };
     if(dejaCuenta && dejaCuenta > 0){
       nuevoTicket.restante = redondearPrecio(nuevoTicket.total - dejaCuenta);
