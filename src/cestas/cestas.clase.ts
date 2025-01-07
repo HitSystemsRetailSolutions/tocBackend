@@ -1200,7 +1200,6 @@ export class CestaClase {
     cesta: CestasInterface,
     menu: string = ""
   ): Promise<CestasInterface> {
-    console.log("recalcularIvas");
     cesta.detalleIva = {
       base1: 0,
       base2: 0,
