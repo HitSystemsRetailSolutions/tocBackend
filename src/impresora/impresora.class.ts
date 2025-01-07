@@ -223,6 +223,7 @@ export class Impresora {
             descuento: descuento,
             albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
           },
+          modoCesta: ticket?.cesta?.modo,
           dejaCuenta: ticket.dejaCuenta,
           idCliente: ticket.idCliente,
           totalSinDescuento: totalSinDescuento,
@@ -249,6 +250,7 @@ export class Impresora {
             ticket?.cesta?.indexMesa == undefined
               ? null
               : ticket.cesta.indexMesa,
+          modoCesta: ticket?.cesta?.modo,
           comensales: ticket?.cesta?.comensales || null,
           tmstpCesta: ticket.cesta.timestamp,
         };
@@ -617,7 +619,7 @@ export class Impresora {
           (((baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)) *
             infoCliente.descuento) /
             100
-        )}€\n`;
+        )}€`;
     }
 
     const moment = require("moment-timezone");
@@ -640,6 +642,11 @@ export class Impresora {
 
     if (info.dejaCuenta > 0) {
       detalleDejaCuenta = "Pagament rebut: " + info.dejaCuenta;
+      if(info.modoCesta == "RECOGER ENCARGO"){
+      detalleDejaCuenta += "\nPagament en recollir: " + redondearPrecio(total - info.dejaCuenta);
+      }else{
+        detalleDejaCuenta += "\nPagament pendent: " + redondearPrecio(total - info.dejaCuenta);
+      }
     }
 
     const detallesIva = await this.getDetallesIva(tiposIva);
@@ -781,10 +788,10 @@ export class Impresora {
       },
       { tipo: "align", payload: "RT" }
     );
-    if (detalleDejaCuenta)
-      arrayImprimir.push({ tipo: "text", payload: detalleDejaCuenta });
     if (detalleDescuento)
       arrayImprimir.push({ tipo: "text", payload: detalleDescuento });
+    if (detalleDejaCuenta)
+      arrayImprimir.push({ tipo: "text", payload: detalleDejaCuenta });
     arrayImprimir.push({ tipo: "size", payload: [1, 1] });
     if (pagoDevolucion)
       arrayImprimir.push({ tipo: "text", payload: pagoDevolucion });

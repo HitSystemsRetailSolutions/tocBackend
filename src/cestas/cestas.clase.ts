@@ -753,7 +753,7 @@ export class CestaClase {
             // articulos pagados y no pagados de honei
             if (igual == cesta.lista[i].arraySuplementos.length) {
               cesta.lista[i].unidades += unidades;
-              if (articulo.puntos == null) {
+              if (articulo.puntos == null || articulo.puntos == 0) {
                 await this.setPuntosPromoDscompteFixe(articulo);
               }
               if (unidades > 0 && cesta.lista[i].puntos != null) {
@@ -775,7 +775,7 @@ export class CestaClase {
             cesta.lista[i].regalo == regalar
           ) {
             cesta.lista[i].unidades += unidades;
-            if (articulo.puntos == null) {
+            if (articulo.puntos == null || articulo.puntos == 0) {
               await this.setPuntosPromoDscompteFixe(articulo);
             }
             if (unidades > 0 && cesta.lista[i].puntos != null) {
@@ -795,7 +795,7 @@ export class CestaClase {
       }
       const pagado = menu === "pagados";
       if (articuloNuevo) {
-        if (articulo.puntos == null) {
+        if (articulo.puntos == null || articulo.puntos == 0) {
           await this.setPuntosPromoDscompteFixe(articulo);
         }
         cesta.lista.push({

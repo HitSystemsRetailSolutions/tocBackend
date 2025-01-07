@@ -1304,7 +1304,7 @@ export class NuevaPromocion {
               ticket.cesta.lista[i].unidades *
               ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal *
               valor,
-            subtotal: this.redondearDecimales(
+            subtotal: ticket.cesta.lista[i]?.regalo ? 0 : this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
                 ticket.cesta.lista[i].unidades *
                 ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,

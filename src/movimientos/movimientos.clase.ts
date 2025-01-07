@@ -487,7 +487,7 @@ export class MovimientosClase {
           else return "TKRS";
         } else if (superTicket.movimientos[0].tipo === "DEUDA") {
           return "DEUDA";
-        } else if (superTicket.movimientos[0].tipo === "SALIDA") {
+        } else if (superTicket.movimientos[0].tipo === "SALIDA" && superTicket.cesta.modo !=="RECOGER ENCARGO") {
           return "DEUDA";
         } else if (superTicket.movimientos[0].tipo === "DATAFONO_3G") {
           return "DATAFONO_3G";

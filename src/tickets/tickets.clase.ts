@@ -220,6 +220,10 @@ export class TicketsClase {
     );
   }
 
+  esConsumoPersonal(tipo: string, modo: CestasInterface['modo']): boolean {
+    // Agregar toda la lógica necesaria para determinar si es consumo personal
+    return tipo === "CONSUMO_PERSONAL" || modo === "CONSUMO_PERSONAL";
+  }
   /* Eze 4.0 */
   async generarNuevoTicket(
     total: TicketsInterface["total"],
