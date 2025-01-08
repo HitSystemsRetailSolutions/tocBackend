@@ -2,7 +2,6 @@ import { DetalleIvaInterface } from "../cestas/cestas.interface";
 import { TiposIva } from "../articulos/articulos.interface";
 import { tiposIvaInstance } from "src/tiposIva/tiposIva.clase";
 import * as fs from "fs";
-import { logger } from "src/logger";
 /* Eze 4.0 (REDONDEA AL SEGUNDO DECIMAL) */
 export const redondearPrecio = (precio: number) =>
   Math.round(precio * 100) / 100;
@@ -121,19 +120,3 @@ export function fusionarObjetosDetalleIva(
   return resultado
 }
 
-let cachedVersion: string | undefined;
-
-export function getDataVersion(): string | undefined {
-  if (cachedVersion) {
-    return cachedVersion;
-  }
-
-  try {
-    const packageLock = JSON.parse(fs.readFileSync('package-lock.json', 'utf-8'));
-    cachedVersion = packageLock.packages[""]?.version;
-    return cachedVersion;
-  } catch (error) {
-    logger.Error('Error al leer el archivo package-lock.json:', error);
-    return null;
-  }
-}

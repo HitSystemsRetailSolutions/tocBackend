@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { CestasInterface } from "../cestas/cestas.interface";
+import { VersionInterface } from "src/version/version.interface";
 
 type Dias = {
   dia: string;
@@ -31,7 +32,7 @@ export enum Periodo {
   PERIODO = 1,
 }
 
-export interface EncargosInterface {
+export interface EncargosInterface extends VersionInterface{
   _id?: ObjectId | string | undefined;
   nombreCliente: string;
   amPm: string | null;

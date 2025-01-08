@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import { VersionInterface } from "src/version/version.interface";
 
 export interface CajaAbiertaInterface {
   _id?: ObjectId;
@@ -44,7 +45,7 @@ export interface CajaCerradaInterface {
   cambioEmergenciaCierre: number;
 }
 
-export interface CajaSincro {
+export interface CajaSincro extends VersionInterface{
   _id?: ObjectId;
   inicioTime: number;
   idDependientaApertura: number;

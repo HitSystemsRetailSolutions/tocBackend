@@ -7,7 +7,6 @@ import { movimientosInstance } from "../movimientos/movimientos.clase";
 import axios from "axios";
 import {
   convertirDineroEnPuntos,
-  getDataVersion,
   redondearPrecio,
 } from "../funciones/funciones";
 import { articulosInstance } from "../articulos/articulos.clase";
@@ -21,7 +20,7 @@ import { MovimientosController } from "src/movimientos/movimientos.controller";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { impresoraInstance } from "src/impresora/impresora.class";
 import { cestasInstance } from "src/cestas/cestas.clase";
-import { get } from "http";
+import { getDataVersion } from "src/version/version.clase";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -206,6 +205,7 @@ export class TicketsClase {
       consumoPersonal: consumoPersonal,
       idCliente: null,
       enviado: true,
+      dataVersion: getDataVersion(),
     };
     return await schTickets.nuevoTicketBackUP(ticket);
   }

@@ -30,6 +30,7 @@ import {
 } from "src/promociones/promociones.interface";
 import { cajaInstance } from "src/caja/caja.clase";
 import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
+import { getDataVersion } from "src/version/version.clase";
 
 export class Encargos {
   async pruebaImportar() {
@@ -242,6 +243,7 @@ export class Encargos {
 
     encargo.estado = encargo?.pedido ? "RECOGIDO" : "SIN_RECOGER";
     encargo.codigoBarras = codigoBarras;
+    encargo.dataVersion = getDataVersion();
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
     if (encargo?.pedido) {
       await impresoraInstance.imprimirPedido(encargoCopia);

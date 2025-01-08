@@ -1,4 +1,6 @@
-export interface MovimientosInterface {
+import { VersionInterface } from "src/version/version.interface";
+
+export interface MovimientosInterface extends VersionInterface{
   _id: number;
   tipo: TiposMovientos;
   valor: number;

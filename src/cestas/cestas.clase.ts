@@ -12,7 +12,6 @@ import {
   convertirDineroEnPuntos,
   fusionarObjetosDetalleIva,
   redondearPrecio,
-  getDataVersion,
 } from "../funciones/funciones";
 import { Articulos, articulosInstance } from "../articulos/articulos.clase";
 import { cajaInstance } from "../caja/caja.clase";
