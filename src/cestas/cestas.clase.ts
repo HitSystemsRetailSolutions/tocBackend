@@ -223,7 +223,7 @@ export class CestaClase {
           const infoArticulo = await articulosInstance.getInfoArticulo(
             producto.idArticulo
           );
-          let precioArt=infoArticulo.precioConIva;
+          let precioArt= producto.subtotal;
           if(producto.tarifaEsp){
             const artTarifa = await articulosInstance.getPrecioConTarifa(
               infoArticulo,
