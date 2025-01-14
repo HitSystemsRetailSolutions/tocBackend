@@ -386,7 +386,8 @@ export class Impresora {
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
     const fechaImpresion = new Date();
-    const fechaFormateada = `${fechaImpresion.toLocaleDateString()} ${fechaImpresion.toLocaleTimeString()}`;
+    // fechaFormateada es la fecha en formato dd/mm/yyyy hh:mm:ss
+    const fechaFormateada = moment(fechaImpresion).format("DD/MM/YYYY HH:mm:ss");
 
     const options = {
       imprimirLogo: false,
@@ -2855,7 +2856,7 @@ export class Impresora {
           encargo.total /
           (1 - descuento / 100)
         ).toFixed(2)}€\nDescompte total: ${(
-          (encargo.total * descuento) /
+          ((encargo.total / (1 - descuento / 100)) * descuento) /
           100
         ).toFixed(2)}€ \n`;
       }
@@ -2866,7 +2867,7 @@ export class Impresora {
           encargo.total /
           (1 - descuento / 100)
         ).toFixed(2)}€\nDescompte total: ${(
-          (encargo.total * descuento) /
+          ((encargo.total / (1 - descuento / 100)) * descuento) /
           100
         ).toFixed(2)}€ \n`;
       }
@@ -3146,7 +3147,7 @@ export class Impresora {
           encargo.total /
           (1 - descuento / 100)
         ).toFixed(2)}€\nDescompte total: ${(
-          (encargo.total * descuento) /
+          ((encargo.total / (1 - descuento / 100)) * descuento) /
           100
         ).toFixed(2)}€ \n`;
       }
@@ -3157,7 +3158,7 @@ export class Impresora {
           encargo.total /
           (1 - descuento / 100)
         ).toFixed(2)}€\nDescompte total: ${(
-          (encargo.total * descuento) /
+          ((encargo.total / (1 - descuento / 100)) * descuento) /
           100
         ).toFixed(2)}€ \n`;
       }
