@@ -69,39 +69,65 @@ export class Encargos {
   };
   public imprimirClientesPorProducto(encargos) {
     let string = "";
+
+    let fechaMasAntigua = null;
+    let fechaMasReciente = null;
+
     const clientesProductos = {};
 
     // Recorrer los encargos y agrupar los productos por cliente
     encargos.forEach((encargo) => {
-      const cliente = encargo.nombreCliente;
-      if (!clientesProductos[cliente]) {
-        clientesProductos[cliente] = {};
-      }
+        const cliente = encargo.nombreCliente;
+        const fechaEncargo = new Date(encargo.fecha);
 
-      encargo.productos.forEach((producto) => {
-        const nombreProducto = producto.nombre.substring(0, 33);
-        const suplementos = producto.arraySuplementos || [];
-        const productoConSuplementos = `${nombreProducto} ${suplementos
-          .map((suplemento) => `\n  ${suplemento.nombre}`)
-          .join(", ")}`;
-        const unidades = producto.unidades;
-
-        if (!clientesProductos[cliente][productoConSuplementos]) {
-          clientesProductos[cliente][productoConSuplementos] = unidades;
-        } else {
-          clientesProductos[cliente][productoConSuplementos] += unidades;
+        if (!fechaMasAntigua || fechaEncargo < fechaMasAntigua) {
+            fechaMasAntigua = fechaEncargo;
         }
-      });
+        if (!fechaMasReciente || fechaEncargo > fechaMasReciente) {
+            fechaMasReciente = fechaEncargo;
+        }
+
+        if (!clientesProductos[cliente]) {
+            clientesProductos[cliente] = {};
+        }
+
+        encargo.productos.forEach((producto) => {
+            const nombreProducto = producto.nombre.substring(0, 33);
+            const suplementos = producto.arraySuplementos || [];
+            const productoConSuplementos = `${nombreProducto} ${suplementos
+                .map((suplemento) => `\n  ${suplemento.nombre}`)
+                .join(", ")}`;
+            const unidades = producto.unidades;
+
+            if (!clientesProductos[cliente][productoConSuplementos]) {
+                clientesProductos[cliente][productoConSuplementos] = unidades;
+            } else {
+                clientesProductos[cliente][productoConSuplementos] += unidades;
+            }
+        });
     });
+
+    const formatoFecha = (fecha) =>
+        fecha.toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+
+    const rangoFechas = `Encàrrecs des de ${formatoFecha(
+        fechaMasAntigua
+    )} fins al ${formatoFecha(fechaMasReciente)}\n`;
+
+    string += rangoFechas;
 
     // Imprimir los clientes y los productos que han pedido
     Object.keys(clientesProductos).forEach((cliente) => {
-      string += `\n${cliente}\n`;
-      const productos = clientesProductos[cliente];
-      Object.keys(productos).forEach((producto) => {
-        const unidades = productos[producto];
-        string += ` - ${producto}: ${unidades}\n`;
-      });
+        string += `\n${cliente}\n`;
+        const productos = clientesProductos[cliente];
+        Object.keys(productos).forEach((producto) => {
+            const unidades = productos[producto];
+            string += ` - ${producto}: ${unidades}\n`;
+        });
     });
     impresoraInstance.imprimirListaEncargos(string);
   }
@@ -110,45 +136,70 @@ export class Encargos {
     let string = "";
     const productosClientes = {};
 
+    // Variables para las fechas más antigua y más reciente
+    let fechaMasAntigua = null;
+    let fechaMasReciente = null;
+
     // Recorrer los encargos y agrupar los clientes por producto
     encargos.forEach((encargo) => {
-      const cliente = encargo.nombreCliente;
-      encargo.productos.forEach((producto) => {
-        const nombreProducto = producto.nombre.substring(0, 33);
-        const suplementos = producto.arraySuplementos || [];
-        const productoConSuplementos = `${nombreProducto} ${suplementos
-          .map((suplemento) => `\n  ${suplemento.nombre}`)
-          .join(", ")}`;
-        const unidades = producto.unidades;
+        const cliente = encargo.nombreCliente;
+        const fechaEncargo = new Date(encargo.fecha);
 
-        if (!productosClientes[productoConSuplementos]) {
-          productosClientes[productoConSuplementos] = {};
+
+        if (!fechaMasAntigua || fechaEncargo < fechaMasAntigua) {
+            fechaMasAntigua = fechaEncargo;
+        }
+        if (!fechaMasReciente || fechaEncargo > fechaMasReciente) {
+            fechaMasReciente = fechaEncargo;
         }
 
-        if (!productosClientes[productoConSuplementos][cliente]) {
-          productosClientes[productoConSuplementos][cliente] = 0;
-        }
+        encargo.productos.forEach((producto) => {
+            const nombreProducto = producto.nombre.substring(0, 33);
+            const suplementos = producto.arraySuplementos || [];
+            const productoConSuplementos = `${nombreProducto} ${suplementos
+                .map((suplemento) => `\n  ${suplemento.nombre}`)
+                .join(", ")}`;
+            const unidades = producto.unidades;
 
-        productosClientes[productoConSuplementos][cliente] += unidades;
-      });
+            if (!productosClientes[productoConSuplementos]) {
+                productosClientes[productoConSuplementos] = {};
+            }
+
+            if (!productosClientes[productoConSuplementos][cliente]) {
+                productosClientes[productoConSuplementos][cliente] = 0;
+            }
+
+            productosClientes[productoConSuplementos][cliente] += unidades;
+        });
     });
+
+    const formatoFecha = (fecha) =>
+        fecha.toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+
+    const rangoFechas = `Encàrrecs des del ${formatoFecha(fechaMasAntigua)} fins al ${formatoFecha(fechaMasReciente)}\n`;
+
+    string += rangoFechas;
 
     const productosOrdenados = Object.keys(productosClientes).sort();
 
     // Imprimir los productos y los clientes con las unidades pedidas
     productosOrdenados.forEach((producto) => {
-      let totalUnidadesProducto = 0; // Inicializar el total de unidades para este producto
-      const clientes = productosClientes[producto];
-      Object.keys(clientes).forEach((cliente) => {
-        const unidades = clientes[cliente];
-        totalUnidadesProducto += unidades; // Sumar las unidades para este cliente al total del producto
-      });
-      string += `\n${producto}: ${totalUnidadesProducto}\n`;
+        let totalUnidadesProducto = 0; 
+        const clientes = productosClientes[producto];
+        Object.keys(clientes).forEach((cliente) => {
+            const unidades = clientes[cliente];
+            totalUnidadesProducto += unidades; 
+        });
+        string += `\n${producto}: ${totalUnidadesProducto}\n`;
 
-      Object.keys(clientes).forEach((cliente) => {
-        const unidades = clientes[cliente];
-        string += ` - ${cliente}: ${unidades}\n`;
-      });
+        Object.keys(clientes).forEach((cliente) => {
+            const unidades = clientes[cliente];
+            string += ` - ${cliente}: ${unidades}\n`;
+        });
     });
 
     impresoraInstance.imprimirListaEncargos(string);
