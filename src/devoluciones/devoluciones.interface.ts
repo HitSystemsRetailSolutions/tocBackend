@@ -1,7 +1,8 @@
 import { ObjectId } from "mongodb";
 import { CestasInterface } from "../cestas/cestas.interface";
+import { VersionInterface } from "src/version/version.interface";
 
-export interface DevolucionesInterface {
+export interface DevolucionesInterface extends VersionInterface {
   _id: ObjectId;
   timestamp: number;
   total: number;

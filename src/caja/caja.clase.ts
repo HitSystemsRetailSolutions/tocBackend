@@ -25,6 +25,7 @@ import { parametrosController } from "src/parametros/parametros.controller";
 import { ticketsInstance } from "src/tickets/tickets.clase";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { redondearPrecio } from "src/funciones/funciones";
+import { getDataVersion } from "src/version/version.clase";
 require("dotenv").config();
 const mqtt = require("mqtt");
 export class CajaClase {
@@ -141,6 +142,7 @@ export class CajaClase {
       ...cajaAbierta,
       ...cajaCerrada,
       enviado: false,
+      dataVersion: getDataVersion(),
     };
     cajaInsertar._id = new ObjectId();
     return schCajas.nuevoItemSincroCajas(cajaInsertar);

@@ -1,6 +1,7 @@
 import { DetalleIvaInterface } from "../cestas/cestas.interface";
 import { TiposIva } from "../articulos/articulos.interface";
 import { tiposIvaInstance } from "src/tiposIva/tiposIva.clase";
+import * as fs from "fs";
 /* Eze 4.0 (REDONDEA AL SEGUNDO DECIMAL) */
 export const redondearPrecio = (precio: number) =>
   Math.round(precio * 100) / 100;
@@ -118,3 +119,4 @@ export function fusionarObjetosDetalleIva(
   });
   return resultado
 }
+
