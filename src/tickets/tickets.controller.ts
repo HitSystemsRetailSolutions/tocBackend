@@ -286,6 +286,9 @@ export class TicketsController {
           "tickets.controller"
         );
         return x;
+      }).catch((err) => {
+        logger.Error(1073, err);
+        return false;
       });
   }
 

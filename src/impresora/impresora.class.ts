@@ -1253,8 +1253,8 @@ export class Impresora {
       : null;
 
     const albaranNPT_o_vipPT =
-      (cliente?.albaran && cliente?.noPagaEnTienda) ||
-      ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda)
+      (cliente?.albaran) ||
+      (cliente?.vip)
         ? true
         : false;
 
@@ -3301,7 +3301,7 @@ export class Impresora {
     if (
       cliente &&
       ((cliente.albaran && cliente.noPagaEnTienda) ||
-        ((cliente?.vip || cliente?.albaran) && !cliente?.noPagaEnTienda))
+        (cliente?.vip))
     ) {
       // formato albaranNPT
       return 4;
