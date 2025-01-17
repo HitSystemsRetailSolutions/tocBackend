@@ -5,6 +5,8 @@ import { cestasInstance } from "../cestas/cestas.clase";
 import { DevolucionesInterface } from "./devoluciones.interface";
 import * as schDevoluciones from "./devoluciones.mongodb";
 import { cajaInstance } from "src/caja/caja.clase";
+import { getDataVersion } from "src/version/version.clase";
+
 
 export class Devoluciones {
   /* Eze 4.0 */
@@ -27,6 +29,7 @@ export class Devoluciones {
       idTrabajador,
       enviado: false,
       cliente: null,
+      dataVersion: getDataVersion(),
     };
     await this.insertarDevolucion(objDevolucion);
     await impresoraInstance.imprimirDevolucion(objDevolucion._id);

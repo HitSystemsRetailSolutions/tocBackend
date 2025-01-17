@@ -16,6 +16,7 @@ import { clienteInstance } from "src/clientes/clientes.clase";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { reenviarTicket, reenviarTicketPago } from "src/sincro";
+import { getDataVersion } from "src/version/version.clase";
 
 const moment = require("moment");
 const Ean13Utils = require("ean13-lib").Ean13Utils;
@@ -230,6 +231,7 @@ export class MovimientosClase {
       tipo,
       valor,
       ExtraData,
+      dataVersion: getDataVersion(),
     };
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
