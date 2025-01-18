@@ -2262,7 +2262,7 @@ export class Impresora {
       buffer = buffer.concat([
         {
           tipo: "text",
-          payload: "Descuadre        :      " + caja.descuadre.toFixed(2),
+          payload: "Desquadre        :      " + caja.descuadre.toFixed(2),
         },
         {
           tipo: "text",
@@ -2324,8 +2324,10 @@ export class Impresora {
         {
           tipo: "text",
           payload:
-            "total Albarans      :      " + caja.totalAlbaranes.toFixed(2),
+            "total Albarans    :      " + caja.totalAlbaranes.toFixed(2),
         },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: caja?.motivoDescuadre ?"Motiu de desquadre: " + caja.motivoDescuadre : "" },
         { tipo: "text", payload: "" },
         { tipo: "size", payload: [0, 0] },
         { tipo: "text", payload: "Moviments de caixa:" },
