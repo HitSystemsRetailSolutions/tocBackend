@@ -32,13 +32,12 @@ export function construirObjetoIvas(
 
   const ivaRate = ivaData.iva;
   const ivaMod = 1 + ivaRate;
-
   // Calcular base, valorIva e importe
   const base = albaranNPT
     ? precio * unidades - precio * unidades * (dto / 100)
     : (precio / ivaMod) * unidades - (precio / ivaMod) * unidades * (dto / 100);
   const valorIva = base * ivaRate;
-  const importe = base + valorIva;
+  const importe = Math.round((base + valorIva) * 10000) / 10000;
 
   // Guardar los valores redondeados en el objeto con índices dinámicos
   resultado[`base${tipoIva}`] = Math.round(base * 100) / 100;
@@ -117,6 +116,6 @@ export function fusionarObjetosDetalleIva(
       resultado[`importe${index}`] = Math.round((base + valorIva) * 100) / 100;
     }
   });
-  return resultado
+  return resultado;
 }
 
