@@ -22,6 +22,8 @@ import {
   fusionarObjetosDetalleIva,
 } from "src/funciones/funciones";
 import { TicketsController } from "src/tickets/tickets.controller";
+import { getDataVersion } from "src/version/version.clase";
+
 export class Deudas {
   async getDate(timestamp: any) {
     var date = new Date(timestamp);
@@ -80,6 +82,7 @@ export class Deudas {
     deuda.idSql = idSql;
     deuda.enviado = false;
     deuda.estado = "SIN_PAGAR";
+    deuda.dataVersion = getDataVersion();
     return schDeudas
       .setDeuda(deuda)
       .then(async (ok: boolean) => {

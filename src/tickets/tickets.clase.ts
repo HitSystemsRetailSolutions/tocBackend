@@ -20,6 +20,7 @@ import { MovimientosController } from "src/movimientos/movimientos.controller";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { impresoraInstance } from "src/impresora/impresora.class";
 import { cestasInstance } from "src/cestas/cestas.clase";
+import { getDataVersion } from "src/version/version.clase";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -204,6 +205,7 @@ export class TicketsClase {
       consumoPersonal: consumoPersonal,
       idCliente: null,
       enviado: true,
+      dataVersion: getDataVersion(),
     };
     return await schTickets.nuevoTicketBackUP(ticket);
   }
@@ -251,6 +253,7 @@ export class TicketsClase {
       cesta,
       enviado: false,
       consumoPersonal: consumoPersonal ? true : false,
+      dataVersion: getDataVersion(),
     };
     if(dejaCuenta && dejaCuenta > 0){
       nuevoTicket.restante = redondearPrecio(nuevoTicket.total - dejaCuenta);
