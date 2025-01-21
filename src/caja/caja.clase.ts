@@ -212,7 +212,7 @@ export class CajaClase {
       if (!cajaCerradaActual)
         throw new Error("Error al obtener datos de cierre de caja actual");
       if (
-        (cajaCerradaActual.descuadre < 5 || cajaCerradaActual.descuadre > 5) &&
+        (cajaCerradaActual.descuadre < - 5 || cajaCerradaActual.descuadre > 5) &&
         !forzarCierre
       ) {
         logger.Info("Cerrar caja cancelado, descuadre grande");
