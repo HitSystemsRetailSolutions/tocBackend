@@ -59,7 +59,6 @@ export class EncargosController {
   @Post("imprimirEncargo")
   async imprimirEncargo(@Body() data) {
     try {
-
       if (!data.id)
         return {
           error: true,
@@ -161,7 +160,9 @@ export class EncargosController {
           msg: "Faltan datos.",
         };
 
-      return encargosInstance.setEntregado(data.id);
+      await encargosInstance.setEntregado(data.id);
+
+      return await encargosInstance.updateEncargoGraella(data.id);
     } catch (err) {
       logger.Error(50, err);
       return null;
