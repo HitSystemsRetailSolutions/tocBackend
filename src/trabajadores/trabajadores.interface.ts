@@ -1,3 +1,4 @@
+import { VersionInterface } from "src/version/version.interface";
 import { CestasInterface } from "../cestas/cestas.interface";
 
 export interface TrabajadoresInterface {
@@ -12,7 +13,7 @@ export interface TrabajadoresInterface {
   activo: boolean;
 }
 
-export interface SincroFichajesInterface {
+export interface SincroFichajesInterface extends VersionInterface {
   _id: number;
   infoFichaje: {
     idTrabajador: number;
