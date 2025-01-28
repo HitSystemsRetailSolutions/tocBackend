@@ -226,17 +226,19 @@ export class CestaClase {
           );
 
           let precioArt= producto.subtotal;
+          let unidades = 1;
           if(producto.tarifaEsp){
             const artTarifa = await articulosInstance.getPrecioConTarifa(
               infoArticulo,
               cesta.idCliente
             );
             precioArt = artTarifa.precioConIva;
+            unidades = producto.unidades;
           }
           const objIva = construirObjetoIvas(
             precioArt,
             infoArticulo.tipoIva,
-            producto.unidades,
+            unidades,
             false,
             descuento
           );
