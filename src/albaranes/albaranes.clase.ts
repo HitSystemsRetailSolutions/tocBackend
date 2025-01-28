@@ -107,7 +107,7 @@ export class AlbaranesClase {
         params,
       });
 
-      if (idAlbaranSantaAna?.data) {
+      if (idAlbaranSantaAna?.data != null) {
         const contadorSantaAna =
           Number(idAlbaranSantaAna.data.toString().slice(3)) + 1;
         const ultimoIdMongo = await this.getUltimoIdAlbaran();
@@ -119,6 +119,7 @@ export class AlbaranesClase {
 
         return Number(codigoTienda + contador.toString().padStart(4, "0"));
       }
+      throw Error("Error al obtener el último ID de albarán");
     } catch (error) {
       // Si hay algún error, manejarlo, pero no interrumpe la ejecución para intentar otra estrategia
       try {
