@@ -43,6 +43,7 @@ export interface CajaCerradaInterface {
   detalleCierre: DetalleMonedas;
   mediaTickets: number;
   cambioEmergenciaCierre: number;
+  motivoDescuadre?: string;
 }
 
 export interface CajaSincro extends VersionInterface{
@@ -80,6 +81,7 @@ export interface CajaSincro extends VersionInterface{
   cambioEmergenciaApertura: number;
   cambioEmergenciaCierre: number;
   enviado: boolean;
+  motivoDescuadre?: string;
 }
 
 export type TiposInfoMoneda = "CLAUSURA" | "APERTURA";
@@ -94,3 +96,9 @@ export type DetalleMonedas = {
   valor: number;
   unidades: number;
 }[];
+
+export type CierreCajaResultado = {
+  exito: boolean;
+  mensaje?: string;
+  descuadre?: number;
+};

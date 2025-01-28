@@ -23,6 +23,8 @@ export class CajaController {
       idDependienta,
       cambioEmergencia,
       cantidad3GAutomatizado,
+      forzarCierre=false,
+      motivoDescuadre="",
     }
   ) {
     try {
@@ -82,7 +84,9 @@ export class CajaController {
           idDependienta,
           false,
           await ticketsInstance.getTotalHonei(),
-          cambioEmergencia
+          cambioEmergencia,
+          forzarCierre,
+          motivoDescuadre,
         );
       }
       throw Error("Error cerrarCaja > Faltan datos");

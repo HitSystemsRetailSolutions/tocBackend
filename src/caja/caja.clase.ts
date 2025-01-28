@@ -4,6 +4,7 @@ import {
   CajaCerradaInterface,
   MonedasInterface,
   TiposInfoMoneda,
+  CierreCajaResultado,
 } from "./caja.interface";
 import * as schCajas from "./caja.mongodb";
 import * as schTickets from "../tickets/tickets.mongodb";
@@ -160,8 +161,10 @@ export class CajaClase {
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cierreAutomatico: boolean = true,
     totalHonei: number,
-    cambioEmergenciaCierre: number
-  ): Promise<boolean> {
+    cambioEmergenciaCierre: number,
+    forzarCierre: boolean = false,
+    motivoDescuadre: string = ""
+  ): Promise<CierreCajaResultado> {
     try {
       if (!(await this.cajaAbierta()))
         throw Error("Error al cerrar caja: La caja ya está cerrada");
@@ -203,11 +206,22 @@ export class CajaClase {
         // TODO: Propina
         await this.getPropina(),
         totalDeudas,
-        Number(cambioEmergenciaCierre.toFixed(2))
+        Number(cambioEmergenciaCierre.toFixed(2)),
+        motivoDescuadre
       );
       if (!cajaCerradaActual)
         throw new Error("Error al obtener datos de cierre de caja actual");
-
+      if (
+        (cajaCerradaActual.descuadre < - 5 || cajaCerradaActual.descuadre > 5) &&
+        !forzarCierre
+      ) {
+        logger.Info("Cerrar caja cancelado, descuadre grande");
+        return {
+          exito: false,
+          descuadre: cajaCerradaActual.descuadre,
+          mensaje: "Descuadre no permitido",
+        };
+      }
       // Entra para calclular el cierre de caja que no se ha añadido al ser un cierre automático
       if (cierreAutomatico) {
         let cierreCaja = 0;
@@ -244,7 +258,7 @@ export class CajaClase {
           if (!res2) {
             logger.Error(53.1, "Error al guardar monedas en mongodb");
           }
-          return true;
+          return { exito: true };
         }
         throw Error("Error en resetCajaAbierta");
       }
@@ -255,7 +269,7 @@ export class CajaClase {
         error.message,
         error.stack
       );
-      return false;
+      return { exito: false, mensaje: "Error en el proceso de cierre de caja" };
     }
   }
 
@@ -397,7 +411,8 @@ export class CajaClase {
           trabId,
           true,
           await ticketsInstance.getTotalHonei(),
-          0
+          0,
+          true
         );
         return true;
       }
@@ -419,7 +434,8 @@ export class CajaClase {
     totalHonei: number,
     propina: number,
     totalDeudas: CajaCerradaInterface["totalDeuda"],
-    cambioEmergenciaCierre: CajaCerradaInterface["cambioEmergenciaCierre"]
+    cambioEmergenciaCierre: CajaCerradaInterface["cambioEmergenciaCierre"],
+    motivoDescuadre: string = ""
   ): Promise<CajaCerradaInterface> {
     const arrayTicketsCaja: TicketsInterface[] =
       await schTickets.getTicketsIntervalo(
@@ -595,6 +611,7 @@ export class CajaClase {
       totalHonei: this.redondeoNoIntegrado(totalHonei),
       propina: this.redondeoNoIntegrado(propina),
       cambioEmergenciaCierre,
+      motivoDescuadre,
     };
   }
 
