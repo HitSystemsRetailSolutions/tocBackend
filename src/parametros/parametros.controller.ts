@@ -182,6 +182,7 @@ export class ParametrosController {
       let startDate = await cajaInstance.getInicioTime();
       let localData = await parametrosInstance.totalPaytef();
       let paytefData = await paytefInstance.getRecuentoTotal(startDate);
+      logger.Info(55.1, "Consulta total paytef -> local paytef:"+localData+ "; remoto paytef:"+paytefData);
       // devolerá el valor remoto, excepto que dé 0 y el local sea mayor
       if (paytefData == null || (paytefData == 0 && localData > 0))
         return [localData, true];
