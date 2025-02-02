@@ -4,8 +4,9 @@ import * as schParametros from "./parametros.mongodb";
 export class ParametrosClase {
 
   /* Eze 4.0 */
-  getParametros = async (): Promise<ParametrosInterface> =>
-    await schParametros.getParametros();
+  getParametros = async (): Promise<ParametrosInterface> => {
+    return await schParametros.getParametros();
+  };
 
   /* Eze 4.0 */
   actParametros = async (params: ParametrosInterface) =>

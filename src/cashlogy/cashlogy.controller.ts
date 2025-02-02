@@ -24,6 +24,11 @@ export class CashlogyController {
     return cashlogyInstance.aceptar_procesoPrevioInterrumpido(data)
   }
 
+  @Get("aceptar_reset_remoto")
+  aceptar_reset_remoto() {
+    cashlogyInstance.aceptar_reset_remoto()
+  }
+
   @Post("importe_entrado_manualmente_en_cobrar")
   importe_entrado_manualmente_en_cobrar(@Body() importe) {
     cashlogyInstance.importe_entrado_manualmente_en_cobrar = importe
@@ -133,4 +138,18 @@ export class CashlogyController {
     cashlogyInstance.saveFondoCajaDB(fondoCaja)
   }
 
+  @Post("reiniciar")
+  reiniciar(@Body() check_finalizado) {
+    cashlogyInstance.reiniciar(check_finalizado)
+  }
+
+  @Post("enviar_comando_conexion")
+  enviar_comando_conexion(@Body() comando) {
+    return cashlogyInstance.enviar_comando_conexion(comando)
+  }
+
+  @Get("do_stop_proceso_activo")
+  do_stop_proceso_activo() {
+    cashlogyInstance.do_stop_proceso_activo()
+  }
 }
