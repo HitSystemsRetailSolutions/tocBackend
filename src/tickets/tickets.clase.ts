@@ -20,6 +20,9 @@ import { MovimientosController } from "src/movimientos/movimientos.controller";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { impresoraInstance } from "src/impresora/impresora.class";
 import { cestasInstance } from "src/cestas/cestas.clase";
+import { logger } from "src/logger";
+import { getDataVersion } from "src/version/version.clase";
+
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -168,17 +171,13 @@ export class TicketsClase {
     }
     // si tenemos que descontar dinero lo hacemos
     if (cantidadRegalada > 0) {
-      const resDescuento: any = await axios
-        .post("clientes/descontarPuntos", {
-          idCliente: ticket.cesta.idCliente,
-          puntos: cantidadRegalada,
-        })
-        .catch((e) => {
-          console.log(e);
-        });
-
-      if (!resDescuento?.data)
-        throw Error("No se han podido descontar los puntos");
+      console.time("Descontar puntos");
+      const resDescuento: any = await this.tryDescontarPuntos({
+        idCliente: ticket.idCliente,
+        puntos: cantidadRegalada,
+      });
+      console.timeEnd("Descontar puntos");
+      if (!resDescuento) throw Error("No se han podido descontar los puntos");
     }
     const res = await schTickets.nuevoTicket(ticket);
     // si ha ido bien actualizamos el último ticket
@@ -186,6 +185,25 @@ export class TicketsClase {
     return res;
   }
 
+  async tryDescontarPuntos(data: {
+    idCliente: ClientesInterface["id"];
+    puntos: number;
+  }): Promise<boolean> {
+    const url = "clientes/descontarPuntos";
+    const delay = 1000;
+
+    try {
+      const response = await axios.post(url, data, { timeout: delay });
+
+      // aunque la petición dé error, se devuelve  true para generar el ticket ya pagado.
+      if (!response?.data)
+        throw Error("La petición no ha podido descontar los puntos");
+      return true;
+    } catch (e) {
+      logger.Error(1074, `Intento de descontar puntos cliente fallido:`, e);
+      return true;
+    }
+  }
   /* Uri 4.0 */
   async InsertatTicketBackUp(
     _id,
@@ -204,6 +222,7 @@ export class TicketsClase {
       consumoPersonal: consumoPersonal,
       idCliente: null,
       enviado: true,
+      dataVersion: getDataVersion(),
     };
     return await schTickets.nuevoTicketBackUP(ticket);
   }
@@ -218,6 +237,10 @@ export class TicketsClase {
     );
   }
 
+  esConsumoPersonal(tipo: string, modo: CestasInterface["modo"]): boolean {
+    // Agregar toda la lógica necesaria para determinar si es consumo personal
+    return tipo === "CONSUMO_PERSONAL" || modo === "CONSUMO_PERSONAL";
+  }
   /* Eze 4.0 */
   async generarNuevoTicket(
     total: TicketsInterface["total"],
@@ -238,7 +261,7 @@ export class TicketsClase {
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),
-      total: consumoPersonal ? 0 : Number(total.toFixed(2)),
+      total: Number(total.toFixed(2)),
       dejaCuenta: dejaCuenta,
       honei: !!honei,
       tkrs: tkrs,
@@ -247,8 +270,9 @@ export class TicketsClase {
       cesta,
       enviado: false,
       consumoPersonal: consumoPersonal ? true : false,
+      dataVersion: getDataVersion(),
     };
-    if(dejaCuenta && dejaCuenta > 0){
+    if (dejaCuenta && dejaCuenta > 0) {
       nuevoTicket.restante = redondearPrecio(nuevoTicket.total - dejaCuenta);
     }
     return nuevoTicket;

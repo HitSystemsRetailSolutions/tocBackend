@@ -10,7 +10,7 @@ export interface CestasInterface {
   modo: ModoCesta;
   idCliente: ClientesInterface["id"];
   nombreCliente?: string;
-  indexMesa?: boolean;
+  indexMesa?: number;
   albaran?: boolean;
   vip?: boolean;
   trabajador: number;
@@ -51,6 +51,8 @@ export type ItemLista = {
     unidadesOferta: number;
     tipoPromo: TiposPromociones;
   };
+  tipoIva?: number;
+  descuentoTienda?: number;
   puntos: number;
   gramos: number;
   impresora: string;
@@ -64,21 +66,9 @@ export type ItemLista = {
 };
 
 export type DetalleIvaInterface = {
-  base1: number;
-  base2: number;
-  base3: number;
-  base4: number;
-  base5: number;
-  valorIva1: number;
-  valorIva2: number;
-  valorIva3: number;
-  valorIva4: number;
-  valorIva5: number;
-  importe1: number;
-  importe2: number;
-  importe3: number;
-  importe4: number;
-  importe5: number;
+  [key: `base${number}`]: number;
+  [key: `valorIva${number}`]: number;
+  [key: `importe${number}`]: number;
 };
 
 export type TiposPromociones = "COMBO" | "INDIVIDUAL";

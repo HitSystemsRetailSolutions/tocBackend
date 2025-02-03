@@ -99,5 +99,18 @@ export class AlbaranesController {
       return null;
     }
   }
+
+  @Get("getProximoId")
+  async getProximoId() {
+    try {
+      const res= await AlbaranesInstance.getProximoId();
+      if(!res) throw Error("Error, no se ha podido obtener el proximo id:"+res,);
+
+      return res;
+    } catch (err) {
+      logger.Error(51, err);
+      return null;
+    }
+  }
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
 }

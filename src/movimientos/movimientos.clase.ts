@@ -16,6 +16,7 @@ import { clienteInstance } from "src/clientes/clientes.clase";
 import { deudasInstance } from "src/deudas/deudas.clase";
 import { AlbaranesInstance } from "src/albaranes/albaranes.clase";
 import { reenviarTicket, reenviarTicketPago } from "src/sincro";
+import { getDataVersion } from "src/version/version.clase";
 
 const moment = require("moment");
 const Ean13Utils = require("ean13-lib").Ean13Utils;
@@ -113,13 +114,14 @@ export class MovimientosClase {
         impresoraInstance.imprimirDeuda(nuevoMovimiento, nombreCliente);
       } else if (concepto == "DEUDA" && tipo === "SALIDA") {
         await this.imprimirDeudaSalida(nuevoMovimiento, idTicket);
+      } else if (tipo === "DATAFONO_3G") {
+        await this.imprimirMov3G(nuevoMovimiento, idTicket);
       } else if (
         concepto !== "Targeta" &&
         concepto !== "DEUDA" &&
         concepto !== "dejaACuenta" &&
         concepto !== "Albaran" &&
         concepto !== "Paytef" &&
-        tipo !== "DATAFONO_3G" &&
         tipo !== "DEV_DATAFONO_PAYTEF" &&
         tipo !== "DEV_DATAFONO_3G"
       ) {
@@ -177,6 +179,16 @@ export class MovimientosClase {
     }
     return false;
   }
+  async imprimirMov3G(nuevoMovimiento: MovimientosInterface, idTicket: number) {
+    try {
+      const ticket = await ticketsInstance.getTicketById(idTicket);
+      const client = await clienteInstance.getClienteById(ticket.idCliente);
+      let nombreCliente = client ? client.nombre : null;
+      impresoraInstance.imprimirMov3G(nuevoMovimiento, nombreCliente);
+    } catch (error) {
+      logger.Error(211, error.message);
+    }
+  }
   async imprimirDeudaSalida(
     nuevoMovimiento: MovimientosInterface,
     idTicket: number
@@ -219,6 +231,7 @@ export class MovimientosClase {
       tipo,
       valor,
       ExtraData,
+      dataVersion: getDataVersion(),
     };
 
     if (await schMovimientos.nuevoMovimiento(nuevoMovimiento)) {
@@ -400,6 +413,22 @@ export class MovimientosClase {
     }
     return false;
   }
+
+  public async comprobarDeudaParcial(superTicket: SuperTicketInterface) {
+    const total = superTicket.total;
+    // devolver el valor de movimientos con concepto dejaACuentaDeuda
+    
+    const montosParciales = superTicket.movimientos.filter(
+      (mov) => mov.tipo === "ENTRADA_DINERO" && mov.concepto === "DEUDA"
+    );
+    let totalParcial = montosParciales.reduce((acc, mov) => acc + mov.valor, 0);
+    totalParcial = totalParcial;
+    if (totalParcial < total) {
+      return "DEUDA";
+    } else {
+      return "EFECTIVO";
+    }
+  }
   // funcion con muchas comprobaciones para calcular el tipo de pago en el ticket, se puede simplificar
   /* Eze 4.0 */
   public async calcularFormaPago(
@@ -407,6 +436,14 @@ export class MovimientosClase {
   ): Promise<FormaPago> {
     // let movTicket = (await this.getMovimentOfTicket(superTicket._id)) || null;
     try {
+      const coincidenciasDeuda = superTicket.movimientos.filter(
+        (movimiento) =>
+          movimiento.concepto === "DEUDA" &&
+          movimiento.tipo === "ENTRADA_DINERO"
+      );
+      if (coincidenciasDeuda.length > 1) {
+        return this.comprobarDeudaParcial(superTicket);
+      }
       if (superTicket.honei) {
         const todoHonei = superTicket.cesta.lista.every((art) => art.pagado);
         switch (true) {
@@ -452,7 +489,7 @@ export class MovimientosClase {
           else return "TKRS";
         } else if (superTicket.movimientos[0].tipo === "DEUDA") {
           return "DEUDA";
-        } else if (superTicket.movimientos[0].tipo === "SALIDA") {
+        } else if (superTicket.movimientos[0].tipo === "SALIDA" && superTicket.cesta.modo !=="RECOGER ENCARGO") {
           return "DEUDA";
         } else if (superTicket.movimientos[0].tipo === "DATAFONO_3G") {
           return "DATAFONO_3G";
@@ -611,8 +648,9 @@ export class MovimientosClase {
             .length > 1 &&
           superTicket.movimientos.filter((e) => e.tipo === "SALIDA").length >
             0 &&
-          superTicket.movimientos.filter((e) => e.concepto === "dejaACuentaDeuda")
-            .length > 0
+          superTicket.movimientos.filter(
+            (e) => e.concepto === "dejaACuentaDeuda"
+          ).length > 0
         ) {
           return "EFECTIVO";
         }
@@ -630,7 +668,7 @@ export class MovimientosClase {
           superTicket.movimientos[0].tipo === "SALIDA" &&
           superTicket.movimientos[1].tipo === "ENTRADA_DINERO"
         ) {
-          if (superTicket.movimientos[1].concepto === "dejaACuenta")
+          if (superTicket.movimientos[1].concepto === "dejaACuentaDeuda")
             return "DEUDA";
           // CASO DEUDA PAGADA
           const debeSerCero =
@@ -721,6 +759,24 @@ export class MovimientosClase {
   }
   getMovsDatafono3G = async (inicioTime: number, finalTime: number) =>
     await schMovimientos.getMovsDatafono3G(inicioTime, finalTime);
+
+  async verifyCurrentBoxEntregaDiaria() {
+    const infoCaja = await cajaInstance.getInfoCajaAbierta();
+    if (infoCaja) {
+      const inicioCaja = infoCaja.inicioTime;
+      const final = Date.now();
+      const movimientos = await this.getMovimientosIntervalo(inicioCaja, final);
+      if (movimientos.length > 0) {
+        const findEntregaDiaria = movimientos.find(
+          (mov) => mov.concepto === "Entrega Diària"
+        );
+        if (findEntregaDiaria) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }
 
 export const movimientosInstance = new MovimientosClase();

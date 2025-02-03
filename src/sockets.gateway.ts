@@ -16,6 +16,7 @@ import { trabajadoresInstance } from "./trabajadores/trabajadores.clase";
 import { parametrosController } from "./parametros/parametros.controller";
 import { tarifasInstance } from "./tarifas/tarifas.class";
 import { toggle3G } from "./tickets/tickets.mongodb";
+import { clienteInstance } from "./clientes/clientes.clase";
 import { cashlogyInstance } from "src/cashlogy/cashlogy.clase"
 
 const httpServer = createServer();
@@ -146,6 +147,14 @@ io.on("connection", (socket) => {
       await nuevaInstancePromociones.recargarPromosCache();
     } catch (err) {
       logger.Error("sockets.gateway.ts recargarPromociones", err);
+    }
+  });
+
+  socket.on("cargarDescuentos", async () => {
+    try {
+      socket.emit("cargarDescuentos", await clienteInstance.getDescuentos());
+    } catch (err) {
+      logger.Error("sockets.gateway.ts cargarDescuentos", err);
     }
   });
 

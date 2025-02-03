@@ -30,6 +30,7 @@ import {
 } from "src/promociones/promociones.interface";
 import { cajaInstance } from "src/caja/caja.clase";
 import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
+import { getDataVersion } from "src/version/version.clase";
 
 export class Encargos {
   async pruebaImportar() {
@@ -56,50 +57,80 @@ export class Encargos {
       })
       .catch((err: string) => ({ error: true, msg: err }));
   };
-
+  async getEncargosByIdCliente(idCliente: string) {
+    return await schEncargos.getEncargosByIdCliente(idCliente);
+  }
   ordenarImpresion = async (orden, encargos) => {
     if (orden == "Cliente") {
       this.imprimirClientesPorProducto(encargos);
-    } else {
+    } else if(orden == "producto") {
       this.imprimirProductosPorClienteCantidad(encargos);
+    }else{
+      this.imprimirProductosResumido(encargos);
     }
     return true;
   };
   public imprimirClientesPorProducto(encargos) {
     let string = "";
+
+    let fechaMasAntigua = null;
+    let fechaMasReciente = null;
+
     const clientesProductos = {};
 
     // Recorrer los encargos y agrupar los productos por cliente
     encargos.forEach((encargo) => {
-      const cliente = encargo.nombreCliente;
-      if (!clientesProductos[cliente]) {
-        clientesProductos[cliente] = {};
-      }
+        const cliente = encargo.nombreCliente;
+        const fechaEncargo = new Date(encargo.fecha);
 
-      encargo.productos.forEach((producto) => {
-        const nombreProducto = producto.nombre.substring(0, 33);
-        const suplementos = producto.arraySuplementos || [];
-        const productoConSuplementos = `${nombreProducto} ${suplementos
-          .map((suplemento) => `\n  ${suplemento.nombre}`)
-          .join(", ")}`;
-        const unidades = producto.unidades;
-
-        if (!clientesProductos[cliente][productoConSuplementos]) {
-          clientesProductos[cliente][productoConSuplementos] = unidades;
-        } else {
-          clientesProductos[cliente][productoConSuplementos] += unidades;
+        if (!fechaMasAntigua || fechaEncargo < fechaMasAntigua) {
+            fechaMasAntigua = fechaEncargo;
         }
-      });
+        if (!fechaMasReciente || fechaEncargo > fechaMasReciente) {
+            fechaMasReciente = fechaEncargo;
+        }
+
+        if (!clientesProductos[cliente]) {
+            clientesProductos[cliente] = {};
+        }
+
+        encargo.productos.forEach((producto) => {
+            const nombreProducto = producto.nombre.substring(0, 33);
+            const suplementos = producto.arraySuplementos || [];
+            const productoConSuplementos = `${nombreProducto} ${suplementos
+                .map((suplemento) => `\n  ${suplemento.nombre}`)
+                .join(", ")}`;
+            const unidades = producto.unidades;
+
+            if (!clientesProductos[cliente][productoConSuplementos]) {
+                clientesProductos[cliente][productoConSuplementos] = unidades;
+            } else {
+                clientesProductos[cliente][productoConSuplementos] += unidades;
+            }
+        });
     });
+
+    const formatoFecha = (fecha) =>
+        fecha.toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+
+    const rangoFechas = `Encàrrecs des de ${formatoFecha(
+        fechaMasAntigua
+    )} fins al ${formatoFecha(fechaMasReciente)}\n`;
+
+    string += rangoFechas;
 
     // Imprimir los clientes y los productos que han pedido
     Object.keys(clientesProductos).forEach((cliente) => {
-      string += `\n${cliente}\n`;
-      const productos = clientesProductos[cliente];
-      Object.keys(productos).forEach((producto) => {
-        const unidades = productos[producto];
-        string += ` - ${producto}: ${unidades}\n`;
-      });
+        string += `\n${cliente}\n`;
+        const productos = clientesProductos[cliente];
+        Object.keys(productos).forEach((producto) => {
+            const unidades = productos[producto];
+            string += ` - ${producto}: ${unidades}\n`;
+        });
     });
     impresoraInstance.imprimirListaEncargos(string);
   }
@@ -108,45 +139,127 @@ export class Encargos {
     let string = "";
     const productosClientes = {};
 
+    // Variables para las fechas más antigua y más reciente
+    let fechaMasAntigua = null;
+    let fechaMasReciente = null;
+
     // Recorrer los encargos y agrupar los clientes por producto
     encargos.forEach((encargo) => {
-      const cliente = encargo.nombreCliente;
-      encargo.productos.forEach((producto) => {
-        const nombreProducto = producto.nombre.substring(0, 33);
-        const suplementos = producto.arraySuplementos || [];
-        const productoConSuplementos = `${nombreProducto} ${suplementos
-          .map((suplemento) => `\n  ${suplemento.nombre}`)
-          .join(", ")}`;
-        const unidades = producto.unidades;
+        const cliente = encargo.nombreCliente;
+        const fechaEncargo = new Date(encargo.fecha);
 
-        if (!productosClientes[productoConSuplementos]) {
-          productosClientes[productoConSuplementos] = {};
+
+        if (!fechaMasAntigua || fechaEncargo < fechaMasAntigua) {
+            fechaMasAntigua = fechaEncargo;
+        }
+        if (!fechaMasReciente || fechaEncargo > fechaMasReciente) {
+            fechaMasReciente = fechaEncargo;
         }
 
-        if (!productosClientes[productoConSuplementos][cliente]) {
-          productosClientes[productoConSuplementos][cliente] = 0;
-        }
+        encargo.productos.forEach((producto) => {
+            const nombreProducto = producto.nombre.substring(0, 33);
+            const suplementos = producto.arraySuplementos || [];
+            const productoConSuplementos = `${nombreProducto} ${suplementos
+                .map((suplemento) => `\n  ${suplemento.nombre}`)
+                .join(", ")}`;
+            const unidades = producto.unidades;
 
-        productosClientes[productoConSuplementos][cliente] += unidades;
-      });
+            if (!productosClientes[productoConSuplementos]) {
+                productosClientes[productoConSuplementos] = {};
+            }
+
+            if (!productosClientes[productoConSuplementos][cliente]) {
+                productosClientes[productoConSuplementos][cliente] = 0;
+            }
+
+            productosClientes[productoConSuplementos][cliente] += unidades;
+        });
     });
+
+    const formatoFecha = (fecha) =>
+        fecha.toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+
+    const rangoFechas = `Encàrrecs des del ${formatoFecha(fechaMasAntigua)} fins al ${formatoFecha(fechaMasReciente)}\n`;
+
+    string += rangoFechas;
 
     const productosOrdenados = Object.keys(productosClientes).sort();
 
     // Imprimir los productos y los clientes con las unidades pedidas
     productosOrdenados.forEach((producto) => {
-      let totalUnidadesProducto = 0; // Inicializar el total de unidades para este producto
-      const clientes = productosClientes[producto];
-      Object.keys(clientes).forEach((cliente) => {
-        const unidades = clientes[cliente];
-        totalUnidadesProducto += unidades; // Sumar las unidades para este cliente al total del producto
-      });
-      string += `\n${producto}: ${totalUnidadesProducto}\n`;
+        let totalUnidadesProducto = 0; 
+        const clientes = productosClientes[producto];
+        Object.keys(clientes).forEach((cliente) => {
+            const unidades = clientes[cliente];
+            totalUnidadesProducto += unidades; 
+        });
+        string += `\n${producto}: ${totalUnidadesProducto}\n`;
 
-      Object.keys(clientes).forEach((cliente) => {
-        const unidades = clientes[cliente];
-        string += ` - ${cliente}: ${unidades}\n`;
-      });
+        Object.keys(clientes).forEach((cliente) => {
+            const unidades = clientes[cliente];
+            string += ` - ${cliente}: ${unidades}\n`;
+        });
+    });
+
+    impresoraInstance.imprimirListaEncargos(string);
+  }
+
+  public imprimirProductosResumido(encargos) {
+
+    let string = "";
+    const productos = {};
+
+    let fechaMasAntigua = null;
+    let fechaMasReciente = null;
+
+    // Recorrer los encargos y agrupar los productos
+    encargos.forEach((encargo) => {
+        const fechaEncargo = new Date(encargo.fecha);
+
+        if (!fechaMasAntigua || fechaEncargo < fechaMasAntigua) {
+            fechaMasAntigua = fechaEncargo;
+        }
+        if (!fechaMasReciente || fechaEncargo > fechaMasReciente) {
+            fechaMasReciente = fechaEncargo;
+        }
+
+        encargo.productos.forEach((producto) => {
+            const nombreProducto = producto.nombre.substring(0, 33);
+            const suplementos = producto.arraySuplementos || [];
+            const productoConSuplementos = `${nombreProducto} ${suplementos
+                .map((suplemento) => `\n  ${suplemento.nombre}`)
+                .join(", ")}`;
+            const unidades = producto.unidades;
+
+            if (!productos[productoConSuplementos]) {
+                productos[productoConSuplementos] = 0;
+            }
+
+            productos[productoConSuplementos] += unidades;
+        });
+    });
+
+    const formatoFecha = (fecha) =>
+        fecha.toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+
+    const rangoFechas = `Encàrrecs des del ${formatoFecha(fechaMasAntigua)} fins al ${formatoFecha(fechaMasReciente)}\n`;
+
+    string += rangoFechas;
+
+    const productosOrdenados = Object.keys(productos).sort();
+
+    // Imprimir los productos y las unidades pedidas
+    productosOrdenados.forEach((producto) => {
+        const unidades = productos[producto];
+        string += `\n${producto}: ${unidades}\n`;
     });
 
     impresoraInstance.imprimirListaEncargos(string);
@@ -189,6 +302,7 @@ export class Encargos {
 
     encargo.estado = encargo?.pedido ? "RECOGIDO" : "SIN_RECOGER";
     encargo.codigoBarras = codigoBarras;
+    encargo.dataVersion = getDataVersion();
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
     if (encargo?.pedido) {
       await impresoraInstance.imprimirPedido(encargoCopia);
@@ -203,7 +317,12 @@ export class Encargos {
       .setEncargo(encargo)
       .then(async (ok: boolean) => {
         if (!ok) return { error: true, msg: "Error al crear el encargo" };
-        await cestasInstance.borrarArticulosCesta(encargo.cesta._id, true, true, false);
+        await cestasInstance.borrarArticulosCesta(
+          encargo.cesta._id,
+          true,
+          true,
+          false
+        );
         return { error: false, msg: "Encargo creado" };
       })
       .catch((err: string) => ({ error: true, msg: err }));
@@ -358,7 +477,7 @@ export class Encargos {
       console.log("Error insertEncargos:", error);
     }
   }
-  private parametros: ParametrosInterface= null;
+  private parametros: ParametrosInterface = null;
   async insertarEncargo(encargo: any, cesta: CestasInterface) {
     // convertimos en  array el string de detall
     const detallesArray = [];
@@ -442,7 +561,7 @@ export class Encargos {
           }
         }
       }
-      let dependenta : TrabajadoresInterface=
+      let dependenta: TrabajadoresInterface =
         await trabajadoresInstance.getTrabajadorById(idDependenta);
 
       for (const key in cestaEncargo.detalleIva) {
@@ -452,9 +571,10 @@ export class Encargos {
       }
       total = Number((Math.round(total * 100) / 100).toFixed(2));
       // creamos una data mogodb de encargo
-      const parametros = this.parametros || (await parametrosInstance.getParametros());
-      if(this.parametros==null){
-        this.parametros=parametros;
+      const parametros =
+        this.parametros || (await parametrosInstance.getParametros());
+      if (this.parametros == null) {
+        this.parametros = parametros;
       }
       const mongodbEncargo: EncargosInterface = {
         idCliente: idCliente,
@@ -475,7 +595,11 @@ export class Encargos {
         estado: "SIN_RECOGER",
         codigoBarras: codigoBarras,
       };
-      if ( parametros && parametros.codigoTienda && idCliente == "CliBoti_" + parametros.codigoTienda + "_pedidosTienda") {
+      if (
+        parametros &&
+        parametros.codigoTienda &&
+        idCliente == "CliBoti_" + parametros.codigoTienda + "_pedidosTienda"
+      ) {
         mongodbEncargo.pedido = true;
         mongodbEncargo.estado = "RECOGIDO";
       }
@@ -731,6 +855,13 @@ export class Encargos {
   }
   async getUpdateEncargos() {
     return await schEncargos.getUpdateEncargos();
+  }
+  async imprimirEncargoSelected(encargo) {
+    if(!encargo) return;
+    if(!encargo.codigoBarras){
+      encargo.codigoBarras = ""
+    }
+    impresoraInstance.imprimirEncargoSelected(encargo);
   }
 }
 

@@ -4,8 +4,9 @@ import {
   FormaPago,
   MovimientosInterface,
 } from "../movimientos/movimientos.interface";
+import { VersionInterface } from "src/version/version.interface";
 
-export interface TicketsInterface {
+export interface TicketsInterface extends VersionInterface{
   _id: number;
   timestamp: number;
   total: number;
@@ -27,7 +28,7 @@ export interface TicketsInterface {
 export interface Anulado {
   idTicketPositivo: number;
 }
-export interface TicketsInterfaceBackUp {
+export interface TicketsInterfaceBackUp extends VersionInterface{
   _id: number;
   timestamp: number;
   total: number;

@@ -38,7 +38,7 @@ export class ParametrosController {
     try {
       return await this.getConfiguradorDB();
     } catch (err) {
-      logger.Error(41, err);
+      logger.Error(43, err);
       return null;
     }
   }
@@ -74,12 +74,13 @@ export class ParametrosController {
         console.log(e);
       });
     if (!res) {
-      throw Error("Error al sincronizar con SantaAna");
+      logger.Error("Error al sincronizar con SantaAna");
     }
   }
 
   /* Uri */
   async getConfiguradorDB() {
+
     const parametros = await parametrosInstance.getParametros();
     const res: any = await axios
       .post("configurador/getConfiguration", {
@@ -102,7 +103,7 @@ export class ParametrosController {
     try {
       const res: any = await axios
         .get("parametros/getParametros")
-        .catch((e) => {});
+        .catch((e) => { });
 
       if (res.data) {
         delete res.data.database;
@@ -220,6 +221,15 @@ export class ParametrosController {
   async getIpCashlogy() {
     try {
       return (await parametrosInstance.getParametros()).ipCashlogy;
+    } catch (err) {
+      logger.Error(46, err);
+      return null;
+    }
+  }
+  @Post("getContrasenaAdministrador")
+  async getContrasenaAdministrador(@Body() { idTrabajador }) {
+    try {
+      return (await parametrosInstance.getContrasenaAdministrador(idTrabajador));
     } catch (err) {
       logger.Error(46, err);
       return null;

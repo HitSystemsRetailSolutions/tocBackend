@@ -8,6 +8,16 @@ export async function getEncargos(): Promise<EncargosInterface[]> {
 
   return await encargos.find({ estado: "SIN_RECOGER" }).toArray();
 }
+
+export async function getEncargosByIdCliente(
+  idCliente: EncargosInterface["idCliente"]
+): Promise<EncargosInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+
+  return await encargos.find({ idCliente: idCliente, estado: "SIN_RECOGER" }).toArray();
+}
+
 export async function setEncargo(encargo): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const encargos = database.collection<EncargosInterface>("encargos");

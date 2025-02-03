@@ -75,10 +75,10 @@ export class TicketsController {
       var TDeuda1 = performance.now();
       const cesta = await cestasInstance.getCestaById(idCesta);
       const ticket = await ticketsInstance.generarNuevoTicket(
-        total - dejaCuenta,
+        total,
         idTrabajador,
         cesta,
-        tipo === "CONSUMO_PERSONAL",
+        ticketsInstance.esConsumoPersonal(tipo, cesta.modo),
         false,
         tkrsData?.cantidadTkrs > 0,
         dejaCuenta
@@ -102,7 +102,7 @@ export class TicketsController {
         };
         await deudasInstance.setDeuda(deuda);
         await movimientosInstance.nuevoMovimiento(
-          total - dejaCuenta,
+          total,
           "DEUDA",
           "SALIDA",
           ticket._id,
@@ -163,7 +163,7 @@ export class TicketsController {
         total,
         idTrabajador,
         cestaEncargo.cesta,
-        tipo === "CONSUMO_PERSONAL",
+        ticketsInstance.esConsumoPersonal(tipo, cestaEncargo.cesta.modo),
         false,
         false,
         dejaCuenta
@@ -226,6 +226,8 @@ export class TicketsController {
     const cesta = await cestasInstance.getCestaById(idCesta);
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     await cestasInstance.aplicarDescuento(cesta, total);
+    if(cesta.modo == "CONSUMO_PERSONAL")
+    await cestasInstance.applyDiscountShop(cesta, total);
     // elimina la última transacción de Paytef
     paytefInstance.deleteUltimaIniciarTransaccion();
     // genera un ticket temporal hasta que se confirme o se anule el pago
@@ -233,7 +235,7 @@ export class TicketsController {
       total,
       idTrabajador,
       cesta,
-      tipo === "CONSUMO_PERSONAL",
+      ticketsInstance.esConsumoPersonal(tipo, cesta.modo),
       tipo.includes("HONEI") || honei,
       tkrsData?.cantidadTkrs > 0,
       dejaCuenta
@@ -245,12 +247,12 @@ export class TicketsController {
       `crearTicketPaytef entrada (${idTransaccion})`,
       "tickets.controller"
     );
+    const transaccion = this.redondearPrecio(total - dejaCuenta);
     return await paytefInstance
-      .iniciarTransaccion(idTrabajador, idTransaccion, total)
+      .iniciarTransaccion(idTrabajador, idTransaccion, transaccion)
       .then(async (x) => {
         if (x) {
-          if(dejaCuenta > 0)
-            ticketTemp.total += dejaCuenta;
+          
           if (await ticketsInstance.insertarTicket(ticketTemp)) {
             // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
             // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
@@ -284,6 +286,9 @@ export class TicketsController {
           "tickets.controller"
         );
         return x;
+      }).catch((err) => {
+        logger.Error(1073, err);
+        return false;
       });
   }
 
@@ -320,10 +325,24 @@ export class TicketsController {
         throw Error("Error, faltan datos en crearTicket() controller 1");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
+
+      // comprobar la cesta de un cliente con descuento especial
+      let clienteDescEsp = descuentoEspecial.find(
+        (desc) => desc.idCliente == cesta.idCliente
+      );
+      if (clienteDescEsp && total != clienteDescEsp.precio) {
+        logger.Info("Descuento especial activado en crearTicket");
+        // si el precio de la cesta no coincide con el precio del descuento especial, se recalcula
+        await cestasInstance.recalcularIvasDescuentoEspecial(cesta);
+        total = clienteDescEsp.precio;
+      }
+
       if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
 
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
       await cestasInstance.aplicarDescuento(cesta, total);
+      if(cesta.modo == "CONSUMO_PERSONAL")
+      await cestasInstance.applyDiscountShop(cesta, total);
       // caso doble tpv; borrar registro de la última transacción de Paytef cuando no se ha iniciado una transacción
       if (
         !paytefInstance.dentroIniciarTransaccion &&
@@ -332,10 +351,10 @@ export class TicketsController {
         paytefInstance.deleteUltimaIniciarTransaccion();
       }
       const ticket = await ticketsInstance.generarNuevoTicket(
-        total+dejaCuenta,
+        total,
         idTrabajador,
         cesta,
-        tipo === "CONSUMO_PERSONAL",
+        ticketsInstance.esConsumoPersonal(tipo, cesta.modo),
         tipo.includes("HONEI") || honei,
         tkrsData?.cantidadTkrs > 0,
         dejaCuenta
@@ -397,7 +416,7 @@ export class TicketsController {
           total,
           idTrabajador,
           cesta,
-          tipo === "CONSUMO_PERSONAL",
+          ticketsInstance.esConsumoPersonal(tipo, cesta.modo),
           null,
           tipo.includes("HONEI")
         );

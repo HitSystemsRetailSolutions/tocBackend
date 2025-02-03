@@ -3,6 +3,7 @@ import { logger } from "../logger";
 import { encargosInstance } from "./encargos.clase";
 import axios from "axios";
 import { parametrosInstance } from "src/parametros/parametros.clase";
+import { impresoraInstance } from "src/impresora/impresora.class";
 
 @Controller("encargos")
 export class EncargosController {
@@ -10,6 +11,16 @@ export class EncargosController {
   async getEncargos() {
     try {
       return await encargosInstance.getEncargos();
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+  @Post("getEncargosByIdCliente")
+  async getEncargosByIdCliente(@Body() data) {
+    try {
+      if (!data.idCliente) return null;
+      return await encargosInstance.getEncargosByIdCliente(data.idCliente);
     } catch (err) {
       logger.Error(50, err);
       return null;
@@ -45,6 +56,27 @@ export class EncargosController {
     }
   }
 
+  @Post("imprimirEncargo")
+  async imprimirEncargo(@Body() data) {
+    try {
+      if (!data.id)
+        return {
+          error: true,
+          msg: "Faltan datos.",
+        };
+      const encargo = await encargosInstance.getEncargoById(data.id);
+      if (!encargo)
+        return {
+          error: true,
+          msg: "Error al obtener el encargo.",
+        };
+
+      return await encargosInstance.imprimirEncargoSelected(encargo);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
   @Post("imprimirEncargosHoy")
   async imprimirEncargosHoy(@Body() data) {
     try {
@@ -128,7 +160,9 @@ export class EncargosController {
           msg: "Faltan datos.",
         };
 
-      return encargosInstance.setEntregado(data.id);
+      await encargosInstance.setEntregado(data.id);
+
+      return await encargosInstance.updateEncargoGraella(data.id);
     } catch (err) {
       logger.Error(50, err);
       return null;

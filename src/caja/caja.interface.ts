@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import { VersionInterface } from "src/version/version.interface";
 
 export interface CajaAbiertaInterface {
   _id?: ObjectId;
@@ -42,9 +43,10 @@ export interface CajaCerradaInterface {
   detalleCierre: DetalleMonedas;
   mediaTickets: number;
   cambioEmergenciaCierre: number;
+  motivoDescuadre?: string;
 }
 
-export interface CajaSincro {
+export interface CajaSincro extends VersionInterface{
   _id?: ObjectId;
   inicioTime: number;
   idDependientaApertura: number;
@@ -79,6 +81,7 @@ export interface CajaSincro {
   cambioEmergenciaApertura: number;
   cambioEmergenciaCierre: number;
   enviado: boolean;
+  motivoDescuadre?: string;
 }
 
 export type TiposInfoMoneda = "CLAUSURA" | "APERTURA";
@@ -93,3 +96,9 @@ export type DetalleMonedas = {
   valor: number;
   unidades: number;
 }[];
+
+export type CierreCajaResultado = {
+  exito: boolean;
+  mensaje?: string;
+  descuadre?: number;
+};

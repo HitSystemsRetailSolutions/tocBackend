@@ -4,10 +4,14 @@ import {
   CajaCerradaInterface,
   MonedasInterface,
   TiposInfoMoneda,
+  CierreCajaResultado,
 } from "./caja.interface";
 import * as schCajas from "./caja.mongodb";
 import * as schTickets from "../tickets/tickets.mongodb";
-import { TicketsInterface } from "../tickets/tickets.interface";
+import {
+  SuperTicketInterface,
+  TicketsInterface,
+} from "../tickets/tickets.interface";
 import { MovimientosInterface } from "../movimientos/movimientos.interface";
 import { movimientosInstance } from "../movimientos/movimientos.clase";
 import { ObjectId } from "mongodb";
@@ -21,6 +25,8 @@ import * as moment from "moment";
 import { parametrosController } from "src/parametros/parametros.controller";
 import { ticketsInstance } from "src/tickets/tickets.clase";
 import { deudasInstance } from "src/deudas/deudas.clase";
+import { redondearPrecio } from "src/funciones/funciones";
+import { getDataVersion } from "src/version/version.clase";
 require("dotenv").config();
 const mqtt = require("mqtt");
 export class CajaClase {
@@ -137,6 +143,7 @@ export class CajaClase {
       ...cajaAbierta,
       ...cajaCerrada,
       enviado: false,
+      dataVersion: getDataVersion(),
     };
     cajaInsertar._id = new ObjectId();
     return schCajas.nuevoItemSincroCajas(cajaInsertar);
@@ -154,84 +161,116 @@ export class CajaClase {
     idDependientaCierre: CajaCerradaInterface["idDependientaCierre"],
     cierreAutomatico: boolean = true,
     totalHonei: number,
-    cambioEmergenciaCierre: number
-  ): Promise<boolean> {
-    if (!(await this.cajaAbierta()))
-      throw Error("Error al cerrar caja: La caja ya está cerrada");
+    cambioEmergenciaCierre: number,
+    forzarCierre: boolean = false,
+    motivoDescuadre: string = ""
+  ): Promise<CierreCajaResultado> {
+    try {
+      if (!(await this.cajaAbierta()))
+        throw Error("Error al cerrar caja: La caja ya está cerrada");
 
-    detalleCierre = detalleCierre.map((item) => {
-      return {
-        _id: item._id,
-        valor: parseFloat(item.valor.toFixed(3)),
-        unidades: item.unidades,
-      };
-    });
-    //console.log(detalleCierre)
-    parametrosInstance.setContadoDatafono(1, 0);
-    const cajaAbiertaActual = await this.getInfoCajaAbierta();
-    const totalDeudas = await deudasInstance.getTotalMoneyStandBy();
-    const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
-    const finalTime = await this.getFechaCierre(
-      inicioTurnoCaja,
-      cierreAutomatico
-    );
-    const cajaCerradaActual = await this.getDatosCierre(
-      cajaAbiertaActual,
-      totalCierre,
-      detalleCierre,
-      idDependientaCierre,
-      cantidadPaytef,
-      totalLocalPaytef,
-      cantidadLocal3G,
-      totalDatafono3G,
-      finalTime.time,
-      totalHonei,
-      // TODO: Propina
-      await this.getPropina(),
-      totalDeudas,
-      Number(cambioEmergenciaCierre.toFixed(2))
-    );
-    // Entra para calclular el cierre de caja que no se ha añadido al ser un cierre automático
-    if (cierreAutomatico) {
-      let cierreCaja = 0;
-      // Si el descuadre es negativo, le falta el valor del cierre de caja
-      // Si no entra, o la apertura era 0 o
-      if (cajaCerradaActual.descuadre < 0) {
-        cierreCaja = cajaCerradaActual.descuadre * -1;
-        // Si el cierre es automático, el descuadre se le añade el total del cierre caja
-        cajaCerradaActual.descuadre += cierreCaja;
-        cajaCerradaActual.recaudado += cierreCaja;
+      detalleCierre = detalleCierre.map((item) => {
+        return {
+          _id: item._id,
+          valor: parseFloat(item.valor.toFixed(3)),
+          unidades: item.unidades,
+        };
+      });
+      //console.log(detalleCierre)
+      parametrosInstance.setContadoDatafono(1, 0);
+      const cajaAbiertaActual = await this.getInfoCajaAbierta();
+      if (!cajaAbiertaActual)
+        throw new Error("Error al obtener información de caja abierta");
+
+      const totalDeudas = await deudasInstance.getTotalMoneyStandBy();
+      if (totalDeudas == null)
+        throw new Error("Error al obtener total de deudas");
+
+      const inicioTurnoCaja = cajaAbiertaActual.inicioTime;
+      const finalTime = await this.getFechaCierre(
+        inicioTurnoCaja,
+        cierreAutomatico
+      );
+      if (!finalTime) throw new Error("Error al obtener la fecha de cierre");
+      const cajaCerradaActual = await this.getDatosCierre(
+        cajaAbiertaActual,
+        totalCierre,
+        detalleCierre,
+        idDependientaCierre,
+        cantidadPaytef,
+        totalLocalPaytef,
+        cantidadLocal3G,
+        totalDatafono3G,
+        finalTime.time,
+        totalHonei,
+        // TODO: Propina
+        await this.getPropina(),
+        totalDeudas,
+        Number(cambioEmergenciaCierre.toFixed(2)),
+        motivoDescuadre
+      );
+      if (!cajaCerradaActual)
+        throw new Error("Error al obtener datos de cierre de caja actual");
+      if (
+        (cajaCerradaActual.descuadre < - 5 || cajaCerradaActual.descuadre > 5) &&
+        !forzarCierre
+      ) {
+        logger.Info("Cerrar caja cancelado, descuadre grande");
+        return {
+          exito: false,
+          descuadre: cajaCerradaActual.descuadre,
+          mensaje: "Descuadre no permitido",
+        };
       }
-      // Se añade el cierre de caja al detalle de cierre
-      cajaCerradaActual.detalleCierre[0].unidades +=
-        Math.round(cierreCaja * 100 * 100) / 100;
-      cajaCerradaActual.detalleCierre[0].valor += cierreCaja;
-      guardarInfoMonedas[0] += cajaCerradaActual.detalleCierre[0].unidades;
-    }
-    if (await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)) {
-      const ultimaCaja = await this.getUltimoCierre();
-      impresoraInstance.imprimirCajaAsync(ultimaCaja);
-      if (await this.resetCajaAbierta()) {
-        await cestasInstance.borrarCestas();
-        if (!finalTime.estadoTurno) {
-          io.emit("cargarVentas", []);
+      // Entra para calclular el cierre de caja que no se ha añadido al ser un cierre automático
+      if (cierreAutomatico) {
+        let cierreCaja = 0;
+        // Si el descuadre es negativo, le falta el valor del cierre de caja
+        // Si no entra, o la apertura era 0 o
+        if (cajaCerradaActual.descuadre < 0) {
+          cierreCaja = cajaCerradaActual.descuadre * -1;
+          // Si el cierre es automático, el descuadre se le añade el total del cierre caja
+          cajaCerradaActual.descuadre += cierreCaja;
+          cajaCerradaActual.recaudado += cierreCaja;
         }
-        cajaInstance
-          .guardarMonedas(
+        // Se añade el cierre de caja al detalle de cierre
+        cajaCerradaActual.detalleCierre[0].unidades +=
+          Math.round(cierreCaja * 100 * 100) / 100;
+        cajaCerradaActual.detalleCierre[0].valor += cierreCaja;
+        guardarInfoMonedas[0] += cajaCerradaActual.detalleCierre[0].unidades;
+      }
+      if (
+        await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)
+      ) {
+        const ultimaCaja = await this.getUltimoCierre();
+        if (!ultimaCaja) throw new Error("Error al obtener último cierre");
+        impresoraInstance.imprimirCajaAsync(ultimaCaja);
+        if (await this.resetCajaAbierta()) {
+          await cestasInstance.borrarCestas();
+          if (!finalTime.estadoTurno) {
+            io.emit("cargarVentas", []);
+          }
+          const res2 = await cajaInstance.guardarMonedas(
             guardarInfoMonedas,
             cambioEmergenciaCierre,
             "CLAUSURA"
-          )
-          .then((res2) => {
-            if (res2) {
-              return true;
-            }
-            return false;
-          });
-        return true;
+          );
+          if (!res2) {
+            logger.Error(53.1, "Error al guardar monedas en mongodb");
+          }
+          return { exito: true };
+        }
+        throw Error("Error en resetCajaAbierta");
       }
+      throw Error("Error en nuevoItemSincroCajas");
+    } catch (error) {
+      logger.Error(
+        "Error en el proceso de cierre de caja:",
+        error.message,
+        error.stack
+      );
+      return { exito: false, mensaje: "Error en el proceso de cierre de caja" };
     }
-    return false;
   }
 
   /* Eze 4.0 */
@@ -372,7 +411,8 @@ export class CajaClase {
           trabId,
           true,
           await ticketsInstance.getTotalHonei(),
-          0
+          0,
+          true
         );
         return true;
       }
@@ -394,7 +434,8 @@ export class CajaClase {
     totalHonei: number,
     propina: number,
     totalDeudas: CajaCerradaInterface["totalDeuda"],
-    cambioEmergenciaCierre: CajaCerradaInterface["cambioEmergenciaCierre"]
+    cambioEmergenciaCierre: CajaCerradaInterface["cambioEmergenciaCierre"],
+    motivoDescuadre: string = ""
   ): Promise<CajaCerradaInterface> {
     const arrayTicketsCaja: TicketsInterface[] =
       await schTickets.getTicketsIntervalo(
@@ -570,6 +611,7 @@ export class CajaClase {
       totalHonei: this.redondeoNoIntegrado(totalHonei),
       propina: this.redondeoNoIntegrado(propina),
       cambioEmergenciaCierre,
+      motivoDescuadre,
     };
   }
 
@@ -582,6 +624,130 @@ export class CajaClase {
     await schCajas.setDetalleActual(detalleActual);
 
   getDetalleActual = async () => await schCajas.getDetalleActual();
+
+  /**
+   *  obtiene los datos de las cajas de un intervalo de tiempo y devuelve los datos agrupados por días
+   * @param fechaInicio
+   * @param fechaFin
+   * @returns  array {Fecha: string, "Total tarjeta": number, "Total efectivo": number, Total: number}
+   */
+  async getTotalsIntervalo(fechaInicio: number, fechaFin: number) {
+    const arrayCajas: CajaSincro[] = await schCajas.getTotalsIntervalo(
+      fechaInicio,
+      fechaFin
+    );
+
+    const groupByDays = this.groupByDays(arrayCajas);
+    const latestDate = this.findLatestDateInGroupedData(groupByDays);
+    const arrayTicketsCaja: SuperTicketInterface[] =
+      await movimientosInstance.construirArrayVentas();
+
+    const totalTickets = arrayTicketsCaja.reduce(
+      (total, ticket) => total + ticket.total,
+      0
+    );
+    const totalPaytef = await parametrosController.totalPaytef();
+    const inicioTime = (await cajaInstance.getInfoCajaAbierta()).inicioTime;
+    const finalTime = Date.now();
+    const total3G = await ticketsInstance.getTotalDatafono3G(
+      inicioTime,
+      finalTime
+    );
+
+    const formattedTotalTarjeta = redondearPrecio(totalPaytef[0] + total3G);
+    const formattedTotalEfectivo = redondearPrecio(
+      totalTickets - totalPaytef[0]
+    );
+
+    const objTotal = {
+      id: inicioTime,
+      total: totalTickets,
+      totalTarjeta: formattedTotalTarjeta,
+      totalEfectivo: formattedTotalEfectivo,
+    };
+
+    const formattedDate = new Date(inicioTime).toISOString().split("T")[0];
+
+    if (latestDate === formattedDate) {
+      groupByDays[latestDate].push(objTotal);
+    } else {
+      groupByDays[formattedDate] = [objTotal];
+    }
+
+    return this.convertGroupedData(groupByDays);
+  }
+
+  /**
+   * encuentra la fecha más reciente en un objeto de datos agrupados
+   * @param groupedData
+   * @returns string, fecha más reciente
+   */
+  private findLatestDateInGroupedData(groupedData) {
+    if (!groupedData) {
+      return null;
+    }
+    const dates = Object.keys(groupedData);
+    const latestDate = dates.reduce((latest, current) => {
+      return new Date(current) > new Date(latest) ? current : latest;
+    });
+    return latestDate;
+  }
+  /**
+   *  agrupa los datos por días
+   * @param array
+   * @returns
+   */
+  private groupByDays(array: CajaSincro[]) {
+    if (!array) {
+      return {};
+    }
+    return array.reduce((acc, obj) => {
+      const date = new Date(obj.inicioTime).toISOString().split("T")[0];
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      const totalTarjeta = redondearPrecio(
+        obj.cantidadPaytef + obj.totalDatafono3G
+      );
+      const totalEfectivo = redondearPrecio(obj.calaixFetZ - totalTarjeta);
+      acc[date].push({
+        id: obj._id,
+        total: obj.calaixFetZ,
+        totalTarjeta: totalTarjeta,
+        totalEfectivo: totalEfectivo,
+      });
+      return acc;
+    }, {});
+  }
+
+  /**
+   *  cambia el formato de los datos agrupados para que se puedan mostrar en la tabl del frontend
+   * @param groupedData
+   * @returns array {Fecha: string, "Total tarjeta": number, "Total efectivo": number, Total: number}
+   */
+  private convertGroupedData(groupedData) {
+    if (!groupedData) {
+      return [];
+    }
+    return Object.keys(groupedData).map((date) => {
+      const dayItems = groupedData[date];
+      const totalTarjeta = dayItems.reduce(
+        (sum, item) => sum + item.totalTarjeta,
+        0
+      );
+      const totalEfectivo = dayItems.reduce(
+        (sum, item) => sum + item.totalEfectivo,
+        0
+      );
+      const total = dayItems.reduce((sum, item) => sum + item.total, 0);
+      return {
+        Fecha: date,
+        "Total tarjeta": redondearPrecio(totalTarjeta),
+        "Total efectivo": redondearPrecio(totalEfectivo),
+        Total: redondearPrecio(total),
+      };
+    });
+  }
 }
 
 export const cajaInstance = new CajaClase();

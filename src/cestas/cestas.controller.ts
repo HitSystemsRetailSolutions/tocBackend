@@ -277,7 +277,12 @@ export class CestasController {
   async updateCestaInverso(@Body() { cesta }) {
     try {
       if (cesta) {
+        if (cesta.modo === "CONSUMO_PERSONAL") {
+          cesta = await cestasInstance.recalcularIvas(cesta);
+        }
+        
         const res = await cestasInstance.updateCesta(cesta);
+
         if (res) {
           cestasInstance.actualizarCestas();
         }
@@ -323,7 +328,11 @@ export class CestasController {
   async setArticuloImprimido(@Body() { idCesta, articulos, printed }) {
     try {
       if (idCesta && articulos && printed != null) {
-        return await cestasInstance.setArticuloImprimido(idCesta, articulos, printed);
+        return await cestasInstance.setArticuloImprimido(
+          idCesta,
+          articulos,
+          printed
+        );
       }
       throw Error("Error, faltan datos en cestas/insertarArtsPagados");
     } catch (err) {
@@ -376,6 +385,23 @@ export class CestasController {
       }
     } catch (error) {
       logger.Error(136, error);
+    }
+  }
+
+  @Post("setDiscountShop")
+  async setDiscountShop(@Body() { cesta, discount, index }) {
+    try {
+      if (!cesta || !discount) {
+        throw Error("faltan datos en setDiscountShop");
+      }
+      await cestasInstance.setDiscountShop(cesta, discount, index);
+      
+      if (await cestasInstance.updateCesta(cesta)) {
+        await cestasInstance.actualizarCestas();
+        return true;
+      }
+    } catch (error) {
+      logger.Error(137, error);
     }
 
   }

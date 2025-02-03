@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body } from "@nestjs/common";
+import { Controller, Post, Get, Body, Query } from "@nestjs/common";
 import { UtilesModule } from "../utiles/utiles.module";
 import { cajaInstance } from "./caja.clase";
 import { logger } from "../logger";
@@ -6,6 +6,7 @@ import { impresoraInstance } from "../impresora/impresora.class";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 import { ticketsInstance } from "src/tickets/tickets.clase";
 import { CajaAbiertaInterface } from "./caja.interface";
+import { parametrosInstance } from "src/parametros/parametros.clase";
 
 @Controller("caja")
 export class CajaController {
@@ -22,6 +23,8 @@ export class CajaController {
       idDependienta,
       cambioEmergencia,
       cantidad3GAutomatizado,
+      forzarCierre=false,
+      motivoDescuadre="",
     }
   ) {
     try {
@@ -67,7 +70,8 @@ export class CajaController {
               cantidad3G
           );
         }
-        let totalLocalPaytef = await ticketsInstance.getTotalLocalPaytef();
+        let totalLocalPaytef = await parametrosInstance.totalPaytef();
+        // await ticketsInstance.getTotalLocalPaytef();
         let cantidadLocal3G = cantidad3G;
         return await cajaInstance.cerrarCaja(
           total,
@@ -80,7 +84,9 @@ export class CajaController {
           idDependienta,
           false,
           await ticketsInstance.getTotalHonei(),
-          cambioEmergencia
+          cambioEmergencia,
+          forzarCierre,
+          motivoDescuadre,
         );
       }
       throw Error("Error cerrarCaja > Faltan datos");
@@ -289,6 +295,18 @@ export class CajaController {
       return await cajaInstance.getDetalleActual();
     } catch (error) {
       logger.Error(144, error);
+    }
+  }
+  @Get("getTotalsIntervalo")
+  async getTotalsIntervalo(@Query() data: {inicioTime, finalTime}) {
+    try {
+      if(!data.inicioTime || !data.finalTime) {
+        throw Error("faltan datos en getTotalsIntervalo");
+      }
+      return await cajaInstance.getTotalsIntervalo(data.inicioTime, data.finalTime);
+    } catch (error) {
+      logger.Error(137, error);
+      return null;
     }
   }
 }

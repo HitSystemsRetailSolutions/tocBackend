@@ -14,6 +14,7 @@ import { tecladoInstance } from "../teclado/teclado.clase";
 import { tarifasInstance } from "../tarifas/tarifas.class";
 import { logger } from "../logger";
 import { networkInterfaces, totalmem } from "os";
+const mqtt = require("mqtt");
 import { MovimientosInterface } from "src/movimientos/movimientos.interface";
 import { cestasInstance } from "src/cestas/cestas.clase";
 import { cajaInstance } from "src/caja/caja.clase";
@@ -93,6 +94,39 @@ export class InstaladorController {
     return await this.getCNpromise();
   }
 
+
+  public enviarMQTT(n, options) {
+    var client =
+      mqtt.connect(process.env.MQTT_URL) ||
+      mqtt.connect("mqtt://127.0.0.1:1883", {
+        username: "ImpresoraMQTT",
+      });
+    // cuando se conecta enviamos los datos
+    client.on("connect", function () {
+      client.publish("hit.hardware/" + n, JSON.stringify(options));
+    });
+    return true;
+  }
+
+  /* Uri */
+  @Post("sendTestPrint")
+  async sendTestPrint(@Body()
+  { type, value, rate, vid , pid }) {
+    return await this.enviarMQTT("autoSetupPrinter", { type, value, rate, vid, pid })
+
+  }
+  @Post("sendTestVisor")
+  async sendTestVisor(@Body()
+  { value, rate }) {
+    return await this.enviarMQTT("autoSetupVisor", { value, rate })
+
+  }
+  @Post("saveData")
+  async saveData(@Body()
+  { data }) {
+    return await this.enviarMQTT("autoSetupSave", data)
+
+  }
   /* Uri */
   @Post("pedirDatosQR")
   async instaladorQR(
@@ -322,27 +356,35 @@ export class InstaladorController {
           );
         }
         let monedas = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let idMonedas = ['0.01', '0.02', '0.05', '0.1', '0.2', '0.5', '1', '2', '5', '10', '20', '50', '100', '200', '500'];
         let monedasCaja = [];
         let totalMonedas = 0;
-        let cambioEmergencia=0;
+        let cambioEmergencia = 0;
         if (res.data.UltimoCierre.length > 0) {
-          if(res.data.ultimoCambEmCierre.length>0){
-            cambioEmergencia=res.data.ultimoCambEmCierre[0].Import
+          if (res.data.ultimoCambEmCierre.length > 0) {
+            cambioEmergencia = res.data.ultimoCambEmCierre[0].Import
           }
           monedas = [];
-          res.data.UltimoCierre.forEach((element) => {
-            monedas.push(
-              element.Import /
-                Number(element.Motiu.toString().replace("En : ", ""))
-            );
-            monedasCaja.push({
-              _id: element.Motiu.toString().replace("En : ", ""),
-              valor: element.Import,
-              unidades:
-                element.Import /
-                Number(element.Motiu.toString().replace("En : ", "")),
-            });
+          const aperturaUltimoCierre = res.data.UltimoCierre || [];
+          idMonedas.forEach((id) => {
+            let moneda = aperturaUltimoCierre.find((m) => m.Motiu.startsWith(`En : ${id}`));
+            if (moneda) {
+              monedas.push(moneda.Import / Number(id));
+              monedasCaja.push({
+                _id: id,
+                valor: moneda.Import,
+                unidades: moneda.Import / Number(id),
+              });
+            } else {
+              monedas.push(0);
+              monedasCaja.push({
+                _id: id,
+                valor: 0,
+                unidades: 0,
+              });
+            }
           });
+
           const UltimoCierre = await cajaInstance.guardarMonedas(
             monedas,
             cambioEmergencia,

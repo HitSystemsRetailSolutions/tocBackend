@@ -10,12 +10,15 @@ export class Articulos {
     articulo: ArticulosInterface,
     idCliente: ClientesInterface["id"]
   ): Promise<ArticulosInterface> {
+    const articuloCopia = { ...articulo };
     if (idCliente && idCliente != "") {
       const infoTarifa = await getItemTarifa(articulo._id, idCliente);
       if (infoTarifa && typeof infoTarifa.precioConIva == "number")
-        articulo.precioConIva = infoTarifa.precioConIva;
+        articuloCopia.precioConIva = infoTarifa.precioConIva;
+      if (infoTarifa && typeof infoTarifa.precioBase == "number")
+        articuloCopia.precioBase = infoTarifa.precioBase;
     }
-    return articulo;
+    return articuloCopia;
   }
 
   /* Eze 4.0 */
@@ -111,7 +114,7 @@ export class Articulos {
         .catch((e) => {
           console.log(e);
         });
-      if (arrayArticulos.data) {
+      if (arrayArticulos?.data) {
         return await this.insertarArticulos(arrayArticulos.data);
       } else {
         return false;

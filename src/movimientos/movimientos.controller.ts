@@ -10,7 +10,7 @@ import { cajaInstance } from "src/caja/caja.clase";
 export class MovimientosController {
   /* Yasai :D */
   @Post("nuevoMovimiento") // Solo para entradas o salidas manuales (idTicket = null)
-  async nuevoMovimiento(@Body() { cantidad, concepto, idTrabajador, tipo, nombreCliente=null }) {
+  async nuevoMovimiento(@Body() { cantidad, concepto, idTrabajador, tipo, nombreCliente=null,idTicket=null }) {
     try {
       if (
         cantidad &&
@@ -20,7 +20,7 @@ export class MovimientosController {
           cantidad,
           concepto,
           tipo,
-          null,
+          idTicket,
           idTrabajador,
           nombreCliente
         );
@@ -146,6 +146,16 @@ export class MovimientosController {
       logger.Error(99, err);
       console.log(err);
       return 0;
+    }
+  }
+
+  @Get("verifyCurrentBoxEntregaDiaria")
+  async verifyCurrentBoxEntregaDiaria() {
+    try {
+      return await movimientosInstance.verifyCurrentBoxEntregaDiaria();
+    } catch (err) {
+      logger.Error(102, err);
+      return false;
     }
   }
 }

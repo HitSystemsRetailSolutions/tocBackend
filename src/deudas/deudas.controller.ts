@@ -13,6 +13,7 @@ import {
 } from "src/movimientos/movimientos.interface";
 import { paytefInstance } from "src/paytef/paytef.class";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
+import { redondearPrecio } from "src/funciones/funciones";
 
 @Controller("deudas")
 export class DeudasController {
@@ -35,6 +36,16 @@ export class DeudasController {
     try {
       const deudas: DeudasInterface[] = await deudasInstance.getDeudas();
       return deudas;
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+  @Post("getDeudasByIdCliente")
+  async getDeudasByIdCliente(@Body() data) {
+    try {
+      if (!data.idCliente) return null;
+      return await deudasInstance.getDeudasByIdCliente(data.idCliente);
     } catch (err) {
       logger.Error(50, err);
       return null;
@@ -131,12 +142,13 @@ export class DeudasController {
       logger.Error(501, err);
     }
   }
-// procedimiento de pago de deuda/s con paytef
+  // procedimiento de pago de deuda/s con paytef
   @Post("crearPagoDeudaPaytef")
   async crearPagoDeudaPaytef(
     @Body()
     {
       total,
+      pagoParcial,
       idCesta,
       idTrabajador,
       tipo,
@@ -145,6 +157,7 @@ export class DeudasController {
       arrayDeudas,
     }: {
       total: number;
+      pagoParcial: number;
       idCesta: TicketsInterface["cesta"]["_id"];
       idTrabajador: TicketsInterface["idTrabajador"];
       tipo: FormaPago;
@@ -159,8 +172,15 @@ export class DeudasController {
     // iniciamos transaccion con paytef y si es correcto, dejamos la deuda como pagada
     let id = Date.now();
     logger.Info(`crearTicketPaytef entrada (${id})`, "tickets.controller");
+    const totalDejaCuenta = arrayDeudas.reduce(
+      (acumulador, x) => acumulador + x.dejaCuenta,
+      0
+    );
+    const pagoPaytef = pagoParcial
+      ? pagoParcial
+      : redondearPrecio(total - totalDejaCuenta);
     return await paytefInstance
-      .iniciarTransaccion(idTrabajador, id, total, "sale", false)
+      .iniciarTransaccion(idTrabajador, id, pagoPaytef, "sale", false)
       .then(async (x) => {
         if (x) {
           const infoCobro = {
@@ -170,32 +190,59 @@ export class DeudasController {
             tkrsData,
             tipo,
           };
-          await deudasInstance.pagarDeuda(arrayDeudas, infoCobro, true)
+          await deudasInstance.pagarDeuda(
+            arrayDeudas,
+            infoCobro,
+            pagoParcial,
+            true
+          );
           //ticketsInstance.setPagadoPaytef(idTicket);
         }
-        logger.Info(
-          `crearMovPaytef salida (${id}, ${x})`,
-          "deudas.controller"
-        );
+        logger.Info(`crearMovPaytef salida (${id}, ${x})`, "deudas.controller");
         return x;
       });
   }
-// procedimiento de pago de deuda/s
+  // procedimiento de pago de deuda/s
   @Post("crearPagoDeuda")
   async crearPagoDeuda(
     @Body()
-    { total, idCesta, idTrabajador, tipo, tkrsData, concepto, arrayDeudas }
+    {
+      total,
+      pagoParcial,
+      idCesta,
+      idTrabajador,
+      tipo,
+      tkrsData,
+      concepto,
+      arrayDeudas,
+    }: {
+      total: number;
+      pagoParcial: number;
+      idCesta: TicketsInterface["cesta"]["_id"];
+      idTrabajador: TicketsInterface["idTrabajador"];
+      tipo: FormaPago;
+      tkrsData: {
+        cantidadTkrs: number;
+        formaPago: FormaPago;
+      };
+      concepto?: MovimientosInterface["concepto"];
+      arrayDeudas: DeudasInterface[];
+    }
   ) {
     try {
-      const infoCobro ={
+      const infoCobro = {
         idCesta,
         total,
         idTrabajador,
         tkrsData,
         tipo,
-      }
+      };
       // llamada a la funcion que deja pagada deuda/s
-      return await deudasInstance.pagarDeuda(arrayDeudas,infoCobro);
+      return await deudasInstance.pagarDeuda(
+        arrayDeudas,
+        infoCobro,
+        pagoParcial
+      );
     } catch (err) {
       logger.Error(500, err);
       return false;

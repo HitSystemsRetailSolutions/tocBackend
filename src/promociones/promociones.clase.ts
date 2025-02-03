@@ -158,6 +158,8 @@ export class NuevaPromocion {
               const articuloSecundario =
                 await articulosInstance.getInfoArticulo(idArticulo);
 
+                const puntosArtPrinc = articuloPrincipal.puntos;
+                const puntosArtSec = articuloSecundario.puntos;
               const infoFinal: InfoPromocionCombo = {
                 ...infoPromoAplicar,
                 indexListaOriginalPrincipal: otraMediaPartePromo.indexCesta,
@@ -193,9 +195,9 @@ export class NuevaPromocion {
                 preciosReales
               );
               if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(cesta, infoFinal);
+                this.aplicarSobraComboPrincipal(cesta, infoFinal, puntosArtPrinc);
               if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(cesta, infoFinal);
+                this.aplicarSobraComboSecundario(cesta, infoFinal, puntosArtSec);
               return true;
             }
           } else if (mediaPromo.tipo === "PRINCIPAL") {
@@ -209,13 +211,14 @@ export class NuevaPromocion {
                 mediaPromo,
                 otraMediaPartePromo
               );
-              const articuloPrincipal = await articulosInstance.getInfoArticulo(
-                idArticulo
-              );
+              const articuloPrincipal =
+                await articulosInstance.getInfoArticulo(idArticulo);
               const articuloSecundario =
                 await articulosInstance.getInfoArticulo(
                   cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
                 );
+                const puntosArtPrinc = articuloPrincipal.puntos;
+                const puntosArtSec = articuloSecundario.puntos;
 
               const infoFinal: InfoPromocionCombo = {
                 ...infoPromoAplicar,
@@ -252,9 +255,9 @@ export class NuevaPromocion {
                 preciosReales
               );
               if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(cesta, infoFinal);
+                this.aplicarSobraComboPrincipal(cesta, infoFinal, puntosArtPrinc);
               if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(cesta, infoFinal);
+                this.aplicarSobraComboSecundario(cesta, infoFinal, puntosArtSec);
               return true;
             }
           }
@@ -283,7 +286,8 @@ export class NuevaPromocion {
               );
               const articuloSecundario =
                 await articulosInstance.getInfoArticulo(idArticulo);
-
+              const puntosArtPrinc = articuloPrincipal.puntos;
+              const puntosArtSec = articuloSecundario.puntos;
               const infoFinal: InfoPromocionCombo = {
                 ...infoPromoAplicar,
                 indexListaOriginalPrincipal: otraMediaPartePromo.indexCesta,
@@ -319,9 +323,9 @@ export class NuevaPromocion {
                 preciosReales
               );
               if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(cesta, infoFinal);
+                this.aplicarSobraComboPrincipal(cesta, infoFinal, puntosArtPrinc);
               if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(cesta, infoFinal);
+                this.aplicarSobraComboSecundario(cesta, infoFinal, puntosArtSec);
               return true;
             }
           } else if (mediaPromo.tipo === "PRINCIPAL") {
@@ -335,13 +339,14 @@ export class NuevaPromocion {
                 mediaPromo,
                 otraMediaPartePromo
               );
-              const articuloPrincipal = await articulosInstance.getInfoArticulo(
-                idArticulo
-              );
+              const articuloPrincipal =
+                await articulosInstance.getInfoArticulo(idArticulo);
               const articuloSecundario =
                 await articulosInstance.getInfoArticulo(
                   cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
                 );
+              const puntosArtPrinc = articuloPrincipal.puntos;
+              const puntosArtSec = articuloSecundario.puntos;
 
               const infoFinal: InfoPromocionCombo = {
                 ...infoPromoAplicar,
@@ -378,9 +383,17 @@ export class NuevaPromocion {
                 preciosReales
               );
               if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(cesta, infoFinal);
+                this.aplicarSobraComboPrincipal(
+                  cesta,
+                  infoFinal,
+                  puntosArtPrinc
+                );
               if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(cesta, infoFinal);
+                this.aplicarSobraComboSecundario(
+                  cesta,
+                  infoFinal,
+                  puntosArtSec
+                );
               return true;
             }
           }
@@ -556,8 +569,12 @@ export class NuevaPromocion {
     promosArt.sort((a, b) => b.unidadesPorPromo - a.unidadesPorPromo); // ordenar por unidadesPorPromo descendiente
 
     const articulo = await articulosInstance.getInfoArticulo(idArticulo);
-    const conversorPuntos = (await parametrosInstance.getParametros()).promocioDescompteFixe||0;
-    let puntos = convertirDineroEnPuntos(articulo.precioConIva,conversorPuntos)
+    const conversorPuntos =
+      (await parametrosInstance.getParametros()).promocioDescompteFixe || 0;
+    let puntos = convertirDineroEnPuntos(
+      articulo.precioConIva,
+      conversorPuntos
+    );
     let cambioEnPromos = false; // modificar, añadir o eliminar alguna promo de las que estaban aplicadas
     let unidadesRestantes = unidadesTotales;
     for (let promoArt of promosArt) {
@@ -581,7 +598,8 @@ export class NuevaPromocion {
                 precioUnidad
               ).toFixed(2)
             );
-            itemCesta.puntos = puntos * cantidadPromos*promoArt.unidadesPorPromo;
+            itemCesta.puntos =
+              puntos * cantidadPromos * promoArt.unidadesPorPromo;
             itemCesta.promocion.unidadesOferta = cantidadPromos;
           }
           itemsCestaPromo.delete(promoArt.promoInd._id); // promo ya procesada, eliminar de los items por procesar
@@ -589,7 +607,7 @@ export class NuevaPromocion {
           // promo no existe en la cesta, crear item y añadirlo a la cesta
           cambioEnPromos = true;
           //let promoMenosCantidad = (promosArt[promosArt.length-1] == promoArt);
-          puntos= puntos * promoArt.unidadesPorPromo * cantidadPromos;
+          puntos = puntos * promoArt.unidadesPorPromo * cantidadPromos;
           cesta.lista.push({
             arraySuplementos: null,
             gramos: 0,
@@ -636,9 +654,12 @@ export class NuevaPromocion {
     if (itemCestaSinPromo)
       cesta.lista.splice(cesta.lista.indexOf(itemCestaSinPromo), 1);
     if (unidadesRestantes) {
-      let subtotal = Number((unidadesRestantes * articulo.precioConIva).toFixed(2));
-      let porcentajeConversion = (await parametrosInstance.getParametros()).promocioDescompteFixe||0;
-      let puntos = convertirDineroEnPuntos(subtotal,porcentajeConversion)
+      let subtotal = Number(
+        (unidadesRestantes * articulo.precioConIva).toFixed(2)
+      );
+      let porcentajeConversion =
+        (await parametrosInstance.getParametros()).promocioDescompteFixe || 0;
+      let puntos = convertirDineroEnPuntos(subtotal, porcentajeConversion);
       cesta.lista.push({
         arraySuplementos: null,
         gramos: null,
@@ -655,7 +676,11 @@ export class NuevaPromocion {
     let numProductos = 0;
     let total = 0;
     for (let i = 0; i < cesta.lista.length; i++) {
-      numProductos += cesta.lista[i].unidades;
+      if (cesta.lista[i].gramos == null) {
+        numProductos += cesta.lista[i].unidades;
+      } else {
+        numProductos++;
+      }
       total += cesta.lista[i].subtotal;
     }
     impresoraInstance.mostrarVisor({
@@ -1022,7 +1047,11 @@ export class NuevaPromocion {
     let numProductos = 0;
     let total = 0;
     for (let i = 0; i < cesta.lista.length; i++) {
-      numProductos += cesta.lista[i].unidades;
+      if (cesta.lista[i].gramos == null) {
+        numProductos += cesta.lista[i].unidades;
+      } else {
+        numProductos++;
+      }
       total += cesta.lista[i].subtotal;
     }
     impresoraInstance.mostrarVisor({
@@ -1169,36 +1198,40 @@ export class NuevaPromocion {
 */
   private aplicarSobraComboPrincipal(
     cesta: CestasInterface,
-    data: InfoPromocionCombo
+    data: InfoPromocionCombo,
+    puntos: number
   ) {
     cesta.lista.push({
-      arraySuplementos: null,
-      gramos: 0,
       idArticulo: data.idArticuloPrincipal,
       nombre: data.nombrePrincipal,
+      arraySuplementos: null,
       promocion: null,
-      puntos: null,
+      varis: false,
       regalo: false,
+      puntos: puntos * data.sobranPrincipal,
       impresora: null,
       subtotal: null,
       unidades: data.sobranPrincipal,
+      gramos: null,
     });
   }
   private aplicarSobraComboSecundario(
     cesta: CestasInterface,
-    data: InfoPromocionCombo
+    data: InfoPromocionCombo,
+    puntos: number
   ) {
     cesta.lista.push({
-      arraySuplementos: null,
-      gramos: 0,
       idArticulo: data.idArticuloSecundario,
       nombre: data.nombreSecundario,
+      arraySuplementos: null,
       promocion: null,
-      puntos: null,
+      varis: false,
       regalo: false,
-      subtotal: null,
+      puntos: puntos * data.sobranSecundario,
       impresora: null,
+      subtotal: null,
       unidades: data.sobranSecundario,
+      gramos: null,
     });
   }
 
@@ -1271,7 +1304,7 @@ export class NuevaPromocion {
               ticket.cesta.lista[i].unidades *
               ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal *
               valor,
-            subtotal: this.redondearDecimales(
+            subtotal: ticket.cesta.lista[i]?.regalo ? 0 : this.redondearDecimales(
               ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
                 ticket.cesta.lista[i].unidades *
                 ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,

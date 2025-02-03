@@ -21,6 +21,8 @@ export class TrabajadoresClase {
   /* Eze 4.0 */
   buscar = async (busqueda: string) => await schTrabajadores.buscar(busqueda);
 
+  buscarSinFichar = async (busqueda: string) => await schTrabajadores.buscarSinFichar(busqueda);
+
   /* Eze 4.0 */
   async mantenerTrabajadoresFichados(
     nuevoArray: TrabajadoresInterface[]
@@ -124,7 +126,7 @@ export class TrabajadoresClase {
         idTrabajador: idTrabajador,
         fecha: {
           year: auxTime.getFullYear(),
-          month: auxTime.getMonth()+1,//Enero equivale al mes 0
+          month: auxTime.getMonth() + 1,//Enero equivale al mes 0
           day: auxTime.getDate(),
           hours: auxTime.getHours(),
           minutes: auxTime.getMinutes(),
@@ -206,12 +208,13 @@ export class TrabajadoresClase {
   removeActiveEmployers = async () => {
     try {
       await schTrabajadores.removeActiveEmployers().then((res) => {
-        io.emit("preguntarFichadosEnUso");
       });
     } catch (err) {
       logger.Error(36, err);
     }
   };
+
+  getFichajesIntervalo = async (fechaInicio, fechaFin, trabajador) => { return await schTrabajadores.getFichajesIntervalo(fechaInicio, fechaFin, trabajador); }
 }
 
 export const trabajadoresInstance = new TrabajadoresClase();

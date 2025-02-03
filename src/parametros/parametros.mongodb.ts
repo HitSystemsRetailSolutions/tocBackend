@@ -164,3 +164,17 @@ export async function actualizarPropiedad(params: any): Promise<boolean> {
     await parametros.updateOne({ _id: "PARAMETROS" }, { $set: { params } })
   ).acknowledged;
 }
+
+export async function setDiscountsShop(
+  discounts: import("./parametros.interface").DescuentosTienda[]
+) {
+  const database = (await conexion).db("tocgame");
+  const parametros = database.collection("parametros");
+  return (
+    await parametros.updateOne(
+      { _id: "PARAMETROS" },
+      { $set: { descuentosTienda: discounts } },
+      { upsert: true }
+    )
+  ).acknowledged;
+}

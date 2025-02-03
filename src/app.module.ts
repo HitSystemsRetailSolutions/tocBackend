@@ -33,6 +33,8 @@ import { checkers } from "./checkers/checkers.controller";
 import { balancaController } from "./balanca/balanca.clase";
 import { AlbaranesController } from "./albaranes/albaranes.controller";
 import { contableController } from "./contable/contable.controller";
+import { receiveItemsMQTTController } from "./receiveItemsMQTT/receiveItemsMQTT.controller";
+import { TiposIvaController } from "./tiposIva/tiposIva.controller";
 import { CashlogyController } from "./cashlogy/cashlogy.controller"
 
 @Module({
@@ -58,6 +60,7 @@ import { CashlogyController } from "./cashlogy/cashlogy.controller"
     DevolucionesController,
     MovimientosController,
     PruebasController,
+    receiveItemsMQTTController,
     InstaladorController,
     PaytefController,
     VersionController,
@@ -74,8 +77,9 @@ import { CashlogyController } from "./cashlogy/cashlogy.controller"
     DeudasController,
     CargarImagenController,
     AlbaranesController,
+    TiposIvaController,
     CashlogyController,
   ],
   // providers: [SocketGateway],
 })
-export class AppModule {}
+export class AppModule { }

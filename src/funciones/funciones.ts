@@ -1,8 +1,10 @@
 import { DetalleIvaInterface } from "../cestas/cestas.interface";
 import { TiposIva } from "../articulos/articulos.interface";
-
+import { tiposIvaInstance } from "src/tiposIva/tiposIva.clase";
+import * as fs from "fs";
 /* Eze 4.0 (REDONDEA AL SEGUNDO DECIMAL) */
-export const redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
+export const redondearPrecio = (precio: number) =>
+  Math.round(precio * 100) / 100;
 
 /* Eze 4.0 */
 export function construirObjetoIvas(
@@ -10,83 +12,72 @@ export function construirObjetoIvas(
   tipoIva: TiposIva,
   unidades: number,
   albaranNPT: boolean = false,
-  dto: number = 0
+  dto: number = 0,
+  timestamp: number = null
 ): DetalleIvaInterface {
-  let base1 = 0,
-    base2 = 0,
-    base3 = 0,
-    base4 = 0,
-    base5 = 0;
-  let valor1 = 0,
-    valor2 = 0,
-    valor3 = 0,
-    valor4 = 0,
-    valor5 = 0;
-  let importe1 = 0,
-    importe2 = 0,
-    importe3 = 0,
-    importe4 = 0,
-    importe5 = 0;
-  // si es albaranNPT, parametro precio viene sin el iva.
-  // En caso contrario, al precio se le quita el iva para calcular las bases y valores
-  // Puede contener dto, por lo que se le aplica el dto a base
-  switch (tipoIva) {
-    case 1:
-    default:
-      base1 = albaranNPT
-        ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / 1.04) * unidades - (precio / 1.04) * unidades * (dto / 100);
-      valor1 = base1 * 0.04;
-      importe1 = base1 + valor1;
-      break;
-    case 2:
-      base2 = albaranNPT
-        ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / 1.1) * unidades - (precio / 1.1) * unidades * (dto / 100);
-      valor2 = base2 * 0.1;
-      importe2 = base2 + valor2;
-      break;
-    case 3:
-      base3 = albaranNPT
-        ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / 1.21) * unidades - (precio / 1.21) * unidades * (dto / 100);
-      valor3 = base3 * 0.21;
-      importe3 = base3 + valor3;
-      break;
-    case 4:
-      base4 = albaranNPT
-        ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / 1) * unidades - (precio / 1) * unidades * (dto / 100);
-      valor4 = base4 * 0;
-      importe4 = base4 + valor4;
-      break;
-    case 5:
-      base5 = albaranNPT
-        ? precio * unidades - precio * unidades * (dto / 100)
-        : (precio / 1.05) * unidades - (precio / 1.05) * unidades * (dto / 100);
-      valor5 = base5 * 0.05;
-      importe5 = base5 + valor5;
-      break;
-      break;
+  const arrayIvasDecimals = timestamp
+    ? tiposIvaInstance.getIvasDecWithTmstpCesta(timestamp)
+    : tiposIvaInstance.arrayDecimal;
+
+  // Objeto donde se almacenarán dinámicamente las bases, valores e importes
+  const resultado: DetalleIvaInterface = {};
+
+  // Buscar el IVA correspondiente al tipo
+  const ivaData = arrayIvasDecimals.find(
+    (iva) => iva.tipus === tipoIva.toString()
+  );
+  if (!ivaData) {
+    throw new Error(`IVA no encontrado para el tipo ${tipoIva}`);
   }
-  // Redondeo con Math.Round y no con toFixed para evitar un almacenado con pérdida de precisión(6.3449999999662,6.3550000002).
-  return {
-    base1: Math.round(base1 * 1000) / 1000,
-    base2: Math.round(base2 * 1000) / 1000,
-    base3: Math.round(base3 * 1000) / 1000,
-    base4: Math.round(base4 * 1000) / 1000,
-    base5: Math.round(base5 * 1000) / 1000,
-    valorIva1: Math.round(valor1 * 1000) / 1000,
-    valorIva2: Math.round(valor2 * 1000) / 1000,
-    valorIva3: Math.round(valor3 * 1000) / 1000,
-    valorIva4: Math.round(valor4 * 1000) / 1000,
-    valorIva5: Math.round(valor5 * 1000) / 1000,
-    importe1: Math.round(importe1 * 1000) / 1000,
-    importe2: Math.round(importe2 * 1000) / 1000,
-    importe3: Math.round(importe3 * 1000) / 1000,
-    importe4: Math.round(importe4 * 1000) / 1000,
-    importe5: Math.round(importe5 * 1000) / 1000,
-  };
+
+  const ivaRate = ivaData.iva;
+  const ivaMod = 1 + ivaRate;
+  // Calcular base, valorIva e importe
+  const base = albaranNPT
+    ? precio * unidades - precio * unidades * (dto / 100)
+    : (precio / ivaMod) * unidades - (precio / ivaMod) * unidades * (dto / 100);
+  const valorIva = base * ivaRate;
+  const importe = Math.round((base + valorIva) * 10000) / 10000;
+
+  // Guardar los valores redondeados en el objeto con índices dinámicos
+  resultado[`base${tipoIva}`] = Math.round(base * 100) / 100;
+  resultado[`valorIva${tipoIva}`] = Math.round(valorIva * 100) / 100;
+  resultado[`importe${tipoIva}`] = Math.round(importe * 100) / 100;
+  return ajustarAuxDetalleIva(resultado);
+}
+
+export function ajustarAuxDetalleIva(auxDetalleIva) {
+  const baseKeys = Object.keys(auxDetalleIva).filter((key) =>
+    key.startsWith("base")
+  );
+  const ivaKeys = Object.keys(auxDetalleIva).filter((key) =>
+    key.startsWith("valorIva")
+  );
+  const importeKeys = Object.keys(auxDetalleIva).filter((key) =>
+    key.startsWith("importe")
+  );
+
+  // Verificar que las claves coincidan
+  for (let i = 0; i < baseKeys.length; i++) {
+    const baseKey = baseKeys[i];
+    const ivaKey = ivaKeys[i];
+    const importeKey = importeKeys[i];
+
+    if (baseKey && ivaKey && importeKey) {
+      let base = auxDetalleIva[baseKey];
+      let valorIva = auxDetalleIva[ivaKey];
+      let importe = auxDetalleIva[importeKey];
+
+      // Ajustar la base si la suma no coincide con el importe
+      const sumaActual = base + valorIva;
+      if (Math.abs(sumaActual - importe) > 0.0001) {
+        // Tolerancia por redondeo
+        auxDetalleIva[baseKey] = importe - valorIva;
+      }
+    }
+  }
+
+  return auxDetalleIva;
 }
 
 /* Eze 4.0 */
@@ -105,21 +96,26 @@ export function fusionarObjetosDetalleIva(
   obj1: DetalleIvaInterface,
   obj2: DetalleIvaInterface
 ): DetalleIvaInterface {
-  return {
-    base1: Math.round((obj1.base1 + obj2.base1) * 100) / 100,
-    base2: Math.round((obj1.base2 + obj2.base2) * 100) / 100,
-    base3: Math.round((obj1.base3 + obj2.base3) * 100) / 100,
-    base4: Math.round((obj1.base4 + obj2.base4) * 100) / 100,
-    base5: Math.round((obj1.base5 + obj2.base5) * 100) / 100,
-    valorIva1: Math.round((obj1.valorIva1 + obj2.valorIva1) * 100) / 100,
-    valorIva2: Math.round((obj1.valorIva2 + obj2.valorIva2) * 100) / 100,
-    valorIva3: Math.round((obj1.valorIva3 + obj2.valorIva3) * 100) / 100,
-    valorIva4: Math.round((obj1.valorIva4 + obj2.valorIva4) * 100) / 100,
-    valorIva5: Math.round((obj1.valorIva5 + obj2.valorIva5) * 100) / 100,
-    importe1: Math.round((obj1.importe1 + obj2.importe1) * 100) / 100,
-    importe2: Math.round((obj1.importe2 + obj2.importe2) * 100) / 100,
-    importe3: Math.round((obj1.importe3 + obj2.importe3) * 100) / 100,
-    importe4: Math.round((obj1.importe4 + obj2.importe4) * 100) / 100,
-    importe5: Math.round((obj1.importe5 + obj2.importe5) * 100) / 100,
-  };
+  const resultado: DetalleIvaInterface = {};
+
+  const todasLasClaves = new Set([...Object.keys(obj1), ...Object.keys(obj2)]);
+
+  todasLasClaves.forEach((key) => {
+    const valor1 = obj1[key as keyof DetalleIvaInterface] || 0;
+    const valor2 = obj2[key as keyof DetalleIvaInterface] || 0;
+    resultado[key as keyof DetalleIvaInterface] =
+      Math.round((valor1 + valor2) * 100) / 100;
+  });
+
+  // Calcular automáticamente los importes
+  Object.keys(resultado).forEach((key) => {
+    if (key.startsWith("base")) {
+      const index = key.replace("base", "");
+      const base = resultado[`base${index}`] || 0;
+      const valorIva = resultado[`valorIva${index}`] || 0;
+      resultado[`importe${index}`] = Math.round((base + valorIva) * 100) / 100;
+    }
+  });
+  return resultado;
 }
+

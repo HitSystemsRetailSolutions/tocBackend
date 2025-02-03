@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get } from "@nestjs/common";
+import { Controller, Headers, Post, Body, Get } from "@nestjs/common";
 import { UtilesModule } from "../utiles/utiles.module";
 import { cestasInstance } from "../cestas/cestas.clase";
 import { tecladoInstance } from "./teclado.clase";
@@ -10,6 +10,7 @@ export class TecladoController {
   /* Yasai :D */
   @Post("clickTeclaArticulo")
   async clickTeclaArticulo(
+    @Headers() headers: Record<string, string>,
     @Body()
     {
       idArticulo,
@@ -21,6 +22,13 @@ export class TecladoController {
       menu,
     }
   ) {
+    const sourceProgram = headers["x-source-program"];
+    // decodeURIComponent para que no haya problemas con los caracteres especiales pasados por headers
+    let article = decodeURIComponent(headers["article"]);
+    const worker = decodeURIComponent(headers["worker"]);
+    logger.Info(
+      `nombre_programa: ${sourceProgram}, articulo: ${article}, unidades: ${unidades}, dependienta: ${worker}`
+    );
     try {
       if (UtilesModule.checkVariable(idArticulo, gramos, idCesta, unidades)) {
         const resultado = await cestasInstance.clickTeclaArticulo(
