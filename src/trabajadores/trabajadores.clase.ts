@@ -12,6 +12,7 @@ import { logger } from "../logger";
 import { cestasInstance } from "src/cestas/cestas.clase";
 import { cajaInstance } from "src/caja/caja.clase";
 import { socket } from "src/sanPedro";
+import { getDataVersion } from "src/version/version.clase";
 
 export class TrabajadoresClase {
   /* Eze 4.0 */
@@ -135,6 +136,7 @@ export class TrabajadoresClase {
       },
       tipo: tipo,
       enviado: false,
+      dataVersion: getDataVersion(),
     };
     return await schTrabajadores.insertNuevoFichaje(objGuardar);
   }

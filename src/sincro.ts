@@ -29,6 +29,8 @@ import {
   SuperTicketInterface,
   TicketsInterface,
 } from "./tickets/tickets.interface";
+import { get } from "http";
+import { getDataVersion } from "./version/version.clase";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
@@ -228,6 +230,10 @@ export function sincronizarFichajes() {
           .getFichajeMasAntiguo()
           .then((res) => {
             if (res != null) {
+              // inserta dataVersion en los registros del mongoDB anteriores a este cambio
+              if(!res?.dataVersion)
+              res.dataVersion = getDataVersion();
+
               emitSocket("sincroFichajes", {
                 parametros,
                 fichaje: res,
