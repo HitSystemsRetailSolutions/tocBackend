@@ -29,6 +29,8 @@ import {
   SuperTicketInterface,
   TicketsInterface,
 } from "./tickets/tickets.interface";
+import { get } from "http";
+import { getDataVersion } from "./version/version.clase";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
@@ -228,6 +230,10 @@ export function sincronizarFichajes() {
           .getFichajeMasAntiguo()
           .then((res) => {
             if (res != null) {
+              // inserta dataVersion en los registros del mongoDB anteriores a este cambio
+              if(!res?.dataVersion)
+              res.dataVersion = getDataVersion();
+
               emitSocket("sincroFichajes", {
                 parametros,
                 fichaje: res,
@@ -675,23 +681,48 @@ function actualizarTrabajadores() {
   });
 }
 
-setInterval(sincronizarTickets, 8000);
-setInterval(sincronizarCajas, 40000);
-setInterval(sincronizarMovimientos, 50000);
-setInterval(sincronizarFichajes, 20000);
-setInterval(sincronizarDevoluciones, 10000);
-setInterval(sincronizarDeudasCreadas, 9000);
-setInterval(sincronizarDeudasFinalizadas, 10000);
-setInterval(sincronizarEncargosCreados, 9000);
-setInterval(sincronizarEncargosFinalizados, 10000);
-setInterval(sincronizarAlbaranesCreados, 11000);
-// setInterval(actualizarTeclados, 3600000);
-// setInterval(actualizarTarifas, 3600000);
+// setInterval(sincronizarTickets, 8000);
+// setInterval(sincronizarCajas, 40000);
+// setInterval(sincronizarMovimientos, 50000);
+// setInterval(sincronizarFichajes, 20000);
+// setInterval(sincronizarDevoluciones, 10000);
+// setInterval(sincronizarDeudasCreadas, 9000);
+// setInterval(sincronizarDeudasFinalizadas, 10000);
+// setInterval(sincronizarEncargosCreados, 9000);
+// setInterval(sincronizarEncargosFinalizados, 10000);
+// setInterval(sincronizarAlbaranesCreados, 11000);
+// // setInterval(actualizarTeclados, 3600000);
+// // setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);
-setInterval(sincronizarTicketsOtrosModificado, 16000);
-// setInterval(actualizarTrabajadores, 3600000);
-// setInterval(actualizarMesas, 3600000);
-setInterval(sincronizarPedidosCaducados, 60000);
+// setInterval(sincronizarTicketsOtrosModificado, 16000);
+// // setInterval(actualizarTrabajadores, 3600000);
+// // setInterval(actualizarMesas, 3600000);
+// setInterval(sincronizarPedidosCaducados, 60000);
+
+function ejecutarConIntervaloAleatorio(funcion, minTiempo, maxTiempo) {
+  function ejecutar() {
+      funcion(); // Ejecuta la función
+      const tiempoAleatorio = Math.floor(Math.random() * (maxTiempo - minTiempo) + minTiempo);
+      setTimeout(ejecutar, tiempoAleatorio);
+  }
+  ejecutar(); // Inicia la primera ejecución
+}
+
+// Configurar todas las funciones con sus respectivos rangos aleatorios
+ejecutarConIntervaloAleatorio(sincronizarTickets, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarCajas, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarMovimientos, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarFichajes, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarDevoluciones, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarDeudasCreadas, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarDeudasFinalizadas, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarEncargosCreados, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarEncargosFinalizados, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarAlbaranesCreados, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarTicketsOtrosModificado, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarPedidosCaducados, 60000, 300000);
+
+
 
 export {
   reenviarTicket,
