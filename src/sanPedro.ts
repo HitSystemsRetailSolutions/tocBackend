@@ -5,12 +5,15 @@ import {
   // sincronizarMovimientos,
   sincronizarFichajes,
   sincronizarDevoluciones,
+  objTempCaja,
 } from "./sincro";
 // import { cajaInstance } from "./caja/caja.clase";
 // import { movimientosInstance } from "./movimientos/movimientos.clase";
 import { trabajadoresInstance } from "./trabajadores/trabajadores.clase";
 import { devolucionesInstance } from "./devoluciones/devoluciones.clase";
 import { logger } from "./logger";
+import e from "express";
+import { stat } from "fs";
 
 let URL_SANPEDRO = "";
 if (process.env.npm_lifecycle_event === "start:dev")
@@ -137,4 +140,18 @@ socket.on("resSincroDevoluciones", (data) => {
   }
 });
 
+socket.on("resSincroCajas", (data) => {
+  if(!data.error){
+
+    if(data.mensaje=="EN_COLA"){
+      objTempCaja.state="EN_COLA";
+      objTempCaja.dateModificated=new Date();
+    }
+  }else{
+    logger.Error(34, data.mensaje);
+    objTempCaja.caja=null;
+    objTempCaja.state=null;
+    objTempCaja.dateModificated=null;
+  }
+});
 export { socket, emitSocket };

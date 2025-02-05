@@ -189,6 +189,38 @@ async function sincronizarCajas() {
     logger.Error("sincro.ts sincronizarCajas()", err);
   }
 }
+// state: 'enviando', 'en_cola', 
+export let objTempCaja = {caja: null, state:null, dateModificated:null};
+
+async function socketSinconizarCajas() {
+  try {
+    const fechaAnterior = objTempCaja.dateModificated;
+    if (fechaAnterior && diferenciaEnMinutos(fechaAnterior, new Date()) < 6)
+      return;
+
+    const caja = await cajaInstance.getCajaSincroMasAntigua();
+    const params = await parametrosInstance.getParametros();
+    if (caja && params) {
+      objTempCaja = {caja, state:'ENVIANDO', dateModificated: new Date()};
+      const parametros = {
+        licencia: params.licencia,
+        database: params.database,
+        codigoTienda: params.codigoTienda,
+      }
+      emitSocket("sincroCajas", {
+        caja,
+        parametros,
+      });
+    }
+  } catch (err) {
+    logger.Error("sincro.ts sincronizarCajas()", err);
+  }
+}
+
+function diferenciaEnMinutos(fechaAnterior: Date, fechaActual: Date) {
+  const diferenciaEnMilisegundos = fechaActual.getTime() - fechaAnterior.getTime();
+  return Math.floor(diferenciaEnMilisegundos / (1000 * 60));
+}
 
 async function sincronizarMovimientos(continuar: boolean = false) {
   try {
