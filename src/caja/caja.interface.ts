@@ -102,3 +102,9 @@ export type CierreCajaResultado = {
   mensaje?: string;
   descuadre?: number;
 };
+
+export type objTempCajaInterface = {
+  idCaja: CajaSincro['_id'] | null;
+  state: 'EN_COLA'| 'ENVIANDO' | null;
+  dateModificated: Date | null;
+}

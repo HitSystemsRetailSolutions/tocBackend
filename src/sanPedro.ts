@@ -14,6 +14,8 @@ import { devolucionesInstance } from "./devoluciones/devoluciones.clase";
 import { logger } from "./logger";
 import e from "express";
 import { stat } from "fs";
+import { cajaInstance } from "./caja/caja.clase";
+import { ObjectId } from "mongodb";
 
 let URL_SANPEDRO = "";
 if (process.env.npm_lifecycle_event === "start:dev")
@@ -141,17 +143,40 @@ socket.on("resSincroDevoluciones", (data) => {
 });
 
 socket.on("resSincroCajas", (data) => {
-  if(!data.error){
-
-    if(data.mensaje=="EN_COLA"){
-      objTempCaja.state="EN_COLA";
-      objTempCaja.dateModificated=new Date();
+  if (!data.error) {
+    if (data.mensaje == "EN_COLA") {
+      logger.Info("Caja en cola, id:" + data.caja);
+      objTempCaja.state = "EN_COLA";
+      objTempCaja.dateModificated = new Date();
     }
-  }else{
-    logger.Error(34, data.mensaje);
-    objTempCaja.caja=null;
-    objTempCaja.state=null;
-    objTempCaja.dateModificated=null;
+    if (data.mensaje == "ENVIADO") {
+      logger.Info("Caja enviada a SanPedro, id:" + data.caja);
+      const idCaja = new ObjectId(data.caja);
+      cajaInstance
+        .confirmarCajaEnviada(idCaja)
+        .then((res) => {
+          if (!res) {
+            logger.Error(34.1, "Error al actualizar el estado de la caja 2");
+          }
+        })
+        .catch((err) => {
+          logger.Error(34.2, err);
+        });
+
+      objTempCaja.state = null;
+      objTempCaja.dateModificated = null;
+      objTempCaja.idCaja = null;
+    }
+  } else {
+    const jsonObjTempCaja = JSON.stringify(objTempCaja);
+    logger.Error(
+      34,
+      "error del santaAna: " + data.mensaje,
+      "caja backend esperado: " + jsonObjTempCaja
+    );
+    objTempCaja.idCaja = null;
+    objTempCaja.state = null;
+    objTempCaja.dateModificated = null;
   }
 });
 export { socket, emitSocket };
