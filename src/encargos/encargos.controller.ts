@@ -29,7 +29,7 @@ export class EncargosController {
   @Post("setEncargo")
   async setEncargo(@Body() data) {
     try {
-      if (!data || !data.productos.length || !data.total)
+      if (!data || !data.productos.length)
         return {
           error: true,
           msg: "Faltan datos.",
