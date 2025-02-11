@@ -12,22 +12,22 @@ export class AlbaranesController {
     @Body()
     {
       total,
-      idCesta,
+      cestaFrontEnd,
       idTrabajador,
       estado,
     }: {
       total: number;
-      idCesta: AlbaranesInterface["cesta"]["_id"];
+      cestaFrontEnd: AlbaranesInterface["cesta"];
       idTrabajador: AlbaranesInterface["idTrabajador"];
       estado: AlbaranesInterface["estado"];
     }
   ) {
     try {
-      if (!total || !idCesta || !idTrabajador || !estado) {
+      if (!total || !cestaFrontEnd || !idTrabajador || !estado) {
         throw Error("Error, faltan datos en crearAlbaran() controller");
       }
 
-      const cesta = await cestasInstance.getCestaById(idCesta);
+      const cesta = cestaFrontEnd
       if (!cesta) {
         throw Error("Error, cesta no encontrada en crearAlbaran() controller");
         
