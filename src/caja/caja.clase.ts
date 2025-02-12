@@ -177,7 +177,7 @@ export class CajaClase {
         };
       });
       //console.log(detalleCierre)
-      parametrosInstance.setContadoDatafono(1, 0);
+      
       const cajaAbiertaActual = await this.getInfoCajaAbierta();
       if (!cajaAbiertaActual)
         throw new Error("Error al obtener información de caja abierta");
@@ -242,6 +242,9 @@ export class CajaClase {
       if (
         await this.nuevoItemSincroCajas(cajaAbiertaActual, cajaCerradaActual)
       ) {
+        // resetear el contador de paytef local
+        parametrosInstance.setContadoDatafono(1, 0);
+
         const ultimaCaja = await this.getUltimoCierre();
         if (!ultimaCaja) throw new Error("Error al obtener último cierre");
         impresoraInstance.imprimirCajaAsync(ultimaCaja);
