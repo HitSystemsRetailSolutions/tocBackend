@@ -330,28 +330,45 @@ class PaytefClass {
           intentosBucleComprobacion
         );
         if (intentosBucleComprobacion >= 2) {
+          errorConexion = true;
           /* ??? */
           logger.Error(
             `Transaccion (${idTicket}) poll no respuesta`,
             "paytef.class"
           );
-          //intentosBuclePollResult = 0;
-          io.emit("consultaPaytefRefund", {
-            ok: false,
-            errorconex: true,
-            id: idTicket,
-            datos: [
-              total * -1,
-              "Targeta",
-              "TARJETA",
-              idTicket + 1,
-              idTrabajador,
-            ],
-          });
+
+          // añadir proceso de comprobar transaccion al perder la respuesta de poll
+          const transLostWork = await this.comprobarTransaccionPerdida(
+            idTicket
+          );
+          if (transLostWork) {
+            logger.Info(
+              `Transaccion (${idTicket}) venta aprobada despues de perder respuesta poll`,
+              "paytef.class"
+            );
+            parametrosInstance.setContadoDatafono(0, total);
+            transaccionAprobada = true;
+            errorConexion = false;
+            io.emit("consultaPaytef", { valid: true, ticket: idTicket });
+            io.emit("procesoPaytef", { proceso: "aprobado" });
+          } else {
+            //intentosBuclePollResult = 0;
+            io.emit("consultaPaytefRefund", {
+              ok: false,
+              errorconex: true,
+              id: idTicket,
+              datos: [
+                total * -1,
+                "Targeta",
+                "TARJETA",
+                idTicket + 1,
+                idTrabajador,
+              ],
+            });
+          }
           salirBucleComprobacion = true;
-          errorConexion = true;
         } else {
-          await new Promise((r) => setTimeout(r, 100));
+          await new Promise((r) => setTimeout(r, 150));
           intentosBucleComprobacion++;
           //intentosBuclePollResult += 1;
           //await this.bucleComprobacion(idTicket, total, idTrabajador, type);
@@ -359,6 +376,28 @@ class PaytefClass {
       } // catch
     } // while(!salirBucleComprobacion)
     return [transaccionAprobada, errorConexion];
+  }
+
+  // intentamos obtener una muestra de la transaccion aprobada o denegada cuando la anterior peticion  no nos ha devuelto respuesta
+  // si el motivo fue que el servidor rechazó la peticion, aqui se usa otra api para obtener la respuesta
+  async comprobarTransaccionPerdida(
+    idTicket: number
+  ) {
+    try {
+      const lastFive = await this.getLastFive();
+
+      if (lastFive.length > 0) {
+        const ultimoTicket = lastFive.find(
+          (ticket) => ticket.reference == idTicket
+        )
+        if (ultimoTicket && ultimoTicket.reference == idTicket && ultimoTicket.approved) {
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
   }
   /*
   En la función comprobarDisponibilidad en paytef.controller se llama al servidor paytef para guardar el contado por Datafono a la base de datos
