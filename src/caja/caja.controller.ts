@@ -71,6 +71,8 @@ export class CajaController {
           );
         }
         let totalLocalPaytef = await parametrosInstance.totalPaytef();
+
+        logger.Info(52.3, "Dependienta " + idDependienta + " ha cerrado caja con " + cantidadPaytef + "€ en cantidadPaytef y " + totalLocalPaytef + "€ en totalLocalPaytef");
         // await ticketsInstance.getTotalLocalPaytef();
         let cantidadLocal3G = cantidad3G;
         return await cajaInstance.cerrarCaja(

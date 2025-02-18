@@ -100,13 +100,7 @@ export class TrabajadoresController {
 
       if (idTrabajador) {
         const idCesta = await cestasInstance.crearCesta(null, idTrabajador);
-        const parametros = await parametrosInstance.getParametros();
         if (await trabajadoresInstance.setIdCesta(idTrabajador, idCesta)) {
-          axios
-            .post("/trabajadores/fichar", { idTrabajador, entrar: true })
-            .catch((e) => {
-              console.log(e);
-            });
           return trabajadoresInstance.ficharTrabajador(idTrabajador);
         }
         throw new Error(
@@ -127,11 +121,6 @@ export class TrabajadoresController {
   async desfichar(@Body() { idTrabajador }) {
     try {
       if (idTrabajador) {
-        axios
-          .post("/trabajadores/fichar", { idTrabajador, entrar: false })
-          .catch((e) => {
-            console.log(e);
-          });
           await trabajadoresInstance.usarTrabajador(idTrabajador, false);
         return await trabajadoresInstance.desficharTrabajador(idTrabajador);
       }

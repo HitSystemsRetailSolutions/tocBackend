@@ -551,10 +551,8 @@ export class Deudas {
       cesta.timestamp = timestamp;
       await cestasInstance.updateCesta(cesta);
       let cestaDeuda = JSON.parse(JSON.stringify(cesta));
-      let descuento: any =
-        cliente && !cliente?.albaran && !cliente?.vip
-          ? Number(cliente.descuento)
-          : 0;
+      // descuento del cliente no se lee del mongo para evitar aplicar de nuevo el descuento en deudas ya aplicadas
+      let descuento: any = 0;
       if (idTicket == 0) {
         cestaDeuda.detalleIva = {
           base1: 0,

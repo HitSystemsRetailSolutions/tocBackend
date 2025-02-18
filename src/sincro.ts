@@ -29,6 +29,9 @@ import {
   SuperTicketInterface,
   TicketsInterface,
 } from "./tickets/tickets.interface";
+import { get } from "http";
+import { getDataVersion } from "./version/version.clase";
+import { CajaSincro, objTempCajaInterface } from "./caja/caja.interface";
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
@@ -187,6 +190,51 @@ async function sincronizarCajas() {
     logger.Error("sincro.ts sincronizarCajas()", err);
   }
 }
+// state: 'enviando', 'en_cola', null
+export let objTempCaja: objTempCajaInterface = {
+  idCaja: null,
+  state: null,
+  dateModificated: null,
+};
+
+async function socketSinconizarCajas() {
+  try {
+    const fechaAnterior = objTempCaja.dateModificated;
+    if (
+      fechaAnterior &&
+      fechaAnterior &&
+      diferenciasEnSegundos(fechaAnterior, new Date()) < 120
+    )
+      return;
+
+    const caja = await cajaInstance.getCajaSincroMasAntigua();
+    const params = await parametrosInstance.getParametros();
+    if (caja && params) {
+      objTempCaja = {
+        idCaja: caja._id,
+        state: "ENVIANDO",
+        dateModificated: new Date(),
+      };
+      const parametros = {
+        licencia: params.licencia,
+        database: params.database,
+        codigoInternoTienda: params.codigoTienda,
+      };
+      emitSocket("sincroCajas", {
+        caja,
+        parametros,
+      });
+    }
+  } catch (err) {
+    logger.Error("sincro.ts sincronizarCajas()", err);
+  }
+}
+
+function diferenciasEnSegundos(fechaAnterior: Date, fechaActual: Date) {
+  const diferenciaEnMilisegundos =
+    fechaActual.getTime() - fechaAnterior.getTime();
+  return Math.floor(diferenciaEnMilisegundos / 1000);
+}
 
 async function sincronizarMovimientos(continuar: boolean = false) {
   try {
@@ -228,6 +276,9 @@ export function sincronizarFichajes() {
           .getFichajeMasAntiguo()
           .then((res) => {
             if (res != null) {
+              // inserta dataVersion en los registros del mongoDB anteriores a este cambio
+              if (!res?.dataVersion) res.dataVersion = getDataVersion();
+
               emitSocket("sincroFichajes", {
                 parametros,
                 fichaje: res,
@@ -375,7 +426,7 @@ async function sincronizarEncargosCreados() {
                 ? await encargosInstance.formatPeriode(encargo.dias)
                 : 0,
             bbdd: parametros.database,
-            licencia: parametros.licencia, 
+            licencia: parametros.licencia,
             productos: encargo.productos,
             idTrabajador: encargo.idTrabajador,
             recogido: false,
@@ -388,26 +439,23 @@ async function sincronizarEncargosCreados() {
             .catch((e) => {
               console.log(e);
             });
-            if (res.data) {
-              if (!res.data.error) {
-                  if (await encargosInstance.setEnviado(encargo._id)) {
-                      enProcesoEncargosCreados = false;
-                      setTimeout(sincronizarEncargosCreados, 100);
-                  }
-              } else {
-                console.log(res.data.msg)
-                  logger.Error(
-                      153,
-                      "Error: no se ha podido crear el encargo en el SantaAna"
-                  );
-                  enProcesoEncargosCreados = false;
+          if (res.data) {
+            if (!res.data.error) {
+              if (await encargosInstance.setEnviado(encargo._id)) {
+                enProcesoEncargosCreados = false;
+                setTimeout(sincronizarEncargosCreados, 100);
               }
-          } else {
+            } else {
+              console.log(res.data.msg);
               logger.Error(
-                  153.1,
-                  "Error: no ha habido respuesta en SantaAna"
+                153,
+                "Error: no se ha podido crear el encargo en el SantaAna"
               );
               enProcesoEncargosCreados = false;
+            }
+          } else {
+            logger.Error(153.1, "Error: no ha habido respuesta en SantaAna");
+            enProcesoEncargosCreados = false;
           }
         } else {
           enProcesoEncargosCreados = false;
@@ -547,7 +595,8 @@ async function sincronizarPedidosCaducados() {
       enProcesoEncargosPedidosCaducados = true;
       const parametros = await parametrosInstance.getParametros();
       if (parametros != null) {
-        const encargo = await encargosInstance.getEncargoPedidoCaducadoMasAntiguo();
+        const encargo =
+          await encargosInstance.getEncargoPedidoCaducadoMasAntiguo();
         if (encargo) {
           let url = "encargos/updateEncargoGraella";
           let encargoGraella = {
@@ -675,23 +724,48 @@ function actualizarTrabajadores() {
   });
 }
 
-setInterval(sincronizarTickets, 8000);
-setInterval(sincronizarCajas, 40000);
-setInterval(sincronizarMovimientos, 50000);
-setInterval(sincronizarFichajes, 20000);
-setInterval(sincronizarDevoluciones, 10000);
-setInterval(sincronizarDeudasCreadas, 9000);
-setInterval(sincronizarDeudasFinalizadas, 10000);
-setInterval(sincronizarEncargosCreados, 9000);
-setInterval(sincronizarEncargosFinalizados, 10000);
-setInterval(sincronizarAlbaranesCreados, 11000);
-// setInterval(actualizarTeclados, 3600000);
-// setInterval(actualizarTarifas, 3600000);
+// setInterval(sincronizarTickets, 8000);
+// setInterval(sincronizarCajas, 40000);
+// setInterval(sincronizarMovimientos, 50000);
+// setInterval(sincronizarFichajes, 20000);
+// setInterval(sincronizarDevoluciones, 10000);
+// setInterval(sincronizarDeudasCreadas, 9000);
+// setInterval(sincronizarDeudasFinalizadas, 10000);
+// setInterval(sincronizarEncargosCreados, 9000);
+// setInterval(sincronizarEncargosFinalizados, 10000);
+// setInterval(sincronizarAlbaranesCreados, 11000);
+// // setInterval(actualizarTeclados, 3600000);
+// // setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);
-setInterval(sincronizarTicketsOtrosModificado, 16000);
-// setInterval(actualizarTrabajadores, 3600000);
-// setInterval(actualizarMesas, 3600000);
-setInterval(sincronizarPedidosCaducados, 60000);
+// setInterval(sincronizarTicketsOtrosModificado, 16000);
+// // setInterval(actualizarTrabajadores, 3600000);
+// // setInterval(actualizarMesas, 3600000);
+// setInterval(sincronizarPedidosCaducados, 60000);
+
+function ejecutarConIntervaloAleatorio(funcion, minTiempo, maxTiempo) {
+  function ejecutar() {
+    funcion(); // Ejecuta la función
+    const tiempoAleatorio = Math.floor(
+      Math.random() * (maxTiempo - minTiempo) + minTiempo
+    );
+    setTimeout(ejecutar, tiempoAleatorio);
+  }
+  ejecutar(); // Inicia la primera ejecución
+}
+
+// Configurar todas las funciones con sus respectivos rangos aleatorios
+ejecutarConIntervaloAleatorio(sincronizarTickets, 60000, 300000);
+ejecutarConIntervaloAleatorio(socketSinconizarCajas, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarMovimientos, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarFichajes, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarDevoluciones, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarDeudasCreadas, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarDeudasFinalizadas, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarEncargosCreados, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarEncargosFinalizados, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarAlbaranesCreados, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarTicketsOtrosModificado, 60000, 300000);
+ejecutarConIntervaloAleatorio(sincronizarPedidosCaducados, 60000, 300000);
 
 export {
   reenviarTicket,
