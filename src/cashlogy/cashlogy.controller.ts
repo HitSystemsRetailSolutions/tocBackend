@@ -12,9 +12,14 @@ export class CashlogyController {
   }
   
   @Post("saveGrupoProcesos")
-  saveGrupoProcesos(@Body() { grupo, info }) {
-    return cashlogyInstance.saveGrupoProcesos(grupo, info)
+  saveGrupoProcesos(@Body() { nombre, info }) {
+    return cashlogyInstance.saveGrupoProcesos(nombre, info)
   }
+  @Post("crearGrupoProcesosDeUnSoloProceso")
+  crearGrupoProcesosDeUnSoloProceso(@Body() { info }) {
+    return cashlogyInstance.crearGrupoProcesosDeUnSoloProceso(info)
+  }
+
   @Get("get_procesoPrevioInterrumpido")
   get_procesoPrevioInterrumpido() {
     return cashlogyInstance.get_procesoPrevioInterrumpido()
@@ -143,9 +148,9 @@ export class CashlogyController {
     cashlogyInstance.reiniciar(check_finalizado)
   }
 
-  @Post("enviar_comando_conexion")
-  enviar_comando_conexion(@Body() comando) {
-    return cashlogyInstance.enviar_comando_conexion(comando)
+  @Post("enviar_comando_inicializacion")
+  enviar_comando_inicializacion(@Body() comando) {
+    return cashlogyInstance.enviar_comando_inicializacion(comando)
   }
 
   @Get("do_stop_proceso_activo")

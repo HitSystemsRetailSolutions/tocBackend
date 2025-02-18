@@ -103,6 +103,9 @@ export class TicketsClase {
       console.log("error anularTicket", error);
     }
   }
+  async isTicketAnulable(idTicket: TicketsInterface["_id"]) {
+    return schTickets.isTicketAnulable(idTicket)
+  }
   /* Eze 4.0 */
   getTicketsIntervalo = (fechaInicio: number, fechaFinal: number) =>
     schTickets.getTicketsIntervalo(fechaInicio, fechaFinal);

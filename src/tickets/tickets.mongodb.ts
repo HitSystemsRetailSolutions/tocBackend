@@ -431,7 +431,14 @@ export async function anularTicket(
   }
   return false;
 }
-
+export async function isTicketAnulable(idTicket: TicketsInterface["_id"]):Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const ticketsAnulados = database.collection("ticketsAnulados");
+  const resultado = await ticketsAnulados.findOne({
+    idTicketAnulado: idTicket,
+  });
+  return resultado==null
+}
 export async function insertImprimir(
   idTicket: TicketsInterface["_id"]
 ): Promise<boolean> {

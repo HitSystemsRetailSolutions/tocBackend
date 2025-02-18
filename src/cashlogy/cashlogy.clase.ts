@@ -11,6 +11,7 @@ import { io } from "src/sockets.gateway"
 import * as schCashlogy from "./cashlogy.mongodb";
 import * as credentials from "./cashlogy.credentials"
 import { logger } from "src/logger";
+import { on } from "process";
 const loggerCashlogy = {
     Info:(errorMessage?:any, methodName?:any) => logger.Info(errorMessage, "cashlogy", methodName),
     Error:(errorMessage?:any, methodName?:any) => logger.Error(errorMessage, "cashlogy", methodName)
@@ -54,7 +55,7 @@ type notificacion_type = "NIVEL"|"AVISO"|"ERROR"|"MANTENIMIENTO"|"PENDIENTE"|"RE
 // suspendido es cuando un comando no responde porque no hay comunicación, o se esta inicializando, o tarda mucho o 
 // se esta recuperando de un abort anterior, pero el comando sigue en marcha y si se resuelven los problemas continuará.
 // Se informa al usuario del problema y se le dá la opción de abortar el comando y el proceso
-type suspendido_state_type = notificacion_conexion_type | "NO_RECUPERADO" | "TIMEOUT" | "OK"
+type suspendido_state_type = notificacion_conexion_type | "RECUPERANDO" | "TIMEOUT" | "OK"
 
 type conexion_state_type = { conectado?:boolean, inicializado?:boolean, finalizado?:boolean, err_inicializacion?:boolean } 
 
@@ -69,7 +70,7 @@ type tipo_cmd_suspendible_type = "NORMAL"|"DISPENSAR"|"RETIRAR_STACKER"|"INICIAL
 // preEstado guarda el estado al empezar el grupo_procesos y postEstado el estado despues de recuperarse.
 // los procesos a ejecutar y el estado general del grupo de procesos se encarga el frontend
 type grupo_procesos_type = {
-    grupo?: string,
+    nombre?: string,
     info?: any,
     preEstado?: proceso_estado_type,
     primerProceso?:boolean,
@@ -122,7 +123,7 @@ function check_grupo_procesos(gp:grupo_procesos_type) {
     try {
         if (gp==null) return true
         if (typeof(gp)!="object") return false
-        if (gp.grupo!=null && typeof(gp.grupo)!="string") return false
+        if (gp.nombre!=null && typeof(gp.nombre)!="string") return false
         if (gp.info!=null && typeof(gp.info)!="object") return false
         if (gp.info && gp.info.importe_entrado!=null && typeof(gp.info.importe_entrado)!="number") return false
         if (!check_proceso_estado(gp.preEstado)) return false
@@ -147,12 +148,13 @@ function check_fondoCaja(fondoCaja:any) {
 }
 // todos los procesos abortables extienden esta estructura donde se guarda la información
 type return_abort_type = {
-    cancelado?:boolean,
-    manual?:boolean,
+    abortado_antes_de_empezar?:{
+        cancelado?:boolean,
+        manual?:boolean,
+    },
     not_ready_info?:{
         conexion_state?:conexion_state_type,
         recovered?:boolean,
-        watchdog_activado?:boolean,
         stopped?:boolean,
     },
     abort_info?:{
@@ -162,15 +164,18 @@ type return_abort_type = {
         stopped?:boolean,
         last_suspendido_state?:suspendido_state_type,
         reset_remoto?:boolean,
-        texto_boton_manual?:string,
+        //opcion_manual?:boolean,
+        //texto_boton_manual?:string,
     }
 }
 
-type emit_suspendido_type = (suspendido_state:suspendido_state_type, not_started:boolean) => {
+type get_suspendido_data_type = (suspendido_state:suspendido_state_type, started:boolean) => {
     state:suspendido_state_type,
-    botones:{msg:string, bot:boton_type}[],
+    //botones:{msg:string, bot:boton_type}[],
     tipo_cmd_suspendible:tipo_cmd_suspendible_type,
-    not_started:boolean
+    started:boolean,
+    opcion_cancelar:boolean,
+    opcion_manual:boolean
 }
 
 function Promise_withResolvers<T>() {
@@ -538,7 +543,7 @@ class CashlogyClase {
             this.webSocket.close()
             this.webSocket=null
             this.num_reconnects++
-            this.stop_timeout_in_cmd()
+            //this.stop_timeout_in_cmd()
         }
         this.conexion_event({ conectado: false })
     }
@@ -568,7 +573,8 @@ class CashlogyClase {
         let connect_canceled=false
         this.cancel_previous_connect = ()=>{connect_canceled=true}
 
-        if (this.conexion_state.finalizado) return false
+        //console.log("this.conexion_state.finalizado:",this.conexion_state.finalizado)
+        if (!this.operativa_comandos_inicializacion && this.conexion_state.finalizado) return false
 
         this.ip_port=(await parametrosInstance.getParametros())?.ipCashlogy
         if (connect_canceled) return false
@@ -609,12 +615,13 @@ class CashlogyClase {
             if (connect_canceled) return // no hace falta ya que al cancelar el connect tambien close el webSocket
 
             let current_connect_id = this.connect_id
-            this.start_timeout_in_cmd()
+            //this.start_timeout_in_cmd()
             this.send_ping_with_timeout()
             if (!this.comunicacion_iniciada) { // primer connect, no mirar last_cmd
                 this.comunicacion_iniciada = true
                 this.num_reconnects=0
-                await this.inicializar(true, true)
+                if (this.operativa_comandos_inicializacion) this.conexion_event({conectado:true})
+                else await this.inicializar(true, true)
                 return
             } else {
                 let current_cmd_antes_get_remote_last_cmd = this.current_cmd
@@ -632,11 +639,14 @@ class CashlogyClase {
                         } = await this.get_remote_last_cmd()
                     if (connect_canceled) return
                     if (remote_last_cmd==null) { // aún no se habia enviado ningún comando o el minipc o el bridge se ha reiniciado
-                        this.reset_remoto_event()
+                        if (this.conexion_state.inicializado) this.reset_remoto_event()
                         if (!await this.fase_abort()) return
                         if (connect_canceled) return
-                        // si this.connect_id ha cambiado es que hay otro connect en marcha, por lo tanto no generar un evento conectado 
-                        await this.inicializar(false, true/*(current_connect_id==this.connect_id)*/)
+                        if (this.operativa_comandos_inicializacion) this.conexion_event({conectado:true, finalizado:true})
+                        else {    
+                            // si this.connect_id ha cambiado es que hay otro connect en marcha, por lo tanto no generar un evento conectado 
+                            await this.inicializar(false, true/*(current_connect_id==this.connect_id)*/)
+                        }
                         return
                     } else {
                         this.num_reconnects=0
@@ -892,6 +902,11 @@ class CashlogyClase {
                     // permitir que la promise que resuelve el callback pueda abortar la operativa antes de enviar otro cmd
                     // ya que la promise se resuelve asyncronamente en las microtasks y setImmediate en las macrotasks
                     await new Promise((res)=>{ setImmediate(res) }) 
+                    // mirar si el último comando ha abortado la operativa en la resolución de su promise
+                    if (this.is_abort_lock_aborted(abort_lock)) {
+                        abort_all_pendings()
+                        break
+                    }
                 }
 
                 this.remove_abort_lock(abort_lock)
@@ -906,9 +921,9 @@ class CashlogyClase {
         let timeout_no_respuesta_id:ReturnType<typeof setTimeout>
         const no_respuesta_action = async() => {
             if (!this.timeout_in_cmd_action && this.conexion_state.conectado) {
-                if (!this.recovered) {
+                /*if (!this.recovered) {
                     //re
-                }
+                }*/
                 if (!await this.fase_abort()) return
                 let abort_lock = this.create_abort_lock()
                 if (!abort_lock) return
@@ -1464,7 +1479,7 @@ class CashlogyClase {
             await this.wait_recovered()
             try {
                 await this.subproceso_mantenimiento("CONSULTA")
-                await delay_ms(60*60*1000)
+                await delay_ms(2*60*60*1000)
             } catch (e) {
                 await delay_ms(10*60*1000)
             }
@@ -1553,7 +1568,8 @@ class CashlogyClase {
             // proceso == null -> borrar info
             if (this.grupo_procesos) {
                 delete this.grupo_procesos.enCurso
-                if (!this.grupo_procesos.grupo) this.grupo_procesos = null // proceso sin grupo_procesos
+                if (this.grupo_procesos.nombre==null) this.grupo_procesos = null // proceso sin grupo_procesos
+                else if (this.grupo_procesos.nombre=="") this.grupo_procesos = null // grupo de procesos especial de un solo proceso
             }
         }
         await this.saveGrupoProcesosDB(this.grupo_procesos)
@@ -1584,16 +1600,16 @@ class CashlogyClase {
     }
     // crear o actualizar grupo_procesos
     proximo_grupo_procesos:grupo_procesos_type
-    async saveGrupoProcesos(grupo:string, info:any) {
-        if (!grupo && !info) {
+    async saveGrupoProcesos(nombre:string, info:any) {
+        if (nombre==null && info==null) {
             // Aqui no puede haberse reiniciado el frontend ya que se habria dado cuenta en saveGrupoProcesos(!null)
 
-            // grupo==null & info==null -> fin de grupo procesos correcto, aunque hubiera un error, 
+            // nombre==null & info==null -> fin de grupo procesos correcto, aunque hubiera un error, 
             // seria desde el retorno del último proceso y la llamada de esta función, por lo que no afectaria a la operativa 
             this.proximo_grupo_procesos = null
             this.grupo_procesos = null
             await this.saveGrupoProcesosDB(this.grupo_procesos)
-        } else if (this.grupo_procesos?.postEstado || (grupo && this.grupo_procesos?.preEstado)) {
+        } else if (this.grupo_procesos?.postEstado || (nombre!=null && this.grupo_procesos?.preEstado)) {
             // si postEstado es que el último proceso se aborto y aún no se ha informado al usuario
             // hay un grupo con preEstado y se inicia otro, solo puede darse si se reinicia el frontend
             // si no habia preEstado no hay que recuperar porque no se puede comparar post con pre
@@ -1618,11 +1634,11 @@ class CashlogyClase {
             }
             // el grupo_procesos anterior se interrumpio pero no se ha informado aún al usuario
             // se guarda la información hasta que se informe
-            this.proximo_grupo_procesos = grupo ? { grupo, info, primerProceso:true } : null
+            this.proximo_grupo_procesos = nombre!=null ? { nombre, info, primerProceso:true } : null
         } else {
             this.proximo_grupo_procesos = null
             if (!this.grupo_procesos) {
-                this.grupo_procesos = { grupo, info, primerProceso:true }
+                this.grupo_procesos = { nombre, info, primerProceso:true }
             } else {
                 this.grupo_procesos.info = {
                     ...this.grupo_procesos.info,
@@ -1631,6 +1647,10 @@ class CashlogyClase {
             }
             await this.saveGrupoProcesosDB(this.grupo_procesos)
         }
+    }
+    // el grupo de procesos con nombre == "" se borrara automáticamente cuando se cierre el proceso
+    async crearGrupoProcesosDeUnSoloProceso(info:any) {
+        return this.saveGrupoProcesos("", info)
     }
 
     get_procesoPrevioInterrumpido() {
@@ -1733,6 +1753,8 @@ class CashlogyClase {
     }
 
     // Cuando acabe la fase de recuperación se ejecuta un recovered_event y se continuan los procesos esperando 
+    // despues de esperar la promesa wait_recovered con valor true no se puede volver a abortar immediatamente 
+    // ya que puede haber otras promesas wait_recovered que se resolverian con true despues
     recovered=false
     list_wait_recovered:((ok:boolean)=>void)[] = []
     recovered_event() {
@@ -1805,13 +1827,22 @@ class CashlogyClase {
     }
 
     //-----------------------------------------
-    // conexion_state tien tres estados ok, conectado, inicializando
+    // conexion_state tiene los estados conectado, inicializado, finalizado e err_inicializacion
+    // - err_inicializacion: implica finalizado
+    // - finalizado: no se conectara hasta que se llame a reiniciar, implica !conectado y !inicializado
+    // - conectado: conectado con websocket, aunque no este conectado puede estar inicializado
+    // - inicializado: aunque este inicializado, hay que esperar a que la variable recovered==true para enviar
+    //      comando de la operativa normal.
+    // - aunque recovered no este en conexion_state, podria estar ya que también es un estado.
+    //      no inicializado implica no recovered
 
     conexion_state:conexion_state_type={ conectado:false, inicializado:false, finalizado:false, err_inicializacion:false }
     list_conexion_handlers:((state:conexion_state_type)=>void)[]=[]
-    list_wait_conexion:((ok:boolean)=>void)[] = []
-
-    conexion_ok() { return this.conexion_state.conectado && this.conexion_state.inicializado; }
+    map_list_wait_conexion:Map<boolean, ((ok:boolean)=>void)[]> = new Map([[false,[]],[true,[]]]) // Map<inicializado_ok,[]>
+    conexion_ok(inicializado_ok:boolean=true) { 
+        if (inicializado_ok) return this.conexion_state.conectado && this.conexion_state.inicializado; 
+        else return this.conexion_state.conectado
+    }
     conexion_event(new_state:conexion_state_type) {
         this.conexion_state = {
             ...this.conexion_state,
@@ -1819,22 +1850,24 @@ class CashlogyClase {
         }
         if (this.conexion_state.err_inicializacion) this.conexion_state.finalizado=true
         if (this.conexion_state.finalizado) {
-            this.conexion_state.conectado = false
+            //this.conexion_state.conectado = false
             this.conexion_state.inicializado = false
         }
         this.list_conexion_handlers.forEach((handler) => { handler(this.conexion_state); })
-        if (this.conexion_ok()) {
-            let list = this.list_wait_conexion
-            this.list_wait_conexion = []
-            list.forEach((callback) => { callback(true) })
-        }
+        ;[false,true].forEach((inicializado_ok)=>{
+            if (this.conexion_ok(inicializado_ok)) {
+                let list = this.map_list_wait_conexion.get(inicializado_ok)
+                this.map_list_wait_conexion.set(inicializado_ok, [])
+                list.forEach((callback) => { callback(true) })
+            }}
+        )
         // solo se envia una notificación true
         let tipo_notificacion_a_enviar=this.get_notificacion_of_conexion_state();
         let notificaciones:notificacion_type[] = [ "ERR_INICIALIZACION", "FINALIZADO", "CONECTANDO", "INICIALIZANDO" ]
         notificaciones.forEach(tipo=>{
             this.notificacion(tipo, tipo_notificacion_a_enviar==tipo)
         })
-        if (this.conexion_state.finalizado) this.notificacion("RESET_REMOTO", true)
+        //if (this.conexion_state.finalizado) this.notificacion("RESET_REMOTO", true)
     }
     get_notificacion_of_conexion_state() {
         let state_to_notificacion:[boolean,notificacion_conexion_type][]=[
@@ -1852,14 +1885,14 @@ class CashlogyClase {
         removeItemArray(handler, this.list_conexion_handlers)
     }
 
-    async wait_conexion(abort_wait:Promise<void>=null) {
-        if (this.conexion_ok()) {
+    async wait_conexion(abort_wait:Promise<void>=null, inicializado_ok:boolean=true) {
+        if (this.conexion_ok(inicializado_ok)) {
             return true
         } else {
             let { promise, resolve } = Promise_withResolvers<boolean>()
-            this.list_wait_conexion.push(resolve)
+            this.map_list_wait_conexion.get(inicializado_ok).push(resolve)
             if (abort_wait) abort_wait.then(() => {
-                removeItemArray(resolve, this.list_wait_conexion)
+                removeItemArray(resolve, this.map_list_wait_conexion.get(inicializado_ok))
                 resolve(false)
             })
             return await promise    
@@ -1935,22 +1968,23 @@ class CashlogyClase {
             - Si el usuario ha abortado la operación se encarga de iniciar la recuperación.
     */
     async generar_controlador_de_estado_para_proceso(
-            emit_suspendido:emit_suspendido_type
+            get_suspendido_data?:get_suspendido_data_type
     ){
         let control_obj:{
             reject_if_abort?:()=>void,
-            //boton_not_ready?:boton_type,
             return_abort?:return_abort_type, // objeto que se retorna en caso de abort o cancel
             delay_with_abort?:(ms:number)=>Promise<void>,
             finalizar?:()=>void,
             finalizar_catch?:(e_catch:string|Symbol)=>Promise<return_abort_type>
         } = {}
 
-        let promise_abort_by_user:Promise<boton_type>
+        let promise_abort_by_user:Promise<return_abort_type>
         let abort_lock:abort_lock_type
 
         //control_obj.boton_not_ready = BOT_CANCELAR
         control_obj.return_abort = { /*cancelado:true*/ }
+
+        if (!get_suspendido_data) get_suspendido_data=this.get_suspendido_data_comun
 
         // -------------------------
         let stopped = false
@@ -1965,17 +1999,33 @@ class CashlogyClase {
             await new Promise((resolve)=>{setImmediate(resolve)}) // esperar a que acaben las promises de stop
         }
 
-        let fase_not_started = true
+        let fase_started = false
 
         // por si falla el evento en socket.io, en teoria solo pasa en debug
-        let timeout_emit_suspendido = setInterval(()=>{do_emit_suspendido()}, 10*1000)
+        let timeout_emit_suspendido:ReturnType<typeof setInterval>
+
+        const conexion_handler = (state:conexion_state_type) => {
+            do_emit_suspendido()
+        }
+        const enable_conexion_handler = (enable:boolean) => {
+            if (enable) {
+                timeout_emit_suspendido = setInterval(()=>{do_emit_suspendido()}, 10*1000)
+                this.set_conexion_handler(conexion_handler)
+            } else {
+                clearInterval(timeout_emit_suspendido)
+                this.remove_conexion_handler(conexion_handler)
+                if (last_suspendido_state!="OK") do_emit_suspendido("OK")
+            }
+        }
+        
         // generar retorno si stop
         const return_stopped = () => { 
             control_obj.return_abort={ /*cancelado:true,*/ not_ready_info:{stopped:true} }; 
             return return_with_return_abort()
         }
         const return_with_return_abort = () => {
-            clearInterval(timeout_emit_suspendido)
+            //clearInterval(timeout_emit_suspendido)
+            enable_conexion_handler(false)
             return control_obj
         }
         let timeout_activado = false
@@ -1985,21 +2035,36 @@ class CashlogyClase {
         // a la función emit_suspendido que emitira un evento al frontend.
         // emit_suspendido es proporcionado por el proceso, ya que cada proceso puede generar información diferente
         // que presentar al usuario. 
-        const do_emit_suspendido = () => {
-            let state:suspendido_state_type
-
-            state=this.get_notificacion_of_conexion_state()
+        const do_emit_suspendido = (state?:suspendido_state_type) => {
+            //let state:suspendido_state_type
             if (!state) {
-                     if (!this.recovered) state="NO_RECUPERADO"
-                else if (timeout_activado) state="TIMEOUT"
-                else                        state="OK"
+                if (this.operativa_comandos_inicializacion) {
+                         if (!this.conexion_state.conectado) state="CONECTANDO"
+                    else if (timeout_activado)              state="TIMEOUT"
+                    else                                    state="OK"
+                } else {
+                    state=this.get_notificacion_of_conexion_state()
+                    if (!state) {
+                             if (!this.recovered)  state="RECUPERANDO"
+                        else if (timeout_activado) state="TIMEOUT"
+                        else                       state="OK"
+                    }
+                }
             }
             last_suspendido_state = state
-            return emit_suspendido(state, fase_not_started)
+            let data = get_suspendido_data(state, fase_started)
+            io.emit("Cashlogy.suspendido", data)
+            return data
         }
 
+        let saved_operativa_comandos_inicializacion = this.operativa_comandos_inicializacion
         // se ejecuta después de la fase de abort en caso de que este controlador haya generado el abort.
         const recovery_from_abort = async(reset:boolean) => {
+            if (saved_operativa_comandos_inicializacion) { 
+                // saved porque esta parte se ejecuta despues de salir y que se cambie el valor de la variable 
+                this.conexion_event({finalizado:true})
+                return
+            }
             let failed =false
             let abort_lock = this.create_abort_lock()
             if (!abort_lock) return
@@ -2016,20 +2081,32 @@ class CashlogyClase {
             }
         }
 
+        enable_conexion_handler(true)
+
         let boton_handler_fase_started:(boton:boton_type)=>void
 
         do {
             // -------------------------
 
             // esperar a que conexión este ok y después esperar a que este recovered
-            for (let {check, wait} of [
-                    {check:() => this.conexion_ok(), wait:(abort_wait_promise:Promise<void>) => this.wait_conexion(abort_wait_promise)},
-                    {check:() => this.recovered, wait:(abort_wait_promise:Promise<void>) => this.wait_recovered(abort_wait_promise)}
-                ]) {
+            for (let {check, wait} of this.operativa_comandos_inicializacion?
+                    [ {check:() => this.conexion_ok(false), wait:(abort_wait_promise:Promise<void>) => this.wait_conexion(abort_wait_promise, false)}
+
+                    ]
+                    :
+                    [
+                        {check:() => this.conexion_ok(), wait:(abort_wait_promise:Promise<void>) => this.wait_conexion(abort_wait_promise)},
+                        {check:() => this.recovered, wait:(abort_wait_promise:Promise<void>) => this.wait_recovered(abort_wait_promise)}
+                    ]
+                ) {
                 if (!check()) {
                     let data_emit_suspendido = do_emit_suspendido()
-                    let botones=data_emit_suspendido.botones.map((m_b)=>m_b.bot)
-                    // emit Cashlogy notReadyState 
+                    // los botones dependen del proceso y de fase_started, no cambian dentro de este bucle
+                    // los botones son BOT_ABORTAR_Y_CANCELAR y BOT_ABORTAR_Y_MANUAL (en algunos procesos)
+                    let botones:boton_type[] = [BOT_ABORTAR_Y_CANCELAR];
+                    if (data_emit_suspendido.opcion_manual) botones.push(BOT_ABORTAR_Y_MANUAL)
+
+                        // emit Cashlogy notReadyState 
                     let { promise:abort_wait_promise, resolve:abort_wait_resolve } = Promise_withResolvers<void>()
                     let boton_not_ready:boton_type
                     let handler_boton = (bot:boton_type) => { 
@@ -2047,34 +2124,29 @@ class CashlogyClase {
                     if (stopped) return return_stopped()
                     //this.boton_reset(botones)
                     if (!wait_ok) { // se ha salido de la espera por tecla pulsada o reset_remoto
+                        control_obj.return_abort = {
+                            not_ready_info:{
+                                conexion_state:{ ...this.conexion_state },
+                                recovered:this.recovered,
+                            },
+                        }
                         if (this.hay_reset_remoto()) {
-                            control_obj.return_abort = {
-                                //cancelado:true,
-                                not_ready_info:{
-                                    conexion_state:{ ...this.conexion_state },
-                                    recovered:this.recovered,
-                                },
-                                abort_info:{
-                                    reason:"RESET2",
-                                    grupo_procesos:this.grupo_procesos,
-                                    reset_remoto:true
-                                }
+                            control_obj.return_abort.abort_info = {
+                                reason:"RESET2",
+                                grupo_procesos:this.grupo_procesos,
+                                reset_remoto:true
                             }
                         } else {
                             // generar el return_abort, con cancel o manual dependiendo del boton pulsado
                             // manual solo se da en el proceso de cobrar
-                            control_obj.return_abort = {
+                            control_obj.return_abort.abortado_antes_de_empezar={
                                 cancelado:(boton_not_ready==BOT_ABORTAR_Y_CANCELAR),
-                                manual:(boton_not_ready==BOT_ABORTAR_Y_MANUAL),
-                                not_ready_info:{
-                                    conexion_state:{ ...this.conexion_state },
-                                    recovered:this.recovered,
-                                }
+                                manual:(boton_not_ready==BOT_ABORTAR_Y_MANUAL)
                             }
                             // si se cancela aqui antes de haber iniciado ningún proceso del grupo grupo_procesos,
                             // significa que cashlogy esta en el mismo estado que cuando se inicio la operativa,
                             // por lo tanto no se tendra que arreglar la contabilidad
-                            if (this.get_grupo_procesos_real()?.primerProceso===false) { //????
+                            if (this.operativa_comandos_inicializacion || this.get_grupo_procesos_real()?.primerProceso===false) { //????
                                 // como no es el primer proceso del grupo de procesos, es como si se abortara,
                                 // y se tendra que arreglar la contabilidad
                                 control_obj.return_abort.abort_info = {
@@ -2094,7 +2166,7 @@ class CashlogyClase {
                     }
                 }
             }
-            do_emit_suspendido() // actualizar el estado de suspendido
+            do_emit_suspendido() // actualizar el estado de suspendido, de NO_RECUPRADO a OK, por ejemplo
 
             // -------------------------------
 
@@ -2102,34 +2174,35 @@ class CashlogyClase {
 
             // this.grupo_procesos = null // ???? debug
 
-            // después de esperar recovered puede haber un proceso previo interrumpido que se ha de informar al usuario
-            // no puede ser antes de mirar recovered
-            if (this.grupo_procesos?.postEstado) {
-                // informar al usuario si el proceso previo se ha interrumpido
-                let { promise, resolve } = Promise_withResolvers<boton_type>()
-                this.boton_setHandler([BOT_ACEPTAR, BOT_CANCELAR, BOT_MANUAL], resolve)
-                io.emit("Cashlogy.procesoPrevioInterrumpido", this.grupo_procesos)
-                let bot_proceso_en_curso = await Promise.race([promise, stoppedPromise])
-                this.boton_removeHandler(resolve)
-                if (stopped) return return_stopped()
-                if (bot_proceso_en_curso == BOT_CANCELAR || bot_proceso_en_curso == BOT_MANUAL) {
-                    control_obj.return_abort={
-                        cancelado:bot_proceso_en_curso == BOT_CANCELAR, 
-                        manual:bot_proceso_en_curso == BOT_MANUAL
+            if (!this.operativa_comandos_inicializacion) {
+                // después de esperar recovered puede haber un proceso previo interrumpido que se ha de informar al usuario
+                // no puede ser antes de mirar recovered
+                if (this.grupo_procesos?.postEstado) {
+                    // informar al usuario si el proceso previo se ha interrumpido
+                    let { promise, resolve } = Promise_withResolvers<boton_type>()
+                    this.boton_setHandler([BOT_ACEPTAR, BOT_CANCELAR, BOT_MANUAL], resolve)
+                    io.emit("Cashlogy.procesoPrevioInterrumpido", this.grupo_procesos)
+                    let bot_proceso_en_curso = await Promise.race([promise, stoppedPromise])
+                    this.boton_removeHandler(resolve)
+                    if (stopped) return return_stopped()
+                    if (bot_proceso_en_curso == BOT_CANCELAR || bot_proceso_en_curso == BOT_MANUAL) {
+                        control_obj.return_abort.abortado_antes_de_empezar={
+                            cancelado:bot_proceso_en_curso == BOT_CANCELAR, 
+                            manual:bot_proceso_en_curso == BOT_MANUAL
+                        }
+                        this.stop_proceso_activo = null
+                        return return_with_return_abort()
+                    } else {
+                        await this.aceptar_procesoPrevioInterrumpido()
+                        continue // recheck conexion y recovered
                     }
-                    this.stop_proceso_activo = null
-                    return return_with_return_abort()
-                }else {
-                    await this.aceptar_procesoPrevioInterrumpido()
-                    continue // recheck conexion y recovered
+                }
+
+                if (this.proximo_grupo_procesos) {
+                    this.grupo_procesos = this.proximo_grupo_procesos
+                    this.proximo_grupo_procesos = null
                 }
             }
-
-            if (this.proximo_grupo_procesos) {
-                this.grupo_procesos = this.proximo_grupo_procesos
-                this.proximo_grupo_procesos = null
-            }
-
             const abort_handler = () => {
                 if (control_obj.reject_if_abort) control_obj.reject_if_abort()
                 //this.boton_reset([BOT_ABORTAR_Y_CANCELAR, BOT_ABORTAR_Y_MANUAL])
@@ -2137,8 +2210,15 @@ class CashlogyClase {
             }
 
             abort_lock = this.create_abort_lock(abort_handler)
-            if (!abort_lock) continue // recheck conexion y recovered
-
+            if (!abort_lock) {
+                if (this.operativa_comandos_inicializacion) {
+                    control_obj.return_abort = {
+                        abort_info: { reason: "ABORT2" }
+                    }
+                    return return_with_return_abort()
+                }
+                else continue // recheck conexion y recovered
+            }
             break
         } while (true)
 
@@ -2162,16 +2242,15 @@ class CashlogyClase {
         // ------------------------------
 
         delete control_obj.return_abort
-        fase_not_started = false
+        fase_started = true
 
         // A partir de aqui solo se ponen los handlers para los diferentes eventos y se generan las funciones finalizar, que el proceso
         // llamara cuando termine y después se vuelve al proceso para iniciarse. Cuando el proceso acabe llamara a la función finalizar
         // correspondiente
 
-        // podria haber watchdog activado y no connection
-
         // timeout_in_cmd para avisar al usuario que un comando tarda mucho
         const timeout_action = () => {
+            //if (this.operativa_comandos_inicializacion) return
             timeout_activado = true
             this.timeout_in_cmd_before_refresh = () => {
                 timeout_activado=false // si se refresca el timeout emitir no timeout
@@ -2179,9 +2258,9 @@ class CashlogyClase {
             }
             do_emit_suspendido() // emitir timeout
         }
-        const conexion_handler = (state:conexion_state_type) => {
+        /*const conexion_handler = (state:conexion_state_type) => {
             do_emit_suspendido()
-        }
+        }*/
 
         // timeouts para diferentes tipos de comandos que se pueden ejecutar durante el proceso, como los propios del proceso,
         // la consulta de errores o mantenimiento. En caso de que se ejecutar el comando inicializar, antes se habria abortado,
@@ -2193,39 +2272,36 @@ class CashlogyClase {
             INICIALIZAR: 5*60*1000
         })
 
-        this.set_conexion_handler(conexion_handler)
+        //this.set_conexion_handler(conexion_handler)
 
         boton_handler_fase_started = (boton:boton_type) => {
             if (this.is_abort_lock_aborted(abort_lock)) return // se ha abortado un momento antes de pulsar el boton
-            if (timeout_activado || !this.conexion_ok() || stopped) {
-                promise_abort_by_user = new Promise<boton_type>(async (resolve) => { 
-                    control_obj.return_abort = {
-                        //cancelado:(boton==BOT_ABORTAR_Y_CANCELAR),
-                        //manual:(boton==BOT_ABORTAR_Y_MANUAL),
-                        not_ready_info:{
-                            conexion_state:{...this.conexion_state},
-                            recovered:this.recovered
-                        },
-                        abort_info:{
-                            reason:"USER",
-                            grupo_procesos:this.grupo_procesos,
-                            timeout_activado,
-                            stopped,
-                            last_suspendido_state,
-                        }
+            promise_abort_by_user = new Promise<return_abort_type>(async (resolve) => { 
+                let ret:return_abort_type = {
+                    not_ready_info:{
+                        conexion_state:{...this.conexion_state},
+                        recovered:this.recovered
+                    },
+                    abort_info:{
+                        reason:"USER",
+                        grupo_procesos:this.grupo_procesos,
+                        timeout_activado,
+                        stopped,
+                        last_suspendido_state,
                     }
-                    if (await this.fase_abort()) {
-                        // no await, se deja recuperando y se vuelve al proceso que retornara el resultado al frontend
-                        /* await */ recovery_from_abort(true) // true = enviar un reset a la máquina
-                    }
-                    resolve(boton)
-                    //return control_obj.promise_abort_by_user
-                })
-            } else {
+                }
+                if (await this.fase_abort()) {
+                    // no await, se deja recuperando y se vuelve al proceso que retornara el resultado al frontend
+                    /* await */ recovery_from_abort(true) // true = enviar un reset a la máquina
+                }
+                resolve(ret)
+            })
+
+            // else { // no usado, si llega pulsacion boton se aborta aunque ya se haya recuperado 
                 // como la pulsacion llega asincrona por http podria haberse solucionado el problema antes de llegar, seria muy raro
                 // como pulsar el boton quita el handler, se vuelve a poner
-                set_boton_handler_bot_abortar() 
-            }
+                // set_boton_handler_bot_abortar() 
+            //      }
         }
 
         // en fase_not_started se pone handler para los botones permitidos, pero aqui se ponen para todos los BOT_ABORT.
@@ -2254,13 +2330,14 @@ class CashlogyClase {
 
         const clear = () => {
             if (!stopped) this.stop_proceso_activo = null // si stopped es que otro proceso a puesto stop_proceso_activo
-            clearInterval(timeout_emit_suspendido)
-            if (last_suspendido_state!="OK") emit_suspendido("OK",false)
+            //clearInterval(timeout_emit_suspendido)
+            //if (last_suspendido_state!="OK") emit_suspendido("OK",false)
             this.remove_abort_lock(abort_lock)
             //this.boton_reset([BOT_ABORTAR_Y_CANCELAR, BOT_ABORTAR_Y_MANUAL])
             this.boton_removeHandler(boton_handler_fase_started)
             this.remove_timeout_in_cmd()
-            this.remove_conexion_handler(conexion_handler)
+            enable_conexion_handler(false)
+            //this.remove_conexion_handler(conexion_handler)
         }
         // finalizar, si el proceso acaba correctamente
         control_obj.finalizar = () => {
@@ -2284,11 +2361,12 @@ class CashlogyClase {
                 }
             }
             if (promise_abort_by_user) {
-                let boton = await promise_abort_by_user
-                ret = control_obj.return_abort
+                ret = await promise_abort_by_user
             } else if (e_catch==ABORT_CMD) {
-                // aqui se entra si después de una reconexión , el websocket server informa que se ha reiniciado
-                ret.cancelado=true
+                // aqui se entra si se ha ejecutado fase_abort en algún lugar que no sea esta opeartiva,
+                // por ejemplo después de una reconexión, el websocket server informa que se ha reiniciado
+                // o en el bucle de consulta error despues de un reinicio, etc...
+                //ret.cancelado=true // no es necesario cancelado=true
                 ret.abort_info.reason="RESET"
                 ret.not_ready_info={
                     conexion_state:{...this.conexion_state},
@@ -2301,7 +2379,7 @@ class CashlogyClase {
                     // no await, se deja recuperando y se vuelve al proceso que retornara el resultado al frontend
                     /* await */ recovery_from_abort(true)
                 } 
-                ret.cancelado=true
+                //ret.cancelado=true // no es necesario cancelado=true
                 ret.abort_info.reason=e_catch.toString()
                     // no se genera evento ni notificación reset_remoto, ya que se envia el error directamente
                 ret.abort_info.reset_remoto=(e_catch==ER_ILLEGAL) 
@@ -2330,23 +2408,18 @@ class CashlogyClase {
         return continue_loop
     }
 
-    // emit_suspendido para la mayoria de procesos, generara un boton "CANCELAR" o "ABORTAR" dependiendo de si el proceso 
+    // get_suspendido_data para la mayoria de procesos, generara un boton "CANCELAR" o "INTERRUMPIR" dependiendo de si el proceso 
     // no ha empezado o sí ha empezado
-    emit_suspendido_comun:emit_suspendido_type = (suspendido_state:suspendido_state_type, not_started:boolean) => {
-        let data:{
-            state:suspendido_state_type,
-            botones:{msg:string, bot:boton_type}[],
-            tipo_cmd_suspendible:tipo_cmd_suspendible_type,
-            not_started:boolean
-        } ={
+    get_suspendido_data_comun:get_suspendido_data_type = (suspendido_state:suspendido_state_type, started:boolean) => {
+        let data:ReturnType<get_suspendido_data_type>={
             state:suspendido_state,
-            botones:(not_started) ? 
-                        [{ msg: "CANCELAR", bot:BOT_ABORTAR_Y_CANCELAR }] :
-                        [{ msg: "INTERRUMPIR", bot:BOT_ABORTAR_Y_CANCELAR }],
             tipo_cmd_suspendible:this.current_cmd?.tipo_cmd_suspendible,
-            not_started
+            started,
+            opcion_cancelar:!started,
+            opcion_manual:false
         }
-        io.emit("Cashlogy.suspendido", data)
+        
+        //io.emit("Cashlogy.suspendido", data)
         return data 
     }
 
@@ -2356,7 +2429,7 @@ class CashlogyClase {
     // Procesos con controlador de estado
 
     async cobrar(importe_a_cobrar:number, auto_aceptar):Promise<{ // objecto devuelto al frontend
-        //cancelado?:boolean,
+        cancelado?:boolean,
         importe_devuelto?:number,
         importe_falta_devolver?:number,
         error_en_la_devolucion?:boolean,
@@ -2406,7 +2479,7 @@ class CashlogyClase {
                 case "ENTRADA":
                     data.importe_entrado=to_euros(cents_in);
                     data.importe_entrado_manualmente=importe_entrado_manualmente
-                    data.importe_pendiente=to_euros(cents_a_cobrar-cents_in)
+                    data.importe_pendiente=to_euros(cents_a_cobrar-(cents_in+to_cents(importe_entrado_manualmente)))
                     data.finalizando_admision = finalizando_admision
                     data.cancelando = cancelando
                     break;
@@ -2421,42 +2494,16 @@ class CashlogyClase {
         }
 
         // en el proceso cobrar, si el proceso esta suspendido, se puede cancelar o resolver manualmente 
-        const emit_suspendido:emit_suspendido_type = (suspendido_state:suspendido_state_type, not_started:boolean) => {
-            let data:{
-                state:suspendido_state_type,
-                botones:{msg:string, bot:boton_type}[],
-                tipo_cmd_suspendible:tipo_cmd_suspendible_type,
-                not_started:boolean
-            } = {
-                state:suspendido_state,
-                botones:[],
-                tipo_cmd_suspendible:this.current_cmd?.tipo_cmd_suspendible,
-                not_started
-            };
-            if (update_state==null) {
-                data.botones = [ 
-                    { msg: "CANCELAR", bot:BOT_ABORTAR_Y_CANCELAR },
-                    { msg: "COBRAR MANUALMENTE", bot:BOT_ABORTAR_Y_MANUAL }
-                ]
-            } else {
-                data.botones = [ { msg: "INTERRUMPIR", bot:BOT_ABORTAR_Y_CANCELAR } ]
-                /*if (update_state=="ENTRADA" || update_state=="CANCELAR") {
-                    data.botones.push({ msg: "INTERRUMPIR Y COBRAR MANUALMENTE", bot:BOT_ABORTAR_Y_MANUAL })
-                }*/
-            }
-            io.emit("Cashlogy.suspendido", data)
+        const get_suspendido_data:get_suspendido_data_type = (suspendido_state:suspendido_state_type, started:boolean) => {
+            let data=this.get_suspendido_data_comun(suspendido_state, started)
+            data.opcion_cancelar=(update_state==null)
+            data.opcion_manual=(update_state==null)
             return data
         }
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(emit_suspendido)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso(get_suspendido_data)
         if (control_obj.return_abort) {
-            if (control_obj.return_abort.abort_info) { 
-                control_obj.return_abort.abort_info.texto_boton_manual = "COBRAR MANUALMENTE" 
-            }
             loggerCashlogy.Error("out-1", "cobrar")
-            return {
-                ...control_obj.return_abort,
-                importe_falta_devolver:(control_obj.return_abort.cancelado)?0:null
-            }
+            return control_obj.return_abort
         }
         try {
             // guardar estado de Cashlogy por si se aborta, poder recuperar la contabilidad
@@ -2536,7 +2583,7 @@ class CashlogyClase {
                         await this.saveProceso("COBRO", {update_state, cents_vuelta, cents_a_cobrar})
 
                         ;( { err, cents_out } = await this.cmd_dispensar(cents_vuelta) )
-                        error_en_la_devolucion = (err==ER_GENERIC) && (cents_out!=0)
+                        error_en_la_devolucion = (err==ER_GENERIC) && (cents_out!=0) // si no tiene cambio da ER_GENERIC y cents_out=0
                         cents_falta_vuelta = cents_vuelta-cents_out
 
                         //await this.consulta_error()
@@ -2575,11 +2622,12 @@ class CashlogyClase {
             // finalizar el controlador con error, ret tendra la información del error que se envia al frontend
             // ret puede extenderse con información del estado parcial del proceso, si es necesario
             let ret = await control_obj.finalizar_catch(e)
-            if (update_state=="ENTRADA" || update_state=="CANCELAR") {
-                if (ret.abort_info) ret.abort_info.texto_boton_manual="COBRAR MANUALMENTE" // abort_info ya tendria que ser != null
-            }
+            /*if (update_state=="ENTRADA" || update_state=="CANCELAR" || update_state==undefined) { // undefined: error en primer cmd
+                if (ret.abort_info) ret.abort_info.opcion_manual=true; // abort_info ya tendria que ser != null
+            }*/
             if (update_state=="CANCELAR") return {
                 ...ret,
+                cancelado:true,
                 importe_devuelto:to_euros(cents_out),
                 importe_falta_devolver:to_euros(cents_falta_cancelar),
                 error_en_la_devolucion,
@@ -2595,7 +2643,7 @@ class CashlogyClase {
                 importe_entrado:to_euros(cents_in),
                 importe_entrado_manualmente
             }
-            return ret // update_state=="ENTRADA"
+            return ret // update_state=="ENTRADA" o undefined
         } finally {
         }
     }
@@ -2765,7 +2813,7 @@ class CashlogyClase {
         let error_en_la_devolucion=false
         let cents_a_devolver=to_cents(importe_a_devolver)
 
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
         if (control_obj.return_abort) {
             loggerCashlogy.Error("out-1", "anadir_cambios_y_devolver")
             return {
@@ -2807,7 +2855,7 @@ class CashlogyClase {
     } & return_abort_type> {
         let cents_in:number
 
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
         if (control_obj.return_abort) return {
             ...control_obj.return_abort,
             importe_entrado:0
@@ -2836,7 +2884,7 @@ class CashlogyClase {
         let error_en_la_devolucion=false
         let cents_a_devolver=to_cents(importe_a_devolver)
 
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
         if (control_obj.return_abort) return {
             ...control_obj.return_abort,
             importe_falta_devolver:0
@@ -2903,7 +2951,7 @@ class CashlogyClase {
             io.emit("Cashlogy.update", data)
         }
 
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
         if (control_obj.return_abort) {
             return {
                 ...control_obj.return_abort,
@@ -2972,7 +3020,8 @@ class CashlogyClase {
             let ret = await control_obj.finalizar_catch(e)
             return {
                 ...ret,
-                importe_entrado:update_state=="CANCELAR"?to_euros(cents_in):null,
+                cancelado: cancelando,
+                importe_entrado:cancelando?to_euros(cents_in):null,
                 error_en_la_devolucion
             }
         }
@@ -3032,7 +3081,7 @@ class CashlogyClase {
             cents_a_retirar+=(value||0)*den
         })
 
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
         if (control_obj.return_abort) return {
             ...control_obj.return_abort,
             importe_a_retirar:to_euros(cents_a_retirar),
@@ -3050,7 +3099,7 @@ class CashlogyClase {
             if (err == ER_GENERIC) {
                 error_en_la_devolucion=false
                 for (let { value } of mob_den_value_vpd(cantidad_devuelta_pd)) {
-                    if (value) {
+                    if (value) { // si no tiene cambio da ER_GENERIC y todos los value=0 
                         error_en_la_devolucion=true
                         break
                     }
@@ -3129,7 +3178,7 @@ class CashlogyClase {
             io.emit("Cashlogy.update", data)
         }
 
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
         if (control_obj.return_abort) return {
             ...control_obj.return_abort,
             importe_vaciado_solo_monedas:0
@@ -3187,7 +3236,7 @@ class CashlogyClase {
 
         //const proceso = "CONSULTA_DENOMINACIONES_RECICLADOR"
 
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
         if (control_obj.return_abort) return control_obj.return_abort
 
         try {
@@ -3262,7 +3311,7 @@ class CashlogyClase {
             io.emit("Cashlogy.update", data)
         }
 
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
         if (control_obj.return_abort) return {
             ...control_obj.return_abort,
             importe_recaudado:0
@@ -3337,7 +3386,7 @@ class CashlogyClase {
 
         const proceso = "MANTENIMIENTO"
 
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
         if (control_obj.return_abort) return control_obj.return_abort
 
         try {
@@ -3366,7 +3415,7 @@ class CashlogyClase {
 
         const proceso = "PONER_A_CERO"
             
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
         if (control_obj.return_abort) return control_obj.return_abort
 
         try {
@@ -3393,7 +3442,7 @@ class CashlogyClase {
 
         const proceso = "RESOLUCION_INCIDENCIAS"
             
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
         if (control_obj.return_abort) return control_obj.return_abort
 
         try {
@@ -3413,37 +3462,56 @@ class CashlogyClase {
         }
     }
 
-    async enviar_comando_conexion(comando:"INICIALIZAR"|"FINALIZAR"|"RESET"):Promise<{
-        respuesta?:string
+
+//---------------------------------------------------
+
+    // operativa_comandos_inicializacion cambia la operativa cuando se esta ejecutando enviar_comando_inicializacion
+    //      en connect:
+    //          permite conectar en estado finalizado.
+    //          no inicia el proceso de inicialización normal
+    //      en controlador:
+    //          en fase not started solo espera a que este conectado
+    //          no inicia la recuperación, sino que deja en estado finalizado
+    //          los unicos estados suspendidos son CONECTADO y TIMEOUT
+
+    operativa_comandos_inicializacion=false
+
+    async enviar_comando_inicializacion(comando:"INICIALIZAR"|"FINALIZAR"|"RESET"):Promise<{
+        respuesta?:string,
+        finalizado?:boolean
     } & return_abort_type> {
 
-        const proceso = comando
         let err:string 
             
-        /*let emit_suspendido:emit_suspendido_type = (suspendido_state:suspendido_state_type, not_started:boolean) => {
-            let data:{
-                state:suspendido_state_type,
-                botones:{msg:string, bot:boton_type}[],
-                tipo_cmd_suspendible:tipo_cmd_suspendible_type,
-                not_started:boolean
-            } ={
-                state:suspendido_state,
-                botones:(not_started) ? 
-                            [{ msg: "CANCELAR", bot:BOT_ABORTAR_Y_CANCELAR }] :
-                            [{ msg: "INTERRUMPIR", bot:BOT_ABORTAR_Y_CANCELAR }],
-                tipo_cmd_suspendible:this.current_cmd?.tipo_cmd_suspendible,
-                not_started
+            //if (check_finalizado && !this.conexion_state.finalizado) return
+        if (this.hay_comando_en_espera_de_respuesta()) {
+            // si hay comando esperar la respuesta para que no se confunda con la respuesta al comando de inicialización
+            // que se enviara en connect
+            let { promise:promise_after_receive, resolve:resolve_after_receive } = Promise_withResolvers<void>()
+            this.call_after_receive = ()=>{ resolve_after_receive() }
+            await Promise.race([promise_after_receive, (async() => { await delay_ms(200); return true})() ])
+            this.call_after_receive = null
+        }
+        let saved_recovered=this.recovered
+        if (!await this.fase_abort()) {
+            return { abort_info:{reason:"ABORT3"} } // no puede pasar
+        }
+        this.operativa_comandos_inicializacion=true
+        if (!this.conexion_ok()) {
+            this.comunicacion_iniciada=false
+            this.conexion_event({finalizado:true, err_inicializacion:false})
+            this.connect("restart2", true)
+        }
+        let control_obj = await this.generar_controlador_de_estado_para_proceso()
+        if (control_obj.return_abort) {
+            this.operativa_comandos_inicializacion=false
+            return {
+                finalizado:this.conexion_state.finalizado,
+                ...control_obj.return_abort
             }
-            if (comando=="FINALIZAR" && suspendido_state=="FINALIZADO" && !not_started) data.state="OK" // 
-            io.emit("Cashlogy.suspendido", data)
-            return data 
-        }*/
-        let control_obj = await this.generar_controlador_de_estado_para_proceso(this.emit_suspendido_comun)
-        if (control_obj.return_abort) return control_obj.return_abort
+        }
 
         try {
-            //await this.saveProceso(proceso)
-
             switch(comando) {
                 case "INICIALIZAR":
                     await this.cmd_inicializar("*")
@@ -3455,21 +3523,32 @@ class CashlogyClase {
                     await this.cmd_reset("*")
                     break
             }
-
             control_obj.finalizar()
+            this.operativa_comandos_inicializacion=false
 
-            if (comando=="FINALIZAR" && err==NO_ERR) {
-                // para que no se invie suspendido state al frontend, despues de conrol_obj.finalizar
-                this.conexion_event({ finalizado: true })
-                this.fase_abort()
+            if (saved_recovered && !this.conexion_state.finalizado) {
+                if (comando=="FINALIZAR" && err==NO_ERR) {
+                    // se hace despues de control_obj.finalizar para que no se envie suspendido state al frontend
+                    this.conexion_event({ finalizado: true })
+                    //this.fase_abort() // ya se ha abortado al principio ahora esta recovered=false
+                } else {
+                    this.recovered_event()
+                }
+            }   
+
+            return { 
+                respuesta:this.last_raw_response,
+                finalizado:this.conexion_state.finalizado
             }
-            //await this.saveProceso(null)
-
-            return { respuesta:this.last_raw_response }
 
         } catch(e) {
+            this.operativa_comandos_inicializacion=false
             let ret = await control_obj.finalizar_catch(e)
-            return ret            
+            
+            return {
+                finalizado:true,
+                ...ret
+            }            
         }
 
     }
