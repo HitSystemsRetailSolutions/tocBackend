@@ -129,14 +129,20 @@ async function socketSincronizarTickets() {
       diferenciasEnSegundos(fechaAnterior, new Date()) < 180
     )
       return;
-      while(idsTicketsReenviar.length){
-        let idTicket = idsTicketsReenviar.shift();
-        await ticketsInstance.setTicketEnviado(idTicket, false);
-      }
+    while (idsTicketsReenviar.length) {
+      let idTicket = idsTicketsReenviar.shift();
+      await ticketsInstance.setTicketEnviado(idTicket, false);
+    }
 
     const ticket = await ticketsInstance.getTicketMasAntiguo();
     const params = await parametrosInstance.getParametros();
     if (ticket && params) {
+      await nuevaInstancePromociones.deshacerPromociones(ticket);
+      const superTicket = { ...ticket, tipoPago: null, movimientos: null };
+      superTicket.movimientos =
+        await movimientosInstance.getMovimientosDelTicket(ticket._id);
+      superTicket.tipoPago =
+        await movimientosInstance.calcularFormaPago(superTicket);
       objTempTicket = {
         idTicket: ticket._id,
         state: "ENVIANDO",
@@ -148,7 +154,7 @@ async function socketSincronizarTickets() {
         codigoInternoTienda: params.codigoTienda,
       };
       emitSocket("sincroTickets", {
-        ticket,
+        ticket: superTicket,
         parametros,
       });
     }
@@ -799,19 +805,39 @@ function ejecutarConIntervaloAleatorio(funcion, minTiempo, maxTiempo) {
 // Configurar todas las funciones con sus respectivos rangos aleatorios
 const minTiempo = 60000;
 const maxTiempo = 300000;
-const maxTiempo2 = 180000; 
+const maxTiempo2 = 180000;
 ejecutarConIntervaloAleatorio(socketSincronizarTickets, minTiempo, maxTiempo2);
 ejecutarConIntervaloAleatorio(socketSinconizarCajas, minTiempo, maxTiempo);
 ejecutarConIntervaloAleatorio(sincronizarMovimientos, minTiempo, maxTiempo);
 ejecutarConIntervaloAleatorio(sincronizarFichajes, minTiempo, maxTiempo);
 ejecutarConIntervaloAleatorio(sincronizarDevoluciones, minTiempo, maxTiempo);
 ejecutarConIntervaloAleatorio(sincronizarDeudasCreadas, minTiempo, maxTiempo);
-ejecutarConIntervaloAleatorio(sincronizarDeudasFinalizadas, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(
+  sincronizarDeudasFinalizadas,
+  minTiempo,
+  maxTiempo
+);
 ejecutarConIntervaloAleatorio(sincronizarEncargosCreados, minTiempo, maxTiempo);
-ejecutarConIntervaloAleatorio(sincronizarEncargosFinalizados, minTiempo, maxTiempo);
-ejecutarConIntervaloAleatorio(sincronizarAlbaranesCreados, minTiempo, maxTiempo);
-ejecutarConIntervaloAleatorio(sincronizarTicketsOtrosModificado, minTiempo, maxTiempo);
-ejecutarConIntervaloAleatorio(sincronizarPedidosCaducados, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(
+  sincronizarEncargosFinalizados,
+  minTiempo,
+  maxTiempo
+);
+ejecutarConIntervaloAleatorio(
+  sincronizarAlbaranesCreados,
+  minTiempo,
+  maxTiempo
+);
+ejecutarConIntervaloAleatorio(
+  sincronizarTicketsOtrosModificado,
+  minTiempo,
+  maxTiempo
+);
+ejecutarConIntervaloAleatorio(
+  sincronizarPedidosCaducados,
+  minTiempo,
+  maxTiempo
+);
 
 export {
   reenviarTicket,
