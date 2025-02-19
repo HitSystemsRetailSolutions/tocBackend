@@ -6,6 +6,8 @@ import {
   sincronizarFichajes,
   sincronizarDevoluciones,
   objTempCaja,
+  objTempTicket,
+  socketSincronizarTickets,
 } from "./sincro";
 // import { cajaInstance } from "./caja/caja.clase";
 // import { movimientosInstance } from "./movimientos/movimientos.clase";
@@ -16,6 +18,7 @@ import e from "express";
 import { stat } from "fs";
 import { cajaInstance } from "./caja/caja.clase";
 import { ObjectId } from "mongodb";
+import { ticketsInstance } from "./tickets/tickets.clase";
 
 let URL_SANPEDRO = "";
 if (process.env.npm_lifecycle_event === "start:dev")
@@ -177,6 +180,50 @@ socket.on("resSincroCajas", (data) => {
     objTempCaja.idCaja = null;
     objTempCaja.state = null;
     objTempCaja.dateModificated = null;
+  }
+});
+
+socket.on("resSincroTickets", (data) => {
+  const resetTempTicket = () => {
+    objTempTicket.idTicket = null;
+    objTempTicket.state = null;
+    objTempTicket.dateModificated = null;
+  };
+
+  if (data.error) {
+    const jsonObjTempTicket = JSON.stringify(objTempTicket);
+    logger.Error(35, "error del santaAna: " + data.mensaje, "ticket backend esperado: " + jsonObjTempTicket);
+    resetTempTicket();
+    return;
+  }
+
+  switch (data.mensaje) {
+    case "EN_COLA":
+      logger.Info("Ticket en cola, id: " + data.ticket);
+      objTempTicket.state = "EN_COLA";
+      objTempTicket.dateModificated = new Date();
+      break;
+
+    case "ENVIADO":
+      logger.Info("Ticket enviado a SanPedro, id: " + data.ticket);
+      resetTempTicket();
+      const idTicket = data.ticket;
+
+      ticketsInstance.setTicketEnviado(idTicket)
+        .then((res) => {
+          if (!res) {
+            logger.Error(35.1, "Error al actualizar el estado del ticket 2");
+          }
+          socketSincronizarTickets();
+        })
+        .catch((err) => {
+          logger.Error(35.2, err);
+        });
+      break;
+
+    default:
+      logger.Warn("Mensaje desconocido recibido: " + data.mensaje);
+      break;
   }
 });
 export { socket, emitSocket };

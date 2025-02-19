@@ -113,6 +113,49 @@ async function sincronizarTickets() {
     enProcesoTickets = false;
   }
 }
+
+export let objTempTicket: any = {
+  idTicket: null,
+  state: null,
+  dateModificated: null,
+};
+// sincroTickets with socket
+async function socketSincronizarTickets() {
+  try {
+    const fechaAnterior = objTempTicket.dateModificated;
+    if (
+      fechaAnterior &&
+      fechaAnterior &&
+      diferenciasEnSegundos(fechaAnterior, new Date()) < 180
+    )
+      return;
+      while(idsTicketsReenviar.length){
+        let idTicket = idsTicketsReenviar.shift();
+        await ticketsInstance.setTicketEnviado(idTicket, false);
+      }
+
+    const ticket = await ticketsInstance.getTicketMasAntiguo();
+    const params = await parametrosInstance.getParametros();
+    if (ticket && params) {
+      objTempTicket = {
+        idTicket: ticket._id,
+        state: "ENVIANDO",
+        dateModificated: new Date(),
+      };
+      const parametros = {
+        licencia: params.licencia,
+        database: params.database,
+        codigoInternoTienda: params.codigoTienda,
+      };
+      emitSocket("sincroTickets", {
+        ticket,
+        parametros,
+      });
+    }
+  } catch (err) {
+    logger.Error("sincro.ts sincronizarCajas()", err);
+  }
+}
 /**
  * recoge tickets con otrosModificado=false y los envia al servidor
  * @returns nothing
@@ -754,18 +797,21 @@ function ejecutarConIntervaloAleatorio(funcion, minTiempo, maxTiempo) {
 }
 
 // Configurar todas las funciones con sus respectivos rangos aleatorios
-ejecutarConIntervaloAleatorio(sincronizarTickets, 60000, 300000);
-ejecutarConIntervaloAleatorio(socketSinconizarCajas, 60000, 300000);
-ejecutarConIntervaloAleatorio(sincronizarMovimientos, 60000, 300000);
-ejecutarConIntervaloAleatorio(sincronizarFichajes, 60000, 300000);
-ejecutarConIntervaloAleatorio(sincronizarDevoluciones, 60000, 300000);
-ejecutarConIntervaloAleatorio(sincronizarDeudasCreadas, 60000, 300000);
-ejecutarConIntervaloAleatorio(sincronizarDeudasFinalizadas, 60000, 300000);
-ejecutarConIntervaloAleatorio(sincronizarEncargosCreados, 60000, 300000);
-ejecutarConIntervaloAleatorio(sincronizarEncargosFinalizados, 60000, 300000);
-ejecutarConIntervaloAleatorio(sincronizarAlbaranesCreados, 60000, 300000);
-ejecutarConIntervaloAleatorio(sincronizarTicketsOtrosModificado, 60000, 300000);
-ejecutarConIntervaloAleatorio(sincronizarPedidosCaducados, 60000, 300000);
+const minTiempo = 60000;
+const maxTiempo = 300000;
+const maxTiempo2 = 180000; 
+ejecutarConIntervaloAleatorio(socketSincronizarTickets, minTiempo, maxTiempo2);
+ejecutarConIntervaloAleatorio(socketSinconizarCajas, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(sincronizarMovimientos, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(sincronizarFichajes, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(sincronizarDevoluciones, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(sincronizarDeudasCreadas, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(sincronizarDeudasFinalizadas, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(sincronizarEncargosCreados, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(sincronizarEncargosFinalizados, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(sincronizarAlbaranesCreados, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(sincronizarTicketsOtrosModificado, minTiempo, maxTiempo);
+ejecutarConIntervaloAleatorio(sincronizarPedidosCaducados, minTiempo, maxTiempo);
 
 export {
   reenviarTicket,
@@ -776,4 +822,5 @@ export {
   // sincronizarFichajes,
   sincronizarDevoluciones,
   actualizarTeclados,
+  socketSincronizarTickets,
 };
