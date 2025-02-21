@@ -3,6 +3,7 @@ import { ArticulosInterface } from "./articulos.interface";
 import * as schArticulos from "./articulos.mongodb";
 import { getItemTarifa } from "../tarifas/tarifas.mongodb";
 import axios from "axios";
+import { backupRestoreInstance } from "src/backuprestore/backup.class";
 
 export class Articulos {
   /* Eze 4.0 */
@@ -63,7 +64,15 @@ export class Articulos {
     );
   }
 
-  async insertarTeclasNuevos(menu, esSumable, Nombre, idArt, pos, preuIva, preuBase) {
+  async insertarTeclasNuevos(
+    menu,
+    esSumable,
+    Nombre,
+    idArt,
+    pos,
+    preuIva,
+    preuBase
+  ) {
     return await schArticulos.insertarTeclasNuevos(
       menu,
       esSumable,
@@ -71,7 +80,7 @@ export class Articulos {
       idArt,
       pos,
       preuIva,
-      preuBase,
+      preuBase
     );
   }
 
@@ -108,19 +117,27 @@ export class Articulos {
     return resultado;
   }
   async descargarArticulos(): Promise<boolean> {
+    await backupRestoreInstance.backupCollection("articulos");
+
     try {
       const arrayArticulos: any = await axios
         .get("articulos/descargarArticulos")
         .catch((e) => {
           console.log(e);
         });
-      if (arrayArticulos?.data) {
+
+      if (!arrayArticulos?.data || arrayArticulos.data.lenght == 0)
+        throw Error("No se obtuvieron articulos");
+
+      try {
         return await this.insertarArticulos(arrayArticulos.data);
-      } else {
-        return false;
+      } catch (err) {
+        console.log(err);
+        return await backupRestoreInstance.restoreCollection("articulos");
       }
     } catch (err) {
       console.log(err);
+      return false;
     }
   }
 }

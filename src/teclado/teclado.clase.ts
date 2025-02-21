@@ -7,6 +7,7 @@ import * as schTeclas from "./teclado.mongodb";
 import { logger } from "../logger";
 import { TeclasInterface } from "./teclado.interface";
 import { tarifasInstance } from "src/tarifas/tarifas.class";
+import { backupRestoreInstance } from "src/backuprestore/backup.class";
 
 export class TecladoClase {
   /* Eze 4.0 */
@@ -63,18 +64,26 @@ export class TecladoClase {
   /* Eze 4.0 */
   async actualizarTeclado(): Promise<boolean> {
     const articulos = await articulosInstance.descargarArticulos();
+
     if (articulos) {
+      await backupRestoreInstance.backupCollection("teclas");
+
       const resTeclas: any = await axios
         .get("teclas/descargarTeclados")
         .catch((e) => {
           console.log(e);
         });
-      if (resTeclas.data) {
-        if (resTeclas.data.length > 0) {
-          return await this.insertarTeclas(resTeclas.data);
-        }
+
+      if (!resTeclas.data || resTeclas.data.length == 0)
+        throw Error("No se ha podido actualizar el teclado backend");
+
+      try {
+        return await this.insertarTeclas(resTeclas.data);
+      } catch (err) {
+        logger.Error(103, err);
+        await backupRestoreInstance.restoreCollection("teclas");
+        return false;
       }
-      throw Error("No se ha podido actualizar el teclado backend");
     }
   }
 

@@ -5,11 +5,19 @@ import { TeclasInterface } from "./teclado.interface";
 export async function insertarTeclas(
   arrayTeclas: TeclasInterface[]
 ): Promise<boolean> {
-  await borrarArticulos();
-  const database = (await conexion).db("tocgame");
-  const teclas = database.collection<TeclasInterface>("teclas");
-  const result = await teclas.insertMany(arrayTeclas);
-  return result.acknowledged;
+  try {
+    await borrarArticulos();
+
+    const database = (await conexion).db("tocgame");
+    const teclas = database.collection<TeclasInterface>("teclas");
+    const result = await teclas.insertMany(arrayTeclas);
+
+    if (!result.acknowledged) throw new Error("Error en insertarTeclas");
+    return result.acknowledged;
+  } catch (error) {
+    console.log("Error en insertarTeclas:", error);
+    throw error;
+  }
 }
 
 /* Eze 4.0 */

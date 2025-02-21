@@ -6,3 +6,4 @@ dist/tsconfig.build.tsbuildinfo
 src/impresora/impresora.class.ts
 src/paytef/paytef.class.ts
 .env
+backups/
