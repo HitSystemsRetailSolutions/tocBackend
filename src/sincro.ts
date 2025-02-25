@@ -152,6 +152,7 @@ async function socketSincronizarTickets() {
         licencia: params.licencia,
         database: params.database,
         codigoInternoTienda: params.codigoTienda,
+        nombreTienda: params.nombreTienda,
       };
       emitSocket("sincroTickets", {
         ticket: superTicket,
