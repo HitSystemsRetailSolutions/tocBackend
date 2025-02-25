@@ -62,28 +62,34 @@ export class TecladoClase {
   // }
 
   /* Eze 4.0 */
-  async actualizarTeclado(): Promise<boolean> {
+  async actualizarTeclado(): Promise<any> {
+    await backupRestoreInstance.backupCollection("teclas");
+
     const articulos = await articulosInstance.descargarArticulos();
 
-    if (articulos) {
-      await backupRestoreInstance.backupCollection("teclas");
+    if (articulos.error) {
+      return articulos;
+    }
 
-      const resTeclas: any = await axios
-        .get("teclas/descargarTeclados")
-        .catch((e) => {
-          console.log(e);
-        });
+    const resTeclas: any = await axios
+      .get("teclas/descargarTeclados")
+      .catch((e) => {
+        console.log(e);
+      });
 
-      if (!resTeclas.data || resTeclas.data.length == 0)
-        throw Error("No se ha podido actualizar el teclado backend");
+    if (!resTeclas.data || resTeclas.data.length == 0)
+      throw Error("No se ha podido actualizar el teclado backend");
 
-      try {
-        return await this.insertarTeclas(resTeclas.data);
-      } catch (err) {
-        logger.Error(103, err);
-        await backupRestoreInstance.restoreCollection("teclas");
-        return false;
-      }
+    try {
+      return await this.insertarTeclas(resTeclas.data);
+    } catch (err) {
+      logger.Error(103,'insertarTeclas', err);
+      // restauramos teclas y articulos para que los datos relacionados coincidan
+      await backupRestoreInstance.restoreCollection("articulos");
+      const restore = await backupRestoreInstance.restoreCollection("teclas");
+      return restore
+        ? { error: true, restore: 'success', message: err.message }
+        : { error: true, restore: 'failed', message: err.message };
     }
   }
 

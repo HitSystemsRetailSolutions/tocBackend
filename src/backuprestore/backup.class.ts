@@ -7,13 +7,17 @@ const path = require("path");
 const dbName = "tocgame";
 const backupFolder = path.resolve(__dirname, "../..", "backups");
 export class BackupRestore {
+  // Constructor para eliminar backups antiguos
+  constructor() {
+    this.deleteOldBackups();
+  }
+
   /**
    * Realiza un backup de una colección de MongoDB en un archivo JSON
    * @param collectionName  Nombre de la colección a respaldar
    */
   async backupCollection(collectionName) {
     try {
-      this.deleteOldBackups();
       // Ruta de la carpeta y archivo de backup
       const date = new Date().toISOString().replace(/:/g, "-");
       const backupFilePath = path.join(
@@ -89,9 +93,6 @@ export class BackupRestore {
       }
 
       for (const backupFile of collectionBackups.reverse()) {
-        // Usamos for...of aquí
-        // usar deleteMany si esta en otra iteracion
-
         const backupFilePath = path.join(backupFolder, backupFile);
 
         const backupData = await fs.promises.readFile(backupFilePath, "utf8");
@@ -103,7 +104,6 @@ export class BackupRestore {
             .insertMany(documents);
 
           if (result.acknowledged) {
-            console.log(`Restauración exitosa desde ${backupFile}`);
             logger.Info(`Restauración exitosa desde ${backupFile}`);
             return true;
           }
@@ -111,9 +111,6 @@ export class BackupRestore {
         } catch (error) {
           await db.collection(collectionName).deleteMany({});
 
-          console.log(
-            `Error al restaurar backup ${backupFile}: ${error.message}`
-          );
           logger.Error(
             `Error al restaurar backup ${backupFile}: ${error.message}`
           );
@@ -125,45 +122,45 @@ export class BackupRestore {
       return false;
     }
   }
-//  esta raro el delete, depende de la agrupacion, me borra bien las mas antiguas
-  deleteOldBackups = () => {
-    const files = fs.readdirSync(backupFolder); // Leer todos los archivos en la carpeta
-    const backupsByCollection = {}; // Objeto para agrupar los archivos por colección
 
-    if (!files || files.length <= 2) return;
+  getGroupedBackups() {
+    const groupedBackups = {};
 
-    files.forEach((file) => {
-      const filePath = path.join(backupFolder, file);
-      const collectionName = file.split("_backup_")[0]; // Asumimos que el nombre de la colección está antes de '_backup_'
+    fs.readdirSync(backupFolder).forEach((file) => {
+      if (file.includes("_backup_") && file.endsWith(".json")) {
+        const collectionName = file.split("_backup_")[0];
 
-      if (!backupsByCollection[collectionName]) {
-        backupsByCollection[collectionName] = [];
+        // Agrupar por colección
+        if (!groupedBackups[collectionName]) {
+          groupedBackups[collectionName] = [];
+        }
+        groupedBackups[collectionName].push(file);
       }
-
-      backupsByCollection[collectionName].push(filePath);
     });
 
-    // 2. Para cada colección, ordenamos los archivos por fecha (usando la parte de la fecha en el nombre)
-    Object.keys(backupsByCollection).forEach((collectionName) => {
-      const filesInCollection = backupsByCollection[collectionName];
+    return groupedBackups;
+  }
 
-      filesInCollection.sort((a, b) => {
-        const dateA = a.split("_backup_")[1]; // Extraemos la fecha del nombre del archivo
-        const dateB = b.split("_backup_")[1]; // Hacemos lo mismo con el segundo archivo
+  // Función para eliminar backups antiguos si hay más de 3 en cada colección
+  deleteOldBackups() {
+    const groupedBackups = this.getGroupedBackups();
+    Object.keys(groupedBackups).forEach((collection) => {
+      let backups = groupedBackups[collection];
 
-        return dateB.localeCompare(dateA); // Comparar las fechas (de más reciente a más antiguo)
-      });
-      console.log(filesInCollection);
-      // 3. Mantener solo los 2 archivos más recientes de cada colección
-      const filesToDelete = filesInCollection.slice(-filesInCollection.length+2); // Obtener todos los archivos excepto los dos más recientes
+      backups.sort();
 
-      // 4. Eliminar los archivos más antiguos
-      filesToDelete.forEach((file) => {
-        fs.unlinkSync(file); // Eliminar el archivo
-        console.log(`Eliminado archivo antiguo: ${file}`);
-      });
+      while (backups.length > 3) {
+        const fileToDelete = backups.shift();
+        const filePath = path.join(backupFolder, fileToDelete);
+
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          logger.Error(`Error al borrar ${fileToDelete}: ` + err);
+        }
+      }
     });
-  };
+  }
 }
 const backupRestoreInstance = new BackupRestore();
 export { backupRestoreInstance };

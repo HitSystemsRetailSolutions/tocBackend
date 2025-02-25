@@ -4,6 +4,7 @@ import * as schArticulos from "./articulos.mongodb";
 import { getItemTarifa } from "../tarifas/tarifas.mongodb";
 import axios from "axios";
 import { backupRestoreInstance } from "src/backuprestore/backup.class";
+import { logger } from "src/logger";
 
 export class Articulos {
   /* Eze 4.0 */
@@ -116,7 +117,7 @@ export class Articulos {
     const resultado = await schArticulos.eliminarArticulo(id);
     return resultado;
   }
-  async descargarArticulos(): Promise<boolean> {
+  async descargarArticulos(): Promise<any> {
     await backupRestoreInstance.backupCollection("articulos");
 
     try {
@@ -132,12 +133,19 @@ export class Articulos {
       try {
         return await this.insertarArticulos(arrayArticulos.data);
       } catch (err) {
-        console.log(err);
-        return await backupRestoreInstance.restoreCollection("articulos");
+        logger.Error(103,'insetarArticulos', err);
+        // restauramos teclas y articulos para que los datos relacionados coincidan
+        await backupRestoreInstance.restoreCollection("teclas");
+        const restore =
+          await backupRestoreInstance.restoreCollection("articulos");
+        return restore
+          ? { error: true, restore: 'success', message: err.message }
+          : { error: true, restore: 'failed', message: err.message };
       }
     } catch (err) {
+      logger.Error(103,'descargarArticulos ', err);
       console.log(err);
-      return false;
+      return { error: true, restore: 'not_used', message: err.message };
     }
   }
 }
