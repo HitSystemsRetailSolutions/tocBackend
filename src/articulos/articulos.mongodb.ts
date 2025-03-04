@@ -20,10 +20,19 @@ export async function getArticulos(): Promise<ArticulosInterface[]> {
 
 /* Eze 4.0 */
 export async function insertarArticulos(arrayArticulos: ArticulosInterface[]) {
-  await borrarArticulos();
-  const database = (await conexion).db("tocgame");
-  const articulos = database.collection<ArticulosInterface>("articulos");
-  return (await articulos.insertMany(arrayArticulos)).acknowledged;
+  try {
+    await borrarArticulos();
+    const database = (await conexion).db("tocgame");
+    const articulos = database.collection<ArticulosInterface>("articulos");
+    const result = await articulos.insertMany(arrayArticulos);
+
+    if (!result.acknowledged) throw new Error("Error en insertarArticulos");
+    return result.acknowledged;
+
+  } catch (error) {
+    console.log("Error en insertarArticulos:", error);
+    throw error;
+  }
 }
 
 /* Eze 4.0 */
