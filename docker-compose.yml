@@ -18,6 +18,7 @@ services:
      - 5051:5051
     volumes:
      - ./logs:/usr/src/logs
+     - ./backups:/usr/src/backups
      - /bin/systemctl:/bin/systemctl
      - /run/systemd/system:/run/systemd/system
      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
