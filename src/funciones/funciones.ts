@@ -37,12 +37,14 @@ export function construirObjetoIvas(
     ? precio * unidades - precio * unidades * (dto / 100)
     : (precio / ivaMod) * unidades - (precio / ivaMod) * unidades * (dto / 100);
   const valorIva = base * ivaRate;
-  const importe = Math.round((base + valorIva) * 10000) / 10000;
+  // redondeo escalonado con precision de 4 decimales a 2 decimales
+  let importe = Math.round((base + valorIva) * 10000) / 10000;
+  importe = Math.round(importe * 1000) / 1000;
 
   // Guardar los valores redondeados en el objeto con índices dinámicos
   resultado[`base${tipoIva}`] = Math.round(base * 100) / 100;
   resultado[`valorIva${tipoIva}`] = Math.round(valorIva * 100) / 100;
-  resultado[`importe${tipoIva}`] = Math.round(importe * 100) / 100;
+  resultado[`importe${tipoIva}`] =  Math.round(importe * 100) / 100;
   return ajustarAuxDetalleIva(resultado);
 }
 
