@@ -62,7 +62,7 @@ export class TecladoClase {
   // }
 
   /* Eze 4.0 */
-  async actualizarTeclado(): Promise<any> {
+  async actualizarTeclado(force:boolean=false): Promise<any> {
     await backupRestoreInstance.backupCollection("teclas");
 
     const articulos = await articulosInstance.descargarArticulos();
@@ -70,13 +70,14 @@ export class TecladoClase {
     if (articulos.error) {
       return articulos;
     }
-
+    const params = { force: force };
     const resTeclas: any = await axios
-      .get("teclas/descargarTeclados")
+      .get("teclas/descargarTecladosActual", {
+        params,
+      })
       .catch((e) => {
         console.log(e);
       });
-
     if (!resTeclas.data || resTeclas.data.length == 0)
       throw Error("No se ha podido actualizar el teclado backend");
 

@@ -52,9 +52,10 @@ export class TecladoController {
   }
   /* Eze 4.0 */
   @Post("actualizarTeclado")
-  async actualizarArticulos() {
+  async actualizarArticulos( @Body() params) {
     try {
-      const res = await tecladoInstance.actualizarTeclado();
+      const force = params?.force||false;
+      const res = await tecladoInstance.actualizarTeclado( force );
       if (res) {
         io.emit("cargarTeclado", res);
         return res;
