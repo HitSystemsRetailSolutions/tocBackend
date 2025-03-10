@@ -1,8 +1,9 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Post, Get } from "@nestjs/common";
+import { checkersInstance } from "./checkers.class"
 import axios from "axios";
 
 @Controller("checkers")
-export class checkers {
+export class CheckersController {
   @Post("internet")
   async checkInternet() {
     try {
@@ -17,5 +18,9 @@ export class checkers {
     } catch (err) {
       return false;
     }
+  }
+  @Post("internet_with_pings")
+  async internet_with_pings() {
+    return await checkersInstance.internet_with_pings()
   }
 }
