@@ -3,6 +3,8 @@ import { ArticulosInterface } from "./articulos.interface";
 import * as schArticulos from "./articulos.mongodb";
 import { getItemTarifa } from "../tarifas/tarifas.mongodb";
 import axios from "axios";
+import { backupRestoreInstance } from "src/backuprestore/backup.class";
+import { logger } from "src/logger";
 
 export class Articulos {
   /* Eze 4.0 */
@@ -63,7 +65,15 @@ export class Articulos {
     );
   }
 
-  async insertarTeclasNuevos(menu, esSumable, Nombre, idArt, pos, preuIva, preuBase) {
+  async insertarTeclasNuevos(
+    menu,
+    esSumable,
+    Nombre,
+    idArt,
+    pos,
+    preuIva,
+    preuBase
+  ) {
     return await schArticulos.insertarTeclasNuevos(
       menu,
       esSumable,
@@ -71,7 +81,7 @@ export class Articulos {
       idArt,
       pos,
       preuIva,
-      preuBase,
+      preuBase
     );
   }
 
@@ -107,20 +117,35 @@ export class Articulos {
     const resultado = await schArticulos.eliminarArticulo(id);
     return resultado;
   }
-  async descargarArticulos(): Promise<boolean> {
+  async descargarArticulos(): Promise<any> {
+    await backupRestoreInstance.backupCollection("articulos");
+
     try {
       const arrayArticulos: any = await axios
         .get("articulos/descargarArticulos")
         .catch((e) => {
           console.log(e);
         });
-      if (arrayArticulos?.data) {
+
+      if (!arrayArticulos?.data || arrayArticulos.data.lenght == 0)
+        throw Error("No se obtuvieron articulos");
+
+      try {
         return await this.insertarArticulos(arrayArticulos.data);
-      } else {
-        return false;
+      } catch (err) {
+        logger.Error(103,'insetarArticulos', err);
+        // restauramos teclas y articulos para que los datos relacionados coincidan
+        await backupRestoreInstance.restoreCollection("teclas");
+        const restore =
+          await backupRestoreInstance.restoreCollection("articulos");
+        return restore
+          ? { error: true, restore: 'success', message: err.message }
+          : { error: true, restore: 'failed', message: err.message };
       }
     } catch (err) {
+      logger.Error(103,'descargarArticulos ', err);
       console.log(err);
+      return { error: true, restore: 'not_used', message: err.message };
     }
   }
 }
