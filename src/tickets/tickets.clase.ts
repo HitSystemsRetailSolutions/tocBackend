@@ -171,12 +171,10 @@ export class TicketsClase {
     }
     // si tenemos que descontar dinero lo hacemos
     if (cantidadRegalada > 0) {
-      console.time("Descontar puntos");
       const resDescuento: any = await this.tryDescontarPuntos({
         idCliente: ticket.idCliente,
         puntos: cantidadRegalada,
       });
-      console.timeEnd("Descontar puntos");
       if (!resDescuento) throw Error("No se han podido descontar los puntos");
     }
     const res = await schTickets.nuevoTicket(ticket);

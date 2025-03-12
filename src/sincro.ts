@@ -134,7 +134,8 @@ async function socketSincronizarTickets() {
       await ticketsInstance.setTicketEnviado(idTicket, false);
     }
 
-    const ticket = await ticketsInstance.getTicketMasAntiguo();
+    const ticket: TicketsInterface =
+      await ticketsInstance.getTicketMasAntiguo();
     const params = await parametrosInstance.getParametros();
     if (ticket && params) {
       await nuevaInstancePromociones.deshacerPromociones(ticket);
@@ -160,7 +161,7 @@ async function socketSincronizarTickets() {
       });
     }
   } catch (err) {
-    logger.Error("sincro.ts sincronizarCajas()", err);
+    logger.Error("sincro.ts socketSincronizarTickets()", err);
   }
 }
 /**

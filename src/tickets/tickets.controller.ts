@@ -75,6 +75,8 @@ export class TicketsController {
       var TDeuda1 = performance.now();
       const cesta = await cestasInstance.getCestaById(idCesta);
       await cestasInstance.aplicarDescuento(cesta, total);
+      if(cesta.modo == "CONSUMO_PERSONAL")
+        await cestasInstance.applyDiscountShop(cesta, total);
       const ticket = await ticketsInstance.generarNuevoTicket(
         total,
         idTrabajador,
