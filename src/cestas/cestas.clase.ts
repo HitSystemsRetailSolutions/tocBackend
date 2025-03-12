@@ -256,8 +256,6 @@ export class CestaClase {
       }
     } else if (clienteDescEsp && importe == clienteDescEsp.precio) {
       this.recalcularSubtotales(cesta, clienteDescEsp.precio);
-    } else if (cesta.modo == "CONSUMO_PERSONAL" && descuento) {
-      await cestasInstance.recalcularIvas(cesta);
     }
   }
 
@@ -274,6 +272,7 @@ export class CestaClase {
           false,
           producto.descuentoTienda
         );
+
         producto.subtotal =
           Object.entries(objIva)
             .filter(
@@ -283,6 +282,31 @@ export class CestaClase {
                 value > 0
             )
             .map(([key, value]) => value)[0] || 0;
+
+        if (producto.arraySuplementos != null) {
+          const detallesSuplementos = await this.getDetalleIvaSuplementos(
+            producto.arraySuplementos,
+            cesta.idCliente,
+            producto.unidades,
+            producto.descuentoTienda,
+            true
+          );
+
+          const objIvaSuplementos = fusionarObjetosDetalleIva(
+            objIva,
+            detallesSuplementos
+          );
+
+          producto.subtotal =
+            Object.entries(objIvaSuplementos)
+              .filter(
+                ([key, value]) =>
+                  key.includes("importe") &&
+                  typeof value === "number" &&
+                  value > 0
+              )
+              .map(([key, value]) => value)[0] || 0;
+        }
       } // Modificamos el total para añadir el descuento especial del cliente
       producto.subtotal = redondearPrecio(producto.subtotal);
     }
@@ -1389,7 +1413,10 @@ export class CestaClase {
             cesta.lista[i].arraySuplementos,
             cesta.idCliente,
             cesta.lista[i].unidades,
-            dto
+            cesta.modo == "CONSUMO_PERSONAL"
+              ? cesta.lista[i].descuentoTienda
+              : cesta.lista[i]?.dto || 0,
+            cesta?.modo == "CONSUMO_PERSONAL"
           );
           const preuSumplements = Number(
             (
@@ -1403,8 +1430,11 @@ export class CestaClase {
           cesta.lista[i].subtotal += preuSumplements;
           if (cesta.lista[i].precioOrig) {
             cesta.lista[i].precioOrig =
-              Math.round((cesta.lista[i].precioOrig + preuSumplements) * 100) /
-              100;
+              cesta.modo == "CONSUMO_PERSONAL"
+                ? Math.round(cesta.lista[i].subtotal * 100) / 100
+                : Math.round(
+                    (cesta.lista[i].precioOrig + preuSumplements) * 100
+                  ) / 100;
           }
           cesta.detalleIva = fusionarObjetosDetalleIva(
             cesta.detalleIva,
@@ -1477,10 +1507,7 @@ export class CestaClase {
         articulo,
         idCliente
       );
-      if (
-        cliente &&
-        ((cliente.albaran && cliente.noPagaEnTienda) || cliente?.vip)
-      ) {
+      if (cliente && (cliente.albaran || cliente?.vip)) {
         preu += articulo.precioBase * unidades;
       } else {
         preu += articulo.precioConIva * unidades;
@@ -1494,7 +1521,8 @@ export class CestaClase {
     arraySuplementos: ArticulosInterface[],
     idCliente: ClientesInterface["id"],
     unidades: number,
-    dto: number = 0
+    dto: number = 0,
+    consumoPersonal = false
   ): Promise<DetalleIvaInterface> {
     let objetoIva: DetalleIvaInterface = {
       base1: 0,
@@ -1528,10 +1556,10 @@ export class CestaClase {
         idCliente
       );
       let precioArt =
-        cliente && ((cliente.albaran && cliente.noPagaEnTienda) || cliente?.vip)
+        cliente && (cliente.albaran || cliente?.vip)
           ? articulo.precioBase
           : articulo.precioConIva;
-      if (descuento) {
+      if (descuento && !consumoPersonal) {
         precioArt = precioArt - precioArt * (descuento / 100);
       }
       objetoIva = fusionarObjetosDetalleIva(
