@@ -2,6 +2,8 @@ FROM node:20
 
 WORKDIR /usr/src
 
+RUN apt-get update && apt-get install -y iputils-ping
+
 COPY ["package.json", "package-lock.json",  "/usr/src"]
 
 RUN npm install
