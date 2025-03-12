@@ -82,6 +82,8 @@ export class AlbaranesClase {
           default:
             break;
         }
+        await cestasInstance.borrarArticulosCesta(cesta._id,true,true,false);
+        await cestasInstance.setClients(0, cesta._id);
         return nuevoAlbaran._id;
       }
 

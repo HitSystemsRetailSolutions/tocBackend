@@ -23,7 +23,7 @@ export class AlbaranesController {
     }
   ) {
     try {
-      if (!total || !cestaFrontEnd || !idTrabajador || !estado) {
+      if (!total || !cestaFrontEnd ||!cestaFrontEnd.idCliente || !cestaFrontEnd.lista || !idTrabajador || !estado) {
         throw Error("Error, faltan datos en crearAlbaran() controller");
       }
 
