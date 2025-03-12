@@ -81,6 +81,9 @@ export class ParametrosClase {
   setIpPaytef = async (ip: string): Promise<boolean> =>
     await schParametros.setIpPaytef(ip);
 
+  setIpCashlogy = async (ip: string): Promise<boolean> =>
+    await schParametros.setIpCashlogy(ip);
+
   /* Uri*/
   setTcod = async (ip: string): Promise<boolean> =>
     await schParametros.setTcodPaytef(ip);

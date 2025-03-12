@@ -514,6 +514,10 @@ export class TicketsController {
       return false;
     }
   }
+  @Post("isTicketAnulable") 
+  async isTicketAnulable(@Body() { ticketId }) {
+    return ticketsInstance.isTicketAnulable(ticketId)
+  }
 
   @Post("getUltimoTicket")
   async getUltimoTicket() {

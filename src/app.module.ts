@@ -35,6 +35,8 @@ import { AlbaranesController } from "./albaranes/albaranes.controller";
 import { contableController } from "./contable/contable.controller";
 import { receiveItemsMQTTController } from "./receiveItemsMQTT/receiveItemsMQTT.controller";
 import { TiposIvaController } from "./tiposIva/tiposIva.controller";
+import { CashlogyController } from "./cashlogy/cashlogy.controller"
+
 
 @Module({
   imports: [
@@ -77,6 +79,7 @@ import { TiposIvaController } from "./tiposIva/tiposIva.controller";
     CargarImagenController,
     AlbaranesController,
     TiposIvaController,
+    CashlogyController,
   ],
   // providers: [SocketGateway],
 })
