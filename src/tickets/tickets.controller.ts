@@ -501,10 +501,10 @@ export class TicketsController {
 
   /* Eze 4.0 */
   @Post("anularTicket")
-  async anularTicket(@Body() { ticketId }) {
+  async anularTicket(@Body() { ticketId, reason=null }) {
     try {
       if (ticketId) {
-        const res = await ticketsInstance.anularTicket(ticketId);
+        const res = await ticketsInstance.anularTicket(ticketId, reason);
         ticketsInstance.actualizarTickets();
         return res;
       }

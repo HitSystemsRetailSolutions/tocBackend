@@ -23,15 +23,18 @@ import { cestasInstance } from "src/cestas/cestas.clase";
 import { logger } from "src/logger";
 import { getDataVersion } from "src/version/version.clase";
 
-
 export class TicketsClase {
   /* Eze 4.0 */
   getTicketById = (idTicket: number) => schTickets.getTicketByID(idTicket);
 
   /* Eze 4.0 */
-  async anularTicket(idTicket: TicketsInterface["_id"]) {
+  async anularTicket(
+    idTicket: TicketsInterface["_id"],
+    reason?: TicketsInterface["justificacion"]
+  ) {
     try {
       const ticket = await schTickets.getTicketByID(idTicket);
+      console.log("ticket", ticket);
       let movimientos = await schMovimientos.getMovimientosDelTicket(idTicket);
       if (
         ticket.paytef ||
@@ -48,18 +51,23 @@ export class TicketsClase {
           ticket.total,
           "refund"
         );
-        const devolucionCreada = await schTickets.getUltimoTicket();
-        if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
-          await movimientosInstance.nuevoMovimiento(
-            movimientos[0].valor,
-            movimientos[0].concepto,
-            "DEV_DATAFONO_PAYTEF",
-            devolucionCreada._id,
-            movimientos[0].idTrabajador
-          );
-          return { res: true, tipo: "TARJETA" };
-        } else {
+        if (!x) {
           return { res: false, tipo: "TARJETA" };
+        }
+        if (await schTickets.anularTicket(idTicket, true, reason)) {
+          const devolucionCreada = await schTickets.getUltimoTicket();
+          if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
+            await movimientosInstance.nuevoMovimiento(
+              movimientos[0].valor,
+              movimientos[0].concepto,
+              "DEV_DATAFONO_PAYTEF",
+              devolucionCreada._id,
+              movimientos[0].idTrabajador
+            );
+            return { res: true, tipo: "TARJETA" };
+          } else {
+            return { res: false, tipo: "TARJETA" };
+          }
         }
       } else if (
         ticket.datafono3G ||
@@ -75,12 +83,12 @@ export class TicketsClase {
           const sumAll = movimientos.reduce((acc, mov) => acc + mov.valor, 0);
           if (sumAll == 0) {
             return {
-              res: await schTickets.anularTicket(idTicket),
+              res: await schTickets.anularTicket(idTicket, false, reason),
               tipo: "EFECTIVO",
             };
           }
         }
-        if (await schTickets.anularTicket(idTicket, true)) {
+        if (await schTickets.anularTicket(idTicket, true, reason)) {
           const devolucionCreada = await schTickets.getUltimoTicket();
           if (devolucionCreada.anulado.idTicketPositivo == idTicket) {
             await movimientosInstance.nuevoMovimiento(
@@ -98,13 +106,16 @@ export class TicketsClase {
           tipo: "DATAFONO_3G",
         };
       }
-      return { res: await schTickets.anularTicket(idTicket), tipo: "EFECTIVO" };
+      return {
+        res: await schTickets.anularTicket(idTicket, false, reason),
+        tipo: "EFECTIVO",
+      };
     } catch (error) {
       console.log("error anularTicket", error);
     }
   }
   async isTicketAnulable(idTicket: TicketsInterface["_id"]) {
-    return schTickets.isTicketAnulable(idTicket)
+    return schTickets.isTicketAnulable(idTicket);
   }
   /* Eze 4.0 */
   getTicketsIntervalo = (fechaInicio: number, fechaFinal: number) =>
