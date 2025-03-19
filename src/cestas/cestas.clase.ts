@@ -10,6 +10,8 @@ import {
   ajustarAuxDetalleIva,
   construirObjetoIvas,
   convertirDineroEnPuntos,
+  countDecimal,
+  procesarSubtotal,
   fusionarObjetosDetalleIva,
   redondearPrecio,
 } from "../funciones/funciones";
@@ -1300,19 +1302,24 @@ export class CestaClase {
           delete cesta.lista[i].descuentoTienda;
           delete cesta.lista[i].tipoIva;
         }
+        console.log("artPrecioSinTarifa", artPrecioSinTarifa, articulo.precioBase,clienteFacturacion,artPrecioSinTarifa != articulo.precioBase &&
+          clienteFacturacion);  
         if (
           artPrecioIvaSinTarifa != articulo.precioConIva &&
           !clienteFacturacion
         ) {
+          console.log("entra");
           precioArt = articulo.precioConIva;
           tarifaEsp = true;
         } else if (
           artPrecioSinTarifa != articulo.precioBase &&
           clienteFacturacion
         ) {
+          console.log("entra2");
           precioArt = articulo.precioBase;
           tarifaEsp = true;
         }
+        console.log("precioArt", precioArt,tarifaEsp);
         if (cesta.indexMesa != null) {
           precioArt =
             (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
@@ -1328,9 +1335,14 @@ export class CestaClase {
           );
           precioArt = preu == null ? precioArt : preu.precioConIva;
         }
+        let decPrecioArt= countDecimal(precioArt);
+        let decUnidades= countDecimal(cesta.lista[i].unidades);  
+        let tecnicDecimal= decPrecioArt > decUnidades ? Math.pow(10,decPrecioArt) : Math.pow(10,decUnidades);
+        console.log("tecnicDecimal", tecnicDecimal);
+        console.log("precioArt2", precioArt,cesta.lista[i].unidades,precioArt * cesta.lista[i].unidades);
         let p = precioArt * cesta.lista[i].unidades;
-        cesta.lista[i].subtotal = Math.round(p * 100) / 100;
-
+        cesta.lista[i].subtotal = Math.round(p * tecnicDecimal) / tecnicDecimal;
+        console.log("precioSubt", cesta.lista[i].subtotal);
         if (descuento)
           precioArt = Number(precioArt - precioArt * (descuento / 100));
 
@@ -1376,18 +1388,19 @@ export class CestaClase {
           delete cesta.lista[i].precioOrig;
         }
         if (cesta.lista[i].dto) {
-          cesta.lista[i].subtotal = redondearPrecio(
-            cesta.lista[i].subtotal * (1 - cesta.lista[i].dto / 100)
-          );
+          cesta.lista[i].subtotal = 
+            cesta.lista[i].subtotal * (1 - cesta.lista[i].dto / 100);
         }
 
         if (cesta.lista[i].iva || (clienteFacturacion && cesta.lista[i].iva)) {
-          cesta.lista[i].subtotal = redondearPrecio(
-            cesta.lista[i].subtotal * (1 + cesta.lista[i].iva / 100)
-          );
+          cesta.lista[i].subtotal = 
+            cesta.lista[i].subtotal * (1 + cesta.lista[i].iva / 100);
         }
-        cesta.lista[i].subtotal =
-          Math.round(cesta.lista[i].subtotal * 100) / 100;
+        console.log("1PresubtotalF", cesta.lista[i].subtotal);
+        let subtotalFinal = procesarSubtotal(cesta.lista[i].subtotal,tecnicDecimal);
+        
+        cesta.lista[i].subtotal = subtotalFinal;
+        console.log("subtotalFinal", cesta.lista[i].subtotal);
         // si la cesta proviene de descargas, se añade el timestamp de la cesta para calcular la trama de iva correcta a su fecha de creacion
         const cestaOfDownloads = menu == "descargas" ? true : false;
         const auxDetalleIva = construirObjetoIvas(
@@ -1400,6 +1413,7 @@ export class CestaClase {
             : cesta.lista[i]?.dto || 0,
           cestaOfDownloads ? cesta.timestamp : null
         );
+        console.log("auxDetalleIva", auxDetalleIva);
         cesta.detalleIva = fusionarObjetosDetalleIva(
           auxDetalleIva,
           cesta.detalleIva

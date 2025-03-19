@@ -2,6 +2,7 @@ import { DetalleIvaInterface } from "../cestas/cestas.interface";
 import { TiposIva } from "../articulos/articulos.interface";
 import { tiposIvaInstance } from "src/tiposIva/tiposIva.clase";
 import * as fs from "fs";
+import Decimal from "decimal.js";
 /* Eze 4.0 (REDONDEA AL SEGUNDO DECIMAL) */
 export const redondearPrecio = (precio: number) =>
   Math.round(precio * 100) / 100;
@@ -15,6 +16,22 @@ export function construirObjetoIvas(
   dto: number = 0,
   timestamp: number = null
 ): DetalleIvaInterface {
+  console.log(
+    "construirObjetoIvas",
+    precio,
+    tipoIva,
+    unidades,
+    albaranNPT,
+    dto,
+    timestamp
+  );
+  const DecPrecio = countDecimal(precio);
+  const DecUnidades = countDecimal(unidades);
+  const TecnicDecimal =
+    DecPrecio > DecUnidades
+      ? Math.pow(10, DecPrecio)
+      : Math.pow(10, DecUnidades);
+  console.log("TecnicDecimal", TecnicDecimal);
   const arrayIvasDecimals = timestamp
     ? tiposIvaInstance.getIvasDecWithTmstpCesta(timestamp)
     : tiposIvaInstance.arrayDecimal;
@@ -33,18 +50,49 @@ export function construirObjetoIvas(
   const ivaRate = ivaData.iva;
   const ivaMod = 1 + ivaRate;
   // Calcular base, valorIva e importe
-  const base = albaranNPT
-    ? precio * unidades - precio * unidades * (dto / 100)
-    : (precio / ivaMod) * unidades - (precio / ivaMod) * unidades * (dto / 100);
-  const valorIva = base * ivaRate;
-  // redondeo escalonado con precision de 4 decimales a 2 decimales
-  let importe = Math.round((base + valorIva) * 10000) / 10000;
-  importe = Math.round(importe * 1000) / 1000;
+  let baseDecimal = new Decimal(
+    albaranNPT
+      ? precio * unidades - precio * unidades * (dto / 100)
+      : (precio / (1 + ivaRate)) * unidades -
+        (precio / (1 + ivaRate)) * unidades * (dto / 100)
+  );
+  let valorIvaDecimal = baseDecimal.times(ivaRate);
+  let importeDecimal = baseDecimal.plus(valorIvaDecimal);
 
+  // Redondeo al valor de TecnicDecimal
+  const TecnicDecimalDecimal = new Decimal(TecnicDecimal);
+  let baseRedondeadaTecnicDecimal = baseDecimal
+    .mul(TecnicDecimalDecimal)
+    .round()
+    .div(TecnicDecimalDecimal);
+  let valorIvaRedondeadoTecnicDecimal = valorIvaDecimal
+    .mul(TecnicDecimalDecimal)
+    .round()
+    .div(TecnicDecimalDecimal);
+  let importeRedondeadoTecnicDecimal = importeDecimal
+    .mul(TecnicDecimalDecimal)
+    .round()
+    .div(TecnicDecimalDecimal);
+
+  console.log(
+    "base",
+    baseRedondeadaTecnicDecimal,
+    "valorIva",
+    valorIvaRedondeadoTecnicDecimal,
+    "importe",
+    importeRedondeadoTecnicDecimal
+  );
+
+  // Redondeo final a dos decimales
   // Guardar los valores redondeados en el objeto con índices dinámicos
-  resultado[`base${tipoIva}`] = Math.round(base * 100) / 100;
-  resultado[`valorIva${tipoIva}`] = Math.round(valorIva * 100) / 100;
-  resultado[`importe${tipoIva}`] =  Math.round(importe * 100) / 100;
+  resultado[`base${tipoIva}`] = Number(baseRedondeadaTecnicDecimal.toFixed(2));
+  resultado[`valorIva${tipoIva}`] = Number(
+    valorIvaRedondeadoTecnicDecimal.toFixed(2)
+  );
+  resultado[`importe${tipoIva}`] = Number(
+    importeRedondeadoTecnicDecimal.toFixed(2)
+  );
+  console.log("resultado", resultado);
   return ajustarAuxDetalleIva(resultado);
 }
 
@@ -82,6 +130,33 @@ export function ajustarAuxDetalleIva(auxDetalleIva) {
   return auxDetalleIva;
 }
 
+export const countDecimal = (num: number) => {
+  const str = num.toString();
+  const index = str.indexOf(".");
+  return index === -1 ? 0 : str.length - index - 1;
+};
+
+export const procesarSubtotal = (
+  subtotal: number,
+  tecnicDecimal: number): number => {
+    let subtotalDecimal = new Decimal(subtotal);
+    console.log("1PresubtotalF", subtotalDecimal.toString());
+
+    // 2. Arredondar usando tecnicDecimal
+    let tecnicDecimalDecimal = new Decimal(tecnicDecimal);
+    let subtotalArredondadoTecnicDecimal = subtotalDecimal
+        .mul(tecnicDecimalDecimal)
+        .round()
+        .div(tecnicDecimalDecimal);
+    console.log("procesarSUbt1", subtotalArredondadoTecnicDecimal.toString());
+
+    // 3. Arredondar para duas casas decimais
+    let subtotalFinalDecimal = subtotalArredondadoTecnicDecimal.toFixed(2);
+    let subtotalFinal = Number(subtotalFinalDecimal);
+    console.log("procesarSUbt2", subtotalFinal);
+
+    return subtotalFinal;
+  }
 /* Eze 4.0 */
 export const convertirPuntosEnDinero = (
   puntos: number,
@@ -120,4 +195,3 @@ export function fusionarObjetosDetalleIva(
   });
   return resultado;
 }
-
