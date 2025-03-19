@@ -14,7 +14,7 @@ import {
 } from "./promociones.interface";
 import * as schPromociones from "./promociones.mongodb";
 import { TicketsInterface } from "../tickets/tickets.interface";
-import { arrayClientesFacturacion } from "../clientes/clientes.interface";
+import { arrayClientesFacturacion, ClientesInterface } from "../clientes/clientes.interface";
 import { promises } from "dns";
 import { unwatchFile } from "fs";
 import { impresoraInstance } from "src/impresora/impresora.class";
@@ -82,7 +82,8 @@ export class NuevaPromocion {
   public async gestionarPromociones(
     cesta: CestasInterface,
     idArticulo: ArticulosInterface["_id"],
-    unidades: number
+    unidades: number,
+    cliente: ClientesInterface
   ): Promise<boolean> {
     let unidadesTotales = unidades;
     let index1 = null;
@@ -91,7 +92,6 @@ export class NuevaPromocion {
       return false;
 
     if (cesta.idCliente) {
-      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
       if (cliente.albaran === true) {
         // No se les hace promociones a estos clientes
         return false;

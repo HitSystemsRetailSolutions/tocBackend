@@ -219,15 +219,15 @@ export class CestaClase {
       !clienteDescEsp
     ) {
       for (const producto of cesta.lista) {
-        if(producto?.regalo) continue;
+        if (producto?.regalo) continue;
         if (producto.arraySuplementos != null || producto.promocion == null) {
           const infoArticulo = await articulosInstance.getInfoArticulo(
             producto.idArticulo
           );
 
-          let precioArt= producto.subtotal;
+          let precioArt = producto.subtotal;
           let unidades = 1;
-          if(producto.tarifaEsp){
+          if (producto.tarifaEsp) {
             const artTarifa = await articulosInstance.getPrecioConTarifa(
               infoArticulo,
               cesta.idCliente
@@ -256,8 +256,6 @@ export class CestaClase {
       }
     } else if (clienteDescEsp && importe == clienteDescEsp.precio) {
       this.recalcularSubtotales(cesta, clienteDescEsp.precio);
-    } else if (cesta.modo == "CONSUMO_PERSONAL" && descuento) {
-      await cestasInstance.recalcularIvas(cesta);
     }
   }
 
@@ -274,6 +272,7 @@ export class CestaClase {
           false,
           producto.descuentoTienda
         );
+
         producto.subtotal =
           Object.entries(objIva)
             .filter(
@@ -283,6 +282,31 @@ export class CestaClase {
                 value > 0
             )
             .map(([key, value]) => value)[0] || 0;
+
+        if (producto.arraySuplementos != null) {
+          const detallesSuplementos = await this.getDetalleIvaSuplementos(
+            producto.arraySuplementos,
+            cesta.idCliente,
+            producto.unidades,
+            producto.descuentoTienda,
+            true
+          );
+
+          const objIvaSuplementos = fusionarObjetosDetalleIva(
+            objIva,
+            detallesSuplementos
+          );
+
+          producto.subtotal =
+            Object.entries(objIvaSuplementos)
+              .filter(
+                ([key, value]) =>
+                  key.includes("importe") &&
+                  typeof value === "number" &&
+                  value > 0
+              )
+              .map(([key, value]) => value)[0] || 0;
+        }
       } // Modificamos el total para añadir el descuento especial del cliente
       producto.subtotal = redondearPrecio(producto.subtotal);
     }
@@ -692,9 +716,7 @@ export class CestaClase {
       ? await clienteInstance.getClienteById(cesta.idCliente)
       : null;
     const precioArt =
-      cliente &&
-      ((cliente.albaran) ||
-        (cliente?.vip))
+      cliente && (cliente.albaran || cliente?.vip)
         ? articulo.precioBase
         : articulo.precioConIva;
     // si es una promocion lo gestionamos de otra forma
@@ -702,94 +724,85 @@ export class CestaClase {
       !(await nuevaInstancePromociones.gestionarPromociones(
         cesta,
         articulo._id,
-        unidades
+        unidades,
+        cliente
       ))
     ) {
       articulo["menu"] = menu;
       // recojemos los datos del articulo
       // let infoArticulo = await articulosInstance.getInfoArticulo(articulo._id);
       // recorremos la cesta
+      const cllienteFacturacion = cliente && (cliente.albaran || cliente.vip);
       for (let i = 0; i < cesta.lista.length; i++) {
-        // si el articulo ya esta en la cesta
+        const item = cesta.lista[i];
+
         if (
-          cesta.lista[i].idArticulo === articulo._id &&
-          cesta.lista[i].gramos == null &&
-          cesta.lista[i].regalo == regalar &&
-          cesta.lista[i].promocion == null &&
-          // aqui basicamente compruebo de que si el articulo es especial y tiene un nombre diferente que no se sume
-          (cesta.lista[i].nombre == nombre || nombre.length == 0) &&
-          // comrpuebo que no se sumen articulos pagados con no pagados
-          !(menu === "pagados" && !cesta.lista[i].pagado) &&
-          !(menu !== "pagados" && cesta.lista[i].pagado)
+          item.idArticulo === articulo._id &&
+          item.gramos == null &&
+          item.regalo == regalar &&
+          item.promocion == null &&
+          (item.nombre == nombre || nombre.length == 0) &&
+          !(menu === "pagados" && !item.pagado) &&
+          !(menu !== "pagados" && item.pagado)
         ) {
           if (
             arraySuplementos &&
-            cesta.lista[i]?.arraySuplementos &&
-            cesta.lista[i]?.arraySuplementos?.length == arraySuplementos?.length
+            item.arraySuplementos?.length === arraySuplementos.length
           ) {
-            let subCesta = cesta.lista[i].arraySuplementos;
+            let subCesta = [...item.arraySuplementos].sort(
+              (a, b) => a._id - b._id
+            );
+            let arraySupOrdenado = [...arraySuplementos].sort(
+              (a, b) => a._id - b._id
+            );
 
-            subCesta = subCesta.sort(function (a, b) {
-              return a._id - b._id;
-            });
-
-            arraySuplementos = arraySuplementos.sort(function (a, b) {
-              return a._id - b._id;
-            });
             let igual = 0;
             let precioSuplementos = 0;
+
             for (let j = 0; j < arraySuplementos.length; j++) {
-              if (arraySuplementos[j]._id === subCesta[j]._id) {
-                if (
-                  cliente &&
-                  ((cliente.albaran) ||
-                    (cliente?.vip))
-                ) {
-                  precioSuplementos += arraySuplementos[j].precioBase;
-                } else {
-                  precioSuplementos += arraySuplementos[j].precioConIva;
-                }
+              if (arraySupOrdenado[j]._id === subCesta[j]._id) {
+                precioSuplementos += cllienteFacturacion
+                  ? arraySupOrdenado[j].precioBase
+                  : arraySupOrdenado[j].precioConIva;
                 igual++;
               }
             }
-            // articulos pagados y no pagados de honei
-            if (igual == cesta.lista[i].arraySuplementos.length) {
-              cesta.lista[i].unidades += unidades;
-              if (articulo.puntos == null || articulo.puntos == 0) {
-                await this.setPuntosPromoDscompteFixe(articulo);
-              }
-              if (unidades > 0 && cesta.lista[i].puntos != null) {
-                cesta.lista[i].puntos += articulo.puntos * unidades;
-              } else if (unidades < 0 && cesta.lista[i].puntos != null) {
-                cesta.lista[i].puntos += articulo.puntos * unidades;
+
+            if (igual === item.arraySuplementos.length) {
+              item.unidades += unidades;
+
+              if (!articulo.puntos) {
+                await this.setPuntosPromoDscompteFixe(articulo); // Posible optimización: fuera del bucle
               }
 
-              cesta.lista[i].subtotal =
-                nuevaInstancePromociones.redondearDecimales(
-                  cesta.lista[i].subtotal + unidades * precioArt,
-                  2
-                );
+              if (item.puntos != null) {
+                item.puntos += articulo.puntos * unidades;
+              }
+
+              item.subtotal = nuevaInstancePromociones.redondearDecimales(
+                item.subtotal + unidades * precioArt,
+                2
+              );
+
               articuloNuevo = false;
               break;
             }
-          } else if (
-            cesta.lista[i].arraySuplementos == null &&
-            cesta.lista[i].regalo == regalar
-          ) {
-            cesta.lista[i].unidades += unidades;
-            if (articulo.puntos == null || articulo.puntos == 0) {
+          } else if (!item.arraySuplementos && item.regalo === regalar) {
+            item.unidades += unidades;
+
+            if (!articulo.puntos) {
               await this.setPuntosPromoDscompteFixe(articulo);
             }
-            if (unidades > 0 && cesta.lista[i].puntos != null) {
-              cesta.lista[i].puntos += articulo.puntos * unidades;
-            } else if (unidades < 0 && cesta.lista[i].puntos != null) {
-              cesta.lista[i].puntos += articulo.puntos * unidades;
+
+            if (item.puntos != null) {
+              item.puntos += articulo.puntos * unidades;
             }
+
             if (!regalar) {
-              cesta.lista[i].subtotal = Number(
-                (cesta.lista[i].subtotal + unidades * precioArt).toFixed(2)
-              );
+              item.subtotal =
+                Math.round((item.subtotal + unidades * precioArt) * 100) / 100;
             }
+
             articuloNuevo = false;
             break;
           }
@@ -838,8 +851,7 @@ export class CestaClase {
         });
       }
     }
-
-    await this.recalcularIvas(cesta, menu);
+    await this.recalcularIvas(cesta, menu, cliente);
     if (await schCestas.updateCesta(cesta)) return cesta;
 
     throw Error("Error updateCesta() - cesta.clase.ts");
@@ -1200,7 +1212,8 @@ export class CestaClase {
   /* Eze 4.0 */
   async recalcularIvas(
     cesta: CestasInterface,
-    menu: string = ""
+    menu: string = "",
+    clienteCesta: ClientesInterface = null
   ): Promise<CestasInterface> {
     cesta.detalleIva = {
       base1: 0,
@@ -1220,7 +1233,9 @@ export class CestaClase {
       importe5: 0,
     };
     const arrayIvas = tiposIvaInstance.arrayIvas;
-    const cliente = cesta.idCliente
+    const cliente = clienteCesta
+      ? clienteCesta
+      : cesta.idCliente
       ? await clienteInstance.getClienteById(cesta.idCliente)
       : null;
     await this.comprobarRegalos(cesta);
@@ -1247,26 +1262,16 @@ export class CestaClase {
         let articulo = await articulosInstance.getInfoArticulo(
           cesta.lista[i].idArticulo
         );
-
         let tarifaEsp = false;
         // encuentra el posible descuento del cliente albaran
         let dto = 0;
-        if (
-          cliente &&
-          cliente?.dto &&
-
-          ((cliente?.albaran) || (cliente?.vip))
-        )
+        if (cliente && cliente?.dto && (cliente?.albaran || cliente?.vip))
           dto = await clienteInstance.getDtoAlbaran(cliente, articulo);
-          const clienteFacturacion = cliente && ((cliente.albaran) ||
-          (cliente?.vip))
-          ? true
-          : false;
+        const clienteFacturacion =
+          cliente && (cliente.albaran || cliente?.vip) ? true : false;
 
         let precioArt =
-          cliente &&
-          ((cliente.albaran) ||
-            (cliente?.vip))
+          cliente && (cliente.albaran || cliente?.vip)
             ? articulo.precioBase
             : articulo.precioConIva;
         const artPrecioIvaSinTarifa = articulo.precioConIva;
@@ -1349,11 +1354,7 @@ export class CestaClase {
 
         // Si el cliente es albaran y no paga en tienda, se guarda el IVA correspondiente
         // para mostrarlo en el ticket y en el frontend.
-        if (
-          ((cliente?.albaran) ||
-            (cliente?.vip)) &&
-          !cesta.lista[i]?.iva
-        ) {
+        if ((cliente?.albaran || cliente?.vip) && !cesta.lista[i]?.iva) {
           const tipoIvaStr = articulo.tipoIva.toString();
           const ivaObject = arrayIvas.find((item) => item.tipus === tipoIvaStr);
           cesta.lista[i].iva = ivaObject.iva;
@@ -1393,8 +1394,7 @@ export class CestaClase {
           precioArt,
           articulo.tipoIva,
           cesta.lista[i].unidades,
-          ((cliente?.albaran) ||
-            (cliente?.vip)),
+          cliente?.albaran || cliente?.vip,
           cesta.modo == "CONSUMO_PERSONAL"
             ? cesta.lista[i].descuentoTienda
             : cesta.lista[i]?.dto || 0,
@@ -1413,7 +1413,10 @@ export class CestaClase {
             cesta.lista[i].arraySuplementos,
             cesta.idCliente,
             cesta.lista[i].unidades,
-            dto
+            cesta.modo == "CONSUMO_PERSONAL"
+              ? cesta.lista[i].descuentoTienda
+              : cesta.lista[i]?.dto || 0,
+            cesta?.modo == "CONSUMO_PERSONAL"
           );
           const preuSumplements = Number(
             (
@@ -1427,8 +1430,11 @@ export class CestaClase {
           cesta.lista[i].subtotal += preuSumplements;
           if (cesta.lista[i].precioOrig) {
             cesta.lista[i].precioOrig =
-              Math.round((cesta.lista[i].precioOrig + preuSumplements) * 100) /
-              100;
+              cesta.modo == "CONSUMO_PERSONAL"
+                ? Math.round(cesta.lista[i].subtotal * 100) / 100
+                : Math.round(
+                    (cesta.lista[i].precioOrig + preuSumplements) * 100
+                  ) / 100;
           }
           cesta.detalleIva = fusionarObjetosDetalleIva(
             cesta.detalleIva,
@@ -1501,11 +1507,7 @@ export class CestaClase {
         articulo,
         idCliente
       );
-      if (
-        cliente &&
-        ((cliente.albaran && cliente.noPagaEnTienda) ||
-          (cliente?.vip))
-      ) {
+      if (cliente && (cliente.albaran || cliente?.vip)) {
         preu += articulo.precioBase * unidades;
       } else {
         preu += articulo.precioConIva * unidades;
@@ -1519,7 +1521,8 @@ export class CestaClase {
     arraySuplementos: ArticulosInterface[],
     idCliente: ClientesInterface["id"],
     unidades: number,
-    dto: number = 0
+    dto: number = 0,
+    consumoPersonal = false
   ): Promise<DetalleIvaInterface> {
     let objetoIva: DetalleIvaInterface = {
       base1: 0,
@@ -1553,12 +1556,10 @@ export class CestaClase {
         idCliente
       );
       let precioArt =
-        cliente &&
-        ((cliente.albaran && cliente.noPagaEnTienda) ||
-          (cliente?.vip))
+        cliente && (cliente.albaran || cliente?.vip)
           ? articulo.precioBase
           : articulo.precioConIva;
-      if (descuento) {
+      if (descuento && !consumoPersonal) {
         precioArt = precioArt - precioArt * (descuento / 100);
       }
       objetoIva = fusionarObjetosDetalleIva(
@@ -1566,8 +1567,7 @@ export class CestaClase {
           precioArt,
           articulo.tipoIva,
           unidades,
-          (cliente?.albaran) ||
-            (cliente?.vip),
+          cliente?.albaran || cliente?.vip,
           dto
         ),
         objetoIva
@@ -1702,7 +1702,7 @@ export class CestaClase {
     }
     const item = cesta.lista[index];
     if (!item) {
-        throw new Error(`Elemento en la posición ${index} no encontrado`);
+      throw new Error(`Elemento en la posición ${index} no encontrado`);
     }
 
     item.regalo = true;

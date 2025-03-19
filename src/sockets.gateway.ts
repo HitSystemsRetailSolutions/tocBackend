@@ -17,6 +17,7 @@ import { parametrosController } from "./parametros/parametros.controller";
 import { tarifasInstance } from "./tarifas/tarifas.class";
 import { toggle3G } from "./tickets/tickets.mongodb";
 import { clienteInstance } from "./clientes/clientes.clase";
+import { cashlogyInstance } from "src/cashlogy/cashlogy.clase"
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -170,6 +171,8 @@ io.on("connection", (socket) => {
       );
     }
   );
+  
+  cashlogyInstance.refresh_notificaciones()
 });
 
 if (process.env.NODE_ENV !== "test") {

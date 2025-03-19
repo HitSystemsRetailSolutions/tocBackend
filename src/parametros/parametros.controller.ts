@@ -6,6 +6,7 @@ import { logger } from "../logger";
 import { paytefInstance } from "src/paytef/paytef.class";
 import { cajaInstance } from "src/caja/caja.clase";
 import { setIpCashlogy } from "./parametros.mongodb";
+import { cashlogyInstance } from "src/cashlogy/cashlogy.clase";
 
 @Controller("parametros")
 export class ParametrosController {
@@ -150,7 +151,8 @@ export class ParametrosController {
     //console.log(ip)
     try {
       const result = await setIpCashlogy(ip);
-
+      cashlogyInstance.cambio_ip(ip)
+      
       if (result) {
         return { message: "IP almacenada correctamente", data: result };
       } else {
