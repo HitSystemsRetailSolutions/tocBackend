@@ -34,7 +34,6 @@ export class TicketsClase {
   ) {
     try {
       const ticket = await schTickets.getTicketByID(idTicket);
-      console.log("ticket", ticket);
       let movimientos = await schMovimientos.getMovimientosDelTicket(idTicket);
       if (
         ticket.paytef ||
@@ -44,7 +43,7 @@ export class TicketsClase {
       ) {
         let xy = await schTickets.getAnulado(idTicket);
         if (xy?.anulado?.idTicketPositivo == idTicket)
-          return { res: false, tipo: "TARJETA" };
+          return { res: false, tipo: "TARJETA", msg: "Ya esta anulado" };
         let x = await paytefInstance.iniciarTransaccion(
           ticket.idTrabajador,
           idTicket,
@@ -52,7 +51,7 @@ export class TicketsClase {
           "refund"
         );
         if (!x) {
-          return { res: false, tipo: "TARJETA" };
+          return { res: false, tipo: "TARJETA", msg: "Anulación interrumpida" };
         }
         if (await schTickets.anularTicket(idTicket, true, reason)) {
           const devolucionCreada = await schTickets.getUltimoTicket();
@@ -66,7 +65,7 @@ export class TicketsClase {
             );
             return { res: true, tipo: "TARJETA" };
           } else {
-            return { res: false, tipo: "TARJETA" };
+            return { res: false, tipo: "TARJETA", msg: "Error al anular" };
           }
         }
       } else if (
