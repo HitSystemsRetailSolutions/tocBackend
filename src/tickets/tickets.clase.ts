@@ -43,7 +43,7 @@ export class TicketsClase {
       ) {
         let xy = await schTickets.getAnulado(idTicket);
         if (xy?.anulado?.idTicketPositivo == idTicket)
-          return { res: false, tipo: "TARJETA", msg: "Ya esta anulado" };
+          return { res: false, tipo: "TARJETA", msg: "Ya está anulado" };
         let x = await paytefInstance.iniciarTransaccion(
           ticket.idTrabajador,
           idTicket,
@@ -63,11 +63,14 @@ export class TicketsClase {
               devolucionCreada._id,
               movimientos[0].idTrabajador
             );
-            return { res: true, tipo: "TARJETA" };
-          } else {
-            return { res: false, tipo: "TARJETA", msg: "Error al anular" };
+            return {
+              res: true,
+              tipo: "TARJETA",
+              idTicket: devolucionCreada._id,
+            };
           }
         }
+        return { res: false, tipo: "TARJETA", msg: "Error al anular" };
       } else if (
         ticket.datafono3G ||
         (movimientos &&
@@ -78,13 +81,17 @@ export class TicketsClase {
           (mov) => mov.tipo === "DATAFONO_3G"
         );
         if (allDatafono3G) {
-          // si la suma de los movs dat3G es 0, al ticket se le considera pago en efectivo
           const sumAll = movimientos.reduce((acc, mov) => acc + mov.valor, 0);
           if (sumAll == 0) {
-            return {
-              res: await schTickets.anularTicket(idTicket, false, reason),
-              tipo: "EFECTIVO",
-            };
+            if (await schTickets.anularTicket(idTicket, false, reason)) {
+              const devolucionCreada = await schTickets.getUltimoTicket();
+              return {
+                res: true,
+                tipo: "EFECTIVO",
+                idTicket: devolucionCreada._id,
+              };
+            }
+            return { res: false, tipo: "EFECTIVO" };
           }
         }
         if (await schTickets.anularTicket(idTicket, true, reason)) {
@@ -97,20 +104,27 @@ export class TicketsClase {
               devolucionCreada._id,
               movimientos[0].idTrabajador
             );
-            return { res: true, tipo: "DATAFONO_3G" };
+            return {
+              res: true,
+              tipo: "DATAFONO_3G",
+              idTicket: devolucionCreada._id,
+            };
           }
         }
+        return { res: false, tipo: "DATAFONO_3G" };
+      }
+      if (await schTickets.anularTicket(idTicket, false, reason)) {
+        const devolucionCreada = await schTickets.getUltimoTicket();
         return {
-          res: false,
-          tipo: "DATAFONO_3G",
+          res: true,
+          tipo: "EFECTIVO",
+          idTicket: devolucionCreada._id,
         };
       }
-      return {
-        res: await schTickets.anularTicket(idTicket, false, reason),
-        tipo: "EFECTIVO",
-      };
+      return { res: false, tipo: "EFECTIVO" };
     } catch (error) {
       console.log("error anularTicket", error);
+      return { res: false, tipo: "ERROR", msg: "Excepción en la anulación" };
     }
   }
   async isTicketAnulable(idTicket: TicketsInterface["_id"]) {
