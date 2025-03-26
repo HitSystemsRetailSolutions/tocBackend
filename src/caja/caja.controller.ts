@@ -74,7 +74,7 @@ export class CajaController {
 
         logger.Info(52.3, "Dependienta " + idDependienta + " ha cerrado caja con " + cantidadPaytef + "€ en cantidadPaytef y " + totalLocalPaytef + "€ en totalLocalPaytef");
         // await ticketsInstance.getTotalLocalPaytef();
-        let cantidadLocal3G = cantidad3G;
+        let cantidadLocal3G = cantidad3GAutomatizado;
         return await cajaInstance.cerrarCaja(
           total,
           detalleMonedas,

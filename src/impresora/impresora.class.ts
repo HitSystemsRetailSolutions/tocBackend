@@ -2257,83 +2257,140 @@ export class Impresora {
         { tipo: "text", payload: "" },
         { tipo: "size", payload: [0, 1] },
       ];
-      // si el parametro MostraTotalAcumulat es Si concatenamos buffer con el valor dentro del if
-      if (parametros.params?.MostraTotalAcumulat == "Si") {
-        buffer.push({
-          tipo: "text",
-          payload: "Calaix fet       :      " + caja.calaixFetZ.toFixed(2),
-        });
-      }
+
       const cambioEmergenciaApertura = caja.cambioEmergenciaApertura ?? 0;
       const cambioEmergenciaCierre = caja.cambioEmergenciaCierre ?? 0;
-      // concatenamos buffer con el siguiente array despues del if
+      // info general caja
       buffer = buffer.concat([
         {
           tipo: "text",
-          payload: "Desquadre        :      " + caja.descuadre.toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload: "Cli. at. Caixa   :      " + caja.nClientes,
-        },
-        {
-          tipo: "text",
-          payload: "Cli. at. Taules  :      " + caja.nClientesMesas,
-        },
-        {
-          tipo: "text",
-          payload:
-            "Canvi d'emergencia Apertura  :      " + cambioEmergenciaApertura,
-        },
-        {
-          tipo: "text",
-          payload:
-            "Canvi d'emergencia tancament :      " + cambioEmergenciaCierre,
-        },
-        {
-          tipo: "text",
-          payload: "Mitjana de tickets:      " + mediaTickets,
+          payload: "Caixa:",
         },
       ]);
-
-      if (parametros.params?.MostraTotalAcumulat == "Si") {
-        buffer.push({
-          tipo: "text",
-          payload: "Recaudat         :      " + caja.recaudado.toFixed(2),
-        });
-      }
+      if (parametros?.params?.MostraTotalAcumulat == "Si")
+        buffer = buffer.concat([
+          {
+            tipo: "text",
+            payload: "  Calaix fet:            " + caja.calaixFetZ.toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload: "  Recaudat:              " + caja.recaudado.toFixed(2),
+          },
+        ]);
 
       buffer = buffer.concat([
         {
           tipo: "text",
-          payload: "Datafon 3G       :      " + caja.totalDatafono3G,
+          payload: "  Desquadre:             " + caja.descuadre.toFixed(2),
         },
         {
           tipo: "text",
-          payload: "Tickets 3G       :      " + caja.cantidadLocal3G.toFixed(2),
+          payload: "",
+        }
+      ]);
+      // info clients
+      buffer = buffer.concat([
+        {
+          tipo: "text",
+          payload: "Clients:",
         },
         {
           tipo: "text",
-          payload: "Paytef           :      " + caja.cantidadPaytef.toFixed(2),
+          payload: "  Total:                 " + caja.nClientes,
+        },
+        {
+          tipo: "text",
+          payload: " En Taules:              " + caja.nClientesMesas,
+        },
+        {
+          tipo: "text",
+          payload: "",
+        },
+        // info canvi
+        {
+          tipo: "text",
+          payload: "Canvi:",
+        },
+        {
+          tipo: "text",
+          payload: "  Inicial:               " + caja.totalApertura.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "  Final:                 " + caja.totalCierre.toFixed(2),
         },
         {
           tipo: "text",
           payload:
-            "Tickets Paytef   :      " + caja.totalLocalPaytef.toFixed(2),
+            "  Emergència apertura:   " + cambioEmergenciaApertura.toFixed(2),
         },
         {
           tipo: "text",
-          payload: "Canvi inicial    :      " + caja.totalApertura.toFixed(2),
+          payload:
+            "  Emergència tancament:  " + cambioEmergenciaCierre.toFixed(2),
         },
         {
           tipo: "text",
-          payload: "Canvi final      :      " + caja.totalCierre.toFixed(2),
+          payload: "",
+        },
+        // info 3G
+        {
+          tipo: "text",
+          payload: "Datàfon 3G:",
         },
         {
           tipo: "text",
-          payload: "total Albarans    :      " + caja.totalAlbaranes.toFixed(2),
+          payload: "  Import introduït:      " + caja.totalDatafono3G.toFixed(2),
         },
-        { tipo: "text", payload: "" },
+        {
+          tipo: "text",
+          payload: "  Ventes (Tickets):      " + caja.cantidadLocal3G.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            "  Diferència:            " +
+            (caja.totalDatafono3G - caja.cantidadLocal3G).toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "",
+        },
+        // info paytef
+        {
+          tipo: "text",
+          payload: "Paytef:",
+        },
+        {
+          tipo: "text",
+          payload: " Import:                 " + caja.cantidadPaytef.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload:
+            " Ventes (Tickets):       " + caja.totalLocalPaytef.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "",
+        },
+        // info tickets albarans
+        {
+          tipo: "text",
+          payload: "Albarans:",
+        },
+        {
+          tipo: "text",
+          payload: " Total:                  " + caja.totalAlbaranes.toFixed(2),
+        },
+        {
+          tipo: "text",
+          payload: "",
+        },
+      ]);
+      // info movimientos
+      buffer = buffer.concat([
         {
           tipo: "text",
           payload: caja?.motivoDescuadre
