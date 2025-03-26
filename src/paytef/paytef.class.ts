@@ -267,7 +267,6 @@ class PaytefClass {
                   `Transaccion (${idTicket}) refund aprobada`,
                   "paytef.class"
                 );
-                await schTickets.anularTicket(idTicket);
                 parametrosInstance.setContadoDatafono(0, total * -1);
                 io.emit("consultaPaytefRefund", { ok: true, id: idTicket });
                 transaccionAprobada = true;
@@ -338,9 +337,8 @@ class PaytefClass {
           );
 
           // añadir proceso de comprobar transaccion al perder la respuesta de poll
-          const transLostWork = await this.comprobarTransaccionPerdida(
-            idTicket
-          );
+          const transLostWork =
+            await this.comprobarTransaccionPerdida(idTicket);
           if (transLostWork) {
             logger.Info(
               `Transaccion (${idTicket}) venta aprobada despues de perder respuesta poll`,
@@ -380,17 +378,19 @@ class PaytefClass {
 
   // intentamos obtener una muestra de la transaccion aprobada o denegada cuando la anterior peticion  no nos ha devuelto respuesta
   // si el motivo fue que el servidor rechazó la peticion, aqui se usa otra api para obtener la respuesta
-  async comprobarTransaccionPerdida(
-    idTicket: number
-  ) {
+  async comprobarTransaccionPerdida(idTicket: number) {
     try {
       const lastFive = await this.getLastFive();
 
       if (lastFive.length > 0) {
         const ultimoTicket = lastFive.find(
           (ticket) => ticket.reference == idTicket
-        )
-        if (ultimoTicket && ultimoTicket.reference == idTicket && ultimoTicket.approved) {
+        );
+        if (
+          ultimoTicket &&
+          ultimoTicket.reference == idTicket &&
+          ultimoTicket.approved
+        ) {
           return true;
         }
       }
