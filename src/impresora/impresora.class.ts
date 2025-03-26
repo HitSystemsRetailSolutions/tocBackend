@@ -2273,10 +2273,6 @@ export class Impresora {
             tipo: "text",
             payload: "  Calaix fet:            " + caja.calaixFetZ.toFixed(2),
           },
-          {
-            tipo: "text",
-            payload: "  Recaudat:              " + caja.recaudado.toFixed(2),
-          },
         ]);
 
       buffer = buffer.concat([
@@ -2284,13 +2280,22 @@ export class Impresora {
           tipo: "text",
           payload: "  Desquadre:             " + caja.descuadre.toFixed(2),
         },
+      ]);
+
+      if (parametros?.params?.MostraTotalAcumulat == "Si")
+        buffer = buffer.concat([
+          {
+            tipo: "text",
+            payload: "  Recaudat:              " + caja.recaudado.toFixed(2),
+          },
+        ]);
+
+      // info clients
+      buffer = buffer.concat([
         {
           tipo: "text",
           payload: "",
-        }
-      ]);
-      // info clients
-      buffer = buffer.concat([
+        },
         {
           tipo: "text",
           payload: "Clients:",
