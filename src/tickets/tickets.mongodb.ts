@@ -7,6 +7,7 @@ import { reenviarTicket } from "src/sincro";
 import { logger } from "../logger";
 import axios from "axios";
 import * as schCaja from "../caja/caja.mongodb";
+import { paytefInstance } from "src/paytef/paytef.class";
 
 /* Eze v23 */
 export async function limpiezaTickets(): Promise<boolean> {
@@ -395,6 +396,7 @@ export async function anularTicket(
     let ticket = await getTicketByID(idTicket);
     let dt3G = datafono3G;
     if (ticket.total > 0) {
+      await paytefInstance.deleteUltimaIniciarTransaccion();
       const id = await ticketsInstance.getProximoId();
       ticket.enviado = false;
       if (reason) ticket.justificacion = reason;
