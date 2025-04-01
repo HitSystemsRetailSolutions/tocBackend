@@ -1,5 +1,9 @@
 import { conexion } from "../conexion/mongodb";
-import { TicketsInterface, TicketsInterfaceBackUp } from "./tickets.interface";
+import {
+  maxIdTicket,
+  TicketsInterface,
+  TicketsInterfaceBackUp,
+} from "./tickets.interface";
 import { UtilesModule } from "../utiles/utiles.module";
 import { ticketsInstance } from "./tickets.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
@@ -144,10 +148,34 @@ export async function getTicketOtrosModificadoMasAntiguo(): Promise<TicketsInter
 }
 
 /* Eze 4.0 */
-export async function getUltimoTicket(): Promise<TicketsInterface> {
+
+export async function getUltimoTicket(): Promise<TicketsInterface | null> {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
-  return await tickets.findOne({}, { sort: { _id: -1 } });
+  const maxIdTicketvalue = maxIdTicket;
+  // Obtener el ticket con el timestamp más reciente
+  const ticketTimestamp = await tickets.findOne(
+    {},
+    { sort: { timestamp: -1 } }
+  );
+
+  // Obtener el ticket con el ID más alto
+  const ticketId = await tickets.findOne({}, { sort: { _id: -1 } });
+
+  if (!ticketTimestamp || !ticketId) {
+    return null;
+  }
+
+  const posibleReinicio =
+    ticketId._id > ticketTimestamp._id &&
+    (ticketId._id == maxIdTicketvalue ||
+      Math.abs(ticketTimestamp._id - ticketId._id) > 100000);
+
+  if (posibleReinicio) {
+    return ticketTimestamp;
+  }
+
+  return ticketId;
 }
 
 /* Uri */
