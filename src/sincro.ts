@@ -154,6 +154,7 @@ async function socketSincronizarTickets() {
         database: params.database,
         codigoInternoTienda: params.codigoTienda,
         nombreTienda: params.nombreTienda,
+        token: 'Bearer '+params.token,
       };
       emitSocket("sincroTickets", {
         ticket: superTicket,
@@ -270,6 +271,7 @@ async function socketSinconizarCajas() {
         licencia: params.licencia,
         database: params.database,
         codigoInternoTienda: params.codigoTienda,
+        token: 'Bearer '+params.token,
       };
       emitSocket("sincroCajas", {
         caja,
