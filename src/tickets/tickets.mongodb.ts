@@ -383,7 +383,8 @@ export async function borrarTicket(idTicket: number): Promise<boolean> {
 /* Eze v23 - Solo se invoca manualmente desde la lista de tickets (frontend dependienta) */
 export async function anularTicket(
   idTicket: TicketsInterface["_id"],
-  datafono3G = false
+  datafono3G = false,
+  reason: string
 ): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const ticketsAnulados = database.collection("ticketsAnulados");
@@ -396,6 +397,7 @@ export async function anularTicket(
     if (ticket.total > 0) {
       const id = await ticketsInstance.getProximoId();
       ticket.enviado = false;
+      if (reason) ticket.justificacion = reason;
       ticket._id = id;
       ticket.timestamp = Date.now();
       ticket.total = ticket.total * -1;
@@ -431,13 +433,15 @@ export async function anularTicket(
   }
   return false;
 }
-export async function isTicketAnulable(idTicket: TicketsInterface["_id"]):Promise<boolean> {
+export async function isTicketAnulable(
+  idTicket: TicketsInterface["_id"]
+): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const ticketsAnulados = database.collection("ticketsAnulados");
   const resultado = await ticketsAnulados.findOne({
     idTicketAnulado: idTicket,
   });
-  return resultado==null
+  return resultado == null;
 }
 export async function insertImprimir(
   idTicket: TicketsInterface["_id"]

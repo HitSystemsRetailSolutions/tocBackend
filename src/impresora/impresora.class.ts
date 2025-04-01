@@ -228,6 +228,7 @@ export class Impresora {
           idCliente: ticket.idCliente,
           totalSinDescuento: totalSinDescuento,
           tmstpCesta: ticket.cesta.timestamp,
+          justificacion: ticket?.justificacion || null,
         };
       } else {
         // si no tenemos cliente preparamos el objeto sin los datos del cliente
@@ -253,6 +254,7 @@ export class Impresora {
           modoCesta: ticket?.cesta?.modo,
           comensales: ticket?.cesta?.comensales || null,
           tmstpCesta: ticket.cesta.timestamp,
+          justificacion: ticket?.justificacion || null,
         };
       }
       if (ticket.restante > 0) {
@@ -804,7 +806,16 @@ export class Impresora {
 
     arrayImprimir.push(
       { tipo: "align", payload: "RT" },
-      { tipo: "text", payload: "TOTAL: " + totalImporte.toFixed(2) + " €" },
+      { tipo: "text", payload: "TOTAL: " + totalImporte.toFixed(2) + " €" }
+    );
+    if (info.justificacion)
+      arrayImprimir.push(
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: `Motivo: ${info.justificacion}` }
+      );
+    arrayImprimir.push(
       { tipo: "control", payload: "LF" },
       { tipo: "size", payload: [0, 0] },
       { tipo: "align", payload: "CT" }

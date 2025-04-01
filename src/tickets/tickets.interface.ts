@@ -24,6 +24,7 @@ export interface TicketsInterface extends VersionInterface{
   restante?: number;
   enviado: boolean;
   otrosModificado?: boolean;
+  justificacion?: string;
 }
 export interface Anulado {
   idTicketPositivo: number;
