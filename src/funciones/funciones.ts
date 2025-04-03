@@ -43,17 +43,35 @@ export function construirObjetoIvas(
   const ivaRate = ivaData.iva;
 
   // Calcular base, valorIva e importe
-  let baseDecimal = new Decimal(
-    albaranNPT
-      ? precio * unidades - precio * unidades * (dto / 100)
-      : (precio / (1 + ivaRate)) * unidades -
-        (precio / (1 + ivaRate)) * unidades * (dto / 100)
-  );
+  let precioDecimal = new Decimal(precio);
+  let unidadesDecimal = new Decimal(unidades);
+  let dtoDecimal = new Decimal(dto).div(100);
+  let ivaRateDecimal = new Decimal(ivaRate);
+
+  let baseDecimal = albaranNPT
+    ? precioDecimal
+        .times(unidadesDecimal)
+        .minus(precioDecimal.times(unidadesDecimal).times(dtoDecimal))
+    : precioDecimal
+        .div(ivaRateDecimal.plus(1))
+        .times(unidadesDecimal)
+        .minus(
+          precioDecimal
+            .div(ivaRateDecimal.plus(1))
+            .times(unidadesDecimal)
+            .times(dtoDecimal)
+        );
+
   let valorIvaDecimal = baseDecimal.times(ivaRate);
-  let importeDecimal = baseDecimal.plus(valorIvaDecimal);
+  let baseDecimalRedondeada = baseDecimal.toFixed(5);
+  let valorIvaDecimalRedondeado = valorIvaDecimal.toFixed(5);
+
+  let importeDecimal = new Decimal(baseDecimalRedondeada).plus(
+    valorIvaDecimalRedondeado
+  );
 
   // Redondeo al valor de TecnicDecimal
-  const TecnicDecimalDecimal = new Decimal(TecnicDecimal);
+  const TecnicDecimalDecimal = 100;
   let baseRedondeadaTecnicDecimal = baseDecimal
     .mul(TecnicDecimalDecimal)
     .round()
