@@ -16,14 +16,6 @@ export function construirObjetoIvas(
   dto: number = 0,
   timestamp: number = null
 ): DetalleIvaInterface {
-  const DecPrecio = countDecimal(precio);
-  const DecUnidades = countDecimal(unidades);
-  const minDigitos = 2;
-
-  const TecnicDecimal = Math.pow(
-    10,
-    Math.max(minDigitos, DecPrecio, DecUnidades)
-  );
 
   const arrayIvasDecimals = timestamp
     ? tiposIvaInstance.getIvasDecWithTmstpCesta(timestamp)
@@ -70,29 +62,29 @@ export function construirObjetoIvas(
     valorIvaDecimalRedondeado
   );
 
-  // Redondeo al valor de TecnicDecimal
-  const TecnicDecimalDecimal = 100;
-  let baseRedondeadaTecnicDecimal = baseDecimal
-    .mul(TecnicDecimalDecimal)
+  // Redondeo al valor de FactorDecimal
+  const factorDecimal = 100;
+  let baseRedondeadaFactorDecimal = baseDecimal
+    .mul(factorDecimal)
     .round()
-    .div(TecnicDecimalDecimal);
-  let valorIvaRedondeadoTecnicDecimal = valorIvaDecimal
-    .mul(TecnicDecimalDecimal)
+    .div(factorDecimal);
+  let valorIvaRedondeadoFactorDecimal = valorIvaDecimal
+    .mul(factorDecimal)
     .round()
-    .div(TecnicDecimalDecimal);
-  let importeRedondeadoTecnicDecimal = importeDecimal
-    .mul(TecnicDecimalDecimal)
+    .div(factorDecimal);
+  let importeRedondeadoFactorDecimal = importeDecimal
+    .mul(factorDecimal)
     .round()
-    .div(TecnicDecimalDecimal);
+    .div(factorDecimal);
 
   // Redondeo final a dos decimales
   // Guardar los valores redondeados en el objeto con índices dinámicos
-  resultado[`base${tipoIva}`] = Number(baseRedondeadaTecnicDecimal.toFixed(2));
+  resultado[`base${tipoIva}`] = Number(baseRedondeadaFactorDecimal.toFixed(2));
   resultado[`valorIva${tipoIva}`] = Number(
-    valorIvaRedondeadoTecnicDecimal.toFixed(2)
+    valorIvaRedondeadoFactorDecimal.toFixed(2)
   );
   resultado[`importe${tipoIva}`] = Number(
-    importeRedondeadoTecnicDecimal.toFixed(2)
+    importeRedondeadoFactorDecimal.toFixed(2)
   );
 
   return ajustarAuxDetalleIva(resultado);
@@ -138,31 +130,6 @@ export const countDecimal = (num: number) => {
   return index === -1 ? 0 : str.length - index - 1;
 };
 
-/**
- * control de redondeos en los decimales.
- * Se obtiene la cantidad de decimales usados en el precio y en las unidades
- * para devolver un redondeo a 2 decimales mas preciso.
- * @param cantidad  precio a redondear
- * @param tecnicDecimal  digitos decimales usados en la cantidad
- * @returns cantidad redondeada a 2 decimales.
- */
-export const procesarCantidad = (
-  cantidad: number,
-  tecnicDecimal: number
-): number => {
-  let cantidadDecimal = new Decimal(cantidad);
-
-  let tecnicDecimalDecimal = new Decimal(tecnicDecimal);
-  let cantidadTecnicDecimal = cantidadDecimal
-    .mul(tecnicDecimalDecimal)
-    .round()
-    .div(tecnicDecimalDecimal);
-
-  let cantidadFinalDecimal = cantidadTecnicDecimal.toFixed(2);
-  let cantidadFinal = Number(cantidadFinalDecimal);
-
-  return cantidadFinal;
-};
 
 /* Eze 4.0 */
 export const convertirPuntosEnDinero = (
