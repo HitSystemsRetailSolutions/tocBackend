@@ -5,7 +5,7 @@ import {
   MovimientosInterface,
 } from "../movimientos/movimientos.interface";
 import { VersionInterface } from "src/version/version.interface";
-
+export const maxIdTicket = 99999999;
 export interface TicketsInterface extends VersionInterface{
   _id: number;
   timestamp: number;

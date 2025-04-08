@@ -1,4 +1,8 @@
-import { TicketsInterface, TicketsInterfaceBackUp } from "./tickets.interface";
+import {
+  maxIdTicket,
+  TicketsInterface,
+  TicketsInterfaceBackUp,
+} from "./tickets.interface";
 import * as schTickets from "./tickets.mongodb";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import { CestasInterface } from "../cestas/cestas.interface";
@@ -22,6 +26,7 @@ import { impresoraInstance } from "src/impresora/impresora.class";
 import { cestasInstance } from "src/cestas/cestas.clase";
 import { logger } from "src/logger";
 import { getDataVersion } from "src/version/version.clase";
+import { max } from "moment";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -160,22 +165,28 @@ export class TicketsClase {
     await schTickets.getUltimoTicket();
 
   /* Eze 4.0 */
-  async getProximoId(): Promise<number> {
-    const ultimoIdTicket = await this.getUltimoIdTicket();
 
-    if (typeof ultimoIdTicket === "number") {
-      let newId = ultimoIdTicket + 1;
-      // si la id generada es igual a la de la ultima transaccion de paytef, se incrementa en 1
-      if (
-        paytefInstance.ultimaIniciarTransaccion &&
-        newId == paytefInstance.ultimaIniciarTransaccion.idTicket
-      ) {
-        newId++;
-      }
-      return newId;
+  async getProximoId(): Promise<number> {
+    const ultimoIdTicket = await this.getUltimoIdTicket(); // Última ID en la colección
+    const maxIdTicketValue = maxIdTicket;
+
+    if (typeof ultimoIdTicket !== "number") {
+      throw new Error("No se pudo obtener el último ID de ticket");
     }
 
-    throw Error("El ultimoIdTicket no es correcto");
+    let newId = ultimoIdTicket + 1;
+
+    // Si el ID generado es igual al de la última transacción de Paytef, incrementarlo
+    if (paytefInstance.ultimaIniciarTransaccion?.idTicket === newId) {
+      newId++;
+    }
+
+    // Resetea el ID
+    if (newId > maxIdTicketValue) {
+      newId = 1;
+    }
+
+    return newId;
   }
 
   /* Eze 4.0 */
