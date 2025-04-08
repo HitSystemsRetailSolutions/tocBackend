@@ -182,7 +182,7 @@ export class TicketsClase {
     }
 
     // Resetea el ID
-    if (newId >= maxIdTicketValue) {
+    if (newId > maxIdTicketValue) {
       newId = 1;
     }
 
