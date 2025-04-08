@@ -11,7 +11,6 @@ import {
   construirObjetoIvas,
   convertirDineroEnPuntos,
   countDecimal,
-  procesarCantidad,
   fusionarObjetosDetalleIva,
   redondearPrecio,
 } from "../funciones/funciones";
@@ -1333,16 +1332,10 @@ export class CestaClase {
           );
           precioArt = preu == null ? precioArt : preu.precioConIva;
         }
-        let minDigit = 2;
-        let decPrecioArt = countDecimal(precioArt);
-        let decUnidades = countDecimal(cesta.lista[i].unidades);
-        let tecnicDecimal = Math.pow(
-          10,
-          Math.max(minDigit, decPrecioArt, decUnidades)
-        );
 
         let p = precioArt * cesta.lista[i].unidades;
-        cesta.lista[i].subtotal = Math.round(p * tecnicDecimal) / tecnicDecimal;
+
+        cesta.lista[i].subtotal = p;
 
         if (descuento)
           precioArt = Number(precioArt - precioArt * (descuento / 100));
@@ -1398,10 +1391,9 @@ export class CestaClase {
             cesta.lista[i].subtotal * (1 + cesta.lista[i].iva / 100);
         }
 
-        let subtotalFinal = procesarCantidad(
-          cesta.lista[i].subtotal,
-          tecnicDecimal
-        );
+        let subtotalFinal = Math.round(
+          cesta.lista[i].subtotal * 100
+        ) / 100;
 
         cesta.lista[i].subtotal = subtotalFinal;
 
