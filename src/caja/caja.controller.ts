@@ -7,6 +7,7 @@ import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 import { ticketsInstance } from "src/tickets/tickets.clase";
 import { CajaAbiertaInterface } from "./caja.interface";
 import { parametrosInstance } from "src/parametros/parametros.clase";
+import axios from "axios";
 
 @Controller("caja")
 export class CajaController {
@@ -23,8 +24,8 @@ export class CajaController {
       idDependienta,
       cambioEmergencia,
       cantidad3GAutomatizado,
-      forzarCierre=false,
-      motivoDescuadre="",
+      forzarCierre = false,
+      motivoDescuadre = "",
     }
   ) {
     try {
@@ -72,7 +73,16 @@ export class CajaController {
         }
         let totalLocalPaytef = await parametrosInstance.totalPaytef();
 
-        logger.Info(52.3, "Dependienta " + idDependienta + " ha cerrado caja con " + cantidadPaytef + "€ en cantidadPaytef y " + totalLocalPaytef + "€ en totalLocalPaytef");
+        logger.Info(
+          52.3,
+          "Dependienta " +
+            idDependienta +
+            " ha cerrado caja con " +
+            cantidadPaytef +
+            "€ en cantidadPaytef y " +
+            totalLocalPaytef +
+            "€ en totalLocalPaytef"
+        );
         // await ticketsInstance.getTotalLocalPaytef();
         let cantidadLocal3G = cantidad3GAutomatizado;
         return await cajaInstance.cerrarCaja(
@@ -88,7 +98,7 @@ export class CajaController {
           await ticketsInstance.getTotalHonei(),
           cambioEmergencia,
           forzarCierre,
-          motivoDescuadre,
+          motivoDescuadre
         );
       }
       throw Error("Error cerrarCaja > Faltan datos");
@@ -108,7 +118,13 @@ export class CajaController {
           (resultado) => resultado.idTrabajador
         );
         const inicioTime = await cajaInstance.getComprovarFechaCierreTurno();
-        await cajaInstance.mqttAbrirCaja(inicioTime);
+        const parametros = await parametrosInstance.getParametros();
+
+        if (parametros?.params?.textoStock == "Si")
+          axios.post("cajas/enviarCajaAbiertaContable", {
+            inicioTime: inicioTime,
+          });
+
         detalle = detalle.map((item) => {
           return {
             _id: item._id,
@@ -180,7 +196,8 @@ export class CajaController {
   async imprimirUltimoCierre() {
     try {
       const ultimoCierre = await cajaInstance.getUltimoCierre();
-      if (!ultimoCierre) throw Error("No se ha podido obtener el último cierre");
+      if (!ultimoCierre)
+        throw Error("No se ha podido obtener el último cierre");
       impresoraInstance.imprimirCajaAsync(ultimoCierre);
     } catch (err) {
       logger.Error(144, err);
@@ -300,12 +317,15 @@ export class CajaController {
     }
   }
   @Get("getTotalsIntervalo")
-  async getTotalsIntervalo(@Query() data: {inicioTime, finalTime}) {
+  async getTotalsIntervalo(@Query() data: { inicioTime; finalTime }) {
     try {
-      if(!data.inicioTime || !data.finalTime) {
+      if (!data.inicioTime || !data.finalTime) {
         throw Error("faltan datos en getTotalsIntervalo");
       }
-      return await cajaInstance.getTotalsIntervalo(data.inicioTime, data.finalTime);
+      return await cajaInstance.getTotalsIntervalo(
+        data.inicioTime,
+        data.finalTime
+      );
     } catch (error) {
       logger.Error(137, error);
       return null;
