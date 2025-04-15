@@ -28,59 +28,8 @@ import { deudasInstance } from "src/deudas/deudas.clase";
 import { redondearPrecio } from "src/funciones/funciones";
 import { getDataVersion } from "src/version/version.clase";
 require("dotenv").config();
-const mqtt = require("mqtt");
 export class CajaClase {
-  private mqttOptions = {
-    host: process.env.MQTT_HOST,
-    username: process.env.MQTT_USER,
-    password: process.env.MQTT_PASSWORD,
-  };
-  private client = mqtt.connect(this.mqttOptions);
-  async mqttAbrirCaja(inicioTime: number) {
-    try {
-      const parametros = await parametrosInstance.getParametros();
-      const date = this.formatoFechaISO8601(inicioTime);
-      let ticketJSON = {
-        Llicencia: parametros.codigoTienda,
-        Empresa: parametros.database,
-        tipus: "ObreCaixa",
-        CaixaDataInici: date,
-      };
-      let url = `/Hit/Serveis/Contable/Licencia/Apertura`;
-
-      // cuando se conecta enviamos los datos
-      if (this.client.connected) {
-        // Publica los datos
-        this.client.publish(url, JSON.stringify(ticketJSON));
-        this.client.on("error", (err) => {
-          logger.Error("Error en el client MQTT obreCaixa:", err);
-        });
-      } else {
-        // Si no está conectado, espera a que se conecte antes de publicar
-        this.client.on("connect", () => {
-          this.client.publish(url, JSON.stringify(ticketJSON));
-        });
-        this.client.on("error", (err) => {
-          logger.Error("Error en el client MQTT obreCaixa:", err);
-        });
-      }
-    } catch (error) {
-      logger.Error(53.2, "Error en mqttAbrirCaja: " + error);
-    }
-  }
-  formatoFechaISO8601(timestamp: number) {
-    const fecha = new Date(timestamp);
-    const año = fecha.getFullYear();
-    const mes = String(fecha.getMonth() + 1).padStart(2, "0"); // Sumar 1 al mes porque los meses van de 0 a 11
-    const dia = String(fecha.getDate()).padStart(2, "0");
-    const horas = String(fecha.getHours()).padStart(2, "0");
-    const minutos = String(fecha.getMinutes()).padStart(2, "0");
-    const segundos = String(fecha.getSeconds()).padStart(2, "0");
-
-    // Crear la cadena de fecha en el formato deseado
-    const fechaFormateada = `${año}-${mes}-${dia}T${horas}:${minutos}:${segundos}.000Z`;
-    return fechaFormateada;
-  }
+  
   postFichajesCaja = async (
     arrayTrabajadores: CajaAbiertaInterface["fichajes"]
   ) => await schCajas.postfichajesCaja(arrayTrabajadores);
