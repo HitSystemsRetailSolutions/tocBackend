@@ -2300,6 +2300,12 @@ export class Impresora {
             payload: "  Recaudat:              " + caja.recaudado.toFixed(2),
           },
         ]);
+      buffer = buffer.concat([
+        {
+          tipo: "text",
+          payload: "  Media tickets:          " + mediaTickets.toFixed(2),
+        },
+      ]);
 
       // info clients
       buffer = buffer.concat([
@@ -2317,7 +2323,7 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: " En Taules:              " + caja.nClientesMesas,
+          payload: "  En Taules:             " + caja.nClientesMesas,
         },
         {
           tipo: "text",

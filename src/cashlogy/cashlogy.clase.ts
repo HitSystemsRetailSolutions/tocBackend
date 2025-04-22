@@ -564,6 +564,7 @@ class CashlogyClase {
             en marcha, y en tal cas no se hace ninguna acción y se deja para el connect siguiente
 
     */
+   /* arrow function porque se llama en setInmediate y conserva el this */
     connect = async (connect_reason?:string, close_remote_socket:boolean=false):Promise<boolean> => {
         //console.log(connect_reason)
 
@@ -633,20 +634,22 @@ class CashlogyClase {
                     // antes del connect actual
                     let remote_last_cmd:{
                             id: string,
-                            msg: string,
-                            response : string,
-                            disconnected: boolean
+                            msg?: string,
+                            response?: string,
+                            disconnected?: boolean
                         } = await this.get_remote_last_cmd()
                     if (connect_canceled) return
+                    if (this.operativa_comandos_inicializacion && remote_last_cmd== null) {
+                        // cuando se reinicia el socket cashlogy puede que al conectar dé ECONNREFUSED
+                        // la primera vez y después se cierra el websocket sin que se haya enviado ningún comando
+                        // simular que aún no se ha enviado
+                        remote_last_cmd = { id:null }
+                    }
                     if (remote_last_cmd==null) { // aún no se habia enviado ningún comando o el minipc o el bridge se ha reiniciado
                         if (this.conexion_state.inicializado) this.reset_remoto_event()
                         if (!await this.fase_abort()) return
                         if (connect_canceled) return
-                        if (this.operativa_comandos_inicializacion) this.conexion_event({conectado:true, finalizado:true})
-                        else {    
-                            // si this.connect_id ha cambiado es que hay otro connect en marcha, por lo tanto no generar un evento conectado 
-                            await this.inicializar(false, true/*(current_connect_id==this.connect_id)*/)
-                        }
+                        await this.inicializar(false, true/*(current_connect_id==this.connect_id)*/)
                         return
                     } else {
                         this.num_reconnects=0
@@ -717,7 +720,7 @@ class CashlogyClase {
         }, 5000) 
     }
     onError = (error) => {
-        console.log(error)
+        console.log("Cashlogy: "+error.toString())
         this.connect(error.toString())
     }
     onPong = (data:Buffer) => {
@@ -1187,7 +1190,7 @@ class CashlogyClase {
     }
 
     async cmd_reset(valid_errs?:"*"|string[]) {
-        let [ err ] = await this.send_receive(["Z"], 1, valid_errs)
+        let [ err ] = await this.send_receive(["Z"], 1, valid_errs, "INICIALIZAR")
         return { err }
     }
     
@@ -1838,9 +1841,9 @@ class CashlogyClase {
 
     conexion_state:conexion_state_type={ conectado:false, inicializado:false, finalizado:false, err_inicializacion:false }
     list_conexion_handlers:((state:conexion_state_type)=>void)[]=[]
-    map_list_wait_conexion:Map<boolean, ((ok:boolean)=>void)[]> = new Map([[false,[]],[true,[]]]) // Map<inicializado_ok,[]>
-    conexion_ok(inicializado_ok:boolean=true) { 
-        if (inicializado_ok) return this.conexion_state.conectado && this.conexion_state.inicializado; 
+    map_list_wait_conexion:Map<boolean, ((con_inicializado_ok:boolean)=>void)[]> = new Map([[false,[]],[true,[]]]) // Map<inicializado_ok,[]>
+    conexion_ok(con_inicializado_ok:boolean=true) { 
+        if (con_inicializado_ok) return this.conexion_state.conectado && this.conexion_state.inicializado; 
         else return this.conexion_state.conectado
     }
     conexion_event(new_state:conexion_state_type) {
@@ -1854,10 +1857,10 @@ class CashlogyClase {
             this.conexion_state.inicializado = false
         }
         this.list_conexion_handlers.forEach((handler) => { handler(this.conexion_state); })
-        ;[false,true].forEach((inicializado_ok)=>{
-            if (this.conexion_ok(inicializado_ok)) {
-                let list = this.map_list_wait_conexion.get(inicializado_ok)
-                this.map_list_wait_conexion.set(inicializado_ok, [])
+        ;[false,true].forEach((con_inicializado_ok)=>{
+            if (this.conexion_ok(con_inicializado_ok)) {
+                let list = this.map_list_wait_conexion.get(con_inicializado_ok)
+                this.map_list_wait_conexion.set(con_inicializado_ok, [])
                 list.forEach((callback) => { callback(true) })
             }}
         )
@@ -1885,14 +1888,14 @@ class CashlogyClase {
         removeItemArray(handler, this.list_conexion_handlers)
     }
 
-    async wait_conexion(abort_wait:Promise<void>=null, inicializado_ok:boolean=true) {
-        if (this.conexion_ok(inicializado_ok)) {
+    async wait_conexion(abort_wait:Promise<void>=null, con_inicializado_ok:boolean=true) {
+        if (this.conexion_ok(con_inicializado_ok)) {
             return true
         } else {
             let { promise, resolve } = Promise_withResolvers<boolean>()
-            this.map_list_wait_conexion.get(inicializado_ok).push(resolve)
+            this.map_list_wait_conexion.get(con_inicializado_ok).push(resolve)
             if (abort_wait) abort_wait.then(() => {
-                removeItemArray(resolve, this.map_list_wait_conexion.get(inicializado_ok))
+                removeItemArray(resolve, this.map_list_wait_conexion.get(con_inicializado_ok))
                 resolve(false)
             })
             return await promise    
@@ -2077,7 +2080,7 @@ class CashlogyClase {
             }
             if (this.remove_abort_lock(abort_lock)) {
                 if (!failed) this.recovered_event()
-                else this.inicializar()
+                else this.inicializar(reset) // ya se ha hecho el reset, no volver ha hacerlo en inicializar
             }
         }
 
@@ -2429,7 +2432,7 @@ class CashlogyClase {
     // Procesos con controlador de estado
 
     async cobrar(importe_a_cobrar:number, auto_aceptar):Promise<{ // objecto devuelto al frontend
-        cancelado?:boolean,
+        operativa_cancelar?:boolean,
         importe_devuelto?:number,
         importe_falta_devolver?:number,
         error_en_la_devolucion?:boolean,
@@ -2603,7 +2606,7 @@ class CashlogyClase {
             loggerCashlogy.Info("out", "cobrar")
 
             if (cancelando) return { 
-                cancelado:true, 
+                operativa_cancelar:true, 
                 importe_devuelto:to_euros(cents_out),
                 importe_falta_devolver:to_euros(cents_falta_cancelar), 
                 error_en_la_devolucion,
@@ -2627,7 +2630,7 @@ class CashlogyClase {
             }*/
             if (update_state=="CANCELAR") return {
                 ...ret,
-                cancelado:true,
+                operativa_cancelar:true,
                 importe_devuelto:to_euros(cents_out),
                 importe_falta_devolver:to_euros(cents_falta_cancelar),
                 error_en_la_devolucion,
@@ -2906,7 +2909,7 @@ class CashlogyClase {
     }
 
     async dar_cambio_entrada():Promise<{
-        cancelado?:boolean,
+        operativa_cancelar?:boolean,
         importe_falta_devolver?:number,      // solo en cancelar
         importe_entrado?:number,
         denominaciones_dispensables?:type_denominaciones
@@ -3005,7 +3008,7 @@ class CashlogyClase {
             await this.saveProceso(null)
 
             if (cancelando) return { 
-                    cancelado:true,
+                    operativa_cancelar:true,
                     importe_entrado:to_euros(cents_in),
                     importe_falta_devolver:to_euros(cents_falta_cancelar),
                     error_en_la_devolucion
@@ -3020,7 +3023,7 @@ class CashlogyClase {
             let ret = await control_obj.finalizar_catch(e)
             return {
                 ...ret,
-                cancelado: cancelando,
+                operativa_cancelar: cancelando,
                 importe_entrado:cancelando?to_euros(cents_in):null,
                 error_en_la_devolucion
             }
@@ -3499,7 +3502,7 @@ class CashlogyClase {
         this.operativa_comandos_inicializacion=true
         if (!this.conexion_ok()) {
             this.comunicacion_iniciada=false
-            this.conexion_event({finalizado:true, err_inicializacion:false})
+            this.conexion_event({finalizado:false, err_inicializacion:false})
             this.connect("restart2", true)
         }
         let control_obj = await this.generar_controlador_de_estado_para_proceso()
@@ -3514,19 +3517,33 @@ class CashlogyClase {
         try {
             switch(comando) {
                 case "INICIALIZAR":
-                    await this.cmd_inicializar("*")
+                    this.conexion_event({ inicializado:false })
+                    ;( { err } = await this.cmd_inicializar("*"))
                     break
                 case "FINALIZAR":
-                    ;( { err } = await this.cmd_finalizar("*") )
+                    ;( { err } = await this.cmd_finalizar("*"))
                     break
                 case "RESET":
-                    await this.cmd_reset("*")
+                    this.conexion_event({ inicializado:false })
+                    ;( { err } = await this.cmd_reset("*"))
                     break
             }
             control_obj.finalizar()
             this.operativa_comandos_inicializacion=false
 
-            if (saved_recovered && !this.conexion_state.finalizado) {
+            if (comando=="FINALIZAR") {
+                // se hace despues de control_obj.finalizar para que no se envie suspendido state al frontend
+                this.conexion_event({ finalizado: true })
+            } else {
+                if (err==NO_ERR) {
+                    this.conexion_event({ inicializado:true })
+                    this.actualizarProcesoPrevioInterrumpido()
+                    this.recovered_event()
+                } else {
+                    this.conexion_event({ err_inicializacion:true })
+                }
+            }
+            /*if (saved_recovered && !this.conexion_state.finalizado) {
                 if (comando=="FINALIZAR" && err==NO_ERR) {
                     // se hace despues de control_obj.finalizar para que no se envie suspendido state al frontend
                     this.conexion_event({ finalizado: true })
@@ -3534,7 +3551,7 @@ class CashlogyClase {
                 } else {
                     this.recovered_event()
                 }
-            }   
+            } */  
 
             return { 
                 respuesta:this.last_raw_response,
@@ -3544,7 +3561,7 @@ class CashlogyClase {
         } catch(e) {
             this.operativa_comandos_inicializacion=false
             let ret = await control_obj.finalizar_catch(e)
-            
+            this.conexion_event({ finalizado:true })
             return {
                 finalizado:true,
                 ...ret
