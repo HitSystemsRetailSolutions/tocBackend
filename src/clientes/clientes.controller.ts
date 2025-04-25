@@ -8,6 +8,8 @@ import {
 } from "./clientes.interface";
 import { logger } from "../logger";
 import { conexion } from "src/conexion/mongodb";
+import { encargosInstance } from "src/encargos/encargos.clase";
+import { deudasInstance } from "src/deudas/deudas.clase";
 let firstTimeCalled = true;
 
 @Controller("clientes")
@@ -205,11 +207,13 @@ export class ClientesController {
   ) {
     try {
       const parametros = await parametrosInstance.getParametros();
-  
+
       if (!nombre || nombre.length < 3) {
-        throw new Error("Error, faltan datos en crearNuevoCliente() controller");
+        throw new Error(
+          "Error, faltan datos en crearNuevoCliente() controller"
+        );
       }
-  
+
       const nuevoCliente = {
         nombre,
         telefono,
@@ -221,7 +225,7 @@ export class ClientesController {
         idCliente: `CliBoti_${parametros.codigoTienda}_${Date.now()}`,
         idTarjetaCliente: tarjetaCliente,
       };
-  
+
       let response;
       try {
         response = await axios.post("clientes/crearNuevoCliente", nuevoCliente);
@@ -232,7 +236,7 @@ export class ClientesController {
           details: axiosError.message,
         };
       }
-  
+
       if (response.data) {
         const clienteMDB: ClientesInterface = {
           id: nuevoCliente.idCliente,
@@ -247,7 +251,7 @@ export class ClientesController {
           noPagaEnTienda: false,
           vip: false,
         };
-  
+
         try {
           await clienteInstance.insertarCliente(clienteMDB);
           return {
@@ -263,7 +267,9 @@ export class ClientesController {
           };
         }
       } else {
-        throw new Error("Error desconocido al crear el cliente en el servidor remoto");
+        throw new Error(
+          "Error desconocido al crear el cliente en el servidor remoto"
+        );
       }
     } catch (err) {
       if (err.type === "AxiosError" || err.type === "DatabaseError") {
@@ -387,6 +393,24 @@ export class ClientesController {
       return await clienteInstance.getClientePedidosTienda();
     } catch (error) {
       logger.Error(158, "En getEsClientFacturacion:", error);
+      return false;
+    }
+  }
+  @Post("getCantidadEncargosDeudas")
+  async getCantidadEncargosDeudas(@Body() { idCliente }) {
+    try {
+      if (!idCliente)
+        throw new Error(
+          "Error, faltan datos en getCantidadEncDeuda() controller"
+        );
+      const enc = await encargosInstance.getEncargosByIdCliente(idCliente);
+      const deuda = await deudasInstance.getDeudasByIdCliente(idCliente);
+      return {
+        cantidadEncargos: enc.length,
+        cantidadDeudas: deuda.length,
+      };
+    } catch (error) {
+      logger.Error(159, "En getCantidadEncDeuda:", error);
       return false;
     }
   }
