@@ -646,10 +646,10 @@ export class Impresora {
     }
 
     if (info.dejaCuenta > 0) {
-      detalleDejaCuenta = "Pagament rebut: " + info.dejaCuenta;
+      detalleDejaCuenta = "Import pagat: " + info.dejaCuenta;
       if (info.modoCesta == "RECOGER ENCARGO") {
         detalleDejaCuenta +=
-          "\nPagament en recollir: " + redondearPrecio(total - info.dejaCuenta);
+          "\nTotal restant: " + redondearPrecio(total - info.dejaCuenta);
       } else {
         detalleDejaCuenta +=
           "\nPagament pendent: " + redondearPrecio(total - info.dejaCuenta);
@@ -1770,7 +1770,6 @@ export class Impresora {
         imprimirLogo: false,
         tipo: "salida",
       };
-
       this.enviarMQTT(buffer, options);
     } catch (err) {
       logger.Error(146, err);
