@@ -1,25 +1,25 @@
 import { InsertManyResult } from "mongodb";
 import { conexion } from "../conexion/mongodb";
-import { PromocionesInterface } from "./promociones.interface";
+import { PromocionesEnServer } from "./promociones.interface";
 
 /* Eze 4.0 */
-export async function getPromociones(): Promise<PromocionesInterface[]> {
+export async function getPromociones(): Promise<PromocionesEnServer[]> {
   const database = (await conexion).db("tocgame");
-  const promociones = database.collection<PromocionesInterface>("promociones");
+  const promociones = database.collection<PromocionesEnServer>("promociones");
   return await promociones.find().toArray();
 }
 
 /* Eze 4.0 */
-export async function getPromosIndividuales(): Promise<PromocionesInterface[]> {
+export async function getPromosIndividuales(): Promise<PromocionesEnServer[]> {
   const database = (await conexion).db("tocgame");
-  const promociones = database.collection<PromocionesInterface>("promociones");
+  const promociones = database.collection<PromocionesEnServer>("promociones");
   return await promociones.find({ tipo: "INDIVIDUAL" }).toArray();
 }
 
 /* Eze 4.0 */
-export async function getPromosCombo(): Promise<PromocionesInterface[]> {
+export async function getPromosCombo(): Promise<PromocionesEnServer[]> {
   const database = (await conexion).db("tocgame");
-  const promociones = database.collection<PromocionesInterface>("promociones");
+  const promociones = database.collection<PromocionesEnServer>("promociones");
   return await promociones.find({ tipo: "COMBO" }).toArray();
 }
 
@@ -38,16 +38,16 @@ export async function borrarPromociones(): Promise<void> {
 
 /* Eze 4.0 */
 export async function insertarPromociones(
-  arrayPromociones: PromocionesInterface[]
+  arrayPromociones: PromocionesEnServer[]
 ): Promise<boolean> {
   await borrarPromociones();
   const database = (await conexion).db("tocgame");
-  const promociones = database.collection<PromocionesInterface>("promociones");
+  const promociones = database.collection<PromocionesEnServer>("promociones");
   return (await promociones.insertMany(arrayPromociones)).acknowledged;
 }
 
-export async function getPromoById(idPromo:PromocionesInterface["_id"]):Promise<PromocionesInterface> {
+export async function getPromoById(idPromo:PromocionesEnServer["_id"]):Promise<PromocionesEnServer> {
   const database = (await conexion).db("tocgame");
-  const promociones = database.collection<PromocionesInterface>("promociones");
+  const promociones = database.collection<PromocionesEnServer>("promociones");
   return await promociones.findOne({ _id: idPromo });
 }

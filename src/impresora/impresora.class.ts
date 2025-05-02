@@ -1359,7 +1359,7 @@ export class Impresora {
         // buscamos el nombre del articulo principal
         let nombrePrincipal = (
           await articulosInstance.getInfoArticulo(
-            arrayCompra[i].promocion.idArticuloPrincipal
+            arrayCompra[i].promocion.grupos[0][0].idArticulo
           )
         ).nombre;
 
@@ -1384,53 +1384,26 @@ export class Impresora {
           importeStr;
         detalles += lineaTicket + "\n";
 
-        // imprime promoPrincipal ej:'>       oferta nombreP (10x)  1.20'
-        cantidadStr = sprintf(`%-${longQuant}s`, "");
-        precioUnitarioStr =
-          longPreuU == 0
-            ? ""
-            : sprintf(
-                `%${longPreuU}s`,
-                `(${arrayCompra[i].promocion.cantidadArticuloPrincipal}x)` +
-                  arrayCompra[i].promocion.precioRealArticuloPrincipal
-              );
-        descuentoStr = sprintf(`%${longDto}s`, "");
-        importeStr = "";
-        comprobarLongitud("> Of. " + nombrePrincipal);
-        // linea del art promo principal
-        lineaTicket =
-          cantidadStr +
-          margenStr +
-          articuloStr +
-          margenStr +
-          precioUnitarioStr +
-          margenStr +
-          descuentoStr +
-          margenStr +
-          importeStr;
-        detalles += `${lineaTicket}\n`;
-
-        if (arrayCompra[i].promocion.cantidadArticuloSecundario > 0) {
-          // imprime promoSecundario ej:'<       oferta nombreS (10x)  0.20'
-          let nombreSecundario = (
+        for (let artGrupo of arrayCompra[i].promocion.grupos.flat()) {
+          // imprime promo ej:'>       oferta nombreP (10x)  1.20'
+          let nombreArtPromo = (
             await articulosInstance.getInfoArticulo(
-              arrayCompra[i].promocion.idArticuloSecundario
+              artGrupo.idArticulo
             )
           ).nombre;
-
-          cantidadStr = sprintf(`%-${longQuant}s`, "");
+              cantidadStr = sprintf(`%-${longQuant}s`, "");
           precioUnitarioStr =
             longPreuU == 0
               ? ""
               : sprintf(
                   `%${longPreuU}s`,
-                  `(${arrayCompra[i].promocion.cantidadArticuloSecundario}x)` +
-                    arrayCompra[i].promocion.precioRealArticuloSecundario
+                  `(${artGrupo.unidades}x)` +
+                    artGrupo.precioPromoPorUnidad
                 );
           descuentoStr = sprintf(`%${longDto}s`, "");
           importeStr = "";
-          comprobarLongitud("> Of. " + nombreSecundario);
-          // linea del art promo principal
+          comprobarLongitud("> Of. " + nombreArtPromo);
+          // linea del art promo
           lineaTicket =
             cantidadStr +
             margenStr +
@@ -1577,7 +1550,7 @@ export class Impresora {
     }
   }
 
-  async precioUnitario(arrayCompra, idCliente = null) {
+  async precioUnitario(arrayCompra:CestasInterface["lista"], idCliente = null) {
     let detalles = "";
     //const preuUnitari =
     // recojemos los productos del ticket
@@ -1602,51 +1575,29 @@ export class Impresora {
         );
       }
       if (arrayCompra[i].promocion) {
-        let nombrePrincipal = (
-          await articulosInstance.getInfoArticulo(
-            arrayCompra[i].promocion.idArticuloPrincipal
-          )
-        ).nombre;
+        let nombrePrincipal = arrayCompra[i].promocion.grupos[0][0].nombre
         nombrePrincipal = "Oferta " + nombrePrincipal;
         while (nombrePrincipal.length < 20) {
           nombrePrincipal += " ";
         }
         detalles += `${
           arrayCompra[i].unidades *
-          arrayCompra[i].promocion.cantidadArticuloPrincipal
+          arrayCompra[i].promocion.grupos[0][0].unidades
         }     ${nombrePrincipal.slice(0, 20)}${
           preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
         }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
-        detalles += `     >     ${
-          nombrePrincipal.slice(0, 20) +
-          "(x" +
-          arrayCompra[i].promocion.cantidadArticuloPrincipal +
-          ")"
-        } ${arrayCompra[i].promocion.precioRealArticuloPrincipal.toFixed(2)}\n`;
-        if (arrayCompra[i].promocion.cantidadArticuloSecundario > 0) {
-          let nombreSecundario = (
-            await articulosInstance.getInfoArticulo(
-              arrayCompra[i].promocion.idArticuloSecundario
-            )
-          ).nombre;
-          nombreSecundario = "Oferta " + nombreSecundario;
-          while (nombreSecundario.length < 20) {
-            nombreSecundario += " ";
+        for (let artGrupo of arrayCompra[i].promocion.grupos.flat()) {
+          let nombreArtGrupo = artGrupo.nombre
+          nombreArtGrupo = "Oferta " + nombreArtGrupo;
+          while (nombreArtGrupo.length < 20) {
+            nombreArtGrupo += " ";
           }
-          /*detalles += `${
-            arrayCompra[i].unidades *
-            arrayCompra[i].promocion.cantidadArticuloSecundario
-          }     ${nombreSecundario.slice(0, 20)}       ${arrayCompra[
-            i
-          ].promocion.precioRealArticuloSecundario.toFixed(2)}\n`;*/
           detalles += `     >     ${
-            nombreSecundario.slice(0, 20) +
+            nombreArtGrupo.slice(0, 20) +
             "(x" +
-            arrayCompra[i].promocion.cantidadArticuloSecundario +
+            artGrupo.unidades +
             ")"
-          } ${arrayCompra[i].promocion.precioRealArticuloSecundario.toFixed(
-            2
-          )}\n`;
+          } ${artGrupo.precioPromoPorUnidad.toFixed(2)}\n`;
         }
       } else if (
         arrayCompra[i].arraySuplementos &&

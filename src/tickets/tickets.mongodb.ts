@@ -435,14 +435,11 @@ export async function anularTicket(
         element.subtotal = element.subtotal * -1;
         element.unidades = element.unidades * -1;
         if (element.promocion != null) {
-          element.promocion.precioRealArticuloPrincipal *= -1;
           element.promocion.unidadesOferta *= -1;
-          element.promocion.cantidadArticuloPrincipal *= -1;
-          if (element.promocion.cantidadArticuloSecundario != null) {
-            element.promocion.cantidadArticuloSecundario *= -1;
-          }
-          if (element.promocion.precioRealArticuloSecundario != null) {
-            element.promocion.precioRealArticuloSecundario *= -1;
+          for (let grupo of element.promocion.grupos) {
+            for (let artGrupo of grupo) {
+              artGrupo.precioPromoPorUnidad *= -1;
+            }
           }
         }
       });

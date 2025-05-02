@@ -16,6 +16,7 @@ export interface CestasInterface {
   trabajador: number;
   trabajadores: ObjectId[];
   comensales: number;
+  ArticulosFaltaUnoParaPromocion: ArticulosInterface["_id"][];
 }
 
 export type itemHonei = {
@@ -33,7 +34,7 @@ export type itemHonei = {
   quantity: number;
 };
 
-export type ItemLista = {
+export type ItemLista_old = {
   idArticulo: number;
   nombre: string;
   unidades: number;
@@ -64,6 +65,41 @@ export type ItemLista = {
   tarifaEsp?: boolean;
   varis?: boolean;
 };
+
+export type ItemLista = {
+  idArticulo: number;
+  nombre: string;
+  unidades: number;
+  subtotal: number;
+  precioOrig?: number;
+  arraySuplementos: ArticulosInterface[];
+  promocion: {
+    idPromocion: string;
+    grupos:GrupoPromoEnCesta[];
+    unidadesOferta: number;
+    precioFinalPorPromo:number;
+  };
+  tipoIva?: number;
+  descuentoTienda?: number;
+  puntos: number;
+  gramos: number;
+  impresora: string;
+  printed?: boolean;
+  regalo: boolean;
+  dto?: number;
+  iva?: number;
+  pagado?: boolean;
+  tarifaEsp?: boolean;
+  varis?: boolean;
+};
+
+export type GrupoPromoEnCesta = ArticuloPromoEnCesta[]
+export type ArticuloPromoEnCesta = {
+  idArticulo: number;
+  nombre: string;
+  unidades: number;
+  precioPromoPorUnidad: number;
+} 
 
 export type DetalleIvaInterface = {
   [key: `base${number}`]: number;
