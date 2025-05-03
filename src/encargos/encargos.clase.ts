@@ -642,7 +642,7 @@ export class Encargos {
     }
     let PromoEnGrupos=false
     for (let det of detallesArray) {
-      if (det.GruposPromo) {
+      if (det.GrupoPromo) {
         PromoEnGrupos=true 
         break
       }
@@ -658,9 +658,10 @@ export class Encargos {
         }[]}>=new Map()
       let Comentari=""
       encargo.forEach((item, index) => {
-        let GrupoPromoStr:string = detallesArray[index].GrupoPromo
+        let da=detallesArray[index]
+        let GrupoPromoStr:string = da.GrupoPromo
         if (GrupoPromoStr) {
-          // GruposPromo: idxItemLista,idxGrupo,idxInGrupo
+          // GrupoPromo: idxItemLista,idxGrupo,idxInGrupo
           let GP = GrupoPromoStr.split(",").map((v)=>parseInt(v))
           let p = {
             idxGrupo:GP[1], 
@@ -671,7 +672,7 @@ export class Encargos {
           if (item.Comentari && item.Comentari!="0") Comentari=item.Comentari
           let promo = MapItemsOfPromo.get(GP[0]) //idxItemLista
           if (promo == undefined) { MapItemsOfPromo.set(GP[0], { 
-            idPromo:(item.IdPromoCombo || item.IdPromoIndividual || item.IdPromo) as string, grupos: [p]}) 
+            idPromo:(da.IdPromoCombo || da.IdPromoIndividual || da.IdPromo) as string, grupos: [p]}) 
           } else {
             promo.grupos.push(p)
           }
@@ -691,7 +692,7 @@ export class Encargos {
         let unidadesPorGrupo:number[] = []
         let idxGrupoActual=-1
         let puntos=0
-        id_y_grupos.grupos.forEach(async (gr)=>{
+        for (let gr of id_y_grupos.grupos) {
           const artInfo = await articulosInstance.getInfoArticulo(gr.Article);
           if (artInfo.puntos!=null) puntos+=gr.Quantitat*artInfo.puntos
           let ArtGrupo:ArticuloInfoPromoYNormal = {
@@ -710,7 +711,7 @@ export class Encargos {
             grupos[grupos.length-1].push(ArtGrupo)
             unidadesPorGrupo[unidadesPorGrupo.length-1] = unidadesPorGrupo[unidadesPorGrupo.length-1] + gr.Quantitat
           }
-        })
+        }
         let num_promos = unidadesPorGrupo[0]/promoById.grupos[0].cantidad
         for (let artGrupo of grupos.flat()) {
           artGrupo.unidades/=num_promos
@@ -875,6 +876,12 @@ export class Encargos {
         }
       }
     }
+    const cliente = cesta.idCliente
+      ? await clienteInstance.getClienteById(cesta.idCliente)
+      : null;
+      // actualizar la cesta con los productos promo, por si no se hace clickTeclaArticulo con los no promo
+    await cestasInstance.recalcularIvas(cesta, "descargas", cliente);
+
     await cestasInstance.updateCesta(cesta);
 
     // insetar articulos en cesta para calcularIva
