@@ -13,6 +13,7 @@ import { cestasInstance } from "src/cestas/cestas.clase";
 import { cajaInstance } from "src/caja/caja.clase";
 import { socket } from "src/sanPedro";
 import { getDataVersion } from "src/version/version.clase";
+import * as bcrypt from "bcrypt";
 
 export class TrabajadoresClase {
   /* Eze 4.0 */
@@ -22,7 +23,8 @@ export class TrabajadoresClase {
   /* Eze 4.0 */
   buscar = async (busqueda: string) => await schTrabajadores.buscar(busqueda);
 
-  buscarSinFichar = async (busqueda: string) => await schTrabajadores.buscarSinFichar(busqueda);
+  buscarSinFichar = async (busqueda: string) =>
+    await schTrabajadores.buscarSinFichar(busqueda);
 
   /* Eze 4.0 */
   async mantenerTrabajadoresFichados(
@@ -127,7 +129,7 @@ export class TrabajadoresClase {
         idTrabajador: idTrabajador,
         fecha: {
           year: auxTime.getFullYear(),
-          month: auxTime.getMonth() + 1,//Enero equivale al mes 0
+          month: auxTime.getMonth() + 1, //Enero equivale al mes 0
           day: auxTime.getDate(),
           hours: auxTime.getHours(),
           minutes: auxTime.getMinutes(),
@@ -142,8 +144,20 @@ export class TrabajadoresClase {
   }
 
   /* Eze 4.0 */
-  insertarTrabajadores = async (arrayTrabajadores: TrabajadoresInterface[]) =>
-    await schTrabajadores.insertarTrabajadores(arrayTrabajadores);
+  insertarTrabajadores = async (arrayTrabajadores: TrabajadoresInterface[]) => {
+    const saltRounds = 10;
+
+    for (const trabajador of arrayTrabajadores) {
+      if (trabajador.password) {
+        trabajador.password = await bcrypt.hash(
+          trabajador.password,
+          saltRounds
+        );
+      }
+    }
+
+    return await schTrabajadores.insertarTrabajadores(arrayTrabajadores);
+  };
 
   /* Eze 4.0 */
   getFichajeMasAntiguo = async () =>
@@ -209,14 +223,43 @@ export class TrabajadoresClase {
   /* Uri */
   removeActiveEmployers = async () => {
     try {
-      await schTrabajadores.removeActiveEmployers().then((res) => {
-      });
+      await schTrabajadores.removeActiveEmployers().then((res) => {});
     } catch (err) {
       logger.Error(36, err);
     }
   };
 
-  getFichajesIntervalo = async (fechaInicio, fechaFin, trabajador) => { return await schTrabajadores.getFichajesIntervalo(fechaInicio, fechaFin, trabajador); }
+  getFichajesIntervalo = async (fechaInicio, fechaFin, trabajador) => {
+    return await schTrabajadores.getFichajesIntervalo(
+      fechaInicio,
+      fechaFin,
+      trabajador
+    );
+  };
+
+  getRol = async (idTrabajador) => {
+    const res = await schTrabajadores.getRol(idTrabajador);
+    if (res) {
+      return res;
+    } else {
+      return null;
+    }
+  };
+
+  checkPassword = async (idTrabajador, password) => {
+    const res = await schTrabajadores.getTrabajador(idTrabajador);
+    if (res && res.password) {
+      const match = await bcrypt.compare(password, res.password);
+      if (match) {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      console.log("No existe el trabajador o no tiene password");
+      return null;
+    }
+  }
 }
 
 export const trabajadoresInstance = new TrabajadoresClase();
