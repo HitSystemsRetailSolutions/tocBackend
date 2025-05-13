@@ -417,7 +417,7 @@ export class MovimientosClase {
   public async comprobarDeudaParcial(superTicket: SuperTicketInterface) {
     const total = superTicket.total;
     // devolver el valor de movimientos con concepto dejaACuentaDeuda
-    
+
     const montosParciales = superTicket.movimientos.filter(
       (mov) => mov.tipo === "ENTRADA_DINERO" && mov.concepto === "DEUDA"
     );
@@ -489,7 +489,10 @@ export class MovimientosClase {
           else return "TKRS";
         } else if (superTicket.movimientos[0].tipo === "DEUDA") {
           return "DEUDA";
-        } else if (superTicket.movimientos[0].tipo === "SALIDA" && superTicket.cesta.modo !=="RECOGER ENCARGO") {
+        } else if (
+          superTicket.movimientos[0].tipo === "SALIDA" &&
+          superTicket.cesta.modo !== "RECOGER ENCARGO"
+        ) {
           return "DEUDA";
         } else if (superTicket.movimientos[0].tipo === "DATAFONO_3G") {
           return "DATAFONO_3G";
@@ -655,6 +658,15 @@ export class MovimientosClase {
           return "EFECTIVO";
         }
       } else if (superTicket.movimientos.length > 1) {
+        
+        // caso encargo con dejaACuentaSobrante (en principio, solo es posible este concepto  en efectivo)
+        if (
+          superTicket.cesta.modo == "RECOGER ENCARGO" &&
+          (superTicket.movimientos[0].concepto === "dejaACuentaSobrante" ||
+            superTicket.movimientos[1].concepto === "dejaACuentaSobrante")
+        ) {
+          return "EFECTIVO";
+        }
         // CASO TARJETA ANULADA
         if (
           superTicket.movimientos[0].tipo === "TARJETA" &&
