@@ -1,52 +1,104 @@
+/*  promociones
+    - Las promociones que vienen del santaAna tiene el formato:
+        idArticuloPrincipal (array de ids), cantidad
+        idArticuloSecundario (array de ids) , cantidad
+        tipo = INDIVIDUAL o COMBO
+        (ver PromocionesEnServer)
+    - Para evitar tratar diferente las individuales y las combo en TocBackend tienen el formato
+        grupo = { [idArticulo,...], cantidad }
+        las individuales tienen un grupo y las combo dos.
+        (ver PromocionesInterface)
+    - Promociones en la cesta:
+      - Como los grupos pueden tener varios ids, se crean subgrupos uno por cada id 
+        ver GrupoPromoEnCesta (grupos), ArticuloPromoEnCesta (subgrupos) en cesta.lista[i].promocion
+      - Cada vez que se inserta un articulo en la cesta se deshacen las promociones y se vuelven a intentar aplicar 
+        con el articulo nuevo. ArticuloInfoPromoYNormal guarda información necesaria (nombre, precioPorUnidad, puntos)
+        para poder formar de nuevo un item de la cesta sin tener que buscarlo en la base de datos.
+    - Orden de aplicación de promociones:
+      - se ordenan por:
+          mayor suma de elementos en los grupos
+          menor cantidad de grupos
+          mayor cantidad de elementos del primer grupo
+          por id
+    - Las promos se guardan en mongoDB con el formato que viene de SantaAna ya que el formato que usa el backend
+        usa Sets y Maps que no se pueden guardar en la db.
+    - ArticulosFaltaUnoParaPromocion contiene articulos que si se añaden a la cesta formaran una promoción
+      nueva de mayor valor.
+*/
 import axios from "axios";
-import { clienteInstance } from "../clientes/clientes.clase";
-import { articulosInstance } from "../articulos/articulos.clase";
-import { ArticulosInterface } from "../articulos/articulos.interface";
-import { CestasInterface, ItemLista } from "../cestas/cestas.interface";
 import { logger } from "../logger";
-import {
-  PromocionesInterface,
-  //InfoPromocionIndividual,
-  InfoPromocionCombo,
-  PreciosReales,
-  MediaPromoEncontrada,
-  InfoPromoAplicar,
-} from "./promociones.interface";
 import * as schPromociones from "./promociones.mongodb";
 import { TicketsInterface } from "../tickets/tickets.interface";
 import { arrayClientesFacturacion, ClientesInterface } from "../clientes/clientes.interface";
-import { promises } from "dns";
-import { unwatchFile } from "fs";
-import { impresoraInstance } from "src/impresora/impresora.class";
-import { cestasInstance } from "src/cestas/cestas.clase";
-import { convertirDineroEnPuntos } from "src/funciones/funciones";
-import { parametrosInstance } from "src/parametros/parametros.clase";
+import { ArticulosInterface } from "../articulos/articulos.interface";
+import { CestasInterface, ItemLista, ItemLista_old, GrupoPromoEnCesta, ArticuloPromoEnCesta } from "../cestas/cestas.interface";
+import { PromocionesEnServer, PromocionesInterface } from "./promociones.interface"
+import { articulosInstance } from "src/articulos/articulos.clase";
+const redondearPrecio = (precio: number) =>
+  Math.round((precio + Number.EPSILON*100000) * 100) / 100;
+import * as schCestas from "../cestas/cestas.mongodb"
 
+export type ArticuloInfoPromoYNormal = ArticuloPromoEnCesta & {
+    precioPorUnidad: number;
+    puntosPorUnidad: number;
+}
 export class NuevaPromocion {
-  private promosIndividuales: PromocionesInterface[] = [];
-  private promosCombo: PromocionesInterface[] = [];
+  private promos:PromocionesInterface[]=[]
+  private promosCombo:PromocionesEnServer[]=[]
+  private promosIndividuales:PromocionesEnServer[]=[]
   constructor() {
-    schPromociones
-      .getPromosCombo()
-      .then((combos) => {
-        this.promosCombo = combos;
-      })
-      .catch((err) => {
+    this.promos=[];
+    (async() => {
+      try {
+        this.recargarPromosCache()
+          // el dia del cambio de versión puede haber cestas que tengan el formato antiguo
+          // así que se convierten al nuevo
+        let allCestas= await schCestas.getAllCestas()
+        for (let cesta of allCestas) {
+          let update = this.convertirAFormatoNuevoSiEsNecesario(cesta)
+          if (update) {
+            schCestas.updateCesta(cesta)
+          }
+        }
+      } catch(err) {
         logger.Error(128, err);
-        this.promosCombo = [];
-      });
-
-    schPromociones
-      .getPromosIndividuales()
-      .then((individuales) => {
-        this.promosIndividuales = individuales;
-      })
-      .catch((err) => {
-        logger.Error(129, err);
-        this.promosIndividuales = [];
-      });
+      }
+    })()
   }
 
+  public convertirAFormatoNuevoSiEsNecesario(cesta:CestasInterface) {
+    let update=false
+    for (let item of cesta.lista) {
+      let itemOld = (item as unknown) as ItemLista_old
+      if (itemOld.promocion && itemOld.promocion.idArticuloPrincipal!=null) {
+        // Promo. principal + secundario
+        let dot = itemOld.nombre.indexOf(".")
+        let plus = itemOld.nombre.indexOf("+")
+        item.promocion.grupos = [[{
+          idArticulo:itemOld.promocion.idArticuloPrincipal,
+          nombre:itemOld.nombre.substring(dot==-1?0:dot+1, plus==-1?undefined:plus-1),
+          unidades:itemOld.promocion.cantidadArticuloPrincipal,
+          precioPromoPorUnidad:itemOld.promocion.precioRealArticuloPrincipal
+        }]]
+        if (itemOld.promocion.idArticuloSecundario!=null) {
+          item.promocion.grupos.push([{
+            idArticulo:itemOld.promocion.idArticuloSecundario,
+            nombre:itemOld.nombre.substring(plus+2),
+            unidades:itemOld.promocion.cantidadArticuloSecundario,
+            precioPromoPorUnidad:itemOld.promocion.precioRealArticuloSecundario
+          }])
+        }
+        delete itemOld.promocion.idArticuloPrincipal
+        //item.promocion.gruposFlat=item.promocion.grupos.reduce((acc,val)=>acc.concat(val))
+        update=true
+      }
+    }
+    if (cesta.ArticulosFaltaUnoParaPromocion==null) {
+      cesta.ArticulosFaltaUnoParaPromocion=[]
+      update = true
+    }
+    return update
+  }
   async getPromosCombo() {
     return await schPromociones.getPromosCombo();
   }
@@ -55,39 +107,93 @@ export class NuevaPromocion {
     return await schPromociones.getPromosIndividuales();
   }
 
-  async getPromoById(idPromo) {
-    return await schPromociones.getPromoById(idPromo);
+  public getPromoById(idPromo: string) {
+    for (let i=0; i<this.promos.length; i++) {
+      if (this.promos[i]._id==idPromo) return this.promos[i]
+    }
+    return null
   }
-
+  
   async descargarPromociones() {
     try {
       let resPromos: any = await axios
         .get("promociones/getPromociones")
-        .catch((e) => {});
 
       resPromos = resPromos?.data as PromocionesInterface[];
-      if (resPromos && resPromos.length > 0) {
+      if (resPromos) {
         return await schPromociones.insertarPromociones(resPromos);
       }
       throw Error("No hay promociones para descargar");
     } catch (e) {
       console.log(e);
+      return false
     }
   }
-
+  
+  /* Cargar promos en formato de descarga al usado por el Backend */
   public async recargarPromosCache() {
     this.promosCombo = await this.getPromosCombo();
     this.promosIndividuales = await this.getPromosIndividuales();
+    this.promos = []
+    function nueva_promo(promoServer:PromocionesEnServer):PromocionesInterface {
+      return {
+        _id:promoServer._id,
+        fechaFinal:promoServer.fechaFinal,
+        fechaInicio:promoServer.fechaInicio,
+        precioFinal:promoServer.precioFinal,
+        grupos:[],
+        sortInfo:{unidades_totales:0, unidades_por_grupo:[]}
+      }      
+    }
+    function insertar_grupo(promo:PromocionesInterface, ar_art:number[], cantidad:number) {
+      if (Array.isArray(ar_art) && ar_art.length>0 && ar_art[0]>=0) {
+        promo.grupos.push({
+          idsArticulos:new Set(ar_art),
+          cantidad:cantidad,
+        })
+        return cantidad
+      } else return 0
+    }
+    for (let promoEnServer of this.promosCombo.concat(this.promosIndividuales)) {
+      let promo=nueva_promo(promoEnServer)
+      let cantidad = insertar_grupo(promo, promoEnServer.principal, promoEnServer.cantidadPrincipal)
+      cantidad    += insertar_grupo(promo, promoEnServer.secundario, promoEnServer.cantidadSecundario)
+      // en promoIndividual el precioFinal es por unidad no es el total de la promo
+      if (promoEnServer.tipo == "INDIVIDUAL") {
+        promo.precioFinal=redondearPrecio(promo.precioFinal*cantidad)
+      }
+      for (let grupo of promo.grupos) {
+        promo.sortInfo.unidades_totales+=grupo.cantidad
+        promo.sortInfo.unidades_por_grupo.push(grupo.cantidad)
+      }
+      promo.sortInfo.unidades_por_grupo.sort((a,b)=>-(a-b))
+      if (promo.grupos.length) this.promos.push(promo)
+    }
+    this.promos.sort((a,b)=>{
+      let c = -(a.sortInfo.unidades_totales-b.sortInfo.unidades_totales)  // unidades totales desc
+      if (c!=0) return c
+      c = a.sortInfo.unidades_por_grupo.length-b.sortInfo.unidades_por_grupo.length // número de grupos asc
+      if (c!=0) return c
+      for (let i=0; i<a.sortInfo.unidades_por_grupo.length; i++) {
+        c= -(a.sortInfo.unidades_por_grupo[i]-b.sortInfo.unidades_por_grupo[i]) // unidades grupo[0],[...] asc
+        if (c!=0) return c
+      }
+      return a._id<b._id?-1:1 // por id
+    })
   }
-  public async gestionarPromociones(
-    cesta: CestasInterface,
-    idArticulo: ArticulosInterface["_id"],
-    unidades: number,
-    cliente: ClientesInterface
-  ): Promise<boolean> {
-    let unidadesTotales = unidades;
-    let index1 = null;
 
+  // Este tipo de items no se usan para formar promociones
+  public isItemPromocionable(item:ItemLista) {
+    if (item.gramos!=null) return false
+    if (item.varis) return false
+    if (item.regalo) return false
+    if (item.pagado) return false
+    return true
+  }
+
+  /*
+   */
+  public async aplicarPromociones(cesta:CestasInterface, cliente: ClientesInterface) {
     if (cesta.modo === "CONSUMO_PERSONAL" || cesta.modo === "DEVOLUCION")
       return false;
 
@@ -99,331 +205,270 @@ export class NuevaPromocion {
         return false;
       }
     }
-
-    for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].idArticulo === idArticulo && !cesta.lista[i].regalo) {
-        unidadesTotales += cesta.lista[i].unidades;
-        index1 = i;
-        break;
-      }
-    }
-
-    /* INDIVIDUALES */
-
-    /*    const promoIndividual = await this.buscarPromocionesIndividuales(
-      idArticulo,
-      unidadesTotales
-    );
-    if (promoIndividual) {
-      if (index1 != null) cesta.lista.splice(index1, 1);
-      this.aplicarPromoIndividual(cesta, promoIndividual);
-      if (promoIndividual.sobran > 0)
-        this.aplicarSobraIndividual(cesta, idArticulo, promoIndividual);
-      return true;
-    }
-*/
-    if (
-      await this.intentarAplicarPromocionIndividual(cesta, idArticulo, unidades)
-    )
-      return true;
-
-    /* COMBO */
-    // const mediaPromo = this.buscarPromo(idArticulo, unidadesTotales);
-    const promosPosibles = await this.buscarPromo(
-      idArticulo,
-      unidadesTotales,
-      cesta
-    );
-    if (promosPosibles?.promosPrincipales?.length > 0) {
-      for (let i = 0; i < promosPosibles.promosPrincipales.length; i++) {
-        let mediaPromo = promosPosibles.promosPrincipales[i];
-        if (mediaPromo) {
-          let otraMediaPartePromo: MediaPromoEncontrada = null;
-          let infoPromoAplicar: InfoPromoAplicar = null;
-
-          if (mediaPromo.tipo === "SECUNDARIO") {
-            otraMediaPartePromo = this.buscarPrincipal(
-              mediaPromo,
-              cesta,
-              idArticulo
-            );
-            if (otraMediaPartePromo) {
-              infoPromoAplicar = this.cuantasSePuedenAplicar(
-                otraMediaPartePromo,
-                mediaPromo
-              );
-              const articuloPrincipal = await articulosInstance.getInfoArticulo(
-                cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
-              );
-              const articuloSecundario =
-                await articulosInstance.getInfoArticulo(idArticulo);
-
-                const puntosArtPrinc = articuloPrincipal.puntos;
-                const puntosArtSec = articuloSecundario.puntos;
-              const infoFinal: InfoPromocionCombo = {
-                ...infoPromoAplicar,
-                indexListaOriginalPrincipal: otraMediaPartePromo.indexCesta,
-                indexListaOriginalSecundario: index1,
-                idArticuloPrincipal:
-                  cesta.lista[otraMediaPartePromo.indexCesta].idArticulo,
-                idArticuloSecundario: idArticulo,
-                precioPromoUnitario:
-                  this.promosCombo[mediaPromo.indexPromo].precioFinal,
-                idPromocion: this.promosCombo[mediaPromo.indexPromo]._id,
-                cantidadNecesariaPrincipal:
-                  this.promosCombo[mediaPromo.indexPromo].cantidadPrincipal,
-                cantidadNecesariaSecundario:
-                  this.promosCombo[mediaPromo.indexPromo].cantidadSecundario,
-                nombrePrincipal: articuloPrincipal.nombre,
-                nombreSecundario: articuloSecundario.nombre,
-              };
-              this.deleteIndexCestaCombo(
-                cesta,
-                infoFinal.indexListaOriginalPrincipal,
-                infoFinal.indexListaOriginalSecundario
-              );
-              const preciosReales = this.calcularPrecioRealCombo(
-                infoFinal,
-                articuloPrincipal,
-                articuloSecundario
-              );
-              this.aplicarPromoCombo(
-                cesta,
-                infoFinal,
-                articuloPrincipal,
-                articuloSecundario,
-                preciosReales
-              );
-              if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(cesta, infoFinal, puntosArtPrinc);
-              if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(cesta, infoFinal, puntosArtSec);
-              return true;
+    // articulos que no entran en promociones
+    let SetNoPromocionables:Set<ItemLista> = new Set()
+    // articulos que pueden formar parte de promociones
+    let MapPromocionables:Map<ArticulosInterface["_id"],ArticuloInfoPromoYNormal> = new Map()
+    // deshacer promociones y pasar items normales a formato de articulo en Promo
+    // Al final MapPromociones tendra ArticuloInfoPromoYNormal
+    for (let item of cesta.lista) {
+      if (this.isItemPromocionable(item)) {
+        if (item.promocion) {
+          // deshacer promoción
+          for (let artGrupo of item.promocion.grupos.flat()) {
+            let info = MapPromocionables.get(artGrupo.idArticulo)
+            if (info != undefined) {
+              info.unidades += artGrupo.unidades*item.unidades
+            } else {
+              let info = await articulosInstance.getInfoArticulo(artGrupo.idArticulo)
+              MapPromocionables.set(artGrupo.idArticulo, { 
+                ...artGrupo,
+                unidades:artGrupo.unidades*item.unidades,
+                precioPorUnidad:info.precioConIva,
+                puntosPorUnidad:info.puntos
+              })
             }
-          } else if (mediaPromo.tipo === "PRINCIPAL") {
-            otraMediaPartePromo = this.buscarSecundario(
-              mediaPromo,
-              cesta,
-              idArticulo
-            );
-            if (otraMediaPartePromo) {
-              infoPromoAplicar = this.cuantasSePuedenAplicar(
-                mediaPromo,
-                otraMediaPartePromo
-              );
-              const articuloPrincipal =
-                await articulosInstance.getInfoArticulo(idArticulo);
-              const articuloSecundario =
-                await articulosInstance.getInfoArticulo(
-                  cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
-                );
-                const puntosArtPrinc = articuloPrincipal.puntos;
-                const puntosArtSec = articuloSecundario.puntos;
-
-              const infoFinal: InfoPromocionCombo = {
-                ...infoPromoAplicar,
-                indexListaOriginalPrincipal: index1,
-                indexListaOriginalSecundario: otraMediaPartePromo.indexCesta,
-                idArticuloPrincipal: idArticulo,
-                idArticuloSecundario:
-                  cesta.lista[otraMediaPartePromo.indexCesta].idArticulo,
-                precioPromoUnitario:
-                  this.promosCombo[mediaPromo.indexPromo].precioFinal,
-                idPromocion: this.promosCombo[mediaPromo.indexPromo]._id,
-                cantidadNecesariaPrincipal:
-                  this.promosCombo[mediaPromo.indexPromo].cantidadPrincipal,
-                cantidadNecesariaSecundario:
-                  this.promosCombo[mediaPromo.indexPromo].cantidadSecundario,
-                nombrePrincipal: articuloPrincipal.nombre,
-                nombreSecundario: articuloSecundario.nombre,
-              };
-              this.deleteIndexCestaCombo(
-                cesta,
-                infoFinal.indexListaOriginalPrincipal,
-                infoFinal.indexListaOriginalSecundario
-              );
-              const preciosReales = this.calcularPrecioRealCombo(
-                infoFinal,
-                articuloPrincipal,
-                articuloSecundario
-              );
-              this.aplicarPromoCombo(
-                cesta,
-                infoFinal,
-                articuloPrincipal,
-                articuloSecundario,
-                preciosReales
-              );
-              if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(cesta, infoFinal, puntosArtPrinc);
-              if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(cesta, infoFinal, puntosArtSec);
-              return true;
-            }
+          }
+        } else {
+          // pasar items normales a formato ArticuloInfoPromoYNormal
+          let info = MapPromocionables.get(item.idArticulo)
+          if (info != undefined) {
+            info.unidades += item.unidades
+          } else {
+            MapPromocionables.set(item.idArticulo,{
+              idArticulo:item.idArticulo,
+              nombre:item.nombre,
+              unidades:item.unidades,
+              precioPorUnidad:item.subtotal/item.unidades,
+              puntosPorUnidad:item.puntos==null ? null : item.puntos/item.unidades,
+              precioPromoPorUnidad:null
+            })
           }
         }
-      }
-    } else if (promosPosibles.promosSecundarios?.length > 0) {
-      for (let i = 0; i < promosPosibles.promosSecundarios.length; i++) {
-        let mediaPromo = promosPosibles.promosSecundarios[i];
-        if (mediaPromo) {
-          let otraMediaPartePromo: MediaPromoEncontrada = null;
-          let infoPromoAplicar: InfoPromoAplicar = null;
+      } else SetNoPromocionables.add(item)
+    }
+    
+    let PromosAplicadasTotales:Map<string, ItemLista[]>=new Map()
+    let SetArticulosFalta1ParaCompletar:Set<ArticulosInterface["_id"]>=new Set()
 
-          if (mediaPromo.tipo === "SECUNDARIO") {
-            otraMediaPartePromo = this.buscarPrincipal(
-              mediaPromo,
-              cesta,
-              idArticulo
-            );
-            if (otraMediaPartePromo) {
-              infoPromoAplicar = this.cuantasSePuedenAplicar(
-                otraMediaPartePromo,
-                mediaPromo
-              );
-              const articuloPrincipal = await articulosInstance.getInfoArticulo(
-                cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
-              );
-              const articuloSecundario =
-                await articulosInstance.getInfoArticulo(idArticulo);
-              const puntosArtPrinc = articuloPrincipal.puntos;
-              const puntosArtSec = articuloSecundario.puntos;
-              const infoFinal: InfoPromocionCombo = {
-                ...infoPromoAplicar,
-                indexListaOriginalPrincipal: otraMediaPartePromo.indexCesta,
-                indexListaOriginalSecundario: index1,
-                idArticuloPrincipal:
-                  cesta.lista[otraMediaPartePromo.indexCesta].idArticulo,
-                idArticuloSecundario: idArticulo,
-                precioPromoUnitario:
-                  this.promosCombo[mediaPromo.indexPromo].precioFinal,
-                idPromocion: this.promosCombo[mediaPromo.indexPromo]._id,
-                cantidadNecesariaPrincipal:
-                  this.promosCombo[mediaPromo.indexPromo].cantidadPrincipal,
-                cantidadNecesariaSecundario:
-                  this.promosCombo[mediaPromo.indexPromo].cantidadSecundario,
-                nombrePrincipal: articuloPrincipal.nombre,
-                nombreSecundario: articuloSecundario.nombre,
-              };
-              this.deleteIndexCestaCombo(
-                cesta,
-                infoFinal.indexListaOriginalPrincipal,
-                infoFinal.indexListaOriginalSecundario
-              );
-              const preciosReales = this.calcularPrecioRealCombo(
-                infoFinal,
-                articuloPrincipal,
-                articuloSecundario
-              );
-              this.aplicarPromoCombo(
-                cesta,
-                infoFinal,
-                articuloPrincipal,
-                articuloSecundario,
-                preciosReales
-              );
-              if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(cesta, infoFinal, puntosArtPrinc);
-              if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(cesta, infoFinal, puntosArtSec);
-              return true;
-            }
-          } else if (mediaPromo.tipo === "PRINCIPAL") {
-            otraMediaPartePromo = this.buscarSecundario(
-              mediaPromo,
-              cesta,
-              idArticulo
-            );
-            if (otraMediaPartePromo) {
-              infoPromoAplicar = this.cuantasSePuedenAplicar(
-                mediaPromo,
-                otraMediaPartePromo
-              );
-              const articuloPrincipal =
-                await articulosInstance.getInfoArticulo(idArticulo);
-              const articuloSecundario =
-                await articulosInstance.getInfoArticulo(
-                  cesta.lista[otraMediaPartePromo.indexCesta].idArticulo
-                );
-              const puntosArtPrinc = articuloPrincipal.puntos;
-              const puntosArtSec = articuloSecundario.puntos;
-
-              const infoFinal: InfoPromocionCombo = {
-                ...infoPromoAplicar,
-                indexListaOriginalPrincipal: index1,
-                indexListaOriginalSecundario: otraMediaPartePromo.indexCesta,
-                idArticuloPrincipal: idArticulo,
-                idArticuloSecundario:
-                  cesta.lista[otraMediaPartePromo.indexCesta].idArticulo,
-                precioPromoUnitario:
-                  this.promosCombo[mediaPromo.indexPromo].precioFinal,
-                idPromocion: this.promosCombo[mediaPromo.indexPromo]._id,
-                cantidadNecesariaPrincipal:
-                  this.promosCombo[mediaPromo.indexPromo].cantidadPrincipal,
-                cantidadNecesariaSecundario:
-                  this.promosCombo[mediaPromo.indexPromo].cantidadSecundario,
-                nombrePrincipal: articuloPrincipal.nombre,
-                nombreSecundario: articuloSecundario.nombre,
-              };
-              this.deleteIndexCestaCombo(
-                cesta,
-                infoFinal.indexListaOriginalPrincipal,
-                infoFinal.indexListaOriginalSecundario
-              );
-              const preciosReales = this.calcularPrecioRealCombo(
-                infoFinal,
-                articuloPrincipal,
-                articuloSecundario
-              );
-              this.aplicarPromoCombo(
-                cesta,
-                infoFinal,
-                articuloPrincipal,
-                articuloSecundario,
-                preciosReales
-              );
-              if (infoFinal.sobranPrincipal > 0)
-                this.aplicarSobraComboPrincipal(
-                  cesta,
-                  infoFinal,
-                  puntosArtPrinc
-                );
-              if (infoFinal.sobranSecundario > 0)
-                this.aplicarSobraComboSecundario(
-                  cesta,
-                  infoFinal,
-                  puntosArtSec
-                );
-              return true;
+    for (let promo of this.promos) { // para cada promo intentar aplica la cesta
+      if (!this.comprobarIntervaloFechas(promo)) continue;
+      let PromoAplicada:ItemLista=null;
+      while(true) { // para aplicar varias veces la misma promo
+          // articulo aplicado y unidades
+        let ArticulosAplicados:Map<ArticuloPromoEnCesta, number> = new Map()
+        let GruposAplicados:GrupoPromoEnCesta[]=[]
+        let Falta1ParaCompletarEstaPromo:Set<ArticulosInterface["_id"]>=null
+        for (let grupo of promo.grupos) { // mirar por cada grupo de la promo
+          let GrupoAplicado:GrupoPromoEnCesta=[]
+          let cantidadGrupo = grupo.cantidad
+          for (let [idArticulo, articulo] of MapPromocionables) {
+            if (grupo.idsArticulos.has(idArticulo)) {
+              let restanAplicables = ArticulosAplicados.get(articulo)
+              if (restanAplicables == undefined) restanAplicables = articulo.unidades
+              let unidadesAplicadas:number
+              if (cantidadGrupo <= restanAplicables) {
+                unidadesAplicadas = cantidadGrupo
+              } else {
+                unidadesAplicadas=restanAplicables
+              }
+              ArticulosAplicados.set(articulo, restanAplicables-unidadesAplicadas)
+              cantidadGrupo -= unidadesAplicadas
+              GrupoAplicado.push({...articulo, unidades:unidadesAplicadas})
+            }  
+            if (cantidadGrupo==0) {
+              GrupoAplicado.sort((a,b)=>a.idArticulo-b.idArticulo)
+              GruposAplicados.push(GrupoAplicado)
+              break
             }
           }
+          if (cantidadGrupo==0) continue
+          if (cantidadGrupo==1 && Falta1ParaCompletarEstaPromo==null) {
+            Falta1ParaCompletarEstaPromo=grupo.idsArticulos
+            continue
+          }
+          if (cantidadGrupo!=0) {
+            GruposAplicados=null
+            Falta1ParaCompletarEstaPromo=null
+            break
+          }
+        }
+        if (Falta1ParaCompletarEstaPromo) {
+          for (let art of Falta1ParaCompletarEstaPromo) SetArticulosFalta1ParaCompletar.add(art)
+          GruposAplicados=null  
+        }
+
+        if (GruposAplicados) {
+          // recorrer ItemsAplicados y borrar de MapPromocionables
+          for (let [articulo, restan] of ArticulosAplicados) {
+            if (restan==0) MapPromocionables.delete(articulo.idArticulo)
+            else {
+              let itemPromocionable = MapPromocionables.get(articulo.idArticulo)
+              itemPromocionable.unidades = restan
+            }
+          }
+          function gruposPromoiguales(grupos_a:GrupoPromoEnCesta[], grupos_b:GrupoPromoEnCesta[]) {
+            if (grupos_a.length!=grupos_b.length) return false
+            for (let i=0; i<grupos_a.length; i++) {
+              if (grupos_a[i].length!=grupos_b[i].length) return false
+              for (let j=0; j<grupos_a[i].length; j++) {
+                if (grupos_a[i][j].idArticulo!=grupos_b[i][j].idArticulo) return false
+                if (grupos_a[i][j].unidades!=grupos_b[i][j].unidades) return false
+              }
+            }
+            return true
+          }
+          // PromoAplicada es la promo aplicada antes de esta
+          if (PromoAplicada && gruposPromoiguales(PromoAplicada.promocion.grupos, GruposAplicados)) {
+            PromoAplicada.unidades++
+          } else {
+            if (PromoAplicada) this.calculoFinalPromo(PromoAplicada)
+            PromoAplicada = await this.crearItemListaPromo(promo, GruposAplicados)
+            //PromoAplicadasTotales es un Map de nombre a array de promosAplicadas
+            let promosConMismoNombrePeroDiferentesElementos = PromosAplicadasTotales.get(PromoAplicada.nombre) 
+            if (promosConMismoNombrePeroDiferentesElementos) promosConMismoNombrePeroDiferentesElementos.push(PromoAplicada)
+            else PromosAplicadasTotales.set(PromoAplicada.nombre, [PromoAplicada])
+          } 
+        } else { // !GruposAplicados
+          // no se han podido aplicar más promociones, cerrar la última si existe
+          if (PromoAplicada) this.calculoFinalPromo(PromoAplicada)
+          break // while(true)
+        }
+      } // while aplicar la misma promo otra vez
+    }
+
+    function crearItemListaNormal(articulo: ArticuloInfoPromoYNormal):ItemLista {
+      return {
+        idArticulo:articulo.idArticulo,
+        nombre: articulo.nombre,
+        unidades: articulo.unidades,
+        subtotal: redondearPrecio(articulo.precioPorUnidad*articulo.unidades),
+        puntos: articulo.puntosPorUnidad*articulo.unidades,
+        regalo: false,
+        pagado: false,
+        varis: false
+      } as ItemLista
+    }
+    // crear cesta lista de salida con el mismo orden de lista de entrada
+    let lista_out:ItemLista[] = []
+    for (let item_in of cesta.lista) {
+      if (SetNoPromocionables.has(item_in)) lista_out.push(item_in)
+      else {
+        if (item_in.promocion==null) {
+          if (MapPromocionables.has(item_in.idArticulo)) {
+            lista_out.push(crearItemListaNormal(MapPromocionables.get(item_in.idArticulo)))
+            MapPromocionables.delete(item_in.idArticulo)
+          }
+        } else if (PromosAplicadasTotales.has(item_in.nombre)) {
+          PromosAplicadasTotales.get(item_in.nombre).map(promo=>{lista_out.push(promo)})
+          PromosAplicadasTotales.delete(item_in.nombre)
         }
       }
     }
-    return false;
+    // insertar en lista articulos y promos que no estaban en la lista de entrada
+    for (let articulo of MapPromocionables.values()) {
+      lista_out.push(crearItemListaNormal(articulo))        
+    }
+    for (let promos of PromosAplicadasTotales.values()) {
+      promos.map(promo=>{lista_out.push(promo)})
+    }
+    cesta.lista=lista_out
+    cesta.ArticulosFaltaUnoParaPromocion = Array.from(SetArticulosFalta1ParaCompletar)
   }
 
-  /* Eze 4.0 */
-  private cuantasSePuedenAplicar(
-    mediaPromoPrincipal: MediaPromoEncontrada,
-    mediaPromoSecundaria: MediaPromoEncontrada
-  ): InfoPromoAplicar {
-    const unidadesPromo = Math.min(
-      mediaPromoPrincipal.cantidadPromos,
-      mediaPromoSecundaria.cantidadPromos
-    );
-    const sobranPrincipal =
-      (mediaPromoPrincipal.cantidadPromos - unidadesPromo) *
-        this.promosCombo[mediaPromoPrincipal.indexPromo].cantidadPrincipal +
-      mediaPromoPrincipal.sobran;
-    const sobranSecundario =
-      (mediaPromoSecundaria.cantidadPromos - unidadesPromo) *
-        this.promosCombo[mediaPromoSecundaria.indexPromo].cantidadSecundario +
-      mediaPromoSecundaria.sobran;
-    return { seAplican: unidadesPromo, sobranPrincipal, sobranSecundario };
+  public async crearItemListaPromo(promo:PromocionesInterface, grupos:GrupoPromoEnCesta[]):Promise<ItemLista> {
+    let nombres:string[]=[]
+    for (let grupo of promo.grupos) {
+      // el nombre de la promo es familia del primer articulo si hay más de un articulo en la promo sino el nombre
+      if (grupo.familia_o_nombre == null) {
+        // famili_o_nombre se inicializa aqui ya que en descarga de promos puede que no existieran articulos aún en el mongo
+        let art = await articulosInstance.getInfoArticulo(Array.from(grupo.idsArticulos)[0])
+        if (grupo.idsArticulos.size > 1) {
+          // 0312 - Oferta Bocadillos BG (eliminar numeros iniciales y guion)
+          let m = /(?:^\d+ - )?(.*)/.exec(art.familia) 
+          grupo.familia_o_nombre = m==null ? art.familia : m[1]
+        } else grupo.familia_o_nombre = art.nombre
+      }
+      nombres.push(grupo.familia_o_nombre)
+    }
+
+    return {
+      idArticulo:-1,
+      nombre: "Promo. "+nombres.join(" + "),
+      unidades:1,
+      promocion: {
+        idPromocion: promo._id,
+        grupos:grupos,
+        unidadesOferta: 1,
+        precioFinalPorPromo:promo.precioFinal
+      },
+      regalo: false,
+      pagado: false,
+      varis: false
+    } as ItemLista
   }
 
-  // mssql datetime no tiene timezone, al pasar a JSON la date se pasa a string con timezone Z (UTC)
+  // cerrar promo calculando precio por articulo
+  public calculoFinalPromo(item:ItemLista) {
+    let gruposFlat = item.promocion.grupos.flat() as ArticuloInfoPromoYNormal[]
+    item.promocion.unidadesOferta = item.unidades
+    item.subtotal = redondearPrecio(item.promocion.precioFinalPorPromo * item.unidades)
+    let totalSinPromocion=0, puntos=null
+    for (let artGrupo of gruposFlat) {
+      totalSinPromocion += artGrupo.precioPorUnidad * artGrupo.unidades
+      if (artGrupo.puntosPorUnidad!=null) {
+        if (puntos==null) puntos=0
+        puntos += artGrupo.puntosPorUnidad * artGrupo.unidades
+      }
+    }
+    
+    item.puntos = puntos*item.unidades
+
+    let promo_individual = (item.promocion.grupos.length==1)
+    let precioPorUnidadPromoIndividual:number
+    if (promo_individual) { // si es promo individual todos los articulos tienen el mismo precio
+      let unidades=0
+      for (let artGrupo of gruposFlat) {
+        unidades += artGrupo.unidades
+      }
+      precioPorUnidadPromoIndividual = redondearPrecio(item.promocion.precioFinalPorPromo/unidades)
+    } 
+    let resto=item.promocion.precioFinalPorPromo
+    for (let i=0; i<gruposFlat.length-1; i++) {
+      let artGrupo = gruposFlat[i]
+      artGrupo.precioPromoPorUnidad = promo_individual ? precioPorUnidadPromoIndividual : 
+        redondearPrecio(artGrupo.precioPorUnidad*(item.promocion.precioFinalPorPromo/totalSinPromocion))
+      resto -= artGrupo.precioPromoPorUnidad*artGrupo.unidades
+    }
+    let ultimoArtGrupo = gruposFlat[gruposFlat.length-1]
+    if (ultimoArtGrupo.unidades==1) {
+      ultimoArtGrupo.precioPromoPorUnidad = redondearPrecio(resto)
+    } else {
+      ultimoArtGrupo.precioPromoPorUnidad = promo_individual ? precioPorUnidadPromoIndividual :
+        redondearPrecio(resto/ultimoArtGrupo.unidades)
+      resto -= redondearPrecio(ultimoArtGrupo.precioPromoPorUnidad*(ultimoArtGrupo.unidades-1))
+      resto = redondearPrecio(resto)
+      if (resto != ultimoArtGrupo.precioPromoPorUnidad) {
+        ultimoArtGrupo.unidades--
+        let restoUltimoArtGrupo:ArticuloPromoEnCesta = {
+          ...ultimoArtGrupo,
+          unidades:1,
+          precioPromoPorUnidad:resto
+        }
+        // crear otro subgrupo para el último elemento con el resto
+        item.promocion.grupos[item.promocion.grupos.length-1].push(restoUltimoArtGrupo)
+      }
+    }
+    // borrar información de ArticuloInfoPromoYNormal y convertirlo en ArticuloPromoEnCesta
+    gruposFlat = item.promocion.grupos.flat() as ArticuloInfoPromoYNormal[]
+    for (let artGrupo of gruposFlat) {
+      delete artGrupo.precioPorUnidad
+      delete artGrupo.puntosPorUnidad
+    }
+  }
+
+
+// mssql datetime no tiene timezone, al pasar a JSON la date se pasa a string con timezone Z (UTC)
   // las fechas en la tabla del sql del WEB productespromocionats se refieren a la timezone local de la tienda (mirar documentación de HIT)
   private mssqlDateToJsDate(strdate: string) {
     // quitar timezone Z, si la fecha no tiene timezone se usa la local (si la fecha es fecha-hora)
@@ -431,7 +476,7 @@ export class NuevaPromocion {
     return new Date(strdate);
   }
 
-  private async comprovarIntervaloFechas(promocion) {
+  private async comprobarIntervaloFechas(promocion) {
     let fechaInicio = promocion.fechaInicio;
     let fechaFinal = promocion.fechaFinal;
     let diaInicio = this.obtenerDiaSemana(fechaInicio);
@@ -471,7 +516,7 @@ export class NuevaPromocion {
     return false;
   }
   private obtenerDiaSemana(fecha) {
-    var dia = parseInt(fecha.slice(8, 10), 10);
+    var dia = parseInt(fecha.slice(8, 10), 10); // YYYY-MM-(DD)Thh:mm:ss
 
     // Ajustar el día de la semana para que 08 sea lunes, 09 sea martes, etc.
     switch (dia) {
@@ -496,571 +541,50 @@ export class NuevaPromocion {
     }
   }
   private obtenerAno(fecha) {
-    var ano = parseInt(fecha.slice(0, 4), 10);
+    var ano = parseInt(fecha.slice(0, 4), 10); // (YYYY)-MM-DDThh:mm:ss
 
     // Ajustar el día de la semana para que 08 sea lunes, 09 sea martes, etc.
     return ano;
   }
 
-  /*
-    intentar aplicar una promo individual nueva con las unidades de idArticulo a añadir,
-    false: si no se ha se han modificado las promos individuales que ya estaban aplicadas, las unidades se tendran que añadir a la cesta despues,
-    true: las unidades de articulo han modificado las promos y ya se han añadido.
-  */
-  private async intentarAplicarPromocionIndividual(
-    cesta: CestasInterface,
-    idArticulo: ArticulosInterface["_id"],
-    unidades: number
-  ): Promise<boolean> {
-    // itemsCestaPromo: Map con los items de la cesta que son promos individuales del articulo (key:id promocion)
-    let itemsCestaPromo = new Map<string, ItemLista>();
-    let itemCestaSinPromo: ItemLista; // item de la cesta del articulo normal (sin promo)
-
-    // calcular las unidadesTotales del articulo en los items de la cesta (promos indiciduales y item sin promo) + unidades a añadir
-    let unidadesTotales = unidades;
-
-    for (let itemCesta of cesta.lista) {
-      if (!itemCesta.regalo) {
-        // no contar para la promo los items de la cesta de regalo
-        if (itemCesta.idArticulo === idArticulo) {
-          unidadesTotales += itemCesta.unidades;
-          itemCestaSinPromo = itemCesta;
-        } else if (
-          itemCesta.promocion &&
-          itemCesta.promocion.tipoPromo == "INDIVIDUAL" &&
-          itemCesta.promocion.idArticuloPrincipal === idArticulo
-        ) {
-          unidadesTotales +=
-            itemCesta.unidades * itemCesta.promocion.cantidadArticuloPrincipal;
-          itemsCestaPromo.set(itemCesta.promocion.idPromocion, itemCesta);
-        }
-      }
+  /* Eze 4.0 */
+  public insertarPromociones = async (
+    arrayPromociones: PromocionesEnServer[]
+  ) => {
+    if (arrayPromociones && arrayPromociones.length > 0) {
+      await schPromociones.insertarPromociones(arrayPromociones);
     }
-
-    // promos individuales que contienen el articulo y que se pueden aplicar (número de unidades<=totales e intervalo de fecha promo)
-    let promosArt: {
-      unidadesPorPromo: number;
-      promoInd: PromocionesInterface;
-    }[] = [];
-    for (let promoInd of this.promosIndividuales) {
-      let idsArticulos: number[];
-      let unidadesPorPromo: number;
-
-      if (promoInd.principal?.length > 0) {
-        idsArticulos = promoInd.principal;
-        unidadesPorPromo = promoInd.cantidadPrincipal;
-      } else if (promoInd.secundario?.length > 0) {
-        idsArticulos = promoInd.secundario;
-        unidadesPorPromo = promoInd.cantidadSecundario;
-      } else {
-        continue;
-      }
-
-      for (let idArt of idsArticulos) {
-        if (
-          idArt === idArticulo &&
-          unidadesTotales >= unidadesPorPromo &&
-          (await this.comprovarIntervaloFechas(promoInd))
-        ) {
-          promosArt.push({ unidadesPorPromo, promoInd });
-        }
-      }
-    }
-    promosArt.sort((a, b) => b.unidadesPorPromo - a.unidadesPorPromo); // ordenar por unidadesPorPromo descendiente
-
-    const articulo = await articulosInstance.getInfoArticulo(idArticulo);
-    const conversorPuntos =
-      (await parametrosInstance.getParametros()).promocioDescompteFixe || 0;
-    let puntos = convertirDineroEnPuntos(
-      articulo.precioConIva,
-      conversorPuntos
-    );
-    let cambioEnPromos = false; // modificar, añadir o eliminar alguna promo de las que estaban aplicadas
-    let unidadesRestantes = unidadesTotales;
-    for (let promoArt of promosArt) {
-      let cantidadPromos = Math.trunc(
-        unidadesRestantes / promoArt.unidadesPorPromo
-      );
-      if (cantidadPromos > 0) {
-        let precioUnidad = promoArt.promoInd.precioFinal;
-        unidadesRestantes -= cantidadPromos * promoArt.unidadesPorPromo;
-        let itemCesta = itemsCestaPromo.get(promoArt.promoInd._id);
-        if (itemCesta) {
-          // promo ya existe en la cesta
-          if (itemCesta.unidades != cantidadPromos) {
-            // se ha modificado la cantidad de promos de esta promo
-            cambioEnPromos = true;
-            itemCesta.unidades = cantidadPromos;
-            itemCesta.subtotal = Number(
-              (
-                cantidadPromos *
-                promoArt.unidadesPorPromo *
-                precioUnidad
-              ).toFixed(2)
-            );
-            itemCesta.puntos =
-              puntos * cantidadPromos * promoArt.unidadesPorPromo;
-            itemCesta.promocion.unidadesOferta = cantidadPromos;
-          }
-          itemsCestaPromo.delete(promoArt.promoInd._id); // promo ya procesada, eliminar de los items por procesar
-        } else {
-          // promo no existe en la cesta, crear item y añadirlo a la cesta
-          cambioEnPromos = true;
-          //let promoMenosCantidad = (promosArt[promosArt.length-1] == promoArt);
-          puntos = puntos * promoArt.unidadesPorPromo * cantidadPromos;
-          cesta.lista.push({
+    return null;
+  };
+  /* Eze 4.0 */
+  public deshacerPromociones(
+    ticket: TicketsInterface
+  ): TicketsInterface["cesta"]["lista"] {
+    let valor = ticket.total < 0 ? -1 : 1;
+    const nuevaLista = [];
+    for (let item of ticket.cesta.lista) {
+      if (item.promocion) {
+        for (let artGrupo of item.promocion.grupos.flat()) {
+          nuevaLista.push({
             arraySuplementos: null,
-            gramos: 0,
-            idArticulo: -1,
-            unidades: cantidadPromos,
-            nombre:
-              "Promo. " +
-              articulo.nombre /*+ (promoMenosCantidad ? "" : " ("+promoArt.cantidad+")")*/,
-            impresora: null,
+            gramos: null,
+            idArticulo: artGrupo.idArticulo,
             regalo: false,
-            subtotal: Number(
-              (
-                cantidadPromos *
-                promoArt.unidadesPorPromo *
-                precioUnidad
-              ).toFixed(2)
-            ),
-            puntos: puntos,
-            promocion: {
-              idPromocion: promoArt.promoInd._id,
-              tipoPromo: "INDIVIDUAL",
-              unidadesOferta: cantidadPromos,
-              idArticuloPrincipal: idArticulo,
-              cantidadArticuloPrincipal: promoArt.unidadesPorPromo,
-              cantidadArticuloSecundario: null,
-              idArticuloSecundario: null,
-              precioRealArticuloPrincipal: precioUnidad,
-              precioRealArticuloSecundario: null,
-            },
+            puntos: null,
+            promocion: null,
+            unidades: item.unidades * artGrupo.unidades * valor , //unidades pierde el simbolo negativo cuando es un ticket anulado y se le multiplica -1
+            subtotal: redondearPrecio(artGrupo.precioPromoPorUnidad * item.unidades * artGrupo.unidades),
+            nombre: "ArtículoDentroDePromo "+artGrupo.nombre,
           });
         }
-      }
-    }
-
-    // borrar de la cesta los items de promo que ahora tienen 0 unidades
-    for (let itemCesta of itemsCestaPromo.values()) {
-      cambioEnPromos = true;
-      cesta.lista.splice(cesta.lista.indexOf(itemCesta), 1);
-    }
-
-    if (!cambioEnPromos) return false; // No han habido promociones nuevas, los articulos se añadiran como un item de la cesta normal(sin promo)
-
-    // borrar item cesta sin promo y crear nueva si es necesaria
-    if (itemCestaSinPromo)
-      cesta.lista.splice(cesta.lista.indexOf(itemCestaSinPromo), 1);
-    if (unidadesRestantes) {
-      let subtotal = Number(
-        (unidadesRestantes * articulo.precioConIva).toFixed(2)
-      );
-      let porcentajeConversion =
-        (await parametrosInstance.getParametros()).promocioDescompteFixe || 0;
-      let puntos = convertirDineroEnPuntos(subtotal, porcentajeConversion);
-      cesta.lista.push({
-        arraySuplementos: null,
-        gramos: null,
-        idArticulo,
-        nombre: articulo.nombre,
-        promocion: null,
-        puntos: puntos,
-        impresora: articulo.impresora,
-        regalo: false,
-        subtotal: subtotal,
-        unidades: unidadesRestantes,
-      });
-    }
-    let numProductos = 0;
-    let total = 0;
-    for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].gramos == null) {
-        numProductos += cesta.lista[i].unidades;
       } else {
-        numProductos++;
+        nuevaLista.push(item);
       }
-      total += cesta.lista[i].subtotal;
     }
-    impresoraInstance.mostrarVisor({
-      total: total.toFixed(2),
-      precio: articulo.precioConIva.toFixed(2),
-      texto: articulo.nombre,
-      numProductos: numProductos,
-    });
-    return true;
+    ticket.cesta.lista = nuevaLista;
+    return ticket.cesta.lista;
   }
 
-  /*
-
-  private async buscarPromocionesIndividuales(
-    idArticulo: ArticulosInterface["_id"],
-    unidadesTotales: number
-  ): Promise<InfoPromocionIndividual> {
-    for (let i = 0; i < this.promosIndividuales.length; i++) {
-      if (
-        this.promosIndividuales[i].principal &&
-        this.promosIndividuales[i].principal.length > 0
-      ) {
-        for (let j = 0; j < this.promosIndividuales[i].principal.length; j++) {
-          if (
-            this.promosIndividuales[i].principal[j] === idArticulo &&
-            unidadesTotales >= this.promosIndividuales[i].cantidadPrincipal &&
-            // comprovar si la promocion esta activada hoy
-            (await this.comprovarIntervaloFechas(this.promosIndividuales[i]))
-          ) {
-            // Hay oferta
-            const cantidadPromos = Math.trunc(
-              unidadesTotales / this.promosIndividuales[i].cantidadPrincipal
-            );
-            const sobran =
-              unidadesTotales % this.promosIndividuales[i].cantidadPrincipal;
-            const nombreArticulo = (
-              await articulosInstance.getInfoArticulo(idArticulo)
-            ).nombre;
-            return {
-              cantidadPromos,
-              sobran,
-              precioConIva:
-                this.promosIndividuales[i].precioFinal *
-                cantidadPromos *
-                this.promosIndividuales[i].cantidadPrincipal,
-              idPromocion: this.promosIndividuales[i]._id,
-              nombreArticulo,
-              idArticulo,
-              cantidadNecesaria: this.promosIndividuales[i].cantidadPrincipal,
-              precioUnidad: this.promosIndividuales[i].precioFinal,
-            };
-          }
-        }
-      } else if (
-        this.promosIndividuales[i].secundario &&
-        this.promosIndividuales[i].secundario.length > 0 &&
-        // comprovar si la promocion esta activada hoy
-        (await this.comprovarIntervaloFechas(this.promosIndividuales[i]))
-      ) {
-        for (let j = 0; j < this.promosIndividuales[i].secundario.length; j++) {
-          if (
-            this.promosIndividuales[i].secundario[j] === idArticulo &&
-            unidadesTotales >= this.promosIndividuales[i].cantidadSecundario
-          ) {
-            // Hay oferta
-            const cantidadPromos = Math.trunc(
-              unidadesTotales / this.promosIndividuales[i].cantidadSecundario
-            );
-            const sobran =
-              unidadesTotales % this.promosIndividuales[i].cantidadSecundario;
-            const nombreArticulo = (
-              await articulosInstance.getInfoArticulo(idArticulo)
-            ).nombre;
-            return {
-              cantidadPromos,
-              sobran,
-              precioConIva:
-                this.promosIndividuales[i].precioFinal *
-                cantidadPromos *
-                this.promosIndividuales[i].cantidadSecundario,
-              idPromocion: this.promosIndividuales[i]._id,
-              nombreArticulo,
-              idArticulo,
-              cantidadNecesaria: this.promosIndividuales[i].cantidadSecundario,
-              precioUnidad: this.promosIndividuales[i].precioFinal,
-            };
-          }
-        }
-      }
-    }
-    return null;
-  }
-*/
-  private async buscarPromo(
-    idArticulo: ArticulosInterface["_id"],
-    unidadesTotales: number,
-    cesta: CestasInterface
-  ): Promise<{
-    promosSecundarios: MediaPromoEncontrada[];
-    promosPrincipales: MediaPromoEncontrada[];
-  }> {
-    const promosSecundarios = [];
-    const promosPrincipales = [];
-
-    for (let c = 0; c < cesta.lista.length; c++) {
-      cesta.lista[c].idArticulo;
-
-      for (let i = 0; i < this.promosCombo.length; i++) {
-        if (
-          this.promosCombo[i].secundario &&
-          this.promosCombo[i].secundario.length > 0
-        ) {
-          // Buscar comenzando por el secundario en el else
-          for (let j = 0; j < this.promosCombo[i].secundario.length; j++) {
-            if (
-              this.promosCombo[i].secundario[j] === idArticulo &&
-              unidadesTotales >= this.promosCombo[i].cantidadSecundario
-            ) {
-              if (this.promosCombo[i]?.principal?.length > 0) {
-                // Buscar comenzando por el secundario en el else
-                for (let k = 0; k < this.promosCombo[i].principal.length; k++) {
-                  if (
-                    this.promosCombo[i].principal[k] ===
-                      cesta.lista[c].idArticulo &&
-                    !cesta.lista[c].regalo &&
-                    // comprovar si la promocion esta activada hoy
-                    (await this.comprovarIntervaloFechas(this.promosCombo[i]))
-                  ) {
-                    const cantidadPromos = Math.trunc(
-                      unidadesTotales / this.promosCombo[i].cantidadSecundario
-                    );
-                    const sobran =
-                      unidadesTotales % this.promosCombo[i].cantidadSecundario;
-                    promosSecundarios.push({
-                      indexPromo: i,
-                      cantidadPromos,
-                      sobran,
-                      tipo: "SECUNDARIO",
-                      indexCesta: null,
-                    });
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        if (this.promosCombo[i]?.principal?.length > 0) {
-          for (let j = 0; j < this.promosCombo[i].principal.length; j++) {
-            if (
-              this.promosCombo[i].principal[j] === idArticulo &&
-              unidadesTotales >= this.promosCombo[i].cantidadPrincipal
-            ) {
-              if (this.promosCombo[i]?.secundario?.length > 0) {
-                // Buscar comenzando por el secundario en el else
-                for (
-                  let k = 0;
-                  k < this.promosCombo[i].secundario.length;
-                  k++
-                ) {
-                  if (
-                    this.promosCombo[i].secundario[k] ===
-                      cesta.lista[c].idArticulo &&
-                    !cesta.lista[c].regalo &&
-                    // comprovar si la promocion esta activada hoy
-                    (await this.comprovarIntervaloFechas(this.promosCombo[i]))
-                  ) {
-                    const cantidadPromos = Math.trunc(
-                      unidadesTotales / this.promosCombo[i].cantidadPrincipal
-                    );
-                    const sobran =
-                      unidadesTotales % this.promosCombo[i].cantidadPrincipal;
-                    promosPrincipales.push({
-                      indexPromo: i,
-                      cantidadPromos,
-                      sobran,
-                      tipo: "PRINCIPAL",
-                      indexCesta: null,
-                    });
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return {
-      promosSecundarios,
-      promosPrincipales,
-    };
-  }
-
-  /* Eze 4.0 */
-  private buscarSecundario(
-    mediaPromo: MediaPromoEncontrada,
-    cesta: CestasInterface,
-    idIgnorarArticulo: number
-  ): MediaPromoEncontrada {
-    for (let i = 0; i < cesta.lista.length; i++) {
-      if (
-        cesta.lista[i].idArticulo === idIgnorarArticulo ||
-        cesta.lista[i].regalo
-      )
-        continue;
-      for (
-        let j = 0;
-        j < this.promosCombo[mediaPromo.indexPromo].secundario.length;
-        j++
-      ) {
-        if (
-          cesta.lista[i].idArticulo ===
-            this.promosCombo[mediaPromo.indexPromo].secundario[j] &&
-          cesta.lista[i].unidades >=
-            this.promosCombo[mediaPromo.indexPromo].cantidadSecundario
-        ) {
-          const cantidadPromos = Math.trunc(
-            cesta.lista[i].unidades /
-              this.promosCombo[mediaPromo.indexPromo].cantidadSecundario
-          );
-          const sobran =
-            cesta.lista[i].unidades %
-            this.promosCombo[mediaPromo.indexPromo].cantidadSecundario;
-          return {
-            indexPromo: mediaPromo.indexPromo,
-            cantidadPromos,
-            sobran,
-            tipo: "SECUNDARIO",
-            indexCesta: i,
-          };
-        }
-      }
-    }
-    return null;
-  }
-
-  /* Eze 4.0 */
-  private buscarPrincipal(
-    mediaPromo: MediaPromoEncontrada,
-    cesta: CestasInterface,
-    idIgnorarArticulo: number
-  ): MediaPromoEncontrada {
-    for (let i = 0; i < cesta.lista.length; i++) {
-      if (
-        cesta.lista[i].idArticulo === idIgnorarArticulo ||
-        cesta.lista[i].regalo
-      )
-        continue;
-      for (
-        let j = 0;
-        j < this.promosCombo[mediaPromo.indexPromo].principal.length;
-        j++
-      ) {
-        if (
-          cesta.lista[i].idArticulo ===
-            this.promosCombo[mediaPromo.indexPromo].principal[j] &&
-          cesta.lista[i].unidades >=
-            this.promosCombo[mediaPromo.indexPromo].cantidadPrincipal
-        ) {
-          const cantidadPromos = Math.trunc(
-            cesta.lista[i].unidades /
-              this.promosCombo[mediaPromo.indexPromo].cantidadPrincipal
-          );
-          const sobran =
-            cesta.lista[i].unidades %
-            this.promosCombo[mediaPromo.indexPromo].cantidadPrincipal;
-          return {
-            indexPromo: mediaPromo.indexPromo,
-            cantidadPromos,
-            sobran,
-            tipo: "PRINCIPAL",
-            indexCesta: i,
-          };
-        }
-      }
-    }
-    return null;
-  }
-  /*
-  private aplicarPromoIndividual(
-    cesta: CestasInterface,
-    data: InfoPromocionIndividual
-  ) {
-    let nom = "Promo. " + data.nombreArticulo;
-    let promocioNou = true;
-    for (let i = 0; i < cesta.lista.length; i++) {
-      if (nom == cesta.lista[i].nombre && promocioNou) {
-        data.cantidadPromos > 1
-          ? (cesta.lista[i].unidades += data.cantidadPromos)
-          : cesta.lista[i].unidades++;
-
-        cesta.lista[i].subtotal = Number(
-          (cesta.lista[i].subtotal + data.precioConIva).toFixed(2)
-        );
-        promocioNou = false;
-      }
-    }
-    if (promocioNou) {
-      cesta.lista.push({
-        arraySuplementos: null,
-        gramos: 0,
-        idArticulo: -1,
-        unidades: data.cantidadPromos,
-        nombre: "Promo. " + data.nombreArticulo,
-        regalo: false,
-        subtotal: Number(data.precioConIva.toFixed(2)),
-        puntos: null,
-        impresora: null,
-        promocion: {
-          idPromocion: data.idPromocion,
-          tipoPromo: "INDIVIDUAL",
-          unidadesOferta: data.cantidadPromos,
-          idArticuloPrincipal: data.idArticulo,
-          cantidadArticuloPrincipal: data.cantidadNecesaria,
-          cantidadArticuloSecundario: null,
-          idArticuloSecundario: null,
-          precioRealArticuloPrincipal: data.precioUnidad,
-          precioRealArticuloSecundario: null,
-        },
-      });
-    }
-  }
-*/
-  private aplicarPromoCombo(
-    cesta: CestasInterface,
-    data: InfoPromocionCombo,
-    articuloPrincipal: ArticulosInterface,
-    articuloSecundario: ArticulosInterface,
-    preciosReales: PreciosReales
-  ) {
-    let nom = `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`;
-    let promocioNou = true;
-    for (let i = 0; i < cesta.lista.length; i++) {
-      if (nom == cesta.lista[i].nombre && promocioNou) {
-        cesta.lista[i].unidades++;
-        cesta.lista[i].subtotal += data.precioPromoUnitario * data.seAplican;
-        promocioNou = false;
-      }
-    }
-    if (promocioNou) {
-      cesta.lista.push({
-        arraySuplementos: null,
-        gramos: 0,
-        idArticulo: -1,
-        unidades: data.seAplican,
-        nombre: `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`,
-        regalo: false,
-        puntos: articuloPrincipal.puntos + articuloSecundario.puntos,
-        subtotal: data.precioPromoUnitario * data.seAplican,
-        impresora: null,
-        promocion: {
-          idPromocion: data.idPromocion,
-          tipoPromo: "COMBO",
-          unidadesOferta: data.seAplican,
-          idArticuloPrincipal: data.idArticuloPrincipal,
-          cantidadArticuloPrincipal: data.cantidadNecesariaPrincipal,
-          cantidadArticuloSecundario: data.cantidadNecesariaSecundario,
-          idArticuloSecundario: data.idArticuloSecundario,
-          precioRealArticuloPrincipal: preciosReales.precioRealPrincipal,
-          precioRealArticuloSecundario: preciosReales.precioRealSecundario,
-        },
-      });
-    }
-    let numProductos = 0;
-    let total = 0;
-    for (let i = 0; i < cesta.lista.length; i++) {
-      if (cesta.lista[i].gramos == null) {
-        numProductos += cesta.lista[i].unidades;
-      } else {
-        numProductos++;
-      }
-      total += cesta.lista[i].subtotal;
-    }
-    impresoraInstance.mostrarVisor({
-      total: total,
-      precio: data.precioPromoUnitario * data.seAplican,
-      texto: `Promo. ${articuloPrincipal.nombre} + ${articuloSecundario.nombre}`,
-      numProductos: numProductos,
-    });
-  }
   public redondearDecimales(numero, decimales) {
     let numeroRegexp = new RegExp("\\d\\.(\\d){" + decimales + ",}"); // Expresion regular para numeros con un cierto numero de decimales o mas
     if (numeroRegexp.test(numero)) {
@@ -1070,260 +594,7 @@ export class NuevaPromocion {
       return Number(numero.toFixed(decimales)) === 0 ? 0 : numero; // En valores muy bajos, se comprueba si el numero es 0 (con el redondeo deseado), si no lo es se devuelve el numero otra vez.
     }
   }
-  calcularPrecioRealCombo(
-    data: InfoPromocionCombo,
-    articuloPrincipal: ArticulosInterface,
-    articuloSecundario: ArticulosInterface
-  ): PreciosReales {
-    let precioTotalSinOferta = 0;
 
-    const precioSinOfertaPrincipal = articuloPrincipal.precioConIva;
-    const precioSinOfertaSecundario = articuloSecundario.precioConIva;
-
-    precioTotalSinOferta =
-      (precioSinOfertaPrincipal * data.cantidadNecesariaPrincipal +
-        precioSinOfertaSecundario * data.cantidadNecesariaSecundario) *
-      data.seAplican;
-
-    const dto =
-      (precioTotalSinOferta - data.precioPromoUnitario) / precioTotalSinOferta;
-
-    // const precioRealPrincipalDecimales = ((precioSinOfertaPrincipal - precioSinOfertaPrincipal * dto) * data.seAplican) % 1;
-    // const precioRealSecundarioDecimales = ((precioSinOfertaSecundario - precioSinOfertaSecundario * dto) * data.seAplican) % 1;
-
-    // if (
-    //   Math.round(
-    //     (precioRealPrincipalDecimales * data.cantidadNecesariaPrincipal +
-    //       precioRealSecundarioDecimales * data.cantidadNecesariaSecundario) *
-    //       100
-    //   ) /
-    //     100 ===
-    //   1
-    // ) {
-    //   const sumaCentimos = 0.01 / data.cantidadNecesariaPrincipal;
-    //   return {
-    //     precioRealPrincipal:
-    //       Math.round(
-    //         (precioSinOfertaPrincipal - precioSinOfertaPrincipal * dto) *
-    //           data.seAplican *
-    //           100
-    //       ) /
-    //         100 +
-    //       sumaCentimos,
-    //     precioRealSecundario:
-    //       Math.round(
-    //         (precioSinOfertaSecundario - precioSinOfertaSecundario * dto) *
-    //           data.seAplican *
-    //           100
-    //       ) / 100,
-    //   };
-    // }
-
-    const devolver = {
-      precioRealPrincipal:
-        Math.round(
-          (precioSinOfertaPrincipal - precioSinOfertaPrincipal * dto) *
-            data.seAplican *
-            100
-        ) / 100,
-      precioRealSecundario:
-        Math.round(
-          (precioSinOfertaSecundario - precioSinOfertaSecundario * dto) *
-            data.seAplican *
-            100
-        ) / 100,
-    };
-
-    if (
-      this.redondearDecimales(
-        devolver.precioRealPrincipal * data.cantidadNecesariaPrincipal +
-          devolver.precioRealSecundario * data.cantidadNecesariaSecundario,
-        2
-      ) !== data.precioPromoUnitario
-    ) {
-      const diferencia = this.redondearDecimales(
-        devolver.precioRealPrincipal * data.cantidadNecesariaPrincipal +
-          devolver.precioRealSecundario * data.cantidadNecesariaSecundario -
-          data.precioPromoUnitario,
-        2
-      );
-
-      if (data.cantidadNecesariaPrincipal < data.cantidadNecesariaSecundario) {
-        devolver.precioRealPrincipal += diferencia * -1;
-      } else {
-        devolver.precioRealSecundario += diferencia * -1;
-      }
-    }
-    return devolver;
-  }
-
-  private deleteIndexCestaCombo(
-    cesta: CestasInterface,
-    indexPrincipal: number,
-    indexSecundario: number
-  ) {
-    const deleteIndexes: number[] = [];
-    if (indexPrincipal != null && indexPrincipal != undefined) {
-      deleteIndexes.push(indexPrincipal);
-    }
-
-    if (indexSecundario != null && indexSecundario != undefined) {
-      deleteIndexes.push(indexSecundario);
-    }
-    deleteIndexes.sort();
-    for (let i = deleteIndexes.length - 1; i >= 0; i--) {
-      cesta.lista.splice(deleteIndexes[i], 1);
-    }
-  }
-
-  /*
-  private aplicarSobraIndividual(
-    cesta: CestasInterface,
-    idArticulo: ArticulosInterface["_id"],
-    data: InfoPromocionIndividual
-  ) {
-    cesta.lista.push({
-      arraySuplementos: null,
-      gramos: 0,
-      idArticulo,
-      nombre: data.nombreArticulo,
-      promocion: null,
-      puntos: null,
-      regalo: false,
-      impresora: null,
-      subtotal: null,
-      unidades: data.sobran,
-    });
-  }
-*/
-  private aplicarSobraComboPrincipal(
-    cesta: CestasInterface,
-    data: InfoPromocionCombo,
-    puntos: number
-  ) {
-    cesta.lista.push({
-      idArticulo: data.idArticuloPrincipal,
-      nombre: data.nombrePrincipal,
-      arraySuplementos: null,
-      promocion: null,
-      varis: false,
-      regalo: false,
-      puntos: puntos * data.sobranPrincipal,
-      impresora: null,
-      subtotal: null,
-      unidades: data.sobranPrincipal,
-      gramos: null,
-    });
-  }
-  private aplicarSobraComboSecundario(
-    cesta: CestasInterface,
-    data: InfoPromocionCombo,
-    puntos: number
-  ) {
-    cesta.lista.push({
-      idArticulo: data.idArticuloSecundario,
-      nombre: data.nombreSecundario,
-      arraySuplementos: null,
-      promocion: null,
-      varis: false,
-      regalo: false,
-      puntos: puntos * data.sobranSecundario,
-      impresora: null,
-      subtotal: null,
-      unidades: data.sobranSecundario,
-      gramos: null,
-    });
-  }
-
-  /* Eze 4.0 */
-  public insertarPromociones = async (
-    arrayPromociones: PromocionesInterface[]
-  ) => {
-    if (arrayPromociones && arrayPromociones.length > 0) {
-      await schPromociones.insertarPromociones(arrayPromociones);
-    }
-    return null;
-  };
-
-  /* Eze 4.0 */
-  public deshacerPromociones(
-    ticket: TicketsInterface
-  ): TicketsInterface["cesta"]["lista"] {
-    let valor = ticket.total < 0 ? -1 : 1;
-    const nuevaLista = [];
-    for (let i = 0; i < ticket.cesta.lista.length; i++) {
-      if (ticket.cesta.lista[i].promocion) {
-        if (ticket.cesta.lista[i].promocion.tipoPromo === "COMBO") {
-          nuevaLista.push({
-            arraySuplementos: null,
-            gramos: null,
-            idArticulo: ticket.cesta.lista[i].promocion.idArticuloPrincipal,
-            regalo: false,
-            puntos: null,
-            promocion: null,
-            unidades:
-              ticket.cesta.lista[i].unidades *
-              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal *
-              valor, //unidades pierde el simbolo negativo cuando es un ticket anulado y se le multiplica -1
-            subtotal: this.redondearDecimales(
-              ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
-                ticket.cesta.lista[i].unidades *
-                ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
-              2
-            ),
-            nombre: "ArtículoDentroDePromoP",
-          });
-          nuevaLista.push({
-            arraySuplementos: null,
-            gramos: null,
-            idArticulo: ticket.cesta.lista[i].promocion.idArticuloSecundario,
-            regalo: false,
-            puntos: null,
-            promocion: null,
-            unidades:
-              ticket.cesta.lista[i].unidades *
-              ticket.cesta.lista[i].promocion.cantidadArticuloSecundario *
-              valor,
-            subtotal: this.redondearDecimales(
-              ticket.cesta.lista[i].promocion.precioRealArticuloSecundario *
-                ticket.cesta.lista[i].unidades *
-                ticket.cesta.lista[i].promocion.cantidadArticuloSecundario,
-              2
-            ),
-            nombre: "ArtículoDentroDePromoS",
-          });
-        } else if (ticket.cesta.lista[i].promocion.tipoPromo === "INDIVIDUAL") {
-          nuevaLista.push({
-            arraySuplementos: null,
-            gramos: null,
-            puntos: null,
-            idArticulo: ticket.cesta.lista[i].promocion.idArticuloPrincipal,
-            regalo: false,
-            promocion: null,
-            unidades:
-              ticket.cesta.lista[i].unidades *
-              ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal *
-              valor,
-            subtotal: ticket.cesta.lista[i]?.regalo ? 0 : this.redondearDecimales(
-              ticket.cesta.lista[i].promocion.precioRealArticuloPrincipal *
-                ticket.cesta.lista[i].unidades *
-                ticket.cesta.lista[i].promocion.cantidadArticuloPrincipal,
-              2
-            ),
-            nombre: "ArtículoDentroDePromoI",
-          });
-        } else {
-          throw Error(
-            "Tipo de promoción no es válido, no se puede deshacer promo"
-          );
-        }
-      } else {
-        nuevaLista.push(ticket.cesta.lista[i]);
-      }
-    }
-    ticket.cesta.lista = nuevaLista;
-    return ticket.cesta.lista;
-  }
 }
 
 export const nuevaInstancePromociones = new NuevaPromocion();
