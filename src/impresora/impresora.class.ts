@@ -795,19 +795,23 @@ export class Impresora {
       },
       { tipo: "align", payload: "RT" }
     );
-    if (detalleDescuento)
-      arrayImprimir.push({ tipo: "text", payload: detalleDescuento });
-    if (detalleDejaCuenta)
-      arrayImprimir.push({ tipo: "text", payload: detalleDejaCuenta });
-    arrayImprimir.push({ tipo: "size", payload: [1, 1] });
     if (pagoDevolucion)
       arrayImprimir.push({ tipo: "text", payload: pagoDevolucion });
+
     let totalImporte = total;
+    arrayImprimir.push({ tipo: "size", payload: [1, 1] });
 
     arrayImprimir.push(
       { tipo: "align", payload: "RT" },
       { tipo: "text", payload: "TOTAL: " + totalImporte.toFixed(2) + " €" }
     );
+
+    arrayImprimir.push({ tipo: "size", payload: [0, 0] });
+    if (detalleDescuento)
+      arrayImprimir.push({ tipo: "text", payload: detalleDescuento });
+    if (detalleDejaCuenta)
+      arrayImprimir.push({ tipo: "text", payload: detalleDejaCuenta });
+
     if (info.justificacion)
       arrayImprimir.push(
         { tipo: "size", payload: [0, 0] },
@@ -1055,10 +1059,14 @@ export class Impresora {
           pagoTkrs != "" ? `${pagoTkrs}` : ""
         }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
       },
+      { tipo: "size", payload: [1, 1] },
+      { tipo: "text", payload: pagoDevolucion },
+      { tipo: "align", payload: "RT" },
+      { tipo: "text", payload: "TOTAL PARCIAL: " + total.toFixed(2) + " €" },
+      { tipo: "size", payload: [0, 0] },
       { tipo: "align", payload: "LT" },
       { tipo: "text", payload: detalleDejaCuenta },
       { tipo: "text", payload: detalleDescuento },
-      { tipo: "size", payload: [1, 1] },
       { tipo: "text", payload: pagoDevolucion },
       { tipo: "align", payload: "RT" },
       { tipo: "text", payload: "TOTAL PARCIAL: " + total.toFixed(2) + " €" },
@@ -1387,18 +1395,15 @@ export class Impresora {
         for (let artGrupo of arrayCompra[i].promocion.grupos.flat()) {
           // imprime promo ej:'>       oferta nombreP (10x)  1.20'
           let nombreArtPromo = (
-            await articulosInstance.getInfoArticulo(
-              artGrupo.idArticulo
-            )
+            await articulosInstance.getInfoArticulo(artGrupo.idArticulo)
           ).nombre;
-              cantidadStr = sprintf(`%-${longQuant}s`, "");
+          cantidadStr = sprintf(`%-${longQuant}s`, "");
           precioUnitarioStr =
             longPreuU == 0
               ? ""
               : sprintf(
                   `%${longPreuU}s`,
-                  `(${artGrupo.unidades}x)` +
-                    artGrupo.precioPromoPorUnidad
+                  `(${artGrupo.unidades}x)` + artGrupo.precioPromoPorUnidad
                 );
           descuentoStr = sprintf(`%${longDto}s`, "");
           importeStr = "";
@@ -1550,7 +1555,10 @@ export class Impresora {
     }
   }
 
-  async precioUnitario(arrayCompra:CestasInterface["lista"], idCliente = null) {
+  async precioUnitario(
+    arrayCompra: CestasInterface["lista"],
+    idCliente = null
+  ) {
     let detalles = "";
     //const preuUnitari =
     // recojemos los productos del ticket
@@ -1575,7 +1583,7 @@ export class Impresora {
         );
       }
       if (arrayCompra[i].promocion) {
-        let nombrePrincipal = arrayCompra[i].promocion.grupos[0][0].nombre
+        let nombrePrincipal = arrayCompra[i].promocion.grupos[0][0].nombre;
         nombrePrincipal = "Oferta " + nombrePrincipal;
         while (nombrePrincipal.length < 20) {
           nombrePrincipal += " ";
@@ -1587,16 +1595,13 @@ export class Impresora {
           preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
         }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
         for (let artGrupo of arrayCompra[i].promocion.grupos.flat()) {
-          let nombreArtGrupo = artGrupo.nombre
+          let nombreArtGrupo = artGrupo.nombre;
           nombreArtGrupo = "Oferta " + nombreArtGrupo;
           while (nombreArtGrupo.length < 20) {
             nombreArtGrupo += " ";
           }
           detalles += `     >     ${
-            nombreArtGrupo.slice(0, 20) +
-            "(x" +
-            artGrupo.unidades +
-            ")"
+            nombreArtGrupo.slice(0, 20) + "(x" + artGrupo.unidades + ")"
           } ${artGrupo.precioPromoPorUnidad.toFixed(2)}\n`;
         }
       } else if (
@@ -2313,11 +2318,13 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: "  Import introduït:      " + caja.totalDatafono3G.toFixed(2),
+          payload:
+            "  Import introduït:      " + caja.totalDatafono3G.toFixed(2),
         },
         {
           tipo: "text",
-          payload: "  Ventes (Tickets):      " + caja.cantidadLocal3G.toFixed(2),
+          payload:
+            "  Ventes (Tickets):      " + caja.cantidadLocal3G.toFixed(2),
         },
         {
           tipo: "text",
@@ -2832,10 +2839,11 @@ export class Impresora {
             tipo: "text",
             payload: "------------------------------------------",
           },
-          { tipo: "text", payload: detalleImporte },
-          { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: detalleImporte },
+          { tipo: "text", payload: "" },
           { tipo: "text", payload: "" },
           { tipo: "text", payload: "Observacions:" },
           { tipo: "text", payload: observacions },
@@ -3023,10 +3031,10 @@ export class Impresora {
             tipo: "text",
             payload: "------------------------------------------",
           },
-          { tipo: "text", payload: detalleImporte },
-          { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: detalleImporte },
           { tipo: "text", payload: "" },
           { tipo: "text", payload: "Observacions:" },
           { tipo: "text", payload: observacions },
@@ -3082,10 +3090,10 @@ export class Impresora {
             tipo: "text",
             payload: "------------------------------------------",
           },
-          { tipo: "text", payload: detalleImporte },
-          { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: detalleImporte },
           { tipo: "text", payload: "" },
           { tipo: "text", payload: "Observacions:" },
           { tipo: "text", payload: observacions },
@@ -3141,10 +3149,10 @@ export class Impresora {
             tipo: "text",
             payload: "------------------------------------------",
           },
-          { tipo: "text", payload: detalleImporte },
-          { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: detalleImporte },
           { tipo: "text", payload: "" },
           { tipo: "text", payload: "Observacions:" },
           { tipo: "text", payload: observacions },
@@ -3334,10 +3342,11 @@ export class Impresora {
             tipo: "text",
             payload: "------------------------------------------",
           },
-          { tipo: "text", payload: detalleImporte },
-          { tipo: "text", payload: "" },
           { tipo: "size", payload: [1, 1] },
           { tipo: "text", payload: importe },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: detalleImporte },
+          { tipo: "text", payload: "" },
           { tipo: "text", payload: "" },
           { tipo: "text", payload: "Observacions:" },
           { tipo: "text", payload: observacions },
