@@ -16,7 +16,7 @@ require("./sockets.gateway");
 axios.defaults.baseURL =
   process.env.npm_lifecycle_event === "start:dev"
     ? "http://localhost:3001"
-    : "https://santaana2-elb.nubehit.com:3002";
+    : "https://santaana2-elb.nubehit.com:3001";
 
 parametrosInstance
   .getParametros()
