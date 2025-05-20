@@ -1395,17 +1395,14 @@ export class CestaClase {
             .times(1 + new Decimal(cesta.lista[i].iva).div(100).toNumber())
             .toNumber();
         }
-
         let subtotalFinal =
           Math.round(cesta.lista[i].subtotal * 100000) / 100000;
-
-        subtotalFinal = Math.round(cesta.lista[i].subtotal * 100) / 100;
-
+        subtotalFinal = new Decimal(subtotalFinal).toDecimalPlaces(2).toNumber();
         cesta.lista[i].subtotal = subtotalFinal;
 
         // Guardamos el precio original para mostrarlo sin alterar y
         // aplicarle descuentos al generar el ticket.
-        cesta.lista[i].precioOrig = Number(p);
+        cesta.lista[i].precioOrig = p;
 
         // si la cesta proviene de descargas, se añade el timestamp de la cesta para calcular la trama de iva correcta a su fecha de creacion
         const cestaOfDownloads = menu == "descargas" ? true : false;
@@ -1419,7 +1416,6 @@ export class CestaClase {
             : cesta.lista[i]?.dto || 0,
           cestaOfDownloads ? cesta.timestamp : null
         );
-
         cesta.detalleIva = fusionarObjetosDetalleIva(
           auxDetalleIva,
           cesta.detalleIva
