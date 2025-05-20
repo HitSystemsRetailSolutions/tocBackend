@@ -22,8 +22,6 @@
           por id
     - Las promos se guardan en mongoDB con el formato que viene de SantaAna ya que el formato que usa el backend
         usa Sets y Maps que no se pueden guardar en la db.
-    - ArticulosFaltaUnoParaPromocion contiene articulos que si se añaden a la cesta formaran una promoción
-      nueva de mayor valor.
 */
 import axios from "axios";
 import { logger } from "../logger";
@@ -92,10 +90,6 @@ export class NuevaPromocion {
         //item.promocion.gruposFlat=item.promocion.grupos.reduce((acc,val)=>acc.concat(val))
         update=true
       }
-    }
-    if (cesta.ArticulosFaltaUnoParaPromocion==null) {
-      cesta.ArticulosFaltaUnoParaPromocion=[]
-      update = true
     }
     return update
   }
@@ -172,7 +166,7 @@ export class NuevaPromocion {
     this.promos.sort((a,b)=>{
       let c = -(a.sortInfo.unidades_totales-b.sortInfo.unidades_totales)  // unidades totales desc
       if (c!=0) return c
-      c = a.sortInfo.unidades_por_grupo.length-b.sortInfo.unidades_por_grupo.length // número de grupos asc
+      c = -(a.sortInfo.unidades_por_grupo.length-b.sortInfo.unidades_por_grupo.length) // número de grupos asc
       if (c!=0) return c
       for (let i=0; i<a.sortInfo.unidades_por_grupo.length; i++) {
         c= -(a.sortInfo.unidades_por_grupo[i]-b.sortInfo.unidades_por_grupo[i]) // unidades grupo[0],[...] asc
@@ -249,92 +243,250 @@ export class NuevaPromocion {
     }
     
     let PromosAplicadasTotales:Map<string, ItemLista[]>=new Map()
-    let SetArticulosFalta1ParaCompletar:Set<ArticulosInterface["_id"]>=new Set()
 
-    for (let promo of this.promos) { // para cada promo intentar aplica la cesta
-      if (!this.comprobarIntervaloFechas(promo)) continue;
-      let PromoAplicada:ItemLista=null;
-      while(true) { // para aplicar varias veces la misma promo
-          // articulo aplicado y unidades
-        let ArticulosAplicados:Map<ArticuloPromoEnCesta, number> = new Map()
-        let GruposAplicados:GrupoPromoEnCesta[]=[]
-        let Falta1ParaCompletarEstaPromo:Set<ArticulosInterface["_id"]>=null
-        for (let grupo of promo.grupos) { // mirar por cada grupo de la promo
-          let GrupoAplicado:GrupoPromoEnCesta=[]
-          let cantidadGrupo = grupo.cantidad
-          for (let [idArticulo, articulo] of MapPromocionables) {
-            if (grupo.idsArticulos.has(idArticulo)) {
-              let restanAplicables = ArticulosAplicados.get(articulo)
-              if (restanAplicables == undefined) restanAplicables = articulo.unidades
-              let unidadesAplicadas:number
-              if (cantidadGrupo <= restanAplicables) {
-                unidadesAplicadas = cantidadGrupo
-              } else {
-                unidadesAplicadas=restanAplicables
+    // promos que tiene items de cesta suficientes para llenarse, puede que no se llene si estos items van a otra promo.
+    let PromosCandidatas:PromocionesInterface[]=[] 
+    for (let promo of this.promos) {
+      let candidata=true
+      let n:number[] = Array(promo.grupos.length).fill(0)
+      for (let idxG=0; idxG<promo.grupos.length; idxG++) {
+        let grupo=promo.grupos[idxG]
+        for (let [idArticulo, articulo] of MapPromocionables) {
+          if (grupo.idsArticulos.has(idArticulo)) n[idxG]+=articulo.unidades
+        }  
+        n[idxG]=Math.trunc(n[idxG]/grupo.cantidad) // numero de grupos llenos posibles
+        if (n[idxG]==0) {
+          candidata=false
+          break
+        }  
+      }
+      if (candidata) {
+        let min_n=n.reduce((acc,val)=>acc<=val?acc:val) // coger min n de grupos llenos posibles
+        for (let m=0; m<min_n; m++) {
+          PromosCandidatas.push(promo) // promos posibles
+        }
+      }
+    }
+    let total_articulos_candidatos=0
+    // items de cesta que pueden ir a alguna promo candidata,
+    // una unidad por cada elemento del array,
+    // PG array con p promoción y g grupo son indices al array PromoCandidatas
+    // el último elemento es null que indica que no aplica ninguna promo en el algoritmo de recorrido
+    let ArticulosCandidatos:{idArticulo:number,PG:{p:number,g:number}[]}[]=[] // PG array de promocion grupo en PromosCandidatas
+    let MapNoCandidatos:Map<number,ArticuloInfoPromoYNormal>=new Map
+    for (let [idArticulo, articulo] of MapPromocionables) {
+      let ArticuloCandidato:{idArticulo:number,PG:{p:number,g:number}[]}={idArticulo:idArticulo,PG:[]}
+      let valido=false
+      for (let idxP=0; idxP<PromosCandidatas.length; idxP++) {
+        let promo=PromosCandidatas[idxP]
+        for (let idxG=0; idxG<promo.grupos.length; idxG++) {
+          let grupo=promo.grupos[idxG]
+          if (grupo.idsArticulos.has(idArticulo)) {
+            valido=true
+            total_articulos_candidatos+=articulo.precioPorUnidad*articulo.unidades
+            ArticuloCandidato.PG.push({p:idxP, g:idxG})
+          }
+        }
+      }
+      if (valido) {
+        ArticuloCandidato.PG.push(null)
+        for (let u=0; u<articulo.unidades; u++) {
+          ArticulosCandidatos.push(ArticuloCandidato) // un elemento por unidad
+        }
+      } else {
+        MapNoCandidatos.set(idArticulo, articulo)
+      }
+    }
+
+    // Estado de las promos mientras se calcula el vector de longitud dinamica
+    // indices p y g promo y grupo a PromocionesCandidatas y el valor es resto de unidades para llenar
+    let Estado_PG_r:number[][]=[]
+    for (let promo of PromosCandidatas) {
+      let pg_r:number[]=[]
+      for (let grupo of promo.grupos) {
+        pg_r.push(grupo.cantidad) // inicializar estado
+      }
+      Estado_PG_r.push(pg_r) 
+    }
+    let min=Number.POSITIVE_INFINITY
+    let min_V:number[]=Array(ArticulosCandidatos.length).fill(null)
+    // vector de longitud dinamica de indices al PG de ArticulosCandidatos
+    // cada elemento del vector se corresponde con el elemento de ArticulosCandidatos y el valor es el 
+    // indice al PG de ese elemento
+    let v_idxAC_PG:number[]=[] 
+    let time0 = Date.now()
+    function bucle_buscar_min(prev_idxPG?:number) {
+      if ((Date.now()-time0)>0.5*1000) return // si tarda más de 0.5 segundos parar y cojer la distribución actual
+      let len_v_idxAC_PG=v_idxAC_PG.length
+      if (len_v_idxAC_PG==ArticulosCandidatos.length) {
+        // si el vector tiene la longitud máxima, ver promociones que se han formado
+        let SetP:Set<number>=new Set()
+        let total_v=0, total_p=0
+        for (let idx_v=0; idx_v<v_idxAC_PG.length; idx_v++) {
+          let pg=ArticulosCandidatos[idx_v].PG[v_idxAC_PG[idx_v]]
+          if (pg!=null) {
+            let promo_completa=true
+            for (let idx_g=0; idx_g<Estado_PG_r[pg.p].length; idx_g++) {
+              if (Estado_PG_r[pg.p][idx_g]>0) {
+                promo_completa=false
+                break
               }
-              ArticulosAplicados.set(articulo, restanAplicables-unidadesAplicadas)
-              cantidadGrupo -= unidadesAplicadas
-              GrupoAplicado.push({...articulo, unidades:unidadesAplicadas})
-            }  
-            if (cantidadGrupo==0) {
-              GrupoAplicado.sort((a,b)=>a.idArticulo-b.idArticulo)
-              GruposAplicados.push(GrupoAplicado)
-              break
+            }
+            if (promo_completa) {
+              SetP.add(pg.p)
+              total_v+=MapPromocionables.get(ArticulosCandidatos[idx_v].idArticulo).precioPorUnidad
             }
           }
-          if (cantidadGrupo==0) continue
-          if (cantidadGrupo==1 && Falta1ParaCompletarEstaPromo==null) {
-            Falta1ParaCompletarEstaPromo=grupo.idsArticulos
+        }
+        for (let idxPromo of Array.from(SetP)) {
+          total_p+=PromosCandidatas[idxPromo].precioFinal
+        }
+        if (min>(total_articulos_candidatos-total_v)+total_p) {
+          // guardar promo
+          min = (total_articulos_candidatos-total_v)+total_p
+          min_V = v_idxAC_PG.map(a=>a) // copiar
+        }
+        return
+      }
+      let ultimoIDPromo=null
+      let idxPG=0
+      if (len_v_idxAC_PG>0 && ArticulosCandidatos[len_v_idxAC_PG]==ArticulosCandidatos[len_v_idxAC_PG-1]) {
+        // empezar por idx ya que es el mismo articulo y daría una combinación repetida si se empieza por 0
+        idxPG=prev_idxPG
+        if (idxPG>ArticulosCandidatos[len_v_idxAC_PG].PG.length-1)
+          idxPG=ArticulosCandidatos[len_v_idxAC_PG].PG.length-1 // caso null
+      }
+      // cada paso del bucle se aplican las promociones del indice del vector actual len_v_idxAC_PG
+      for (; idxPG<ArticulosCandidatos[len_v_idxAC_PG].PG.length; idxPG++) {
+        let PG=ArticulosCandidatos[len_v_idxAC_PG].PG[idxPG]
+        if (PG==null) { // null significa que no se aplica este item a ninguna promo
+          v_idxAC_PG.push(null)
+          bucle_buscar_min(idxPG)
+          v_idxAC_PG.pop()
+        } else {
+          if (Estado_PG_r[PG.p][PG.g]==0) {
+            // no se puede aplicar este item a la promo PG porque ya esta llena
             continue
-          }
-          if (cantidadGrupo!=0) {
-            GruposAplicados=null
-            Falta1ParaCompletarEstaPromo=null
-            break
-          }
-        }
-        if (Falta1ParaCompletarEstaPromo) {
-          for (let art of Falta1ParaCompletarEstaPromo) SetArticulosFalta1ParaCompletar.add(art)
-          GruposAplicados=null  
-        }
-
-        if (GruposAplicados) {
-          // recorrer ItemsAplicados y borrar de MapPromocionables
-          for (let [articulo, restan] of ArticulosAplicados) {
-            if (restan==0) MapPromocionables.delete(articulo.idArticulo)
-            else {
-              let itemPromocionable = MapPromocionables.get(articulo.idArticulo)
-              itemPromocionable.unidades = restan
-            }
-          }
-          function gruposPromoiguales(grupos_a:GrupoPromoEnCesta[], grupos_b:GrupoPromoEnCesta[]) {
-            if (grupos_a.length!=grupos_b.length) return false
-            for (let i=0; i<grupos_a.length; i++) {
-              if (grupos_a[i].length!=grupos_b[i].length) return false
-              for (let j=0; j<grupos_a[i].length; j++) {
-                if (grupos_a[i][j].idArticulo!=grupos_b[i][j].idArticulo) return false
-                if (grupos_a[i][j].unidades!=grupos_b[i][j].unidades) return false
-              }
-            }
-            return true
-          }
-          // PromoAplicada es la promo aplicada antes de esta
-          if (PromoAplicada && gruposPromoiguales(PromoAplicada.promocion.grupos, GruposAplicados)) {
-            PromoAplicada.unidades++
           } else {
-            if (PromoAplicada) this.calculoFinalPromo(PromoAplicada)
-            PromoAplicada = await this.crearItemListaPromo(promo, GruposAplicados)
-            //PromoAplicadasTotales es un Map de nombre a array de promosAplicadas
-            let promosConMismoNombrePeroDiferentesElementos = PromosAplicadasTotales.get(PromoAplicada.nombre) 
-            if (promosConMismoNombrePeroDiferentesElementos) promosConMismoNombrePeroDiferentesElementos.push(PromoAplicada)
-            else PromosAplicadasTotales.set(PromoAplicada.nombre, [PromoAplicada])
-          } 
-        } else { // !GruposAplicados
-          // no se han podido aplicar más promociones, cerrar la última si existe
-          if (PromoAplicada) this.calculoFinalPromo(PromoAplicada)
-          break // while(true)
+            if (PG.p>0 && PromosCandidatas[PG.p] == PromosCandidatas[PG.p-1] &&
+              ArticulosCandidatos[len_v_idxAC_PG].PG[idxPG-1].g == PG.g
+            ) {
+              let igual_estado=true
+              for (let idxG=0; idxG<Estado_PG_r[PG.p].length; idxG++) {
+                if (Estado_PG_r[PG.p][PG.g]!=Estado_PG_r[PG.p-1][PG.g]) {
+                  igual_estado=false
+                  break
+                }
+              }
+              // Este articulo ya se intento aplicar a la misma promoción anterior y el estado era el mismo
+              if (igual_estado) continue
+            }
+            //ultimoIDPromo=PromosCandidatas[PG.p]._id
+            Estado_PG_r[PG.p][PG.g]--
+            v_idxAC_PG.push(idxPG)
+            bucle_buscar_min(idxPG)
+            Estado_PG_r[PG.p][PG.g]++
+            v_idxAC_PG.pop()
+          }
         }
-      } // while aplicar la misma promo otra vez
+      }
+    }
+    bucle_buscar_min(-1)
+    //inicializar estado
+    Estado_PG_r=[]
+    for (let promo of PromosCandidatas) {
+      let pg_r:number[]=[]
+      for (let grupo of promo.grupos) {
+        pg_r.push(grupo.cantidad)
+      }
+      Estado_PG_r.push(pg_r)
+    }
+    // Aplicar min_V al estado
+    for (let idx_v=0; idx_v<min_V.length; idx_v++) {
+      let PG=ArticulosCandidatos[idx_v].PG[min_V[idx_v]]
+      if (PG!=null) Estado_PG_r[PG.p][PG.g]--
+    }
+    // Estado PromosCandidatas true: promo aplicadada
+    let Estado_P:boolean[]=[]
+    for (let grupo_r of Estado_PG_r) {
+      let completo=true
+      for (let r of grupo_r) {
+        if (r>0) completo=false
+      }
+      Estado_P.push(completo)
+    }
+
+    // ArticulosAplicadosEnPromo [promo][grupo] Map<idArticulo, unidades>
+    let ArticulosAplicadosEnPromo:Map<number,number>[][]=[]
+    // Inicializar ArticulosAplicadosEnPromo
+    for (let idx=0; idx<PromosCandidatas.length; idx++) {
+      if (Estado_P[idx]) {
+        let ar:Map<number,number>[] = []
+        for (let g of PromosCandidatas[idx].grupos) {
+          ar.push(new Map())
+        }
+        ArticulosAplicadosEnPromo.push(ar)
+      } else ArticulosAplicadosEnPromo.push(null)
+    }
+    let ArticulosEnNingunaPromocion:Map<number,number> = new Map()
+
+    for (let idx_v=0; idx_v<min_V.length; idx_v++) {
+      let idArticulo = ArticulosCandidatos[idx_v].idArticulo
+      let pg = ArticulosCandidatos[idx_v].PG[min_V[idx_v]]
+      if (pg!=null && Estado_P[pg.p]) {
+        let n = ArticulosAplicadosEnPromo[pg.p][pg.g].get(idArticulo)
+        if (n==null) n=1
+        else n++
+        ArticulosAplicadosEnPromo[pg.p][pg.g].set(idArticulo, n)
+      } else {
+        let n = ArticulosEnNingunaPromocion.get(idArticulo)
+        if (n==null) n=1
+        else n++
+        ArticulosEnNingunaPromocion.set(idArticulo, n)
+      }
+    }
+
+    let UltimaPromoAplicada:ItemLista=null
+    //let PromocionesAplicadas:ItemLista[]=[]
+    for (let idx_p=0; idx_p<PromosCandidatas.length; idx_p++) {
+      if (ArticulosAplicadosEnPromo[idx_p]) {
+        let grupos:GrupoPromoEnCesta[]=[]
+        for (let map of ArticulosAplicadosEnPromo[idx_p]) {
+          let Articulos:ArticuloPromoEnCesta[]=[]
+          for (let [idArticulo, unidades] of map) {
+            Articulos.push({
+              ...MapPromocionables.get(idArticulo),
+              unidades
+            })
+          }
+          Articulos.sort((a,b)=>a.idArticulo-b.idArticulo)
+          grupos.push(Articulos)
+        }
+        let PromoAplicada = await this.crearItemListaPromo(PromosCandidatas[idx_p], grupos)
+        if (UltimaPromoAplicada && PromosIguales(PromoAplicada, UltimaPromoAplicada)) UltimaPromoAplicada.unidades++
+        else {
+          if (UltimaPromoAplicada) this.calculoFinalPromo(UltimaPromoAplicada)
+          let promosConMismoNombrePeroDiferentesElementos = PromosAplicadasTotales.get(PromoAplicada.nombre) 
+          if (promosConMismoNombrePeroDiferentesElementos) promosConMismoNombrePeroDiferentesElementos.push(PromoAplicada)
+          else PromosAplicadasTotales.set(PromoAplicada.nombre, [PromoAplicada])
+          UltimaPromoAplicada = PromoAplicada
+        }
+      }
+    }
+    if (UltimaPromoAplicada) this.calculoFinalPromo(UltimaPromoAplicada)
+
+    function PromosIguales(A:ItemLista,B:ItemLista) {
+      let Ap=A.promocion, Bp=B.promocion
+      if (Ap.idPromocion!=Bp.idPromocion) return false
+      if (Ap.grupos.length!=Bp.grupos.length) return false
+      for (let i=0; i<Ap.grupos.length; i++) {
+        if (Ap.grupos[i].length!=Ap.grupos[i].length) return false
+        for (let j=0; j<Ap.grupos[i].length; j++) {
+          if (Ap.grupos[i][j].idArticulo!=Bp.grupos[i][j].idArticulo) return false
+          if (Ap.grupos[i][j].unidades!=Bp.grupos[i][j].unidades) return false
+        }
+      }
+      return true
     }
 
     function crearItemListaNormal(articulo: ArticuloInfoPromoYNormal):ItemLista {
@@ -355,25 +507,36 @@ export class NuevaPromocion {
       if (SetNoPromocionables.has(item_in)) lista_out.push(item_in)
       else {
         if (item_in.promocion==null) {
-          if (MapPromocionables.has(item_in.idArticulo)) {
-            lista_out.push(crearItemListaNormal(MapPromocionables.get(item_in.idArticulo)))
-            MapPromocionables.delete(item_in.idArticulo)
+          if (ArticulosEnNingunaPromocion.has(item_in.idArticulo)) {
+            lista_out.push(crearItemListaNormal({
+              ...MapPromocionables.get(item_in.idArticulo),
+              unidades:ArticulosEnNingunaPromocion.get(item_in.idArticulo)
+            }))
+            ArticulosEnNingunaPromocion.delete(item_in.idArticulo)
+          } else if (MapNoCandidatos.has(item_in.idArticulo)) {
+            lista_out.push(crearItemListaNormal(MapNoCandidatos.get(item_in.idArticulo)))
+            MapNoCandidatos.delete(item_in.idArticulo)
           }
         } else if (PromosAplicadasTotales.has(item_in.nombre)) {
-          PromosAplicadasTotales.get(item_in.nombre).map(promo=>{lista_out.push(promo)})
+          PromosAplicadasTotales.get(item_in.nombre).forEach(promo=>{lista_out.push(promo)})
           PromosAplicadasTotales.delete(item_in.nombre)
         }
       }
     }
     // insertar en lista articulos y promos que no estaban en la lista de entrada
-    for (let articulo of MapPromocionables.values()) {
-      lista_out.push(crearItemListaNormal(articulo))        
+    for (let [idArticulo, unidades] of ArticulosEnNingunaPromocion) {
+      lista_out.push(crearItemListaNormal({
+        ...MapPromocionables.get(idArticulo),
+        unidades}))        
+    }
+    for (let articulo of MapNoCandidatos.values()) {
+      lista_out.push(crearItemListaNormal(articulo))
     }
     for (let promos of PromosAplicadasTotales.values()) {
-      promos.map(promo=>{lista_out.push(promo)})
+      promos.forEach(promo=>{lista_out.push(promo)})
     }
     cesta.lista=lista_out
-    cesta.ArticulosFaltaUnoParaPromocion = Array.from(SetArticulosFalta1ParaCompletar)
+
   }
 
   public async crearItemListaPromo(promo:PromocionesInterface, grupos:GrupoPromoEnCesta[]):Promise<ItemLista> {

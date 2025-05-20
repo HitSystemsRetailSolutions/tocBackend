@@ -32,6 +32,7 @@ import { parametrosInstance } from "src/parametros/parametros.clase";
 import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 import { tarifasInstance } from "src/tarifas/tarifas.class";
 import { tiposIvaInstance } from "../tiposIva/tiposIva.clase";
+import Decimal from "decimal.js";
 
 export class CestaClase {
   async recalcularIvasDescuentoEspecial(cesta: CestasInterface) {
@@ -494,7 +495,7 @@ export class CestaClase {
       nuevaCesta.idCliente = cestaEncargo.idCliente;
       nuevaCesta.nombreCliente = cestaEncargo.nombreCliente;
       nuevaCesta.lista = cestaEncargo.lista;
-      nuevaInstancePromociones.convertirAFormatoNuevoSiEsNecesario(nuevaCesta)
+      nuevaInstancePromociones.convertirAFormatoNuevoSiEsNecesario(nuevaCesta);
       nuevaCesta.detalleIva = cestaEncargo.detalleIva;
       if (await this.updateCesta(nuevaCesta)) {
         await this.actualizarCestas();
@@ -701,8 +702,8 @@ export class CestaClase {
     }
   }
 
-  semaforo_zona_critica_insertarArticulo=false
-  cola_zona_critica_insertarArticulo:(()=>void)[]=[]
+  semaforo_zona_critica_insertarArticulo = false;
+  cola_zona_critica_insertarArticulo: (() => void)[] = [];
   /* Uri*/
   async insertarArticulo(
     articulo: ArticulosInterface,
@@ -718,11 +719,18 @@ export class CestaClase {
       // sección critica, si se pulsan dos articulos muy seguidos el segundo tendra que esperar a que acabe
       // el primero ya que se modifican los items de la cesta.
       if (this.semaforo_zona_critica_insertarArticulo) {
-        let resolver:()=>void
-        let p = new Promise<void>(res=>{resolver=res})
-        this.cola_zona_critica_insertarArticulo.push(resolver)
-        await Promise.race([p, new Promise(res=>{setTimeout(res, 2000)})]); 
-      } else this.semaforo_zona_critica_insertarArticulo=true
+        let resolver: () => void;
+        let p = new Promise<void>((res) => {
+          resolver = res;
+        });
+        this.cola_zona_critica_insertarArticulo.push(resolver);
+        await Promise.race([
+          p,
+          new Promise((res) => {
+            setTimeout(res, 2000);
+          }),
+        ]);
+      } else this.semaforo_zona_critica_insertarArticulo = true;
 
       // recojemos la cesta
       let cesta = await this.getCestaById(idCesta);
@@ -736,7 +744,7 @@ export class CestaClase {
           ? articulo.precioBase
           : articulo.precioConIva;
 
-      let ItemActualizado:ItemLista
+      let ItemActualizado: ItemLista;
       articulo["menu"] = menu;
       // recojemos los datos del articulo
       // let infoArticulo = await articulosInstance.getInfoArticulo(articulo._id);
@@ -794,7 +802,7 @@ export class CestaClase {
               );
 
               articuloNuevo = false;
-              ItemActualizado = item
+              ItemActualizado = item;
               break;
             }
           } else if (!item.arraySuplementos && item.regalo === regalar) {
@@ -814,7 +822,7 @@ export class CestaClase {
             }
 
             articuloNuevo = false;
-            ItemActualizado = item
+            ItemActualizado = item;
             break;
           }
         }
@@ -837,15 +845,17 @@ export class CestaClase {
           unidades: unidades,
           gramos: gramos,
           pagado,
-        }
+        };
         cesta.lista.push(ItemActualizado);
       }
       // aplicar las promociones despues de insertar el articulo en la cesta
-      await nuevaInstancePromociones.aplicarPromociones(cesta, cliente)
-      let isitemPromocionable = nuevaInstancePromociones.isItemPromocionable(ItemActualizado)
+      await nuevaInstancePromociones.aplicarPromociones(cesta, cliente);
+      let isitemPromocionable =
+        nuevaInstancePromociones.isItemPromocionable(ItemActualizado);
       let numProductos = 0;
-      let precioMostrarVisor = ItemActualizado.gramos == null ? precioArt : ItemActualizado.subtotal
-      let nombreMostrarVisor = ItemActualizado.nombre
+      let precioMostrarVisor =
+        ItemActualizado.gramos == null ? precioArt : ItemActualizado.subtotal;
+      let nombreMostrarVisor = ItemActualizado.nombre;
       let total = 0;
       for (let item of cesta.lista) {
         if (item.gramos == null) {
@@ -854,15 +864,15 @@ export class CestaClase {
           numProductos++;
         }
         total += item.subtotal;
-        if (isitemPromocionable && item.promocion!=null) {
+        if (isitemPromocionable && item.promocion != null) {
           for (let artGrupo of item.promocion.grupos.flat()) {
             // buscar en las promos que tengan el articulo que se ha insertado y cojer la última para el visor
-            if (artGrupo.idArticulo == ItemActualizado.idArticulo) { 
-              precioMostrarVisor = item.subtotal/item.unidades
-              nombreMostrarVisor = item.nombre
+            if (artGrupo.idArticulo == ItemActualizado.idArticulo) {
+              precioMostrarVisor = item.subtotal / item.unidades;
+              nombreMostrarVisor = item.nombre;
             }
           }
-        } 
+        }
       }
       // menus con estos valores no se muestran en el visor
       if (menu != "honei" && menu != "pagados" && menu != "descargas") {
@@ -876,10 +886,11 @@ export class CestaClase {
       await this.recalcularIvas(cesta, menu, cliente);
       if (await schCestas.updateCesta(cesta)) return cesta;
     } finally {
-      if (this.cola_zona_critica_insertarArticulo.length==0) this.semaforo_zona_critica_insertarArticulo=false
+      if (this.cola_zona_critica_insertarArticulo.length == 0)
+        this.semaforo_zona_critica_insertarArticulo = false;
       else {
-        let resolver=this.cola_zona_critica_insertarArticulo.shift()
-        resolver()
+        let resolver = this.cola_zona_critica_insertarArticulo.shift();
+        resolver();
       }
     }
 
@@ -1039,20 +1050,25 @@ export class CestaClase {
   async getDetalleIvaPromocion(
     itemPromocion: ItemLista
   ): Promise<DetalleIvaInterface> {
-    let detalleIvaAcumulado: DetalleIvaInterface = null
+    let detalleIvaAcumulado: DetalleIvaInterface = null;
 
     for (let artGrupo of itemPromocion.promocion.grupos.flat()) {
-      const infoArt = await articulosInstance.getInfoArticulo(artGrupo.idArticulo);
-        let detalleIva = construirObjetoIvas(
-          artGrupo.precioPromoPorUnidad,
-          infoArt.tipoIva,
-          artGrupo.unidades*itemPromocion.unidades
+      const infoArt = await articulosInstance.getInfoArticulo(
+        artGrupo.idArticulo
+      );
+      let detalleIva = construirObjetoIvas(
+        artGrupo.precioPromoPorUnidad,
+        infoArt.tipoIva,
+        artGrupo.unidades * itemPromocion.unidades
+      );
+      if (detalleIvaAcumulado) {
+        detalleIvaAcumulado = fusionarObjetosDetalleIva(
+          detalleIvaAcumulado,
+          detalleIva
         );
-        if (detalleIvaAcumulado) {
-          detalleIvaAcumulado = fusionarObjetosDetalleIva(detalleIvaAcumulado, detalleIva);
-        } else detalleIvaAcumulado = detalleIva
+      } else detalleIvaAcumulado = detalleIva;
     }
-    if (!detalleIvaAcumulado) 
+    if (!detalleIvaAcumulado)
       detalleIvaAcumulado = {
         base1: 0,
         base2: 0,
@@ -1306,12 +1322,23 @@ export class CestaClase {
           precioArt = preu == null ? precioArt : preu.precioConIva;
         }
 
-        let p = precioArt * cesta.lista[i].unidades;
+        const precioArtDecimal = new Decimal(precioArt);
+        const unidadesDecimal = new Decimal(cesta.lista[i].unidades);
+        // obtiene el precio preciso y evita errores de redondeo
+        let p = precioArtDecimal
+          .times(unidadesDecimal)
+          .toDecimalPlaces(5)
+          .toNumber();
 
         cesta.lista[i].subtotal = p;
 
         if (descuento)
-          precioArt = Number(precioArt - precioArt * (descuento / 100));
+          precioArt = precioArtDecimal
+            .minus(
+              precioArtDecimal.times(descuento).div(100).toDecimalPlaces(5)
+            )
+            .toNumber();
+        // precioArt = Number(precioArt - precioArt * (descuento / 100));
 
         if (dto && !cesta.lista[i]?.dto) {
           // aplicar el dto en el precioArt para calcular detallesIVA y guardar % de dto en el objeto cesta
@@ -1347,7 +1374,10 @@ export class CestaClase {
 
         // si contiene dto o iva, añadir precio original para mostrarlo en el ticket
         if (cesta.lista[i]?.iva || cesta.lista[i]?.dto) {
-          cesta.lista[i].precioOrig = precioArt * cesta.lista[i].unidades;
+          cesta.lista[i].precioOrig = precioArtDecimal
+            .times(unidadesDecimal)
+            .toDecimalPlaces(5)
+            .toNumber();
         } else if (
           cesta.lista[i]?.precioOrig &&
           cesta.modo !== "CONSUMO_PERSONAL"
@@ -1355,18 +1385,21 @@ export class CestaClase {
           delete cesta.lista[i].precioOrig;
         }
         if (cesta.lista[i].dto) {
-          cesta.lista[i].subtotal =
-            cesta.lista[i].subtotal * (1 - cesta.lista[i].dto / 100);
+          cesta.lista[i].subtotal = new Decimal(cesta.lista[i].subtotal)
+            .times(1 - new Decimal(cesta.lista[i].dto).div(100).toNumber())
+            .toNumber();
         }
 
         if (cesta.lista[i].iva || (clienteFacturacion && cesta.lista[i].iva)) {
-          cesta.lista[i].subtotal =
-            cesta.lista[i].subtotal * (1 + cesta.lista[i].iva / 100);
+          cesta.lista[i].subtotal = new Decimal(cesta.lista[i].subtotal)
+            .times(1 + new Decimal(cesta.lista[i].iva).div(100).toNumber())
+            .toNumber();
         }
 
-        let subtotalFinal = Math.round(
-          cesta.lista[i].subtotal * 100
-        ) / 100;
+        let subtotalFinal =
+          Math.round(cesta.lista[i].subtotal * 100000) / 100000;
+
+        subtotalFinal = Math.round(cesta.lista[i].subtotal * 100) / 100;
 
         cesta.lista[i].subtotal = subtotalFinal;
 
@@ -1709,7 +1742,7 @@ export class CestaClase {
     index: number,
     idPromoArtSel
   ) {
-    idPromoArtSel = parseInt(idPromoArtSel)
+    idPromoArtSel = parseInt(idPromoArtSel);
     const cesta = await cestasInstance.getCestaById(idCesta);
     if (cesta && cesta.idCliente) {
       const cliente = await clienteInstance.getClienteById(cesta.idCliente);
@@ -1720,14 +1753,14 @@ export class CestaClase {
     // borramos la promo de la cesta
     await this.borrarItemCesta(idCesta, index);
     // guardamos cual de las id de promo se quiere regalar
-    let item = cesta.lista[index]
-    let unidadesARegalar = 0
+    let item = cesta.lista[index];
+    let unidadesARegalar = 0;
     for (let artGrupo of item.promocion.grupos.flat()) {
       if (artGrupo.idArticulo == idPromoArtSel) {
-        unidadesARegalar = artGrupo.unidades*item.unidades
-        break
+        unidadesARegalar = artGrupo.unidades * item.unidades;
+        break;
       }
-    } 
+    }
     let mismoRegalo = false;
     for (let i = 0; i < cesta.lista.length; i++) {
       if (cesta.lista[i].regalo && cesta.lista[i].idArticulo == idPromoArtSel) {
@@ -1764,9 +1797,17 @@ export class CestaClase {
     }
 
     for (let artGrupo of item.promocion.grupos.flat()) {
-      if (artGrupo.idArticulo!=idPromoArtSel) {
-        for (let i=0; i<artGrupo.unidades*item.unidades; i++) {
-          await this.clickTeclaArticulo(artGrupo.idArticulo, 0, idCesta, 1, null, "", "");
+      if (artGrupo.idArticulo != idPromoArtSel) {
+        for (let i = 0; i < artGrupo.unidades * item.unidades; i++) {
+          await this.clickTeclaArticulo(
+            artGrupo.idArticulo,
+            0,
+            idCesta,
+            1,
+            null,
+            "",
+            ""
+          );
         }
       }
     }

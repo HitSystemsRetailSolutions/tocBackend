@@ -33,13 +33,18 @@ export class TrabajadoresController {
   }
 
   @Get("getFichajesIntervalo")
-  async getTotalsIntervalo(@Query() data: { inicioTime, finalTime, trabajador }) {
+  async getTotalsIntervalo(
+    @Query() data: { inicioTime; finalTime; trabajador }
+  ) {
     try {
-
       if (!data.inicioTime || !data.finalTime || !data.trabajador) {
         throw Error("faltan datos en getFichajesIntervalo");
       }
-      return await trabajadoresInstance.getFichajesIntervalo(data.inicioTime, data.finalTime, data.trabajador);
+      return await trabajadoresInstance.getFichajesIntervalo(
+        data.inicioTime,
+        data.finalTime,
+        data.trabajador
+      );
     } catch (error) {
       logger.Error(137, error);
       return null;
@@ -51,7 +56,6 @@ export class TrabajadoresController {
   async buscar(@Body() { busqueda }) {
     try {
       return await trabajadoresInstance.buscar(busqueda);
-
     } catch (err) {
       logger.Error(111, err);
       return null;
@@ -63,7 +67,7 @@ export class TrabajadoresController {
   async buscarSinFichar(@Body() { busqueda }) {
     try {
       let x = await trabajadoresInstance.buscarSinFichar(busqueda);
-      return x
+      return x;
     } catch (err) {
       logger.Error(111, err);
       return null;
@@ -121,7 +125,7 @@ export class TrabajadoresController {
   async desfichar(@Body() { idTrabajador }) {
     try {
       if (idTrabajador) {
-          await trabajadoresInstance.usarTrabajador(idTrabajador, false);
+        await trabajadoresInstance.usarTrabajador(idTrabajador, false);
         return await trabajadoresInstance.desficharTrabajador(idTrabajador);
       }
       throw Error("Error, faltan datos en desfichar() controller");
@@ -213,6 +217,34 @@ export class TrabajadoresController {
         return await trabajadoresInstance.getTrabajadorById(idTrabajador);
       }
       throw Error("Faltan datos en trabajadores/getTrabajadorById");
+    } catch (err) {
+      logger.Error(141, err);
+      return false;
+    }
+  }
+
+  @Post("getRol")
+  async getRol(@Body() { idTrabajador }) {
+    try {
+      if (idTrabajador) {
+        return await trabajadoresInstance.getRol(idTrabajador);
+      }
+      throw Error("Faltan datos en trabajadores/getTrabajadorById");
+    } catch (err) {
+      logger.Error(141, err);
+      return false;
+    }
+  }
+  @Post("checkPassword")
+  async checkPassword(@Body() { idTrabajador, password }) {
+    try {
+      if (idTrabajador && password) {
+        return await trabajadoresInstance.checkPassword(
+          idTrabajador,
+          password
+        );
+      }
+      throw Error("Faltan datos en trabajadores/checkPassword");
     } catch (err) {
       logger.Error(141, err);
       return false;

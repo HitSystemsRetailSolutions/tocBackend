@@ -11,6 +11,8 @@ export interface TrabajadoresInterface {
   satelite: string;
   descansando: boolean;
   activo: boolean;
+  password: string;
+  rol: string;
 }
 
 export interface SincroFichajesInterface extends VersionInterface {

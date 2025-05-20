@@ -340,3 +340,13 @@ export async function setIdCestaTrabajador(
   );
   return resultado.acknowledged && resultado.modifiedCount > 0;
 }
+
+export async function getRol(
+  idTrabajador: TrabajadoresInterface["_id"]
+): Promise<string> {
+  const database = (await conexion).db("tocgame");
+  const trabajadores =
+    database.collection<TrabajadoresInterface>("trabajadores");
+  const res=await trabajadores.findOne({ _id: idTrabajador });
+  return res.rol || null; // Devuelve la contraseña del trabajador
+}
