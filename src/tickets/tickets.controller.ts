@@ -200,6 +200,58 @@ export class TicketsController {
   redondearPrecio = (precio: number) =>
     Number((Math.round(precio * 100) / 100).toFixed(2));
 
+  @Post("crearTicketDatafono")
+  async crearTicketDatafono(
+    @Body()
+    {
+      total,
+      idCesta,
+      idTrabajador,
+      tipo,
+      tkrsData,
+      concepto,
+      honei,
+      dejaCuenta = 0,
+    }: {
+      total: number;
+      idCesta: TicketsInterface["cesta"]["_id"];
+      idTrabajador: TicketsInterface["idTrabajador"];
+      tipo: FormaPago;
+      tkrsData: {
+        cantidadTkrs: number;
+        formaPago: FormaPago;
+      };
+      concepto?: MovimientosInterface["concepto"];
+      honei?: boolean;
+      dejaCuenta?: number;
+    }
+  ) {
+    if ((await parametrosInstance.getParametros())?.ipTefpay) {
+      return this.crearTicketPaytef({
+        total,
+        idCesta,
+        idTrabajador,
+        tipo,
+        tkrsData,
+        concepto,
+        honei,
+        dejaCuenta,
+      });
+    } else {
+      return this.crearTicketRedsys({
+        total,
+        idCesta,
+        idTrabajador,
+        tipo,
+        tkrsData,
+        concepto,
+        honei,
+        dejaCuenta,
+      });
+
+    }
+  }
+
   @Post("crearTicketPaytef")
   async crearTicketPaytef(
     @Body()
@@ -253,6 +305,101 @@ export class TicketsController {
     const transaccion = this.redondearPrecio(total - dejaCuenta);
     return await paytefInstance
       .iniciarTransaccion(idTrabajador, idTransaccion, transaccion)
+      .then(async (x) => {
+        if (x) {
+          
+          if (await ticketsInstance.insertarTicket(ticketTemp)) {
+            // si el ticket ya se ha creado, se hace una llamada a finalizarTicket
+            // donde se generarán los movimientos necesarios y actualizará el total de tickets generados
+            await ticketsInstance.finalizarTicket(
+              ticketTemp,
+              idTrabajador,
+              tipo,
+              concepto,
+              cesta,
+              tkrsData
+            );
+          }
+          // si el identificador temporal no coincide con el real, se lanza un logError
+          // puede ocurrir si se ha generado un nuevo ticket mientras se realizaba el pago con Paytef
+          if (ticketTemp._id != idTransaccion) {
+            logger.Error(
+              `idTicket!=idTransaccion (${ticketTemp._id}!=${idTransaccion}), se ha generado un nuevo ticket mientras se realizaba el pago con Paytef.`,
+              "tickets.controller"
+            );
+          }
+          if (
+            (await parametrosInstance.getParametros())?.params?.TicketDFAuto ==
+            "Si"
+          ) {
+            impresoraInstance.imprimirTicket(ticketTemp._id);
+          }
+          //ticketsInstance.setPagadoPaytef(idTicket);
+        }
+        logger.Info(
+          `crearTicketPaytef salida (${idTransaccion}, ${x})`,
+          "tickets.controller"
+        );
+        return x;
+      }).catch((err) => {
+        logger.Error(1073, err);
+        return false;
+      });
+  }
+
+  @Post("crearTicketRedsys")
+  async crearTicketRedsys(
+    @Body()
+    {
+      total,
+      idCesta,
+      idTrabajador,
+      tipo,
+      tkrsData,
+      concepto,
+      honei,
+      dejaCuenta = 0,
+    }: {
+      total: number;
+      idCesta: TicketsInterface["cesta"]["_id"];
+      idTrabajador: TicketsInterface["idTrabajador"];
+      tipo: FormaPago;
+      tkrsData: {
+        cantidadTkrs: number;
+        formaPago: FormaPago;
+      };
+      concepto?: MovimientosInterface["concepto"];
+      honei?: boolean;
+      dejaCuenta?: number;
+    }
+  ) {
+    const cesta = await cestasInstance.getCestaById(idCesta);
+    // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
+    await cestasInstance.aplicarDescuento(cesta, total);
+    if(cesta.modo == "CONSUMO_PERSONAL")
+    await cestasInstance.applyDiscountShop(cesta, total);
+    // elimina la última transacción de Paytef
+    paytefInstance.deleteUltimaIniciarTransaccion();
+    // genera un ticket temporal hasta que se confirme o se anule el pago
+    const ticketTemp = await ticketsInstance.generarNuevoTicket(
+      total,
+      idTrabajador,
+      cesta,
+      ticketsInstance.esConsumoPersonal(tipo, cesta.modo),
+      tipo.includes("HONEI") || honei,
+      tkrsData?.cantidadTkrs > 0,
+      dejaCuenta
+    );
+    // id temporal para el ticketRedsys
+    let idTransaccion = await ticketsInstance.getProximoId();
+    ticketTemp._id = idTransaccion;
+    logger.Info(
+      `crearTicketRedsys entrada (${idTransaccion})`,
+      "tickets.controller"
+    );
+    const importe = this.redondearPrecio(total - dejaCuenta);
+    return await redsysInstance
+      .iniciarTransaccion(idTransaccion, importe)
       .then(async (x) => {
         if (x) {
           
