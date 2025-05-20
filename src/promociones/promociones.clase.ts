@@ -182,6 +182,7 @@ export class NuevaPromocion {
     if (item.varis) return false
     if (item.regalo) return false
     if (item.pagado) return false
+    if (item.arraySuplementos && item.arraySuplementos.length > 0 ) return false
     return true
   }
 
@@ -241,7 +242,7 @@ export class NuevaPromocion {
         }
       } else SetNoPromocionables.add(item)
     }
-    
+
     let PromosAplicadasTotales:Map<string, ItemLista[]>=new Map()
 
     // promos que tiene items de cesta suficientes para llenarse, puede que no se llene si estos items van a otra promo.
