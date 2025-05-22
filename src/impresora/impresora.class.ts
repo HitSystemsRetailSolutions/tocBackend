@@ -347,6 +347,7 @@ export class Impresora {
       tmstpCesta: cesta.timestamp,
       justificacion: null,
       comensales: cesta?.comensales || null,
+      nota: true,
     };
 
     await this._venta(nota);
@@ -792,6 +793,7 @@ export class Impresora {
       { tipo: "setCharacterCodeTable", payload: 19 },
       { tipo: "encode", payload: "cp858" },
       { tipo: "font", payload: "A" },
+      { tipo: "text", payload: info?.nota ? `\x1B\x45\x01 Nota Taula: ${info.mesa + 1} \x1B\x45\x00` : "" },
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
