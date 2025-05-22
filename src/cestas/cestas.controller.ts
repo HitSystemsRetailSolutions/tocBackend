@@ -6,6 +6,7 @@ import { UtilesModule } from "../utiles/utiles.module";
 import axios from "axios";
 import { articulosInstance } from "../articulos/articulos.clase";
 import { encargosInstance } from "src/encargos/encargos.clase";
+import { impresoraInstance } from "src/impresora/impresora.class";
 
 @Controller("cestas")
 export class CestasController {
@@ -280,7 +281,7 @@ export class CestasController {
         if (cesta.modo === "CONSUMO_PERSONAL") {
           cesta = await cestasInstance.recalcularIvas(cesta);
         }
-        
+
         const res = await cestasInstance.updateCesta(cesta);
 
         if (res) {
@@ -395,7 +396,7 @@ export class CestasController {
         throw Error("faltan datos en setDiscountShop");
       }
       await cestasInstance.setDiscountShop(cesta, discount, index);
-      
+
       if (await cestasInstance.updateCesta(cesta)) {
         await cestasInstance.actualizarCestas();
         return true;
@@ -403,7 +404,19 @@ export class CestasController {
     } catch (error) {
       logger.Error(137, error);
     }
+  }
 
+  @Post("imprimirNotaMesa")
+  async imprimirNotasMesa(@Body() { idCesta, idTrabajador }) {
+    try {
+      if (!idCesta) {
+        throw Error("faltan datos en imprimirNotasMesa");
+      }
+      await impresoraInstance.imprimirNotasMesa(idCesta, idTrabajador);
+      return true;
+    } catch (error) {
+      logger.Error(138, error);
+    }
   }
   // @Post("addSuplementos")
   // async addSuplementos(
