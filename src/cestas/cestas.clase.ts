@@ -1727,8 +1727,8 @@ export class CestaClase {
 
     item.regalo = true;
     item.subtotal = 0;
+    item.precioOrig = 0;
     cesta.lista = [...cesta.lista];
-
     await cestasInstance.recalcularIvas(cesta);
     if (await cestasInstance.updateCesta(cesta)) {
       await this.actualizarCestas();

@@ -182,7 +182,6 @@ export class NuevaPromocion {
     if (item.varis) return false
     if (item.regalo) return false
     if (item.pagado) return false
-    if (item.arraySuplementos && item.arraySuplementos.length > 0 ) return false
     return true
   }
 
@@ -490,12 +489,20 @@ export class NuevaPromocion {
       return true
     }
 
-    function crearItemListaNormal(articulo: ArticuloInfoPromoYNormal):ItemLista {
+    function crearItemListaNormal(articulo: ArticuloInfoPromoYNormal, suplementos: ItemLista["arraySuplementos"]=null):ItemLista {
+
+      let totalSuplementos=0
+      if (suplementos) {
+        for (let suplemento of suplementos) {
+          totalSuplementos += suplemento.precioConIva
+        }
+      }
       return {
         idArticulo:articulo.idArticulo,
         nombre: articulo.nombre,
+        arraySuplementos: suplementos,
         unidades: articulo.unidades,
-        subtotal: redondearPrecio(articulo.precioPorUnidad*articulo.unidades),
+        subtotal: redondearPrecio((articulo.precioPorUnidad + totalSuplementos) * articulo.unidades),
         puntos: articulo.puntosPorUnidad*articulo.unidades,
         regalo: false,
         pagado: false,
@@ -509,13 +516,15 @@ export class NuevaPromocion {
       else {
         if (item_in.promocion==null) {
           if (ArticulosEnNingunaPromocion.has(item_in.idArticulo)) {
+            const suplementos = item_in?.arraySuplementos||[]
             lista_out.push(crearItemListaNormal({
               ...MapPromocionables.get(item_in.idArticulo),
               unidades:ArticulosEnNingunaPromocion.get(item_in.idArticulo)
-            }))
+            }, suplementos))
             ArticulosEnNingunaPromocion.delete(item_in.idArticulo)
           } else if (MapNoCandidatos.has(item_in.idArticulo)) {
-            lista_out.push(crearItemListaNormal(MapNoCandidatos.get(item_in.idArticulo)))
+            const suplementos = item_in?.arraySuplementos||[]
+            lista_out.push(crearItemListaNormal(MapNoCandidatos.get(item_in.idArticulo), suplementos))
             MapNoCandidatos.delete(item_in.idArticulo)
           }
         } else if (PromosAplicadasTotales.has(item_in.nombre)) {
@@ -737,7 +746,7 @@ export class NuevaPromocion {
             puntos: null,
             promocion: null,
             unidades: item.unidades * artGrupo.unidades * valor , //unidades pierde el simbolo negativo cuando es un ticket anulado y se le multiplica -1
-            subtotal: redondearPrecio(artGrupo.precioPromoPorUnidad * item.unidades * artGrupo.unidades),
+            subtotal: item?.regalo? 0 : redondearPrecio(artGrupo.precioPromoPorUnidad * item.unidades * artGrupo.unidades),
             nombre: "ArtículoDentroDePromo "+artGrupo.nombre,
           });
         }
