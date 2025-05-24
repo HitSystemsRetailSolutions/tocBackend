@@ -302,6 +302,10 @@ export class NuevaPromocion {
       let candidata = true;
       let n: number[] = Array(promo.grupos.length).fill(0);
       for (let idxG = 0; idxG < promo.grupos.length; idxG++) {
+        if( this.comprobarIntervaloFechas(promo) === false) {
+          candidata = false;
+          break;
+        }
         let grupo = promo.grupos[idxG];
         for (let [idArticulo, articulo] of MapPromocionables) {
           if (grupo.idsArticulos.has(idArticulo)) n[idxG] += articulo.unidades;
@@ -770,7 +774,7 @@ export class NuevaPromocion {
     return new Date(strdate);
   }
 
-  private async comprobarIntervaloFechas(promocion) {
+  private comprobarIntervaloFechas(promocion) {
     let fechaInicio = promocion.fechaInicio;
     let fechaFinal = promocion.fechaFinal;
     let diaInicio = this.obtenerDiaSemana(fechaInicio);
