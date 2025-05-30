@@ -439,6 +439,7 @@ export async function anularTicket(
           for (let grupo of element.promocion.grupos) {
             for (let artGrupo of grupo) {
               artGrupo.precioPromoPorUnidad *= -1;
+              artGrupo.unidades *= -1;
             }
           }
         }

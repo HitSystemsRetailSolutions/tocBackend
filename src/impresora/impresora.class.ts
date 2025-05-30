@@ -624,7 +624,7 @@ export class Impresora {
           (((baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)) *
             infoCliente.descuento) /
             100
-        )}€`;
+        ).toFixed(2)}€`;
     }
 
     const moment = require("moment-timezone");
@@ -645,14 +645,19 @@ export class Impresora {
       pagoDevolucion = "-- ES DEVOLUCION --\n";
     }
 
+    let detalleEncargoDeuda = "";
     if (info.dejaCuenta > 0) {
-      detalleDejaCuenta = "Import pagat: " + info.dejaCuenta;
+      detalleDejaCuenta = "Import pagat: " + info.dejaCuenta.toFixed(2) + "€";
       if (info.modoCesta == "RECOGER ENCARGO") {
-        detalleDejaCuenta +=
-          "\nTotal restant: " + redondearPrecio(total - info.dejaCuenta);
+        detalleEncargoDeuda +=
+          "Total restant: " +
+          redondearPrecio(total - info.dejaCuenta).toFixed(2) +
+          " €";
       } else {
-        detalleDejaCuenta +=
-          "\nPagament pendent: " + redondearPrecio(total - info.dejaCuenta);
+        detalleEncargoDeuda +=
+          "Pagament pendent: " +
+          redondearPrecio(total - info.dejaCuenta).toFixed(2) +
+          " €";
       }
     }
 
@@ -811,7 +816,11 @@ export class Impresora {
       arrayImprimir.push({ tipo: "text", payload: detalleDescuento });
     if (detalleDejaCuenta)
       arrayImprimir.push({ tipo: "text", payload: detalleDejaCuenta });
-
+    if (detalleEncargoDeuda)
+      arrayImprimir.push(
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: detalleEncargoDeuda }
+      );
     if (info.justificacion)
       arrayImprimir.push(
         { tipo: "size", payload: [0, 0] },
@@ -2922,7 +2931,7 @@ export class Impresora {
           100
         ).toFixed(2)}€ \n`;
       }
-      detalleImporte += `Import total:${encargo.total.toFixed(2)}\n`;
+      detalleImporte += `Import total:${encargo.total.toFixed(2)}€\n`;
       importe =
         `Import pagat: ${encargo.dejaCuenta.toFixed(2)} €\n` +
         "Total restant:" +
