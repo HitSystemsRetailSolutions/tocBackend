@@ -51,6 +51,7 @@ import * as schCestas from "../cestas/cestas.mongodb";
 export type ArticuloInfoPromoYNormal = ArticuloPromoEnCesta & {
   precioPorUnidad: number;
   puntosPorUnidad: number;
+  impresora: string;
   suplementosPorArticulo?: {
     unidades: number;
     suplementos: ItemLista["arraySuplementos"];
@@ -99,6 +100,7 @@ export class NuevaPromocion {
               unidades: itemOld.promocion.cantidadArticuloPrincipal,
               precioPromoPorUnidad:
                 itemOld.promocion.precioRealArticuloPrincipal,
+              impresora: itemOld.impresora,
             },
           ],
         ];
@@ -110,6 +112,7 @@ export class NuevaPromocion {
               unidades: itemOld.promocion.cantidadArticuloSecundario,
               precioPromoPorUnidad:
                 itemOld.promocion.precioRealArticuloSecundario,
+              impresora: itemOld.impresora,
             },
           ]);
         }
@@ -277,6 +280,7 @@ export class NuevaPromocion {
                 precioPorUnidad: info.precioConIva,
                 precioPromoPorUnidad: artGrupo.precioPromoPorUnidad,
                 puntosPorUnidad: info.puntos,
+                impresora: info.impresora,
               });
             }
           }
@@ -308,6 +312,7 @@ export class NuevaPromocion {
               puntosPorUnidad:
                 item.puntos == null ? null : item.puntos / item.unidades,
               precioPromoPorUnidad: null,
+              impresora: item.impresora,
               suplementosPorArticulo: suplementos
                 ? [{ unidades: item.unidades, suplementos: suplementos }]
                 : null,
@@ -626,6 +631,7 @@ export class NuevaPromocion {
               articulo.precioPorUnidad * articulo.unidades
             ),
             puntos: articulo.puntosPorUnidad * articulo.unidades,
+            impresora: articulo.impresora,
             regalo: false,
             pagado: false,
             varis: false,
@@ -650,6 +656,7 @@ export class NuevaPromocion {
             ),
             promocion: null, // No es una promoción
             puntos: articulo.puntosPorUnidad * bloque.unidades,
+            impresora: articulo.impresora,
             regalo: false,
             pagado: false,
             varis: false,
@@ -682,6 +689,7 @@ export class NuevaPromocion {
               ),
               promocion: null, // No es una promoción
               puntos: articulo.puntosPorUnidad * bloque.unidades,
+              impresora: articulo.impresora,
               regalo: false,
               pagado: false,
               varis: false,
@@ -702,6 +710,7 @@ export class NuevaPromocion {
               articulo.precioPorUnidad * articulo.unidades
             ),
             puntos: articulo.puntosPorUnidad * articulo.unidades,
+            impresora: articulo.impresora,
             regalo: false,
             pagado: false,
             varis: false,
@@ -773,6 +782,7 @@ export class NuevaPromocion {
     grupos: GrupoPromoEnCesta[]
   ): Promise<ItemLista> {
     let nombres: string[] = [];
+    let impresora = null;
     for (let grupo of promo.grupos) {
       // el nombre de la promo es familia del primer articulo si hay más de un articulo en la promo sino el nombre
       if (grupo.familia_o_nombre == null) {
@@ -788,7 +798,13 @@ export class NuevaPromocion {
       }
       nombres.push(grupo.familia_o_nombre);
     }
-
+    for (let grupo of grupos) {
+      for (let articulo of grupo) {
+        if (articulo.impresora != null) {
+          if (impresora == null) impresora = articulo.impresora;
+        }
+      }
+    }
     return {
       idArticulo: -1,
       nombre: "Promo. " + nombres.join(" + "),
@@ -799,6 +815,7 @@ export class NuevaPromocion {
         unidadesOferta: 1,
         precioFinalPorPromo: promo.precioFinal,
       },
+      impresora: impresora,
       regalo: false,
       pagado: false,
       varis: false,
