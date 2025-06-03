@@ -33,6 +33,7 @@ import { CestasController } from "src/cestas/cestas.controller";
 import { Console, info } from "console";
 import { tiposIvaInstance } from "../tiposIva/tiposIva.clase";
 import { redondearPrecio } from "src/funciones/funciones";
+import { cestasInstance } from "src/cestas/cestas.clase";
 
 moment.locale("es");
 const escpos = require("escpos");
@@ -267,6 +268,89 @@ export class Impresora {
         await this._venta(sendObject);
       }
     }
+  }
+
+  async imprimirNotasMesa(idCesta: CestasInterface["_id"], trabajadorEnFrontend:CestasInterface["trabajador"]) {
+    let nota;
+    const cesta = await cestasInstance.getCestaById(idCesta);
+    if (!cesta || (cesta.lista && cesta.lista.length == 0)) return;
+    const parametros = await parametrosInstance.getParametros();
+    const total = Object.entries(cesta.detalleIva).reduce(
+      (sum, [key, value]) => {
+        return key.includes("importe") ? sum + value : sum;
+      },
+      0
+    );
+    // recogemos el trabajador de la cesta o el que ha iniciado la impresión
+    const idTrabajador = Number(cesta.trabajadores[0]? cesta.trabajadores[0] : trabajadorEnFrontend);
+    const trabajador =
+      await trabajadoresInstance.getTrabajadorById(idTrabajador);
+
+    let infoCliente = null;
+    if (cesta.idCliente) {
+      infoCliente = await clienteInstance.getClienteById(cesta.idCliente);
+    }
+    let puntos = 0;
+    let descuento = 0;
+    let informacionVip = null;
+
+    if (infoCliente) {
+      puntos = await clienteInstance.getPuntosCliente(cesta.idCliente);
+      descuento =
+        infoCliente && !infoCliente?.albaran && !infoCliente?.vip
+          ? Number(infoCliente.descuento)
+          : 0;
+      informacionVip = {
+        nombre: infoCliente.nombre,
+        nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+        direccion:
+          infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
+        telefono:
+          infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+      };
+    }
+    let totalSinDescuento = 0;
+
+    if (descuento > 0) await cestasInstance.aplicarDescuento(cesta, descuento);
+
+    for (let i = 0; i < cesta.lista.length; i++) {
+      totalSinDescuento += cesta.lista[i].subtotal;
+    }
+    const timestamp = new Date().getTime();
+
+    nota = {
+      numFactura: null,
+      timestamp: timestamp,
+      arrayCompra: cesta.lista,
+      total: total,
+      visa: "EFECTIVO",
+      tiposIva: cesta.detalleIva,
+      cabecera: parametros?.header == undefined ? "" : parametros.header,
+      pie: parametros?.footer == undefined ? "" : parametros.footer,
+      nombreTrabajador: trabajador.nombreCorto,
+      infoClienteVip: informacionVip || null,
+      infoCliente: infoCliente
+        ? {
+            idCliente: infoCliente._id,
+            nombre: infoCliente?.nombre,
+            telefono: infoCliente?.telefono,
+            puntos: puntos,
+            descuento: descuento,
+            albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
+          }
+        : null,
+      modoCesta: cesta.modo,
+      dejaCuenta: 0,
+      idCliente: cesta.idCliente,
+      totalSinDescuento: total,
+      mesa: cesta?.indexMesa == undefined ? null : cesta.indexMesa,
+      tmstpCesta: cesta.timestamp,
+      justificacion: null,
+      comensales: cesta?.comensales || null,
+      nota: true,
+    };
+
+    await this._venta(nota);
   }
 
   async imprimirFirma(idTicket: number, albaran = false) {
@@ -714,6 +798,7 @@ export class Impresora {
       { tipo: "setCharacterCodeTable", payload: 19 },
       { tipo: "encode", payload: "cp858" },
       { tipo: "font", payload: "A" },
+      { tipo: "text", payload: info?.nota ? `\x1B\x45\x01 Nota Taula: ${info.mesa + 1} \x1B\x45\x00` : "" },
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
@@ -723,11 +808,13 @@ export class Impresora {
       },
       {
         tipo: "text",
-        payload: `\x1B\x45\x01 Factura simplificada N: ${numFactura}\x1B\x45\x00`,
+        payload: numFactura
+          ? `\x1B\x45\x01 Factura simplificada N: ${numFactura}\x1B\x45\x00`
+          : "",
       },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
     ];
-    if (info.mesa)
+    if (info.mesa !== undefined && info.mesa !== null)
       arrayImprimir.push(
         {
           tipo: "text",
@@ -842,7 +929,7 @@ export class Impresora {
     if (firmaText) arrayImprimir.push({ tipo: "text", payload: firmaText });
     if (pie) arrayImprimir.push({ tipo: "text", payload: pie });
 
-    if (qrEnabled) {
+    if (qrEnabled && numFactura) {
       arrayImprimir.push(
         { tipo: "text", payload: "Consulta el ticket al WhatsApp:" },
         {

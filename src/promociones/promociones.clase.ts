@@ -51,6 +51,10 @@ import * as schCestas from "../cestas/cestas.mongodb";
 export type ArticuloInfoPromoYNormal = ArticuloPromoEnCesta & {
   precioPorUnidad: number;
   puntosPorUnidad: number;
+  suplementosPorArticulo?: {
+    unidades: number;
+    suplementos: ItemLista["arraySuplementos"];
+  }[];
 };
 export class NuevaPromocion {
   private promos: PromocionesInterface[] = [];
@@ -268,9 +272,11 @@ export class NuevaPromocion {
                 artGrupo.idArticulo
               );
               MapPromocionables.set(artGrupo.idArticulo, {
-                ...artGrupo,
+                idArticulo:artGrupo.idArticulo,
+                nombre: info.nombre,
                 unidades: artGrupo.unidades * item.unidades,
                 precioPorUnidad: info.precioConIva,
+                precioPromoPorUnidad: artGrupo.precioPromoPorUnidad,
                 puntosPorUnidad: info.puntos,
               });
             }
@@ -280,7 +286,21 @@ export class NuevaPromocion {
           let info = MapPromocionables.get(item.idArticulo);
           if (info != undefined) {
             info.unidades += item.unidades;
+            if (item.arraySuplementos) {
+              if (!info.suplementosPorArticulo) {
+                info.suplementosPorArticulo = [{
+                  unidades: item.unidades,
+                  suplementos: item.arraySuplementos,
+                }];
+              } else {
+                info.suplementosPorArticulo.push({
+                  unidades: item.unidades,
+                  suplementos: item.arraySuplementos,
+                });
+              }
+            }
           } else {
+            let suplementos = item.arraySuplementos || null;
             MapPromocionables.set(item.idArticulo, {
               idArticulo: item.idArticulo,
               nombre: item.nombre,
@@ -289,6 +309,9 @@ export class NuevaPromocion {
               puntosPorUnidad:
                 item.puntos == null ? null : item.puntos / item.unidades,
               precioPromoPorUnidad: null,
+              suplementosPorArticulo: suplementos
+                ? [{ unidades: item.unidades, suplementos: suplementos }]
+                : null,
             });
           }
         }
@@ -303,7 +326,7 @@ export class NuevaPromocion {
       let candidata = true;
       let n: number[] = Array(promo.grupos.length).fill(0);
       for (let idxG = 0; idxG < promo.grupos.length; idxG++) {
-        if( this.comprobarIntervaloFechas(promo) === false) {
+        if (this.comprobarIntervaloFechas(promo) === false) {
           candidata = false;
           break;
         }
@@ -578,28 +601,117 @@ export class NuevaPromocion {
 
     function crearItemListaNormal(
       articulo: ArticuloInfoPromoYNormal,
-      suplementos: ItemLista["arraySuplementos"] = null
-    ): ItemLista {
-      let totalSuplementos = 0;
-      if (suplementos) {
-        for (let suplemento of suplementos) {
-          totalSuplementos += suplemento.precioConIva;
+      unidadesTotales: number = articulo.unidades
+    ): ItemLista[] {
+      const salida: ItemLista[] = [];
+
+      const suplementosPorArticulo = articulo.suplementosPorArticulo || [];
+
+      const unidadesConSuplementos = suplementosPorArticulo.reduce(
+        (sum, s) => sum + s.unidades,
+        0
+      );
+
+      const unidadesSinSuplementos = articulo.unidades - unidadesConSuplementos;
+
+      // CASO 1: Coinciden unidades del artículo y las totales
+      if (articulo.unidades === unidadesTotales) {
+        // Primero agregar las unidades sin suplementos, si hay
+        if (unidadesSinSuplementos > 0) {
+          salida.push({
+            idArticulo: articulo.idArticulo,
+            nombre: articulo.nombre,
+            arraySuplementos: null,
+            unidades: unidadesSinSuplementos,
+            subtotal: redondearPrecio(
+              articulo.precioPorUnidad * articulo.unidades
+            ),
+            puntos: articulo.puntosPorUnidad * articulo.unidades,
+            regalo: false,
+            pagado: false,
+            varis: false,
+          } as ItemLista);
+        }
+
+        // Luego agregar cada bloque con suplementos
+
+        for (const bloque of suplementosPorArticulo) {
+          const totalSuplementos = bloque.suplementos.reduce(
+            (sum, s) => sum + s.precioConIva,
+            0
+          );
+
+          salida.push({
+            idArticulo: articulo.idArticulo,
+            nombre: articulo.nombre,
+            arraySuplementos: bloque.suplementos,
+            unidades: bloque.unidades,
+            subtotal: redondearPrecio(
+              (articulo.precioPorUnidad + totalSuplementos) * bloque.unidades
+            ),
+            promocion: null, // No es una promoción
+            puntos: articulo.puntosPorUnidad * bloque.unidades,
+            regalo: false,
+            pagado: false,
+            varis: false,
+          } as ItemLista);
         }
       }
-      return {
-        idArticulo: articulo.idArticulo,
-        nombre: articulo.nombre,
-        arraySuplementos: suplementos,
-        unidades: articulo.unidades,
-        subtotal: redondearPrecio(
-          (articulo.precioPorUnidad + totalSuplementos) * articulo.unidades
-        ),
-        puntos: articulo.puntosPorUnidad * articulo.unidades,
-        regalo: false,
-        pagado: false,
-        varis: false,
-      } as ItemLista;
+
+      // CASO 2: Unidades del artículo NO coinciden con las totales
+      else {
+        let unidadesRestantes = articulo.unidades;
+
+        // Prioridad: con suplementos
+        for (const bloque of suplementosPorArticulo) {
+          if (unidadesRestantes <= 0) break;
+
+          const usar = Math.min(unidadesRestantes, bloque.unidades);
+          if (usar > 0) {
+            const totalSuplementos = bloque.suplementos.reduce(
+              (sum, s) => sum + s.precioConIva,
+              0
+            );
+
+            salida.push({
+              idArticulo: articulo.idArticulo,
+              nombre: articulo.nombre,
+              arraySuplementos: bloque.suplementos,
+              unidades: usar,
+              subtotal: redondearPrecio(
+                (articulo.precioPorUnidad + totalSuplementos) * bloque.unidades
+              ),
+              promocion: null, // No es una promoción
+              puntos: articulo.puntosPorUnidad * bloque.unidades,
+              regalo: false,
+              pagado: false,
+              varis: false,
+            } as ItemLista);
+            unidadesRestantes -= usar;
+          }
+        }
+
+        // Luego sin suplementos
+        if (unidadesRestantes > 0 && unidadesSinSuplementos > 0) {
+          const usar = Math.min(unidadesRestantes, unidadesSinSuplementos);
+          salida.push({
+            idArticulo: articulo.idArticulo,
+            nombre: articulo.nombre,
+            arraySuplementos: null,
+            unidades: usar,
+            subtotal: redondearPrecio(
+              articulo.precioPorUnidad * articulo.unidades
+            ),
+            puntos: articulo.puntosPorUnidad * articulo.unidades,
+            regalo: false,
+            pagado: false,
+            varis: false,
+          } as ItemLista);
+        }
+      }
+      return salida;
     }
+
     // crear cesta lista de salida con el mismo orden de lista de entrada
     let lista_out: ItemLista[] = [];
     for (let item_in of cesta.lista) {
@@ -607,24 +719,25 @@ export class NuevaPromocion {
       else {
         if (item_in.promocion == null) {
           if (ArticulosEnNingunaPromocion.has(item_in.idArticulo)) {
-            const suplementos = item_in?.arraySuplementos || [];
+            const id = item_in.idArticulo;
+            const unidadesUsadas = ArticulosEnNingunaPromocion.get(id) || 0;
+            const art = MapPromocionables.get(id);
+
+            // Agregar a la lista
             lista_out.push(
-              crearItemListaNormal(
+              ...crearItemListaNormal(
                 {
-                  ...MapPromocionables.get(item_in.idArticulo),
-                  unidades: ArticulosEnNingunaPromocion.get(item_in.idArticulo),
+                  ...art,
+                  unidades: unidadesUsadas,
                 },
-                suplementos
+                art.unidades
               )
             );
+
             ArticulosEnNingunaPromocion.delete(item_in.idArticulo);
           } else if (MapNoCandidatos.has(item_in.idArticulo)) {
-            const suplementos = item_in?.arraySuplementos || [];
             lista_out.push(
-              crearItemListaNormal(
-                MapNoCandidatos.get(item_in.idArticulo),
-                suplementos
-              )
+              ...crearItemListaNormal(MapNoCandidatos.get(item_in.idArticulo))
             );
             MapNoCandidatos.delete(item_in.idArticulo);
           }
@@ -639,14 +752,14 @@ export class NuevaPromocion {
     // insertar en lista articulos y promos que no estaban en la lista de entrada
     for (let [idArticulo, unidades] of ArticulosEnNingunaPromocion) {
       lista_out.push(
-        crearItemListaNormal({
+        ...crearItemListaNormal({
           ...MapPromocionables.get(idArticulo),
           unidades,
         })
       );
     }
     for (let articulo of MapNoCandidatos.values()) {
-      lista_out.push(crearItemListaNormal(articulo));
+      lista_out.push(...crearItemListaNormal(articulo));
     }
     for (let promos of PromosAplicadasTotales.values()) {
       promos.forEach((promo) => {
@@ -869,7 +982,7 @@ export class NuevaPromocion {
 
         for (let i = 0; i < grupos.length; i++) {
           const artGrupo = grupos[i];
-          let puntosAsignados=null;
+          let puntosAsignados = null;
 
           // Calcular puntos por articulo al deshacer la promo de un regalo
           if (item?.regalo) {
