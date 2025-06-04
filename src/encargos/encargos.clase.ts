@@ -800,7 +800,7 @@ export class Encargos {
                   promoEncontrado.precioFinal // el precio final en el nuevo formato promo individual ya es el total por promo
               ),
               puntos: articuloPrincipal.puntos==null?null:unidades*articuloPrincipal.puntos,
-              impresora: null,
+              impresora: articuloPrincipal.impresora,
               promocion: {
                 idPromocion: promoEncontrado._id,
                 grupos: [[ArtPromo]],
@@ -851,6 +851,7 @@ export class Encargos {
               precioPromoPorUnidad:this.redondearPrecio(articuloSecundario.precioConIva*perc),
               impresora: articuloSecundario.impresora,
             }
+            let impresora = articuloPrincipal.impresora? articuloPrincipal.impresora : articuloSecundario.impresora;
             let puntos=null
             if (articuloPrincipal.puntos!=null || articuloSecundario.puntos!=null)
               puntos = unidades*(articuloPrincipal.puntos??0 + articuloSecundario.puntos??0)
@@ -865,7 +866,7 @@ export class Encargos {
                 unidades * promoEncontrado.precioFinal
               ),
               puntos: puntos,
-              impresora: null,
+              impresora: impresora,
               promocion: {
                 idPromocion: promoEncontrado._id,
                 grupos:[[ArtPromoPrincipal],[ArtPromoSecundario]],
