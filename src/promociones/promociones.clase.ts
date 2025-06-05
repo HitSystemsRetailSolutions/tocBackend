@@ -271,7 +271,7 @@ export class NuevaPromocion {
                 artGrupo.idArticulo
               );
               MapPromocionables.set(artGrupo.idArticulo, {
-                idArticulo:artGrupo.idArticulo,
+                idArticulo: artGrupo.idArticulo,
                 nombre: info.nombre,
                 unidades: artGrupo.unidades * item.unidades,
                 precioPorUnidad: info.precioConIva,
@@ -442,7 +442,7 @@ export class NuevaPromocion {
       if (
         len_v_idxAC_PG > 0 &&
         ArticulosCandidatos[len_v_idxAC_PG] ==
-          ArticulosCandidatos[len_v_idxAC_PG - 1]
+        ArticulosCandidatos[len_v_idxAC_PG - 1]
       ) {
         // empezar por idx ya que es el mismo articulo y daría una combinación repetida si se empieza por 0
         idxPG = prev_idxPG;
@@ -766,6 +766,71 @@ export class NuevaPromocion {
       });
     }
     cesta.lista = lista_out;
+    this.ConstruirFaltaUnoParaPromocion(cesta);
+  }
+
+  public ConstruirFaltaUnoParaPromocion(cesta: CestasInterface) {
+    let SetArticulosFaltaUno: Set<ArticulosInterface["_id"]> = new Set();
+    for (let promo of this.promos) {
+      if (!this.comprobarIntervaloFechas(promo)) {
+        continue;
+      }
+      let Estado_G = Array(promo.grupos.length).fill(0);
+      for (let item of cesta.lista) {
+        if (item.promocion == null) {
+          for (let idxG = 0; idxG < promo.grupos.length; idxG++) {
+            let grupo = promo.grupos[idxG];
+            if (grupo.idsArticulos.has(item.idArticulo)) {
+              Estado_G[idxG] += item.unidades;
+              break;
+            }
+          }
+        } /*else {
+          item.promocion.grupos.forEach((grupo) => {
+            grupo.forEach((articulo) => {
+              for (let idxG = 0; idxG < promo.grupos.length; idxG++) {
+                let grupo = promo.grupos[idxG];
+                if (grupo.idsArticulos.has(articulo.idArticulo)) {
+                  Estado_G[idxG] += articulo.unidades;
+                  break;
+                }
+              }
+            });
+          });
+        } */
+      }
+      /*let num_promos_aplicadas = Number.POSITIVE_INFINITY;
+      for (let idxG = 0; idxG < promo.grupos.length; idxG++) {
+        let grupo = promo.grupos[idxG];
+        num_promos_aplicadas = Math.min(num_promos_aplicadas, Math.trunc(Estado_G[idxG] / grupo.cantidad));
+      }
+      for (let idxG = 0; idxG < promo.grupos.length; idxG++) {
+        let grupo = promo.grupos[idxG];
+        Estado_G[idxG] -= num_promos_aplicadas * grupo.cantidad;
+      }
+      */
+      let grupoFaltaUno = -1;
+      for (let idxG = 0; idxG < promo.grupos.length; idxG++) {
+        let grupo = promo.grupos[idxG];
+        if (Estado_G[idxG] < grupo.cantidad - 1) {
+          grupoFaltaUno = -1;
+          break;
+        } else if (Estado_G[idxG] == grupo.cantidad - 1) {
+          if (grupoFaltaUno >= 0) {
+            grupoFaltaUno = -1;
+            break;
+          }
+          grupoFaltaUno = idxG;
+        }
+      }
+      if (grupoFaltaUno >= 0) {
+        promo.grupos[grupoFaltaUno].idsArticulos.forEach(
+          (idArticulo) => {
+            SetArticulosFaltaUno.add(idArticulo);
+          });
+      }
+    }
+    cesta.ArticulosFaltaUnoParaPromocion = Array.from(SetArticulosFaltaUno);
   }
 
   public async crearItemListaPromo(
@@ -842,9 +907,9 @@ export class NuevaPromocion {
       artGrupo.precioPromoPorUnidad = promo_individual
         ? precioPorUnidadPromoIndividual
         : redondearPrecio(
-            artGrupo.precioPorUnidad *
-              (item.promocion.precioFinalPorPromo / totalSinPromocion)
-          );
+          artGrupo.precioPorUnidad *
+          (item.promocion.precioFinalPorPromo / totalSinPromocion)
+        );
       resto -= artGrupo.precioPromoPorUnidad * artGrupo.unidades;
     }
     let ultimoArtGrupo = gruposFlat[gruposFlat.length - 1];
@@ -1004,10 +1069,10 @@ export class NuevaPromocion {
             subtotal: item?.regalo
               ? 0
               : redondearPrecio(
-                  artGrupo.precioPromoPorUnidad *
-                    item.unidades *
-                    artGrupo.unidades
-                ),
+                artGrupo.precioPromoPorUnidad *
+                item.unidades *
+                artGrupo.unidades
+              ),
             nombre: "ArtículoDentroDePromo " + artGrupo.nombre,
           });
         }

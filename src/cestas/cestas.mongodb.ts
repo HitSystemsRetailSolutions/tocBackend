@@ -73,6 +73,7 @@ export async function updateCesta(cesta: CestasInterface): Promise<boolean> {
         nombreCliente: cesta.nombreCliente,
         albaran: cesta?.albaran,
         vip: cesta?.vip,
+        ArticulosFaltaUnoParaPromocion: cesta.ArticulosFaltaUnoParaPromocion,
       },
     }
   );

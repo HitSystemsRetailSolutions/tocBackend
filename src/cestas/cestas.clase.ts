@@ -1686,9 +1686,10 @@ export class CestaClase {
   // }
 
   /* Eze 4.0 */
-  updateCesta = async (cesta: CestasInterface) =>
-    await schCestas.updateCesta(cesta);
-
+  updateCesta = async (cesta: CestasInterface) => {
+    nuevaInstancePromociones.ConstruirFaltaUnoParaPromocion(cesta)
+    return await schCestas.updateCesta(cesta);
+  }
   /* uri House */
   setArticuloImprimido = async (
     idCesta: CestasInterface["_id"],
