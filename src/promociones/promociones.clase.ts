@@ -229,7 +229,6 @@ export class NuevaPromocion {
     if (item.varis) return false;
     if (item.regalo) return false;
     if (item.pagado) return false;
-    if (item.arraySuplementos && item.arraySuplementos.length > 0) return false;
     return true;
   }
 
