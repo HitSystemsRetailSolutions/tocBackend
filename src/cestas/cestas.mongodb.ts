@@ -69,6 +69,7 @@ export async function updateCesta(cesta: CestasInterface): Promise<boolean> {
         idCliente: cesta.idCliente,
         lista: cesta.lista,
         modo: cesta.modo,
+        idPedido: cesta.idPedido || null,
         timestamp: cesta.timestamp,
         nombreCliente: cesta.nombreCliente,
         albaran: cesta?.albaran,

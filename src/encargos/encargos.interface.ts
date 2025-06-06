@@ -52,5 +52,5 @@ export interface EncargosInterface extends VersionInterface{
   pedido?: boolean;
   enviado?: boolean;
   finalizado?: boolean;
-  estado: "SIN_RECOGER" | "RECOGIDO" | "ANULADO";
+  estado: "SIN_RECOGER" | "RECOGIDO" | "ANULADO" | "PEDIDOS";
 }

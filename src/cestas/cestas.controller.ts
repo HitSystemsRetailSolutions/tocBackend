@@ -129,6 +129,20 @@ export class CestasController {
       return null;
     }
   }
+  @Post("generarCestaPedido")
+  async generarCestaPedido(@Body() { idEncargo,cestaEncargo }) {
+    try {
+      if (cestaEncargo && idEncargo) {
+        return await cestasInstance.CestaModificarPedido(idEncargo,cestaEncargo);
+      }
+      throw Error("Error, faltan datos en PagarDeuda() controller");
+    } catch (err) {
+      logger.Error(63, "cestaEncargo: " + err);
+      return null;
+    }
+  }
+
+
   /* Eze 4.0  (probablemente no se usará porque irá por socket)*/
   @Post("getCestaById")
   async getCestaByID(@Body() { idCesta }) {

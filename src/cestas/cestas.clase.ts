@@ -503,6 +503,49 @@ export class CestaClase {
       return id;
     }
   }
+
+
+  // generar cesta modo recoger encargo
+  async CestaModificarPedido(idEncargo:any ,cestaEncargo: any) {
+    const nuevaCesta = this.generarObjetoCesta(
+      new ObjectId(),
+      "MODIFICAR PEDIDO"
+    );
+    nuevaCesta.indexMesa = null;
+    let id = undefined;
+    if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
+    if (id != undefined) {
+      const cliente: ClientesInterface = await clienteInstance.getClienteById(
+        cestaEncargo.idCliente
+      );
+      // Aplicamos los articulos a la cesta sin el descuento del cliente
+      if (cliente && cliente.descuento != 0) {
+        for (const articulo of cestaEncargo.lista) {
+          articulo.subtotal =
+            Math.round(
+              (articulo.subtotal +
+                (articulo.subtotal * cliente.descuento) / 100) *
+                100
+            ) / 100;
+        }
+      }
+      nuevaCesta.idCliente = cestaEncargo.idCliente;
+      console.log(cestaEncargo._id);
+      nuevaCesta.idPedido = new ObjectId(idEncargo);
+      console.log(nuevaCesta.idPedido);
+      // Añadimos el nombre del cliente a la cesta para mostrarlo en la impresió
+      nuevaCesta.nombreCliente = cestaEncargo.nombreCliente;
+      nuevaCesta.lista = cestaEncargo.lista;
+      nuevaInstancePromociones.convertirAFormatoNuevoSiEsNecesario(nuevaCesta);
+      nuevaCesta.detalleIva = cestaEncargo.detalleIva;
+      if (await this.updateCesta(nuevaCesta)) {
+        await this.actualizarCestas();
+      }
+      return id;
+    }
+  }
+
+
   async CestaPagoSeparado(articulos) {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO SEPARADO");
     nuevaCesta.indexMesa = null;

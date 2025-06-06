@@ -16,6 +16,31 @@ export class EncargosController {
       return null;
     }
   }
+
+  @Post("getPedidos")
+  async getPedidos() {
+    try {
+      return await encargosInstance.getPedidos();
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+
+  @Post("setCestaPedidos")
+  async setCestaPedidos(@Body() data) {
+    console.log("idencargo:",data.idEncargo);
+    try {
+      return await encargosInstance.setCestaPedidos(data.idEncargo, data.cesta);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+
+
+
+
   @Post("getEncargosByIdCliente")
   async getEncargosByIdCliente(@Body() data) {
     try {

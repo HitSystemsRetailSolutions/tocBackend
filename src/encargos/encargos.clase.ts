@@ -48,6 +48,14 @@ export class Encargos {
   async getEncargos() {
     return await schEncargos.getEncargos();
   }
+
+  async getPedidos() {
+    return await schEncargos.getPedidos();
+  }
+  async setCestaPedidos(idEncargo: any, cesta: any) {
+    return await schEncargos.setCestaPedidos(idEncargo, cesta);
+  }
+
   setEntregado = async (id) => {
     return schEncargos
       .setEntregado(id)
