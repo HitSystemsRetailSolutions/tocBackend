@@ -325,6 +325,42 @@ export class Encargos {
       .catch((err: string) => ({ error: true, msg: err }));
   };
 
+  setPedido = async (encargo) => {
+    var TEncargo1 = performance.now();
+    await cestasInstance.aplicarDescuento(encargo.cesta, encargo.total);
+
+    for (let i = 0; i < encargo.productos.length; i++) {
+      encargo.productos[i].total = encargo.cesta.lista[i].subtotal;
+    }
+
+
+    let timestamp = new Date().getTime();
+    let codigoBarras = await movimientosInstance.generarCodigoBarrasSalida();
+    codigoBarras = await calculoEAN13(codigoBarras);
+
+    encargo.timestamp = timestamp;
+    encargo.enviado = false;
+
+    encargo.estado = "PEDIDOS";
+    encargo.codigoBarras = codigoBarras;
+    encargo.dataVersion = getDataVersion();
+    const encargoCopia = JSON.parse(JSON.stringify(encargo));
+    if (encargo?.pedido) {
+      await impresoraInstance.imprimirPedido(encargoCopia);
+    } else {
+      await impresoraInstance.imprimirEncargo(encargoCopia);
+    }
+    // creamos un encargo en mongodb
+    return schEncargos
+      .setEncargo(encargo)
+      .then(async (ok: boolean) => {
+        if (!ok) return { error: true, msg: "Error al crear el encargo" };
+      
+        return { error: false, msg: "Encargo creado" };
+      })
+      .catch((err: string) => ({ error: true, msg: err }));
+  };
+
   getEncargoByNumber = async (idTarjeta: string): Promise<EncargosInterface> =>
     await schEncargos.getEncargoByNumber(idTarjeta);
   // actualiza el registro del encargo al recoger

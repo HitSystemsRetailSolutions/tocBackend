@@ -65,6 +65,22 @@ export class EncargosController {
       return null;
     }
   }
+
+  @Post("setPedido")
+  async setPedido(@Body() data) {
+    try {
+      if (!data)
+        return {
+          error: true,
+          msg: "Faltan datos.",
+        };
+      return encargosInstance.setPedido(data);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+
   @Post("anularEncargo")
   async anularEncargo(@Body() data) {
     try {
