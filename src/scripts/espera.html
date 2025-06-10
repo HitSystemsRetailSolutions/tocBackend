@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cargando aplicación...</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #fff5e9;
+      font-family: "Roboto", sans-serif;
+      color: #4f4f4f;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 3em;
+      margin-bottom: 0.5em;
+    }
+
+    p {
+      font-size: 2.2em;
+      opacity: 0.9;
+    }
+
+    .loader {
+      margin-top: 2em;
+      border: 6px solid rgba(73, 73, 73, 0.2);
+      border-top: 6px solid #4f4f4f;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Iniciando la aplicación...</h1>
+  <p>Por favor, espere unos segundos mientras todo se prepara.</p>
+  <div class="loader"></div>
+
+  <script>
+    async function checkReady() {
+      try {
+        const res = await fetch("http://localhost:3000", { mode: "no-cors" });
+        window.location.href = "http://localhost:3000";
+      } catch (e) {
+        setTimeout(checkReady, 2000);
+      }
+    }
+    checkReady();
+  </script>
+</body>
+</html>
