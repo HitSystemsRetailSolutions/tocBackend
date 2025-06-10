@@ -326,7 +326,6 @@ export class Encargos {
   };
 
   setPedido = async (encargo) => {
-    var TEncargo1 = performance.now();
     await cestasInstance.aplicarDescuento(encargo.cesta, encargo.total);
 
     for (let i = 0; i < encargo.productos.length; i++) {
@@ -345,11 +344,7 @@ export class Encargos {
     encargo.codigoBarras = codigoBarras;
     encargo.dataVersion = getDataVersion();
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
-    if (encargo?.pedido) {
-      await impresoraInstance.imprimirPedido(encargoCopia);
-    } else {
       await impresoraInstance.imprimirEncargo(encargoCopia);
-    }
     // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
