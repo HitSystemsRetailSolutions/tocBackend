@@ -38,6 +38,7 @@ export interface EncargosInterface extends VersionInterface{
   amPm: string | null;
   dejaCuenta: number;
   dias: Dias[];
+  idRepartidor?: number;
   fecha: string;
   hora: string | null;
   idCliente: string;

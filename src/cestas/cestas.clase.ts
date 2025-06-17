@@ -530,9 +530,7 @@ export class CestaClase {
         }
       }
       nuevaCesta.idCliente = cestaEncargo.idCliente;
-      console.log(cestaEncargo._id);
       nuevaCesta.idPedido = new ObjectId(idEncargo);
-      console.log(nuevaCesta.idPedido);
       // Añadimos el nombre del cliente a la cesta para mostrarlo en la impresió
       nuevaCesta.nombreCliente = cestaEncargo.nombreCliente;
       nuevaCesta.lista = cestaEncargo.lista;

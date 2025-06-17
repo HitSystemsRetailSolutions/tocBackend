@@ -27,9 +27,28 @@ export class EncargosController {
     }
   }
 
+  @Post("setPedidoRepartidor")
+  async setPedidoRepartidor(@Body() data) {
+    console.log(data);
+    try {
+      if (!data.idEncargo || !data.idRepartidor)
+        return {
+          error: true,
+          msg: "Faltan datos.",
+        };
+
+      return await encargosInstance.setPedidoRepartidor(
+        data.idEncargo,
+        data.idRepartidor
+      );
+    }catch(err){
+      logger.Error(50, err);
+      return null;
+    }
+  }
+
   @Post("setCestaPedidos")
   async setCestaPedidos(@Body() data) {
-    console.log("idencargo:",data.idEncargo);
     try {
       return await encargosInstance.setCestaPedidos(data.idEncargo, data.cesta);
     } catch (err) {

@@ -235,6 +235,17 @@ export class TrabajadoresController {
       return false;
     }
   }
+
+  @Post("getRepartidores")
+  async getRepartidores() {
+    try {
+      return await trabajadoresInstance.getRepartidores();
+    } catch (err) {
+      logger.Error(141, err);
+      return false;
+    }
+  }
+
   @Post("checkPassword")
   async checkPassword(@Body() { idTrabajador, password }) {
     try {

@@ -487,13 +487,21 @@ async function sincronizarEncargosCreados() {
             opcionEncargo: encargo.opcionRecogida,
             codigoBarras: encargo.codigoBarras,
           };
+          if(encargo.estado == "PEDIDOS" && encargo.productos.length <= 0){
+            if (await encargosInstance.setEnviado(encargo._id)) {
+              enProcesoEncargosCreados = false;
+              setTimeout(sincronizarEncargosCreados, 100);
+              return;
+            }
+          }
           const res: any = await axios
             .post("encargos/setEncargo", encargo_santAna)
             .catch((e) => {
               console.log(e);
             });
           if (res.data) {
-            if (!res.data.error) {
+            
+            if (!res.data.errorv ) {
               if (await encargosInstance.setEnviado(encargo._id)) {
                 enProcesoEncargosCreados = false;
                 setTimeout(sincronizarEncargosCreados, 100);

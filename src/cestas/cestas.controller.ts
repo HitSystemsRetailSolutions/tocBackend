@@ -432,6 +432,21 @@ export class CestasController {
       logger.Error(138, error);
     }
   }
+
+  @Post("imprimirNotaPedido")
+  async imprimirNotaPedido(@Body() { idEncargo, idTrabajador,codigo,cesta }) {
+    try {
+      console.log("codigo",codigo,idEncargo,idTrabajador);
+      if (!idEncargo) {
+        throw Error("faltan datos en imprimirNotaPedido");
+      }
+      await impresoraInstance.imprimirNotaPedido(idEncargo,cesta, idTrabajador,codigo);
+      return true;
+    } catch (error) {
+      logger.Error(138, error);
+    }
+  }
+
   // @Post("addSuplementos")
   // async addSuplementos(
   //   @Body() { idCesta, suplementos, idArticuloGeneral, unidades }

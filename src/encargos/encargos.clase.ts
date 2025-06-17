@@ -52,8 +52,38 @@ export class Encargos {
   async getPedidos() {
     return await schEncargos.getPedidos();
   }
+
+  async setPedidoRepartidor(
+    idEncargo: EncargosInterface["_id"],
+    idRepartidor: TrabajadoresInterface["_id"]
+  )
+  {
+    return await schEncargos.setPedidoRepartidor(idEncargo, idRepartidor);
+  }
+
   async setCestaPedidos(idEncargo: any, cesta: any) {
-    return await schEncargos.setCestaPedidos(idEncargo, cesta);
+
+    function calcularTotal(cesta: CestasInterface) {
+      let total = 0;
+      cesta.lista.forEach((item) => {
+        total += item.subtotal;
+      });
+      return total;
+    }
+    let productos = [];
+    cesta.lista.forEach(element => {
+    productos.push({
+        id: element.idArticulo,
+        nombre: element.nombre,
+        total: element.subtotal,
+        unidades: element.unidades,
+        comentario: '',
+        arraySuplementos: element.arraySuplementos,
+        promocion: element.promocion,
+      });
+    });
+
+    return await schEncargos.setCestaPedidos(idEncargo, cesta,calcularTotal(cesta),productos);
   }
 
   setEntregado = async (id) => {
@@ -325,12 +355,12 @@ export class Encargos {
       .catch((err: string) => ({ error: true, msg: err }));
   };
 
+
+
+
+
   setPedido = async (encargo) => {
     await cestasInstance.aplicarDescuento(encargo.cesta, encargo.total);
-
-    for (let i = 0; i < encargo.productos.length; i++) {
-      encargo.productos[i].total = encargo.cesta.lista[i].subtotal;
-    }
 
 
     let timestamp = new Date().getTime();
@@ -343,8 +373,7 @@ export class Encargos {
     encargo.estado = "PEDIDOS";
     encargo.codigoBarras = codigoBarras;
     encargo.dataVersion = getDataVersion();
-    const encargoCopia = JSON.parse(JSON.stringify(encargo));
-      await impresoraInstance.imprimirEncargo(encargoCopia);
+
     // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
