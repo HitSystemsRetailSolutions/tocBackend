@@ -1984,7 +1984,7 @@ export class Impresora {
       addToBuffer("text", "Total 3G:");
 
       addToBuffer("size", [1, 1]);
-      addToBuffer("text", `${movement.valor}€`);
+      addToBuffer("text", `${movement.valor.toFixed(2)}€`);
 
       addToBuffer("size", [0, 0]);
       addToBuffer("text", movement?.concepto ? "Concepte" : "");
@@ -3513,5 +3513,6 @@ export class Impresora {
     console.log("No se ha cumplido ninguna condicion");
     return 3;
   }
+  
 }
 export const impresoraInstance = new Impresora();
