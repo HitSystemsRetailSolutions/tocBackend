@@ -99,6 +99,7 @@ export type ArticuloPromoEnCesta = {
   nombre: string;
   unidades: number;
   precioPromoPorUnidad: number;
+  impresora: string;
 } 
 
 export type DetalleIvaInterface = {

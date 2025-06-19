@@ -1001,10 +1001,10 @@ export class CestaClase {
       // Si el nombre no está vacío, es un artículo 'varis' y se le asigna el nombre
 
       if (
-        (nombre &&
-          nombre.length > 0 &&
-          articulo.nombre.toLowerCase().includes("varis")) ||
-        articulo.nombre.toLowerCase().includes("varios")
+        nombre &&
+        nombre.length > 0 &&
+        (articulo.nombre.toLowerCase().includes("varis") ||
+          articulo.nombre.toLowerCase().includes("varios"))
       ) {
         articulo.nombre = nombre;
         articulo.varis = true;
@@ -1397,7 +1397,9 @@ export class CestaClase {
         }
         let subtotalFinal =
           Math.round(cesta.lista[i].subtotal * 100000) / 100000;
-        subtotalFinal = new Decimal(subtotalFinal).toDecimalPlaces(2).toNumber();
+        subtotalFinal = new Decimal(subtotalFinal)
+          .toDecimalPlaces(2)
+          .toNumber();
         cesta.lista[i].subtotal = subtotalFinal;
 
         // Guardamos el precio original para mostrarlo sin alterar y

@@ -701,7 +701,8 @@ export class Encargos {
             nombre:artInfo.nombre,
             precioPromoPorUnidad:null,
             precioPorUnidad:artInfo.precioConIva,
-            puntosPorUnidad:artInfo.puntos
+            puntosPorUnidad:artInfo.puntos,
+            impresora: artInfo.impresora,
           }
           if (gr.idxGrupo!=idxGrupoActual) {
             grupos.push([ArtGrupo])
@@ -784,6 +785,7 @@ export class Encargos {
               nombre:articuloPrincipal.nombre,
               unidades:promoEncontrado.grupos[0].cantidad,
               precioPromoPorUnidad:this.redondearPrecio(promoEncontrado.precioFinal/promoEncontrado.grupos[0].cantidad),
+              impresora: articuloPrincipal.impresora,
             }
             const productoCesta:ItemLista = {
               arraySuplementos: null,
@@ -798,7 +800,7 @@ export class Encargos {
                   promoEncontrado.precioFinal // el precio final en el nuevo formato promo individual ya es el total por promo
               ),
               puntos: articuloPrincipal.puntos==null?null:unidades*articuloPrincipal.puntos,
-              impresora: null,
+              impresora: articuloPrincipal.impresora,
               promocion: {
                 idPromocion: promoEncontrado._id,
                 grupos: [[ArtPromo]],
@@ -840,13 +842,16 @@ export class Encargos {
               nombre:articuloPrincipal.nombre,
               unidades:promoEncontrado.grupos[0].cantidad,
               precioPromoPorUnidad:this.redondearPrecio(articuloPrincipal.precioConIva*perc),
+              impresora: articuloPrincipal.impresora,
             }
             const ArtPromoSecundario:ArticuloPromoEnCesta = {
               idArticulo:idSec,
               nombre:articuloSecundario.nombre,
               unidades:promoEncontrado.grupos[1].cantidad,
               precioPromoPorUnidad:this.redondearPrecio(articuloSecundario.precioConIva*perc),
+              impresora: articuloSecundario.impresora,
             }
+            let impresora = articuloPrincipal.impresora? articuloPrincipal.impresora : articuloSecundario.impresora;
             let puntos=null
             if (articuloPrincipal.puntos!=null || articuloSecundario.puntos!=null)
               puntos = unidades*(articuloPrincipal.puntos??0 + articuloSecundario.puntos??0)
@@ -861,7 +866,7 @@ export class Encargos {
                 unidades * promoEncontrado.precioFinal
               ),
               puntos: puntos,
-              impresora: null,
+              impresora: impresora,
               promocion: {
                 idPromocion: promoEncontrado._id,
                 grupos:[[ArtPromoPrincipal],[ArtPromoSecundario]],
