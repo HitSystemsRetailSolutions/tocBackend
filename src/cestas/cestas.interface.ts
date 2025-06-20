@@ -19,6 +19,12 @@ export interface CestasInterface {
   ArticulosFaltaUnoParaPromocion: ArticulosInterface["_id"][];
 }
 
+export interface CestasCombinadaInterface  extends CestasInterface {
+  listaDeudas?: ItemLista[];
+  detalleIvaTickets?: DetalleIvaInterface;
+  detalleIvaDeudas?: DetalleIvaInterface;
+}
+
 export type itemHonei = {
   id: string;
   comments: string;
@@ -115,4 +121,5 @@ export type ModoCesta =
   | "DEVOLUCION"
   | "PAGO SEPARADO"
   | "PAGO DEUDA"
-  | "RECOGER ENCARGO";
+  | "RECOGER ENCARGO"
+  | "PAGO COMBINADO";
