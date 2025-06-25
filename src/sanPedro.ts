@@ -8,6 +8,10 @@ import {
   objTempCaja,
   objTempTicket,
   socketSincronizarTickets,
+  CBSocketSinconizarCajas,
+  CBSocketSincronizarFichajes,
+  CBSocketSincronizarDevoluciones,
+  CBSocketSincronizarTickets,
 } from "./sincro";
 // import { cajaInstance } from "./caja/caja.clase";
 // import { movimientosInstance } from "./movimientos/movimientos.clase";
@@ -109,6 +113,7 @@ function emitSocket(canal: string, datos: any = null) {
 
 socket.on("resFichajes", (data) => {
   if (data.error == false) {
+    CBSocketSincronizarFichajes.success();
     trabajadoresInstance
       .actualizarEstadoFichaje(data.fichaje)
       .then((res) => {
@@ -123,6 +128,11 @@ socket.on("resFichajes", (data) => {
       });
   } else {
     logger.Error(30, data.mensaje);
+    if (data?.deadlock) {
+      CBSocketSincronizarFichajes.forceOpen();
+      return;
+    }
+    CBSocketSincronizarFichajes.failure();
   }
 });
 
@@ -140,37 +150,23 @@ socket.on("resSincroDevoluciones", (data) => {
       .catch((err) => {
         logger.Error(32, err);
       });
+    CBSocketSincronizarDevoluciones.success();
   } else {
     logger.Error(33, data.mensaje);
+    if (data?.deadlock) {
+      CBSocketSincronizarDevoluciones.forceOpen();
+      return;
+    }
+    CBSocketSincronizarDevoluciones.failure();
   }
 });
 
 socket.on("resSincroCajas", (data) => {
-  if (!data.error) {
-    if (data.mensaje == "EN_COLA") {
-      logger.Info("Caja en cola, id:" + data.caja);
-      objTempCaja.state = "EN_COLA";
-      objTempCaja.dateModificated = new Date();
-    }
-    if (data.mensaje == "ENVIADO") {
-      logger.Info("Caja enviada a SanPedro, id:" + data.caja);
-      const idCaja = new ObjectId(data.caja);
-      cajaInstance
-        .confirmarCajaEnviada(idCaja)
-        .then((res) => {
-          if (!res) {
-            logger.Error(34.1, "Error al actualizar el estado de la caja 2");
-          }
-        })
-        .catch((err) => {
-          logger.Error(34.2, err);
-        });
-
-      objTempCaja.state = null;
-      objTempCaja.dateModificated = null;
-      objTempCaja.idCaja = null;
-    }
-  } else {
+  if (data.error && data.deadlock) {
+    logger.Error(34, "Error del santaAna: " + data.mensaje);
+    CBSocketSinconizarCajas.forceOpen();
+    return;
+  } else if (data.error) {
     const jsonObjTempCaja = JSON.stringify(objTempCaja);
     logger.Error(
       34,
@@ -180,6 +176,31 @@ socket.on("resSincroCajas", (data) => {
     objTempCaja.idCaja = null;
     objTempCaja.state = null;
     objTempCaja.dateModificated = null;
+    CBSocketSinconizarCajas.failure();
+  }
+  if (data.mensaje == "EN_COLA") {
+    logger.Info("Caja en cola, id:" + data.caja);
+    objTempCaja.state = "EN_COLA";
+    objTempCaja.dateModificated = new Date();
+  }
+  if (data.mensaje == "ENVIADO") {
+    logger.Info("Caja enviada a SanPedro, id:" + data.caja);
+    const idCaja = new ObjectId(data.caja);
+    cajaInstance
+      .confirmarCajaEnviada(idCaja)
+      .then((res) => {
+        if (!res) {
+          logger.Error(34.1, "Error al actualizar el estado de la caja 2");
+        }
+      })
+      .catch((err) => {
+        logger.Error(34.2, err);
+      });
+
+    objTempCaja.state = null;
+    objTempCaja.dateModificated = null;
+    objTempCaja.idCaja = null;
+    CBSocketSinconizarCajas.success();
   }
 });
 
@@ -190,10 +211,23 @@ socket.on("resSincroTickets", (data) => {
     objTempTicket.dateModificated = null;
   };
 
-  if (data.error) {
-    const jsonObjTempTicket = JSON.stringify(objTempTicket);
-    logger.Error(35, "error del santaAna: " + data.mensaje, "ticket backend esperado: " + jsonObjTempTicket);
+  if (data.error && data.deadlock) {
+
+    logger.Error(35, "Error del santaAna: " + data.mensaje);
     resetTempTicket();
+    CBSocketSincronizarTickets.forceOpen();
+    return;
+  } else if (data.error) {
+    const jsonObjTempTicket = JSON.stringify(objTempTicket);
+
+    logger.Error(
+      35,
+      "error del santaAna: " + data.mensaje,
+      "ticket backend esperado: " + jsonObjTempTicket
+    );
+
+    resetTempTicket();
+    CBSocketSincronizarTickets.failure();
     return;
   }
 
@@ -209,7 +243,8 @@ socket.on("resSincroTickets", (data) => {
       resetTempTicket();
       const idTicket = data.ticket;
 
-      ticketsInstance.setTicketEnviado(idTicket)
+      ticketsInstance
+        .setTicketEnviado(idTicket)
         .then((res) => {
           if (!res) {
             logger.Error(35.1, "Error al actualizar el estado del ticket 2");
@@ -225,5 +260,6 @@ socket.on("resSincroTickets", (data) => {
       logger.Warn("Mensaje desconocido recibido: " + data.mensaje);
       break;
   }
+  CBSocketSincronizarTickets.success();
 });
 export { socket, emitSocket };

@@ -32,6 +32,116 @@ import {
 import { get } from "http";
 import { getDataVersion } from "./version/version.clase";
 import { CajaSincro, objTempCajaInterface } from "./caja/caja.interface";
+import CircuitBreakerAxios from "./circuitBreaker/circuitBreakerAxios";
+import CircuitBreakerSocket from "./circuitBreaker/circuitBreakerSocket";
+import { Console } from "console";
+// inicio de breakers
+const failureThreshold = 3; // número de fallos antes de abrir el circuito
+const timeoutOpenCircuit = 300000; // tiempo en ms antes de abrir el circuito
+const CBSincronizarTicetsOtrosModificado = new CircuitBreakerAxios(
+  "tickets/updOtros",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+
+const CBSincronizarMovimientos = new CircuitBreakerAxios(
+  "movimientos/enviarMovimiento",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+
+const CBSincronizarDeudasCreadas = new CircuitBreakerAxios("deudas/setDeuda", {
+  failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+  timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+});
+const CBSincronizarEncargosCreados = new CircuitBreakerAxios(
+  "encargos/setEncargo",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+const CBSincronizarDeudasFinalizadasSet = new CircuitBreakerAxios(
+  "deudas/setCertificadoDeuda",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+const CBSincronizarDeudasFinalizadasAnular = new CircuitBreakerAxios(
+  "deudas/anularDeuda",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+const CBSincronizarEncargosFinalizadosUpd = new CircuitBreakerAxios(
+  "encargos/updateEncargoGraella",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+
+const CBSincronizarEncargosFinalizadosDelete = new CircuitBreakerAxios(
+  "encargos/deleteEncargoGraella",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+
+const CBSincronizarPedidosCaducados = new CircuitBreakerAxios(
+  "encargos/updateEncargoGraella",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+
+const CBSincronizarAlbaranesCreados = new CircuitBreakerAxios(
+  "albaranes/setAlbaran",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+
+// circuitBreaker son socket
+export const CBSocketSincronizarTickets = new CircuitBreakerSocket(
+  "sincroTickets",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+
+export const CBSocketSinconizarCajas = new CircuitBreakerSocket("sincroCajas", {
+  failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+  timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+});
+
+export const CBSocketSincronizarFichajes = new CircuitBreakerSocket(
+  "sincroFichajes",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+
+export const CBSocketSincronizarDevoluciones = new CircuitBreakerSocket(
+  "sincroDevoluciones",
+  {
+    failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
+    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  }
+);
+// fin de breakers
+
 let enProcesoTickets = false;
 let enProcesoMovimientos = false;
 let enProcesoDeudasCreadas = false;
@@ -122,13 +232,6 @@ export let objTempTicket: any = {
 // sincroTickets with socket
 async function socketSincronizarTickets() {
   try {
-    const fechaAnterior = objTempTicket.dateModificated;
-    if (
-      fechaAnterior &&
-      fechaAnterior &&
-      diferenciasEnSegundos(fechaAnterior, new Date()) < 180
-    )
-      return;
     while (idsTicketsReenviar.length) {
       let idTicket = idsTicketsReenviar.shift();
       await ticketsInstance.setTicketEnviado(idTicket, false);
@@ -154,9 +257,10 @@ async function socketSincronizarTickets() {
         database: params.database,
         codigoInternoTienda: params.codigoTienda,
         nombreTienda: params.nombreTienda,
-        token: 'Bearer '+params.token,
+        token: "Bearer " + params.token,
       };
-      emitSocket("sincroTickets", {
+
+      CBSocketSincronizarTickets.fire({
         ticket: superTicket,
         parametros,
       });
@@ -190,7 +294,7 @@ async function sincronizarTicketsOtrosModificado() {
             await movimientosInstance.getMovimientosDelTicket(ticket._id);
           superTicket.tipoPago =
             await movimientosInstance.calcularFormaPago(superTicket);
-          const res = await axios.post("tickets/updOtros", {
+          const res: any = await CBSincronizarTicetsOtrosModificado.fire({
             ticket: superTicket,
           });
           //.catch((e) => {console.log("error",e)});
@@ -271,9 +375,10 @@ async function socketSinconizarCajas() {
         licencia: params.licencia,
         database: params.database,
         codigoInternoTienda: params.codigoTienda,
-        token: 'Bearer '+params.token,
+        token: "Bearer " + params.token,
       };
-      emitSocket("sincroCajas", {
+
+      CBSocketSinconizarCajas.fire({
         caja,
         parametros,
       });
@@ -297,13 +402,10 @@ async function sincronizarMovimientos(continuar: boolean = false) {
       if (parametros != null) {
         const res = await movimientosInstance.getMovimientoMasAntiguo();
         if (res) {
-          const resMovimiento: any = await axios
-            .post("movimientos/enviarMovimiento", {
-              movimiento: res,
-            })
-            .catch((e) => {
-              //  console.log(e);
-            });
+ 
+          const resMovimiento: any = await CBSincronizarMovimientos.fire({
+            movimiento: res,
+          });
           if (resMovimiento.data) {
             if (await movimientosInstance.setMovimientoEnviado(res))
               sincronizarMovimientos(true);
@@ -332,10 +434,11 @@ export function sincronizarFichajes() {
               // inserta dataVersion en los registros del mongoDB anteriores a este cambio
               if (!res?.dataVersion) res.dataVersion = getDataVersion();
 
-              emitSocket("sincroFichajes", {
+              CBSocketSincronizarFichajes.fire({
                 parametros,
                 fichaje: res,
               });
+
             }
           })
           .catch((err) => {
@@ -359,7 +462,8 @@ function sincronizarDevoluciones() {
           .getDevolucionMasAntigua()
           .then((res) => {
             if (res !== null) {
-              emitSocket("sincroDevoluciones", {
+
+              CBSocketSincronizarDevoluciones.fire({
                 parametros,
                 devolucion: res,
               });
@@ -401,15 +505,14 @@ async function sincronizarDeudasCreadas() {
             idTicket: deuda.idTicket,
             bbdd: parametros.database,
           };
-          const res: any = await axios
-            .post("deudas/setDeuda", deuda_santAna)
-            .catch((e) => {
-              console.log(e);
-            });
+
+          const res: any = await CBSincronizarDeudasCreadas.fire(deuda_santAna);
           if (res.data && !res.data.error) {
             if (await deudasInstance.setEnviado(deuda._id)) {
-              enProcesoDeudasCreadas = false;
-              setTimeout(sincronizarDeudasCreadas, 100);
+              setTimeout(function () {
+                enProcesoDeudasCreadas = false;
+                sincronizarDeudasCreadas();
+              }, 100);
             } else {
               enProcesoDeudasCreadas = false;
             }
@@ -487,19 +590,18 @@ async function sincronizarEncargosCreados() {
             opcionEncargo: encargo.opcionRecogida,
             codigoBarras: encargo.codigoBarras,
           };
-          const res: any = await axios
-            .post("encargos/setEncargo", encargo_santAna)
-            .catch((e) => {
-              console.log(e);
-            });
+
+          const res: any =
+            await CBSincronizarEncargosCreados.fire(encargo_santAna);
           if (res.data) {
             if (!res.data.error) {
               if (await encargosInstance.setEnviado(encargo._id)) {
-                enProcesoEncargosCreados = false;
-                setTimeout(sincronizarEncargosCreados, 100);
+                setTimeout(function () {
+                  enProcesoEncargosCreados = false;
+                  sincronizarEncargosCreados();
+                }, 100);
               }
             } else {
-              console.log(res.data.msg);
               logger.Error(
                 153,
                 "Error: no se ha podido crear el encargo en el SantaAna"
@@ -532,9 +634,9 @@ async function sincronizarDeudasFinalizadas() {
       if (parametros != null) {
         const deuda = await deudasInstance.getDeudaFinalizadaMasAntiguo();
         if (deuda) {
-          let url = "deudas/setCertificadoDeuda";
+          let CBDeuda = CBSincronizarDeudasFinalizadasSet;
           if (deuda.estado == "ANULADO") {
-            url = "deudas/anularDeuda";
+            CBDeuda = CBSincronizarDeudasFinalizadasAnular;
           }
           const parametros = await parametrosInstance.getParametros();
           const timestamp = new Date().getTime();
@@ -553,15 +655,14 @@ async function sincronizarDeudasFinalizadas() {
             idTicket: deuda.idTicket,
             bbdd: parametros.database,
           };
-          const res: any = await axios
-            .post(url, certificadoDeuda)
-            .catch((e) => {
-              console.log(e);
-            });
+
+          const res: any = await CBDeuda.fire(certificadoDeuda);
           if (res.data && !res.data.error) {
             if (await deudasInstance.setFinalizado(deuda._id)) {
-              enProcesoDeudasFinalizadas = false;
-              setTimeout(sincronizarDeudasFinalizadas, 100);
+              setTimeout(function () {
+                enProcesoDeudasFinalizadas = false;
+                sincronizarDeudasFinalizadas();
+              }, 100);
             } else {
               enProcesoDeudasFinalizadas = false;
             }
@@ -594,9 +695,9 @@ async function sincronizarEncargosFinalizados() {
       if (parametros != null) {
         const encargo = await encargosInstance.getEncargoFinalizadoMasAntiguo();
         if (encargo) {
-          let url = "encargos/updateEncargoGraella";
+          let CBEnc = CBSincronizarEncargosFinalizadosUpd;
           if (encargo.estado == "ANULADO") {
-            url = "encargos/deleteEncargoGraella";
+            CBEnc = CBSincronizarEncargosFinalizadosDelete;
           }
           let encargoGraella = {
             tmStmp: encargo.timestamp,
@@ -610,13 +711,14 @@ async function sincronizarEncargosFinalizados() {
               parametros
             ),
           };
-          const res: any = await axios.post(url, encargoGraella).catch((e) => {
-            console.log(e);
-          });
+
+          const res: any = await CBEnc.fire(encargoGraella);
           if (res.data && !res.data.error) {
             if (await encargosInstance.setFinalizado(encargo._id)) {
-              enProcesoEncargosFinalizados = false;
-              setTimeout(sincronizarEncargosFinalizados, 100);
+              setTimeout(function () {
+                enProcesoEncargosFinalizados = false;
+                sincronizarEncargosFinalizados();
+              }, 100);
             } else {
               enProcesoEncargosFinalizados = false;
             }
@@ -664,13 +766,15 @@ async function sincronizarPedidosCaducados() {
               parametros
             ),
           };
-          const res: any = await axios.post(url, encargoGraella).catch((e) => {
-            console.log(e);
-          });
+
+          const res: any =
+            await CBSincronizarPedidosCaducados.fire(encargoGraella);
           if (res.data && !res.data.error) {
             if (await encargosInstance.setFinalizado(encargo._id)) {
-              enProcesoEncargosPedidosCaducados = false;
-              setTimeout(sincronizarPedidosCaducados, 100);
+              setTimeout(function () {
+                enProcesoEncargosPedidosCaducados = false;
+                sincronizarPedidosCaducados();
+              }, 100);
             } else {
               enProcesoEncargosPedidosCaducados = false;
             }
@@ -705,11 +809,8 @@ async function sincronizarAlbaranesCreados() {
         if (albaran) {
           albaran.cesta.lista =
             await nuevaInstancePromociones.deshacerPromociones(albaran);
-          const res: any = await axios
-            .post("albaranes/setAlbaran", { albaran })
-            .catch((e) => {
-              console.log(e);
-            });
+
+          const res: any = await CBSincronizarAlbaranesCreados.fire(albaran);
           if (res.data && !res.data.error) {
             if (await AlbaranesInstance.setEnviado(albaran._id)) {
               setTimeout(function () {
@@ -777,71 +878,24 @@ function actualizarTrabajadores() {
   });
 }
 
-// setInterval(sincronizarTickets, 8000);
-// setInterval(sincronizarCajas, 40000);
-// setInterval(sincronizarMovimientos, 50000);
-// setInterval(sincronizarFichajes, 20000);
-// setInterval(sincronizarDevoluciones, 10000);
-// setInterval(sincronizarDeudasCreadas, 9000);
-// setInterval(sincronizarDeudasFinalizadas, 10000);
-// setInterval(sincronizarEncargosCreados, 9000);
-// setInterval(sincronizarEncargosFinalizados, 10000);
-// setInterval(sincronizarAlbaranesCreados, 11000);
-// // setInterval(actualizarTeclados, 3600000);
-// // setInterval(actualizarTarifas, 3600000);
+setInterval(socketSincronizarTickets, 8000);
+setInterval(socketSinconizarCajas, 40000);
+setInterval(sincronizarMovimientos, 50000);
+setInterval(sincronizarFichajes, 20000);
+setInterval(sincronizarDevoluciones, 10000);
+setInterval(sincronizarDeudasCreadas, 9000);
+setInterval(sincronizarDeudasFinalizadas, 10000);
+setInterval(sincronizarEncargosCreados, 9000);
+setInterval(sincronizarEncargosFinalizados, 10000);
+setInterval(sincronizarAlbaranesCreados, 11000);
+// setInterval(actualizarTeclados, 3600000);
+// setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);
-// setInterval(sincronizarTicketsOtrosModificado, 16000);
-// // setInterval(actualizarTrabajadores, 3600000);
-// // setInterval(actualizarMesas, 3600000);
-// setInterval(sincronizarPedidosCaducados, 60000);
+setInterval(sincronizarTicketsOtrosModificado, 16000);
+setInterval(actualizarTrabajadores, 3600000);
+// setInterval(actualizarMesas, 3600000);
+setInterval(sincronizarPedidosCaducados, 60000);
 
-function ejecutarConIntervaloAleatorio(funcion, minTiempo, maxTiempo) {
-  function ejecutar() {
-    funcion(); // Ejecuta la función
-    const tiempoAleatorio = Math.floor(
-      Math.random() * (maxTiempo - minTiempo) + minTiempo
-    );
-    setTimeout(ejecutar, tiempoAleatorio);
-  }
-  ejecutar(); // Inicia la primera ejecución
-}
-
-// Configurar todas las funciones con sus respectivos rangos aleatorios
-const minTiempo = 60000;
-const maxTiempo = 300000;
-const maxTiempo2 = 180000;
-ejecutarConIntervaloAleatorio(socketSincronizarTickets, minTiempo, maxTiempo2);
-ejecutarConIntervaloAleatorio(socketSinconizarCajas, minTiempo, maxTiempo);
-ejecutarConIntervaloAleatorio(sincronizarMovimientos, minTiempo, maxTiempo);
-ejecutarConIntervaloAleatorio(sincronizarFichajes, minTiempo, maxTiempo);
-ejecutarConIntervaloAleatorio(sincronizarDevoluciones, minTiempo, maxTiempo);
-ejecutarConIntervaloAleatorio(sincronizarDeudasCreadas, minTiempo, maxTiempo);
-ejecutarConIntervaloAleatorio(
-  sincronizarDeudasFinalizadas,
-  minTiempo,
-  maxTiempo
-);
-ejecutarConIntervaloAleatorio(sincronizarEncargosCreados, minTiempo, maxTiempo);
-ejecutarConIntervaloAleatorio(
-  sincronizarEncargosFinalizados,
-  minTiempo,
-  maxTiempo
-);
-ejecutarConIntervaloAleatorio(
-  sincronizarAlbaranesCreados,
-  minTiempo,
-  maxTiempo
-);
-ejecutarConIntervaloAleatorio(
-  sincronizarTicketsOtrosModificado,
-  minTiempo,
-  maxTiempo
-);
-ejecutarConIntervaloAleatorio(
-  sincronizarPedidosCaducados,
-  minTiempo,
-  maxTiempo
-);
 
 export {
   reenviarTicket,

@@ -195,4 +195,28 @@ export class ImpresoraController {
       return err;
     }
   }
+
+  @Post("imprimirComprobante3G")
+  async imprimirComprobante3G(@Body() { idTicket }) {
+    try {
+      if (idTicket) {
+        const movimientos = await movimientosInstance.getMovimentOfTicket(idTicket);
+        let movimiento;
+        if (Array.isArray(movimientos)) {
+          movimiento = movimientos.find(
+            (mov) => mov.tipo === "DATAFONO_3G" && mov.codigoBarras
+          );
+        } else {
+          movimiento = (movimientos.tipo === "DATAFONO_3G" && movimientos.codigoBarras) ? movimientos : undefined;
+        }
+        await impresoraInstance.imprimirMov3G(movimiento, movimiento?.nombreCliente);
+        return true;
+      }
+      throw Error("Faltan datos en impresora/imprimirComprobante3G");
+    } catch (err) {
+      logger.Error(139, err);
+      return false;
+    }
+  }
+
 }

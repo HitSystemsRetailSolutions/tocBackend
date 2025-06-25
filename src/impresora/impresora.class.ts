@@ -270,7 +270,10 @@ export class Impresora {
     }
   }
 
-  async imprimirNotasMesa(idCesta: CestasInterface["_id"], trabajadorEnFrontend:CestasInterface["trabajador"]) {
+  async imprimirNotasMesa(
+    idCesta: CestasInterface["_id"],
+    trabajadorEnFrontend: CestasInterface["trabajador"]
+  ) {
     let nota;
     const cesta = await cestasInstance.getCestaById(idCesta);
     if (!cesta || (cesta.lista && cesta.lista.length == 0)) return;
@@ -282,7 +285,9 @@ export class Impresora {
       0
     );
     // recogemos el trabajador de la cesta o el que ha iniciado la impresión
-    const idTrabajador = Number(cesta.trabajadores[0]? cesta.trabajadores[0] : trabajadorEnFrontend);
+    const idTrabajador = Number(
+      cesta.trabajadores[0] ? cesta.trabajadores[0] : trabajadorEnFrontend
+    );
     const trabajador =
       await trabajadoresInstance.getTrabajadorById(idTrabajador);
 
@@ -798,7 +803,12 @@ export class Impresora {
       { tipo: "setCharacterCodeTable", payload: 19 },
       { tipo: "encode", payload: "cp858" },
       { tipo: "font", payload: "A" },
-      { tipo: "text", payload: info?.nota ? `\x1B\x45\x01 Nota Taula: ${info.mesa + 1} \x1B\x45\x00` : "" },
+      {
+        tipo: "text",
+        payload: info?.nota
+          ? `\x1B\x45\x01 Nota Taula: ${info.mesa + 1} \x1B\x45\x00`
+          : "",
+      },
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
@@ -1974,7 +1984,7 @@ export class Impresora {
       addToBuffer("text", "Total 3G:");
 
       addToBuffer("size", [1, 1]);
-      addToBuffer("text", `${movement.valor}€`);
+      addToBuffer("text", `${movement.valor.toFixed(2)}€`);
 
       addToBuffer("size", [0, 0]);
       addToBuffer("text", movement?.concepto ? "Concepte" : "");
@@ -2968,6 +2978,7 @@ export class Impresora {
   }
   async imprimirEncargo(encargo: EncargosInterface) {
     const parametros = await parametrosInstance.getParametros();
+    const duplicarRebuts = parametros?.params?.DuplicarRebuts== "Si";
     const trabajador: TrabajadoresInterface | any =
       (await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador)) || {
         nombreCorto: "No en té",
@@ -3086,67 +3097,73 @@ export class Impresora {
       const printer = new escpos.Printer(device);
       const options = { imprimirLogo: true };
 
-      this.enviarMQTT(
-        [
-          { tipo: "setCharacterCodeTable", payload: 19 },
-          { tipo: "encode", payload: "CP858" },
-          { tipo: "font", payload: "a" },
-          { tipo: "style", payload: "b" },
-          { tipo: "align", payload: "CT" },
-          { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: "ENTREGA COPIA 1" },
-          { tipo: "size", payload: [0, 0] },
-          { tipo: "align", payload: "LT" },
-          { tipo: "text", payload: cabecera },
-          {
-            tipo: "text",
-            payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
-          },
-          { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
-          {
-            tipo: "text",
-            payload:
-              "\x1B\x2D\x01\x1D\x21\x10Client: " +
-              clienteEnc +
-              "\x1B\x2D\x00\x1D\x21\x00",
-          },
-          { tipo: "text", payload: "Telèfon Client: " + telefono },
-          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
-          { tipo: "control", payload: "LF" },
-          {
-            tipo: "text",
-            payload: formatoDetalle[tipoFormatoDetalle],
-          },
-          {
-            tipo: "text",
-            payload: "------------------------------------------",
-          },
-          { tipo: "align", payload: "LT" },
-          { tipo: "text", payload: detalles },
-          {
-            tipo: "text",
-            payload: "------------------------------------------",
-          },
-          { tipo: "size", payload: [1, 1] },
-          { tipo: "text", payload: importe },
-          { tipo: "size", payload: [0, 0] },
-          { tipo: "text", payload: detalleImporte },
-          { tipo: "text", payload: "" },
-          { tipo: "text", payload: "Observacions:" },
-          { tipo: "text", payload: observacions },
-          { tipo: "size", payload: [0, 0] },
-          { tipo: "align", payload: "CT" },
-          { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
-          { tipo: "text", payload: detalleIva },
-          { tipo: "text", payload: "-- ES COPIA --" },
-          { tipo: "control", payload: "LF" },
-          { tipo: "text", payload: "ID: " + random() + " - " + random() },
-          {
-            tipo: "barcode",
-            payload: [encargo.codigoBarras.toString().slice(0, 12), "EAN13", 4],
-          },
+      const arrayImprimir = [
+        { tipo: "setCharacterCodeTable", payload: 19 },
+        { tipo: "encode", payload: "CP858" },
+        { tipo: "font", payload: "a" },
+        { tipo: "style", payload: "b" },
+        { tipo: "align", payload: "CT" },
+        { tipo: "size", payload: [1, 1] },
+        {
+          tipo: "text",
+          payload: duplicarRebuts ? "ENTREGA COPIA 1" : "ENTREGA",
+        },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: cabecera },
+        {
+          tipo: "text",
+          payload: `Data: ${fecha.format("DD-MM-YYYY HH:mm")}`,
+        },
+        { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
+        {
+          tipo: "text",
+          payload:
+            "\x1B\x2D\x01\x1D\x21\x10Client: " +
+            clienteEnc +
+            "\x1B\x2D\x00\x1D\x21\x00",
+        },
+        { tipo: "text", payload: "Telèfon Client: " + telefono },
+        { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+        { tipo: "control", payload: "LF" },
+        {
+          tipo: "text",
+          payload: formatoDetalle[tipoFormatoDetalle],
+        },
+        {
+          tipo: "text",
+          payload: "------------------------------------------",
+        },
+        { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: detalles },
+        {
+          tipo: "text",
+          payload: "------------------------------------------",
+        },
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "text", payload: importe },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: detalleImporte },
+        { tipo: "text", payload: "" },
+        { tipo: "text", payload: "Observacions:" },
+        { tipo: "text", payload: observacions },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "align", payload: "CT" },
+        { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
+        { tipo: "text", payload: detalleIva },
+        { tipo: "text", payload: "-- ES COPIA --" },
+        { tipo: "control", payload: "LF" },
+        { tipo: "text", payload: "ID: " + random() + " - " + random() },
+        {
+          tipo: "barcode",
+          payload: [encargo.codigoBarras.toString().slice(0, 12), "EAN13", 4],
+        },
 
-          { tipo: "cut", payload: "PAPER_FULL_CUT" },
+        { tipo: "cut", payload: "PAPER_FULL_CUT" },
+      ];
+
+      if (duplicarRebuts) {
+        arrayImprimir.push(
           { tipo: "setCharacterCodeTable", payload: 19 },
           { tipo: "encode", payload: "CP858" },
           { tipo: "font", payload: "a" },
@@ -3264,10 +3281,11 @@ export class Impresora {
             payload: [encargo.codigoBarras.toString().slice(0, 12), "EAN13", 4],
           },
 
-          { tipo: "cut", payload: "PAPER_FULL_CUT" },
-        ],
-        options
-      );
+          { tipo: "cut", payload: "PAPER_FULL_CUT" }
+        );
+      }
+
+      this.enviarMQTT(arrayImprimir, options);
       return { error: false, info: "OK" };
     } catch (err) {
       console.log(err);
@@ -3495,5 +3513,6 @@ export class Impresora {
     console.log("No se ha cumplido ninguna condicion");
     return 3;
   }
+  
 }
 export const impresoraInstance = new Impresora();
