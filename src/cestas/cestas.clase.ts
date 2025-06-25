@@ -1,5 +1,6 @@
 import * as schCestas from "./cestas.mongodb";
 import {
+  CestasCombinadaInterface,
   CestasInterface,
   DetalleIvaInterface,
   ItemLista,
@@ -389,6 +390,46 @@ export class CestaClase {
     };
   }
 
+  detalleIva: DetalleIvaInterface = {
+    base1: 0,
+    base2: 0,
+    base3: 0,
+    base4: 0,
+    base5: 0,
+    valorIva1: 0,
+    valorIva2: 0,
+    valorIva3: 0,
+    valorIva4: 0,
+    valorIva5: 0,
+    importe1: 0,
+    importe2: 0,
+    importe3: 0,
+    importe4: 0,
+    importe5: 0,
+  };
+  private generarObjetoCestaCombinada(
+    nuevoId: CestasInterface["_id"],
+    modoV: ModoCesta = "VENTA",
+    trabajador: CestasInterface["trabajador"] = null
+  ): CestasCombinadaInterface {
+    return {
+      _id: nuevoId,
+      timestamp: Date.now(),
+      detalleIva: this.detalleIva,
+      detalleIvaTickets: this.detalleIva,
+      detalleIvaDeudas: this.detalleIva,
+      lista: [],
+      listaDeudas: [],
+      modo: modoV,
+      idCliente: null,
+      indexMesa: null,
+      trabajador: trabajador,
+      trabajadores: [],
+      comensales: 1,
+      ArticulosFaltaUnoParaPromocion: [],
+    };
+  }
+
   /* Eze 4.0 */
   getAllCestas = async () => await schCestas.getAllCestas();
 
@@ -462,6 +503,49 @@ export class CestaClase {
         );
       }
       if (await this.updateCesta(nuevaCesta)) {
+        await this.actualizarCestas();
+      }
+      return id;
+    }
+  }
+
+  async CestaPagoCombinado(cestas: CestasInterface[]) {
+    // la ultima cesta pertenece al ticket, las demas son deudas
+    const nuevaCesta: CestasCombinadaInterface =
+      this.generarObjetoCestaCombinada(new ObjectId(), "PAGO COMBINADO");
+    nuevaCesta.indexMesa = null;
+    let id = undefined;
+    if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
+    if (id != undefined) {
+      nuevaCesta.idCliente = cestas[0].idCliente;
+      const ultimaIndex = cestas.length - 1;
+      let listaDeudas: ItemLista[] = [];
+      for (let i = 0; i < cestas.length; i++) {
+        const cesta = cestas[i];
+        // Fusionar IVA global
+        nuevaCesta.detalleIva = await fusionarObjetosDetalleIva(
+          cesta.detalleIva,
+          nuevaCesta.detalleIva
+        );
+
+        if (i === ultimaIndex) {
+          // Última cesta: va a .lista y .detalleIvaTicket
+          nuevaCesta.lista = nuevaCesta.lista.concat(cesta.lista);
+          nuevaCesta.detalleIvaTickets = await fusionarObjetosDetalleIva(
+            cesta.detalleIva,
+            nuevaCesta.detalleIvaTickets
+          );
+        } else {
+          // Las demás van a .listaDeudas y .detalleIvaDeudas
+          listaDeudas = listaDeudas.concat(cesta.lista);
+          nuevaCesta.listaDeudas = listaDeudas;
+          nuevaCesta.detalleIvaDeudas = await fusionarObjetosDetalleIva(
+            cesta.detalleIva,
+            nuevaCesta.detalleIvaDeudas
+          );
+        }
+      }
+      if (await this.updateCestaCombinada(nuevaCesta)) {
         await this.actualizarCestas();
       }
       return id;
@@ -1691,6 +1775,8 @@ export class CestaClase {
   updateCesta = async (cesta: CestasInterface) =>
     await schCestas.updateCesta(cesta);
 
+  updateCestaCombinada = async (cestaCombinada: CestasCombinadaInterface) =>
+    await schCestas.updateCestaCombinada(cestaCombinada);
   /* uri House */
   setArticuloImprimido = async (
     idCesta: CestasInterface["_id"],
