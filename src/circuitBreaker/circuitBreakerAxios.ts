@@ -41,7 +41,7 @@ export class CircuitBreakerAxios {
     }
     try {
       const response = await axios.post(this.request, ...args);
-      if (response.status === 200 && !response.data?.error)
+      if (response.status >= 200 && response.status < 300 && !response.data?.error)
         return this.success(response);
       return this.failure(response);
     } catch (err) {
