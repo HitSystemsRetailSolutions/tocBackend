@@ -932,15 +932,15 @@ export class Impresora {
     if (firmaText) arrayImprimir.push({ tipo: "text", payload: firmaText });
     if (pie) arrayImprimir.push({ tipo: "text", payload: pie });
 
-    if (qrEnabled && numFactura) {
+    if (!qrEnabled && numFactura) {
       let params = await parametrosInstance.getParametros();
       if (params?.nif)
         arrayImprimir.push(
-          { tipo: "text", payload: "Ticket verificado por sistema verifactu ✓" },
+          { tipo: "text", payload: "\n\n-" },
           {
             tipo: "qrimage",
-            payload: `https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=${params.nif}&numserie=TK-${params.licencia}-2025-${numFactura}&fecha=${fechaEspaña.format("DD-MM-YYYY")}&importe=${totalImporte.toFixed(2)}`,
-          }
+            payload: `https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=${params.nif}&numserie=TK-${params.licencia}-2025-${numFactura}&fecha=${fechaEspaña.format("DD-MM-YYYY")}&importe=${totalImporte}`,
+          }, { tipo: "text", payload: "* Verificado por el sistema VERI*FACTU *" },
         );
     }
     arrayImprimir.push({ tipo: "cut", payload: "PAPER_FULL_CUT" });
