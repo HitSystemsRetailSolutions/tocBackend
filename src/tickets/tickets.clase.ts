@@ -294,6 +294,10 @@ export class TicketsClase {
           art.subtotal - art.subtotal * (cliente.descuento / 100);
       });
     }*/
+
+    if (!(await parametrosInstance.getParametros()).nif) {
+      parametrosInstance.setNif();
+    }
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),

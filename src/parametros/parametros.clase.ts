@@ -8,6 +8,20 @@ export class ParametrosClase {
     return await schParametros.getParametros();
   };
 
+  setNif = async (): Promise<string> => {
+    const nif = await axios.get("nif");
+    let params = await this.getParametros();
+    if (params) {
+      params.nif = nif.data;
+      await this.setParametros(params);
+    }
+    return nif.data;
+  };
+
+  getNif = async (): Promise<string> => {
+    const params = await this.getParametros();
+    return params.nif;
+  };
   /* Eze 4.0 */
   actParametros = async (params: ParametrosInterface) =>
     await schParametros.setParametros(params);
