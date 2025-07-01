@@ -11,10 +11,13 @@ export class ParametrosClase {
   setNif = async (): Promise<string> => {
     const nif = await axios.get("nif");
     let params = await this.getParametros();
+    if (!params?.verifactuEnabled)
+      params.verifactuEnabled = (new Date())
     if (params) {
       params.nif = nif.data;
       await this.setParametros(params);
     }
+    if (nif.data == false) return "";
     return nif.data;
   };
 

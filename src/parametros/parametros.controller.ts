@@ -122,6 +122,18 @@ export class ParametrosController {
     }
   }
 
+  @Get("setNif")
+  async setNif() {
+    try {
+      if ((await parametrosInstance.setNif()).length >= 8) return true;
+      else return false;
+    }
+    catch (err) {
+      logger.Error(42, err);
+      return false;
+    }
+  }
+
   /* Uri */
   @Post("setIpPaytef")
   async setIpPaytef(@Body() { ip }) {

@@ -21,6 +21,7 @@ export interface ParametrosInterface {
   payteftcod: string;
   descuentosTienda: DescuentosTienda[];
   nif?: string;
+  verifactuEnabled?: Date;
 }
 export interface DescuentosTienda {
   descuentoFamilia: number;
