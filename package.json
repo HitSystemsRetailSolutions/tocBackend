@@ -21,7 +21,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "obfuscate": "npx javascript-obfuscator dist --output dist-obfuscated --compact true --control-flow-flattening true --dead-code-injection true --string-array true --string-array-encoding base64 --string-array-threshold 0.75"
+    "obfuscate": "npx javascript-obfuscator dist --output dist-obfuscated --compact true --control-flow-flattening false --dead-code-injection true --string-array true --string-array-encoding base64 --string-array-threshold 0.75"
   },
   "dependencies": {
     "@fastify/static": "^6.11.2",
