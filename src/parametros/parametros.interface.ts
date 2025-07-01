@@ -20,6 +20,8 @@ export interface ParametrosInterface {
   tarifaMesa: string;
   payteftcod: string;
   descuentosTienda: DescuentosTienda[];
+  nif?: string;
+  verifactuEnabled?: Date;
 }
 export interface DescuentosTienda {
   descuentoFamilia: number;

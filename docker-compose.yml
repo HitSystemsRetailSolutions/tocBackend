@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 services:
   tocgame:
     container_name: tocBackend
@@ -7,37 +7,38 @@ services:
       MONGO_URL: "mongodb://mongodb:27017"
       MQTT_URL: "mqtt://172.17.0.1"
       MQTT_HOST: "mqtt.nubehit.com"
-      MQTT_USER: 'mqtt'
-      MQTT_PASSWORD: 'DCdazU3RUTphpNx^iJQhVw' 
-      TZ : Europe/Madrid
+      MQTT_USER: "mqtt"
+      MQTT_PASSWORD: "DCdazU3RUTphpNx^iJQhVw"
+      TZ: Europe/Madrid
+      npm_package_version: "4.25.26"
     depends_on:
       - mongodb
     privileged: true
     ports:
-     - 3000:3000
-     - 5051:5051
+      - 3000:3000
+      - 5051:5051
     volumes:
-     - ./logs:/usr/src/logs
-     - ./backups:/usr/src/backups
-     - /bin/systemctl:/bin/systemctl
-     - /run/systemd/system:/run/systemd/system
-     - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
-     - /sys/fs/cgroup:/sys/fs/cgroup
-     - /etc/openvpn/client:/etc/openvpn/client
+      - ./logs:/usr/src/logs
+      - ./backups:/usr/src/backups
+      - /bin/systemctl:/bin/systemctl
+      - /run/systemd/system:/run/systemd/system
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
+      - /sys/fs/cgroup:/sys/fs/cgroup
+      - /etc/openvpn/client:/etc/openvpn/client
     restart: unless-stopped
     networks:
-     - toc_network
+      - toc_network
 
   mongodb:
     container_name: mongodb
     image: mongo:4.4
     volumes:
-     - ~/mongo/data:/data/db
+      - ~/mongo/data:/data/db
     ports:
-     - 27017:27017
+      - 27017:27017
     restart: always
     networks:
-     - toc_network
+      - toc_network
 
 networks:
   toc_network:
