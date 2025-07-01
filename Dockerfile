@@ -3,9 +3,7 @@ FROM node:20-slim AS builder
 
 WORKDIR /usr/src
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends iputils-ping && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install iputils-ping
 
 COPY package*.json ./
 RUN npm ci
