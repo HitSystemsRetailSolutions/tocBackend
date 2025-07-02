@@ -1,11 +1,17 @@
 import { InsertManyResult } from "mongodb";
 import { conexion } from "../conexion/mongodb";
-import { PromocionesEnServer } from "./promociones.interface";
+import { PromocionesEnServer, PromocionesEnServerConGrupos } from "./promociones.interface";
 
 /* Eze 4.0 */
 export async function getPromociones(): Promise<PromocionesEnServer[]> {
   const database = (await conexion).db("tocgame");
   const promociones = database.collection<PromocionesEnServer>("promociones");
+  return await promociones.find().toArray();
+}
+
+export async function getPromocionesv2(): Promise<PromocionesEnServerConGrupos[]> {
+  const database = (await conexion).db("tocgame");
+  const promociones = database.collection<PromocionesEnServerConGrupos>("promociones");
   return await promociones.find().toArray();
 }
 
@@ -43,6 +49,14 @@ export async function insertarPromociones(
   await borrarPromociones();
   const database = (await conexion).db("tocgame");
   const promociones = database.collection<PromocionesEnServer>("promociones");
+  return (await promociones.insertMany(arrayPromociones)).acknowledged;
+}
+export async function insertarPromocionesv2(
+  arrayPromociones: PromocionesEnServerConGrupos[]
+): Promise<boolean> {
+  await borrarPromociones();
+  const database = (await conexion).db("tocgame");
+  const promociones = database.collection<PromocionesEnServerConGrupos>("promociones");
   return (await promociones.insertMany(arrayPromociones)).acknowledged;
 }
 

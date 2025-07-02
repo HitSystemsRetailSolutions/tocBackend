@@ -42,6 +42,7 @@ import {
 import {
   PromocionesEnServer,
   PromocionesInterface,
+  PromocionesEnServerConGrupos,
 } from "./promociones.interface";
 import { articulosInstance } from "src/articulos/articulos.clase";
 const redondearPrecio = (precio: number) =>
@@ -61,11 +62,12 @@ export class NuevaPromocion {
   private promos: PromocionesInterface[] = [];
   private promosCombo: PromocionesEnServer[] = [];
   private promosIndividuales: PromocionesEnServer[] = [];
+  private promosPorGrupo: PromocionesEnServerConGrupos[] = [];
   constructor() {
     this.promos = [];
     (async () => {
       try {
-        this.recargarPromosCache();
+        this.recargarPromosCachev2();
         // el dia del cambio de versión puede haber cestas que tengan el formato antiguo
         // así que se convierten al nuevo
         let allCestas = await schCestas.getAllCestas();
@@ -144,7 +146,25 @@ export class NuevaPromocion {
 
       resPromos = resPromos?.data as PromocionesInterface[];
       if (resPromos) {
-        return await schPromociones.insertarPromociones(resPromos);
+        const res = await schPromociones.insertarPromociones(resPromos);
+        await nuevaInstancePromociones.recargarPromosCache();
+        return res;
+      }
+      throw Error("No hay promociones para descargar");
+    } catch (e) {
+      console.log(e);
+      return false;
+    }
+  }
+
+  async descargarPromocionesv2() {
+    try {
+      let resPromos: any = await axios.get("promociones/getPromocionesv2");
+      resPromos = resPromos?.data as PromocionesInterface[];
+      if (resPromos) {
+        const res = await schPromociones.insertarPromocionesv2(resPromos);
+        await nuevaInstancePromociones.recargarPromosCachev2();
+        return res;
       }
       throw Error("No hay promociones para descargar");
     } catch (e) {
@@ -206,6 +226,7 @@ export class NuevaPromocion {
         promo.sortInfo.unidades_por_grupo.push(grupo.cantidad);
       }
       promo.sortInfo.unidades_por_grupo.sort((a, b) => -(a - b));
+
       if (promo.grupos.length) this.promos.push(promo);
     }
     this.promos.sort((a, b) => {
@@ -225,6 +246,79 @@ export class NuevaPromocion {
       return a._id < b._id ? -1 : 1; // por id
     });
   }
+
+  public async recargarPromosCachev2() {
+    try {
+      const promosCombo = await this.getPromosCombo();
+    } catch (error) {
+      logger.Error(1291, error);
+    }
+    this.promosPorGrupo = await schPromociones.getPromocionesv2();
+    function nueva_promo(
+      promoServer: PromocionesEnServerConGrupos
+    ): PromocionesInterface {
+      return {
+        _id: promoServer._id,
+        nombre: promoServer?.nombre,
+        fechaFinal: promoServer.fechaFinal,
+        fechaInicio: promoServer.fechaInicio,
+        precioFinal: promoServer.precioFinal,
+        grupos: [],
+        sortInfo: { unidades_totales: 0, unidades_por_grupo: [] },
+      };
+    }
+    function insertar_grupo(
+      promo: PromocionesInterface,
+      ar_art: number[],
+      cantidad: number
+    ) {
+      if (Array.isArray(ar_art) && ar_art.length > 0 && ar_art[0] >= 0) {
+        promo.grupos.push({
+          idsArticulos: new Set(ar_art),
+          cantidad: cantidad,
+        });
+        return cantidad;
+      } else return 0;
+    }
+    for (let promoEnServer of this.promosPorGrupo) {
+      let promo = nueva_promo(promoEnServer);
+      const productos = promoEnServer.productos;
+      productos.forEach((element) => {
+        insertar_grupo(promo, element.producto, element.cantidad);
+      });
+
+      if (promo.grupos.length == 1) {
+        // Si es una promo individual, el precioFinal es por unidad no es el total de la promo
+        promo.precioFinal = redondearPrecio(
+          promo.precioFinal * promo.grupos[0].cantidad
+        );
+      }
+      for (let grupo of promo.grupos) {
+        promo.sortInfo.unidades_totales += grupo.cantidad;
+        promo.sortInfo.unidades_por_grupo.push(grupo.cantidad);
+      }
+      promo.sortInfo.unidades_por_grupo.sort((a, b) => -(a - b));
+      if (promo.grupos.length) this.promos.push(promo);
+    }
+
+    this.promos.sort((a, b) => {
+      let c = -(a.sortInfo.unidades_totales - b.sortInfo.unidades_totales); // unidades totales desc
+      if (c != 0) return c;
+      c = -(
+        a.sortInfo.unidades_por_grupo.length -
+        b.sortInfo.unidades_por_grupo.length
+      ); // número de grupos asc
+      if (c != 0) return c;
+      for (let i = 0; i < a.sortInfo.unidades_por_grupo.length; i++) {
+        c = -(
+          a.sortInfo.unidades_por_grupo[i] - b.sortInfo.unidades_por_grupo[i]
+        ); // unidades grupo[0],[...] asc
+        if (c != 0) return c;
+      }
+      return a._id < b._id ? -1 : 1; // por id
+    });
+  }
+
 
   // Este tipo de items no se usan para formar promociones
   public isItemPromocionable(item: ItemLista) {
@@ -274,7 +368,7 @@ export class NuevaPromocion {
                 artGrupo.idArticulo
               );
               MapPromocionables.set(artGrupo.idArticulo, {
-                idArticulo:artGrupo.idArticulo,
+                idArticulo: artGrupo.idArticulo,
                 nombre: info.nombre,
                 unidades: artGrupo.unidades * item.unidades,
                 precioPorUnidad: info.precioConIva,
@@ -291,10 +385,12 @@ export class NuevaPromocion {
             info.unidades += item.unidades;
             if (item.arraySuplementos) {
               if (!info.suplementosPorArticulo) {
-                info.suplementosPorArticulo = [{
-                  unidades: item.unidades,
-                  suplementos: item.arraySuplementos,
-                }];
+                info.suplementosPorArticulo = [
+                  {
+                    unidades: item.unidades,
+                    suplementos: item.arraySuplementos,
+                  },
+                ];
               } else {
                 info.suplementosPorArticulo.push({
                   unidades: item.unidades,
@@ -567,6 +663,7 @@ export class NuevaPromocion {
           PromosCandidatas[idx_p],
           grupos
         );
+        // si la promo es individual, el precioFinal
         if (
           UltimaPromoAplicada &&
           PromosIguales(PromoAplicada, UltimaPromoAplicada)
@@ -805,9 +902,10 @@ export class NuevaPromocion {
         }
       }
     }
+    const nombrePromo = promo.nombre || nombres.join(" + ");
     return {
       idArticulo: -1,
-      nombre: "Promo. " + nombres.join(" + "),
+      nombre: "Promo. " + nombrePromo,
       unidades: 1,
       promocion: {
         idPromocion: promo._id,
