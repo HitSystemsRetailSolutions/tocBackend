@@ -3,8 +3,6 @@ FROM node:20-slim AS builder
 
 WORKDIR /usr/src
 
-RUN apt-get update && apt-get install -y iputils-ping
-
 COPY package*.json ./
 RUN npm ci
 
@@ -18,6 +16,8 @@ RUN rm -rf dist && mv dist-obfuscated dist
 FROM node:20-slim
 
 WORKDIR /usr/src
+
+RUN apt-get update && apt-get install -y iputils-ping
 
 COPY --from=builder /usr/src/package*.json ./
 COPY --from=builder /usr/src/node_modules ./node_modules
