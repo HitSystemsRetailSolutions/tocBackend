@@ -939,14 +939,17 @@ export class Impresora {
       let ticketDate = fecha.getTime();
 
       const isVerifactuTicket = ticketDate >= verifactuDate;
-      if (params?.nif && isVerifactuTicket)
-        arrayImprimir.push(
-          { tipo: "text", payload: "\n\n-" },
-          {
-            tipo: "qrimage",
-            payload: `https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=${params.nif}&numserie=TK-${params.licencia}-2025-${numFactura}&fecha=${fechaEspaña.format("DD-MM-YYYY")}&importe=${totalImporte}`,
-          }, { tipo: "text", payload: "* Verificado por el sistema VERI*FACTU *" },
-        );
+      if (
+        !(params.nif.length > 10) && !((params.licencia).toString().length > 10) && !(numFactura.length > 20)
+      )
+        if (params?.nif && isVerifactuTicket)
+          arrayImprimir.push(
+            { tipo: "text", payload: "\n\n-" },
+            {
+              tipo: "qrimage",
+              payload: `https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=${params.nif}&numserie=TK-${params.licencia}-2025-${numFactura}&fecha=${fechaEspaña.format("DD-MM-YYYY")}&importe=${totalImporte}`,
+            }, { tipo: "text", payload: "* Verificado por el sistema VERI*FACTU *" },
+          );
     }
     arrayImprimir.push({ tipo: "cut", payload: "PAPER_FULL_CUT" });
 
