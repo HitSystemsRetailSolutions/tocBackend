@@ -279,7 +279,7 @@ export class TicketsClase {
   }
 
 
-  validarNIF(nif) {
+  validarNIF(nif: string) {
     nif = nif.toUpperCase().trim();
 
     const letrasDNI = "TRWAGMYFPDXBNJZSQVHLCKE";
@@ -355,9 +355,15 @@ export class TicketsClase {
           art.subtotal - art.subtotal * (cliente.descuento / 100);
       });
     }*/
-
-    if (!this.validarNIF((await parametrosInstance.getParametros()).nif)) {
-      parametrosInstance.setNif();
+    try {
+      let nif = (await parametrosInstance.getParametros())?.nif
+      if (nif) nif = nif.toString(); else nif = "";
+      if (!this.validarNIF(nif)) {
+        parametrosInstance.setNif();
+      }
+    }
+    catch (e) {
+      console.log(e)
     }
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
