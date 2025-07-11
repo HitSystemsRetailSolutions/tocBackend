@@ -934,13 +934,12 @@ export class Impresora {
 
     if (!qrEnabled && numFactura) {
       let params = await parametrosInstance.getParametros();
-      if (!params?.verifactuEnabled) return;
       let verifactuDate = new Date(params.verifactuEnabled).getTime();
       let ticketDate = fecha.getTime();
-
+      let nif = params?.nif || '';
       const isVerifactuTicket = ticketDate >= verifactuDate;
       if (
-        !(params.nif.length > 10) && !((params.licencia).toString().length > 10) && !(numFactura.length > 20)
+        !(nif.length > 10) && !((params.licencia).toString().length > 10) && !(numFactura.length > 20)
       )
         if (params?.nif && isVerifactuTicket)
           arrayImprimir.push(
