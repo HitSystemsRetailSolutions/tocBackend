@@ -763,7 +763,6 @@ export class Impresora {
     let infoConsumoPersonal = "";
     if (tipoPago == "CONSUMO_PERSONAL") {
       infoConsumoPersonal = "---------------- CONSUM PERSONAL --------------";
-      detalleIva = "";
     }
 
     const diasSemana = [
@@ -1280,7 +1279,7 @@ export class Impresora {
       detalleIvaTipo4: "",
       detalleIvaTipo5: "",
     };
-    if (tiposIva.importe1 > 0) {
+    if (tiposIva.importe1 != 0) {
       base = tiposIva.base1.toFixed(2) + " €";
       const iva1 = arrayIvas.find((item) => item.tipus === "1");
       valorIva = iva1.iva + "%: " + tiposIva.valorIva1.toFixed(2) + " €";
@@ -1293,7 +1292,7 @@ export class Impresora {
         str3.substring(0, str3.length - importe.length) +
         importe;
     }
-    if (tiposIva.importe2 > 0) {
+    if (tiposIva.importe2 != 0) {
       const iva2 = arrayIvas.find((item) => item.tipus === "2");
       base = tiposIva.base2.toFixed(2) + " €";
       valorIva = iva2.iva + "%: " + tiposIva.valorIva2.toFixed(2) + " €";
@@ -1306,7 +1305,7 @@ export class Impresora {
         str3.substring(0, str3.length - importe.length) +
         importe;
     }
-    if (tiposIva.importe3 > 0) {
+    if (tiposIva.importe3 != 0) {
       const iva3 = arrayIvas.find((item) => item.tipus === "3");
       base = tiposIva.base3.toFixed(2) + " €";
       valorIva = iva3.iva + "%: " + tiposIva.valorIva3.toFixed(2) + " €";
@@ -1319,7 +1318,7 @@ export class Impresora {
         str3.substring(0, str3.length - importe.length) +
         importe;
     }
-    if (tiposIva.importe4 > 0) {
+    if (tiposIva.importe4 != 0) {
       const iva4 = arrayIvas.find((item) => item.tipus === "4");
       base = tiposIva.base4.toFixed(2) + " €";
       valorIva = iva4.iva + "%: " + tiposIva.valorIva4.toFixed(2) + " €";
@@ -1332,7 +1331,7 @@ export class Impresora {
         str3.substring(0, str3.length - importe.length) +
         importe;
     }
-    if (tiposIva.importe5 > 0) {
+    if (tiposIva.importe5 != 0) {
       const iva5 = arrayIvas.find((item) => item.tipus === "5");
       base = tiposIva.base5.toFixed(2) + " €";
       valorIva = iva5.iva + "%: " + tiposIva.valorIva5.toFixed(2) + " €";
