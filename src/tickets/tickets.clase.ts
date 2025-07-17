@@ -277,6 +277,67 @@ export class TicketsClase {
     // Agregar toda la lógica necesaria para determinar si es consumo personal
     return tipo === "CONSUMO_PERSONAL" || modo === "CONSUMO_PERSONAL";
   }
+
+
+  validarNIF(nif: string) {
+    nif = nif.toUpperCase().trim();
+
+    const letrasDNI = "TRWAGMYFPDXBNJZSQVHLCKE";
+
+    // DNI: 8 dígitos + letra
+    if (/^\d{8}[A-Z]$/.test(nif)) {
+      const numero = parseInt(nif.slice(0, 8), 10);
+      const letraEsperada = letrasDNI[numero % 23];
+      return nif[8] === letraEsperada;
+    }
+
+    // NIE: empieza por X, Y o Z
+    if (/^[XYZ]\d{7}[A-Z]$/.test(nif)) {
+      const letrasIniciales = { X: 0, Y: 1, Z: 2 };
+      const numero = letrasIniciales[nif[0]] + nif.slice(1, 8);
+      const letraEsperada = letrasDNI[parseInt(numero, 10) % 23];
+      return nif[8] === letraEsperada;
+    }
+
+    // CIF: letra inicial + 7 dígitos + dígito control
+    if (/^[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J]$/.test(nif)) {
+      const letraInicial = nif[0];
+      const digitos = nif.slice(1, -1);
+      const control = nif.slice(-1);
+
+      let sumaPar = 0;
+      let sumaImpar = 0;
+
+      for (let i = 0; i < digitos.length; i++) {
+        let n = parseInt(digitos[i], 10);
+        if (i % 2 === 0) {
+          // posiciones impares (índice par)
+          let doble = n * 2;
+          if (doble > 9) doble -= 9;
+          sumaImpar += doble;
+        } else {
+          sumaPar += n;
+        }
+      }
+
+      const sumaTotal = sumaPar + sumaImpar;
+      const digitoControl = (10 - (sumaTotal % 10)) % 10;
+      const letrasControl = "JABCDEFGHI";
+
+      if ("PQRSNW".includes(letraInicial)) {
+        return control === letrasControl[digitoControl]; // debe ser letra
+      } else if ("ABEH".includes(letraInicial)) {
+        return control === String(digitoControl); // debe ser número
+      } else {
+        // puede ser letra o número
+        return control === String(digitoControl) || control === letrasControl[digitoControl];
+      }
+    }
+
+    return false;
+  }
+
+
   /* Eze 4.0 */
   async generarNuevoTicket(
     total: TicketsInterface["total"],
@@ -294,9 +355,15 @@ export class TicketsClase {
           art.subtotal - art.subtotal * (cliente.descuento / 100);
       });
     }*/
-
-    if (!(await parametrosInstance.getParametros()).nif) {
-      parametrosInstance.setNif();
+    try {
+      let nif = (await parametrosInstance.getParametros())?.nif
+      if (nif) nif = nif.toString(); else nif = "";
+      if (!this.validarNIF(nif)) {
+        parametrosInstance.setNif();
+      }
+    }
+    catch (e) {
+      console.log(e)
     }
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
