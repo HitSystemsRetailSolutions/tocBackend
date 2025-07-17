@@ -7,6 +7,7 @@ import axios from "axios";
 import { articulosInstance } from "../articulos/articulos.clase";
 import { encargosInstance } from "src/encargos/encargos.clase";
 import { impresoraInstance } from "src/impresora/impresora.class";
+import { versionDescuentosClient } from "src/version/version.clase";
 
 @Controller("cestas")
 export class CestasController {
@@ -297,7 +298,9 @@ export class CestasController {
     try {
       if (cesta) {
         if (cesta.modo === "CONSUMO_PERSONAL") {
-          cesta = await cestasInstance.recalcularIvas(cesta);
+          if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+            await cestasInstance.recalcularIvasv2(cesta);
+          else await cestasInstance.recalcularIvas(cesta);
         }
 
         const res = await cestasInstance.updateCesta(cesta);
@@ -379,7 +382,9 @@ export class CestasController {
         throw Error("faltan datos en recalcularIvas");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
-      await cestasInstance.recalcularIvas(cesta);
+      if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+        await cestasInstance.recalcularIvasv2(cesta);
+      else await cestasInstance.recalcularIvas(cesta);
       if (await cestasInstance.updateCesta(cesta)) {
         await cestasInstance.actualizarCestas();
         return true;

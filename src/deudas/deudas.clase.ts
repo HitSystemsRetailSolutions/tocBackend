@@ -22,7 +22,12 @@ import {
   fusionarObjetosDetalleIva,
 } from "src/funciones/funciones";
 import { TicketsController } from "src/tickets/tickets.controller";
-import { getDataVersion } from "src/version/version.clase";
+import {
+  getDataVersion,
+  obtenerVersionAnterior,
+  versionDescuentosClient,
+} from "src/version/version.clase";
+import { version } from "os";
 
 export class Deudas {
   async getDate(timestamp: any) {
@@ -193,16 +198,20 @@ export class Deudas {
    */
   async pagarDeuda(arrayDeudas, infoCobro, pagoParcial = 0, visa = false) {
     try {
-      const importeDeudas = this.redondearPrecio(arrayDeudas.reduce(
-        (acc, deuda) => acc + deuda.total - deuda.dejaCuenta,
-        0
-      ));
+      const importeDeudas = this.redondearPrecio(
+        arrayDeudas.reduce(
+          (acc, deuda) => acc + deuda.total - deuda.dejaCuenta,
+          0
+        )
+      );
       const saldoPendiente = pagoParcial ? importeDeudas - pagoParcial : 0;
       const hayParcial = saldoPendiente > 0;
       const deudaMaxima = Math.max(
-        ...arrayDeudas.map((deuda) => deuda.total - deuda.dejaCuenta));
-      const indexDeudaMaxima = arrayDeudas.map(deuda => deuda.total - deuda.dejaCuenta).indexOf(deudaMaxima);
-      
+        ...arrayDeudas.map((deuda) => deuda.total - deuda.dejaCuenta)
+      );
+      const indexDeudaMaxima = arrayDeudas
+        .map((deuda) => deuda.total - deuda.dejaCuenta)
+        .indexOf(deudaMaxima);
 
       let albaran = null;
       let id = null;
@@ -212,7 +221,6 @@ export class Deudas {
       let deudaPendiente = null;
       // recorre las deudas para pagarlas
       for (const deuda of arrayDeudas) {
-        
         let total = deuda.total;
         if (deuda.dejaCuenta > 0) {
           dejaCuenta += deuda.dejaCuenta;
@@ -221,7 +229,7 @@ export class Deudas {
         albaran = deuda.albaran;
         id = deuda.idTicket;
         // aplicar el parcial a la deuda mas grande
-        if(indexDeudaMaxima === arrayDeudas.indexOf(deuda) && hayParcial) {
+        if (indexDeudaMaxima === arrayDeudas.indexOf(deuda) && hayParcial) {
           total = this.redondearPrecio(total - saldoPendiente);
           deudaPendiente = deuda;
         }
@@ -367,7 +375,7 @@ export class Deudas {
       codigoBarras = String(Ean13Utils.generate(codigoBarras));
       const movimientoGeneral: MovimientosInterface = {
         _id: Date.now(),
-        valor: Math.round((infoCobro.total-saldoPendiente) * 100) / 100,
+        valor: Math.round((infoCobro.total - saldoPendiente) * 100) / 100,
         concepto: concepto,
         idTicket: null,
         idTrabajador: infoCobro.idTrabajador,
@@ -411,7 +419,10 @@ export class Deudas {
     }
     return false;
   }
-  async crearDeudaSaldoPendiente(deuda: DeudasInterface, saldoPendiente: number) {
+  async crearDeudaSaldoPendiente(
+    deuda: DeudasInterface,
+    saldoPendiente: number
+  ) {
     const deudaPendiente = {
       idTicket: deuda.idTicket,
       cesta: deuda.cesta,
@@ -423,7 +434,6 @@ export class Deudas {
       dejaCuenta: this.redondearPrecio(deuda.total - saldoPendiente),
     };
     await this.setDeuda(deudaPendiente);
-
   }
   eliminarDeuda = async (idDeuda, albaran) => {
     try {
@@ -514,6 +524,25 @@ export class Deudas {
     }
   }
 
+  parseDetall(detall: string) {
+    const regex = /\[([^:]+):([^\]]+)\]/g; // Matches [key:value] pairs
+    let match;
+    const resultObject = {
+      DejaACuenta: 0,
+      NumTicket: null,
+      DataVersion: null,
+    };
+
+    while ((match = regex.exec(detall)) !== null) {
+      const key = match[1];
+      const value = match[2];
+
+      resultObject[key] = isNaN(Number(value)) ? value : Number(value);
+    }
+
+    return resultObject;
+  }
+
   async insertarDeuda(deuda: any, cesta: CestasInterface) {
     try {
       const idTicket = deuda[0].Num_tick;
@@ -523,18 +552,18 @@ export class Deudas {
       const cliente = await clienteInstance.getClienteById(idCliente);
       const nombreCliente = cliente?.nombre;
       const detall = deuda[0].Detall;
+      const jsonDetall = this.parseDetall(detall);
       let inicio = detall.indexOf("DejaACuenta:");
       let dejaCuenta = 0;
 
       if (inicio !== -1) {
-        // Ajustar el índice para comenzar desde después de ":"
-        inicio += "DejaACuenta:".length;
-
-        // Encontrar la posición final del valor numérico (buscando el siguiente corchete)
-        let fin = detall.indexOf("]", inicio);
+        let dataversionDeuda =
+          jsonDetall.DataVersion ||
+          obtenerVersionAnterior(versionDescuentosClient);
+        cesta.dataVersion = dataversionDeuda;
 
         // Extraer y convertir el valor numérico
-        let valorDejaACuenta = parseFloat(detall.substring(inicio, fin));
+        let valorDejaACuenta = Number(jsonDetall.DejaACuenta);
         dejaCuenta = valorDejaACuenta;
       }
       let total = 0;
@@ -573,7 +602,13 @@ export class Deudas {
         };
         //total = deuda[0].Import; se inserta aqui dependiendo de si le meto iva o no
       } else {
-        cestaDeuda = await this.postCestaDeuda(deuda, cestaDeuda, descuento);
+        if (
+          cestaDeuda.dataVersion &&
+          cestaDeuda.dataVersion >= versionDescuentosClient
+        )
+          cestaDeuda = await this.postCestaDeudaV2(deuda, cestaDeuda);
+        else
+          cestaDeuda = await this.postCestaDeuda(deuda, cestaDeuda, descuento);
       }
       // el descuento se aplica dependiendo de si se ha usado insertarArticulo en cesta
       // Si no se ha usado insertarArticulo, el descuento tambien se aplica en detallesIva
@@ -691,6 +726,80 @@ export class Deudas {
             1,
             false,
             dto,
+            cesta.timestamp
+          );
+
+          cesta.detalleIva = fusionarObjetosDetalleIva(
+            objectIva,
+            cesta.detalleIva
+          );
+        }
+        await cestasInstance.updateCesta(cesta);
+      }
+    } catch (error) {
+      console.log("error crear cesta de deuda", error);
+    }
+
+    return cesta;
+  }
+
+  /**
+   * Post cesta deuda v2: no usa el dto de descuento del cliente
+   * añadira los posibles descuentos de tienda
+   * @param deuda
+   * @param cesta
+   * @returns
+   */
+  async postCestaDeudaV2(deuda: any, cesta: CestasInterface) {
+    try {
+      // insertar productos restantes
+      for (const [index, item] of deuda.entries()) {
+        const tipus = deuda[index]?.Tipus_venta || "";
+        const match = tipus.match(/Desc_(\d+)/);
+        const dto = match ? Number(match[1]) : 0;
+
+        const arraySuplementos =
+          deuda[index]?.FormaMarcar &&
+          deuda[index]?.FormaMarcar != "," &&
+          deuda[index]?.FormaMarcar != "0"
+            ? await articulosInstance.getSuplementos(
+                deuda[index]?.FormaMarcar.split(",").map(Number)
+              )
+            : null;
+        if (arraySuplementos) {
+          for (let i = 0; i < item.Quantitat; i++) {
+            cesta = await cestasInstance.clickTeclaArticulo(
+              item.Plu,
+              0,
+              cesta._id,
+              1,
+              arraySuplementos,
+              "",
+              "descargas"
+            );
+          }
+        } else {
+          const infoArt = await articulosInstance.getInfoArticulo(item.Plu);
+          cesta.lista.push({
+            idArticulo: item.Plu,
+            nombre: infoArt.nombre,
+            arraySuplementos: arraySuplementos,
+            promocion: null,
+            varis: false,
+            regalo: false,
+            puntos: infoArt.puntos,
+            impresora: infoArt.impresora,
+            subtotal: item.Import,
+            unidades: item.Quantitat,
+            gramos: null,
+            pagado: false,
+          });
+          const objectIva = construirObjetoIvas(
+            item.Import,
+            infoArt.tipoIva,
+            1,
+            false,
+            0,
             cesta.timestamp
           );
 
