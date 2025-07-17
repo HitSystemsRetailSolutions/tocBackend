@@ -16,7 +16,6 @@ export function construirObjetoIvas(
   dto: number = 0,
   timestamp: number = null
 ): DetalleIvaInterface {
-
   const arrayIvasDecimals = timestamp
     ? tiposIvaInstance.getIvasDecWithTmstpCesta(timestamp)
     : tiposIvaInstance.arrayDecimal;

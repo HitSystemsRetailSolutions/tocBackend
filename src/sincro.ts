@@ -504,6 +504,7 @@ async function sincronizarDeudasCreadas() {
             botiga: parametros.licencia,
             idTicket: deuda.idTicket,
             bbdd: parametros.database,
+            dataVersion: deuda.dataVersion || null,
           };
 
           const res: any = await CBSincronizarDeudasCreadas.fire(deuda_santAna);
@@ -589,6 +590,7 @@ async function sincronizarEncargosCreados() {
             timestamp: encargo.timestamp,
             opcionEncargo: encargo.opcionRecogida,
             codigoBarras: encargo.codigoBarras,
+            dataVersion: encargo.dataVersion || null,
           };
 
           const res: any =
