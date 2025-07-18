@@ -292,6 +292,7 @@ export class CestaClase {
 
   async applyDiscountShop(cesta: CestasInterface, precio: number) {
     for (const producto of cesta.lista) {
+      if (producto?.regalo) continue;
       if (producto.arraySuplementos != null || producto.promocion == null) {
         const infoArticulo = await articulosInstance.getInfoArticulo(
           producto.idArticulo
@@ -1855,7 +1856,8 @@ export class CestaClase {
             cesta.lista[i].arraySuplementos,
             cesta.idCliente,
             cesta.lista[i].unidades,
-            cesta.modo == "CONSUMO_PERSONAL" || !!(!vipOalbaran && cesta?.idCliente)
+            cesta.modo == "CONSUMO_PERSONAL" ||
+              !!(!vipOalbaran && cesta?.idCliente)
               ? cesta.lista[i].descuentoTienda
               : cesta.lista[i]?.dto || 0,
             cesta?.modo == "CONSUMO_PERSONAL"
@@ -2045,7 +2047,6 @@ export class CestaClase {
       importe5: 0,
     };
     let cliente = await clienteInstance.getClienteById(idCliente);
-
 
     for (let i = 0; i < arraySuplementos.length; i++) {
       let articulo = await articulosInstance.getInfoArticulo(
