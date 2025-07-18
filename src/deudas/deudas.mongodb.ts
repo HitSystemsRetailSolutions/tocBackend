@@ -114,6 +114,7 @@ export async function getIntervaloDeuda(
   return await deudas
     .find({
       timestamp: { $lte: fechaFinal, $gte: fechaInicial },
+      nombreCliente: { $ne: null },
       estado: "SIN_PAGAR",
     })
     .toArray();
