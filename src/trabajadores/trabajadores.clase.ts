@@ -246,6 +246,15 @@ export class TrabajadoresClase {
     }
   };
 
+  getRepartidores = async () => {
+    const res = await schTrabajadores.getRepartidores();
+    if (res) {
+      return res;
+    } else {
+      return null;
+    }
+  };
+
   checkPassword = async (idTrabajador, password) => {
     const res = await schTrabajadores.getTrabajador(idTrabajador);
     if (res && res.password) {

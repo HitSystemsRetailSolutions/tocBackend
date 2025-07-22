@@ -34,6 +34,7 @@ import { Console, info } from "console";
 import { tiposIvaInstance } from "../tiposIva/tiposIva.clase";
 import { redondearPrecio } from "src/funciones/funciones";
 import { cestasInstance } from "src/cestas/cestas.clase";
+import { encargosInstance } from "src/encargos/encargos.clase";
 import { versionDescuentosClient } from "src/version/version.clase";
 import e from "express";
 import Decimal from "decimal.js";
@@ -364,6 +365,90 @@ export class Impresora {
 
     await this._venta(nota);
   }
+
+  async imprimirNotaPedido(idEncargo: EncargosInterface["_id"], cesta: CestasInterface , trabajadorEnFrontend:CestasInterface["trabajador"], codigo:string) {
+    let nota;
+    console.log(cesta,(await encargosInstance.getEncargoById(idEncargo)).cesta._id);
+    if (!cesta || (cesta.lista && cesta.lista.length == 0)) return;
+    const parametros = await parametrosInstance.getParametros();
+    const total = Object.entries(cesta.detalleIva).reduce(
+      (sum, [key, value]) => {
+        return key.includes("importe") ? sum + value : sum;
+      },
+      0
+    );
+    // recogemos el trabajador de la cesta o el que ha iniciado la impresión
+    const idTrabajador = Number(cesta.trabajadores[0]? cesta.trabajadores[0] : trabajadorEnFrontend);
+    const trabajador =
+      await trabajadoresInstance.getTrabajadorById(idTrabajador);
+
+    let infoCliente = null;
+    if (cesta.idCliente) {
+      infoCliente = await clienteInstance.getClienteById(cesta.idCliente);
+    }
+    let puntos = 0;
+    let descuento = 0;
+    let informacionVip = null;
+
+    if (infoCliente) {
+      puntos = await clienteInstance.getPuntosCliente(cesta.idCliente);
+      descuento =
+        infoCliente && !infoCliente?.albaran && !infoCliente?.vip
+          ? Number(infoCliente.descuento)
+          : 0;
+      informacionVip = {
+        nombre: infoCliente.nombre+"\n\n PEDIDO: "+codigo,
+        nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+        direccion:
+          infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
+        telefono:
+          infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+      };
+    }
+    let totalSinDescuento = 0;
+
+    if (descuento > 0) await cestasInstance.aplicarDescuento(cesta, descuento);
+
+    for (let i = 0; i < cesta.lista.length; i++) {
+      totalSinDescuento += cesta.lista[i].subtotal;
+    }
+    const timestamp = new Date().getTime();
+
+    nota = {
+      numFactura: null,
+      timestamp: timestamp,
+      arrayCompra: cesta.lista,
+      total: total,
+      visa: "EFECTIVO",
+      tiposIva: cesta.detalleIva,
+      cabecera: parametros?.header == undefined ? "" : parametros.header,
+      pie: parametros?.footer == undefined ? "" : parametros.footer,
+      nombreTrabajador: trabajador.nombreCorto,
+      infoClienteVip: informacionVip || null,
+      infoCliente: infoCliente
+        ? {
+            idCliente: infoCliente._id,
+            nombre: infoCliente?.nombre +"\n"+codigo,
+            telefono: infoCliente?.telefono,
+            puntos: puntos,
+            descuento: descuento,
+            albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
+          }
+        : null,
+      modoCesta: cesta.modo,
+      dejaCuenta: 0,
+      idCliente: cesta.idCliente,
+      totalSinDescuento: total,
+      mesa: cesta?.indexMesa == undefined ? null : cesta.indexMesa,
+      tmstpCesta: cesta.timestamp,
+      justificacion: null,
+      comensales: cesta?.comensales || null,
+      nota: true,
+    };
+
+    await this._venta(nota);
+  }
+
 
   async imprimirFirma(idTicket: number, albaran = false) {
     const ticket = albaran

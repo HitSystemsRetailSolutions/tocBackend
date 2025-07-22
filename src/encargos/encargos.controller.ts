@@ -16,6 +16,50 @@ export class EncargosController {
       return null;
     }
   }
+
+  @Post("getPedidos")
+  async getPedidos() {
+    try {
+      return await encargosInstance.getPedidos();
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+
+  @Post("setPedidoRepartidor")
+  async setPedidoRepartidor(@Body() data) {
+    console.log(data);
+    try {
+      if (!data.idEncargo || !data.idRepartidor)
+        return {
+          error: true,
+          msg: "Faltan datos.",
+        };
+
+      return await encargosInstance.setPedidoRepartidor(
+        data.idEncargo,
+        data.idRepartidor
+      );
+    }catch(err){
+      logger.Error(50, err);
+      return null;
+    }
+  }
+
+  @Post("setCestaPedidos")
+  async setCestaPedidos(@Body() data) {
+    try {
+      return await encargosInstance.setCestaPedidos(data.idEncargo, data.cesta);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+
+
+
+
   @Post("getEncargosByIdCliente")
   async getEncargosByIdCliente(@Body() data) {
     try {
@@ -40,6 +84,22 @@ export class EncargosController {
       return null;
     }
   }
+
+  @Post("setPedido")
+  async setPedido(@Body() data) {
+    try {
+      if (!data)
+        return {
+          error: true,
+          msg: "Faltan datos.",
+        };
+      return encargosInstance.setPedido(data);
+    } catch (err) {
+      logger.Error(50, err);
+      return null;
+    }
+  }
+
   @Post("anularEncargo")
   async anularEncargo(@Body() data) {
     try {

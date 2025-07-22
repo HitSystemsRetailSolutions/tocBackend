@@ -56,6 +56,44 @@ export class Encargos {
   async getEncargos() {
     return await schEncargos.getEncargos();
   }
+
+  async getPedidos() {
+    return await schEncargos.getPedidos();
+  }
+
+  async setPedidoRepartidor(
+    idEncargo: EncargosInterface["_id"],
+    idRepartidor: TrabajadoresInterface["_id"]
+  )
+  {
+    return await schEncargos.setPedidoRepartidor(idEncargo, idRepartidor);
+  }
+
+  async setCestaPedidos(idEncargo: any, cesta: any) {
+
+    function calcularTotal(cesta: CestasInterface) {
+      let total = 0;
+      cesta.lista.forEach((item) => {
+        total += item.subtotal;
+      });
+      return total;
+    }
+    let productos = [];
+    cesta.lista.forEach(element => {
+    productos.push({
+        id: element.idArticulo,
+        nombre: element.nombre,
+        total: element.subtotal,
+        unidades: element.unidades,
+        comentario: '',
+        arraySuplementos: element.arraySuplementos,
+        promocion: element.promocion,
+      });
+    });
+
+    return await schEncargos.setCestaPedidos(idEncargo, cesta,calcularTotal(cesta),productos);
+  }
+
   setEntregado = async (id) => {
     return schEncargos
       .setEntregado(id)
@@ -331,6 +369,36 @@ export class Encargos {
           true,
           false
         );
+        return { error: false, msg: "Encargo creado" };
+      })
+      .catch((err: string) => ({ error: true, msg: err }));
+  };
+
+
+
+
+
+  setPedido = async (encargo) => {
+    await cestasInstance.aplicarDescuento(encargo.cesta, encargo.total);
+
+
+    let timestamp = new Date().getTime();
+    let codigoBarras = await movimientosInstance.generarCodigoBarrasSalida();
+    codigoBarras = await calculoEAN13(codigoBarras);
+
+    encargo.timestamp = timestamp;
+    encargo.enviado = false;
+
+    encargo.estado = "PEDIDOS";
+    encargo.codigoBarras = codigoBarras;
+    encargo.dataVersion = getDataVersion();
+
+    // creamos un encargo en mongodb
+    return schEncargos
+      .setEncargo(encargo)
+      .then(async (ok: boolean) => {
+        if (!ok) return { error: true, msg: "Error al crear el encargo" };
+      
         return { error: false, msg: "Encargo creado" };
       })
       .catch((err: string) => ({ error: true, msg: err }));
