@@ -637,7 +637,7 @@ export class Encargos {
           diaSemanaString.charAt(0).toUpperCase() + diaSemanaString.slice(1);
         dias = [
           {
-            nDia: diaSemanaNumber-1,
+            nDia: diaSemanaNumber - 1,
             dia: diaString,
             checked: true,
           },
@@ -1020,7 +1020,6 @@ export class Encargos {
     // insetar articulos en cesta para calcularIva
     try {
       // insertar productos restantes
-      let recalcularIva = false;
       for (const [index, item] of encargo.entries()) {
         if (!procesados.has(index)) {
           const arraySuplementos = detallesArray[index]?.suplementos
@@ -1043,7 +1042,6 @@ export class Encargos {
             detallesArray[index]?.Descuento > 0
           ) {
             // si hay descuento, se recalcula iva de cesta
-            recalcularIva = true;
             cesta.lista[cesta.lista.length - 1].descuentoTienda =
               Number(detallesArray[index]?.Descuento) || 0;
             // actualizamos la cesta del mongo para no perder el descuento al pasar a la siguiente iteración
@@ -1053,13 +1051,8 @@ export class Encargos {
           comentarios.push(encargo[index].Comentari);
         }
       }
-
       // recalcular iva de cesta si contiene descuentos
-      if (
-        recalcularIva &&
-        cesta.dataVersion &&
-        cesta.dataVersion >= versionDescuentosClient
-      )
+      if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
         await cestasInstance.recalcularIvasv2(cesta, "descargas", cliente);
       else await cestasInstance.recalcularIvas(cesta, "descargas", cliente);
     } catch (error) {
