@@ -8,6 +8,7 @@ export interface CestasInterface {
   detalleIva: DetalleIvaInterface;
   lista: ItemLista[];
   modo: ModoCesta;
+  idPedido?: ObjectId;
   idCliente: ClientesInterface["id"];
   nombreCliente?: string;
   indexMesa?: number;
@@ -122,4 +123,5 @@ export type ModoCesta =
   | "PAGO SEPARADO"
   | "PAGO DEUDA"
   | "RECOGER ENCARGO"
-  | "PAGO COMBINADO";
+  | "PAGO COMBINADO"
+  | "MODIFICAR PEDIDO";

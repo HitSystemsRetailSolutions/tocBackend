@@ -9,6 +9,34 @@ export async function getEncargos(): Promise<EncargosInterface[]> {
   return await encargos.find({ estado: "SIN_RECOGER" }).toArray();
 }
 
+
+export async function setPedidoRepartidor(
+  idEncargo: EncargosInterface["_id"],
+  idRepartidor: EncargosInterface["idRepartidor"]
+)
+ {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  return (
+    await encargos.updateOne(
+      { _id: new ObjectId(idEncargo) },
+      {
+        $set: {
+          idRepartidor: idRepartidor,
+        }
+      }
+    )
+  )
+ }
+
+
+export async function getPedidos(): Promise<EncargosInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+
+  return await encargos.find({ estado: "PEDIDOS" }).toArray();
+}
+
 export async function getEncargosByIdCliente(
   idCliente: EncargosInterface["idCliente"]
 ): Promise<EncargosInterface[]> {
@@ -19,6 +47,25 @@ export async function getEncargosByIdCliente(
     .find({ idCliente: idCliente, estado: "SIN_RECOGER" })
     .toArray();
 }
+
+export async function setCestaPedidos(idEncargo: any, cesta: any,total:number,productos:any): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  return (
+    await encargos.updateOne(
+      { _id: new ObjectId(idEncargo)  },
+      {
+        $set: {
+          total: total,
+          cesta: cesta,
+          productos: productos,
+          enviado: false,
+        },
+      }
+    )
+  ).acknowledged;
+}
+
 
 export async function setEncargo(encargo): Promise<boolean> {
   const database = (await conexion).db("tocgame");

@@ -591,10 +591,19 @@ async function sincronizarEncargosCreados() {
             codigoBarras: encargo.codigoBarras,
           };
 
+          if(encargo.estado == "PEDIDOS" && encargo.productos.length <= 0){
+            if (await encargosInstance.setEnviado(encargo._id)) {
+              enProcesoEncargosCreados = false;
+              setTimeout(sincronizarEncargosCreados, 100);
+              return;
+            }
+          }
           const res: any =
             await CBSincronizarEncargosCreados.fire(encargo_santAna);
+
           if (res.data) {
-            if (!res.data.error) {
+            
+            if (!res.data.errorv ) {
               if (await encargosInstance.setEnviado(encargo._id)) {
                 setTimeout(function () {
                   enProcesoEncargosCreados = false;

@@ -147,6 +147,20 @@ export class CestasController {
       return null;
     }
   }
+  @Post("generarCestaPedido")
+  async generarCestaPedido(@Body() { idEncargo,cestaEncargo }) {
+    try {
+      if (cestaEncargo && idEncargo) {
+        return await cestasInstance.CestaModificarPedido(idEncargo,cestaEncargo);
+      }
+      throw Error("Error, faltan datos en PagarDeuda() controller");
+    } catch (err) {
+      logger.Error(63, "cestaEncargo: " + err);
+      return null;
+    }
+  }
+
+
   /* Eze 4.0  (probablemente no se usará porque irá por socket)*/
   @Post("getCestaById")
   async getCestaByID(@Body() { idCesta }) {
@@ -436,6 +450,21 @@ export class CestasController {
       logger.Error(138, error);
     }
   }
+
+  @Post("imprimirNotaPedido")
+  async imprimirNotaPedido(@Body() { idEncargo, idTrabajador,codigo,cesta }) {
+    try {
+      console.log("codigo",codigo,idEncargo,idTrabajador);
+      if (!idEncargo) {
+        throw Error("faltan datos en imprimirNotaPedido");
+      }
+      await impresoraInstance.imprimirNotaPedido(idEncargo,cesta, idTrabajador,codigo);
+      return true;
+    } catch (error) {
+      logger.Error(138, error);
+    }
+  }
+
   // @Post("addSuplementos")
   // async addSuplementos(
   //   @Body() { idCesta, suplementos, idArticuloGeneral, unidades }

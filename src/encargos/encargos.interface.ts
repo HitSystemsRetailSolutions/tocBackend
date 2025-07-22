@@ -38,6 +38,7 @@ export interface EncargosInterface extends VersionInterface{
   amPm: string | null;
   dejaCuenta: number;
   dias: Dias[];
+  idRepartidor?: number;
   fecha: string;
   hora: string | null;
   idCliente: string;
@@ -52,5 +53,5 @@ export interface EncargosInterface extends VersionInterface{
   pedido?: boolean;
   enviado?: boolean;
   finalizado?: boolean;
-  estado: "SIN_RECOGER" | "RECOGIDO" | "ANULADO";
+  estado: "SIN_RECOGER" | "RECOGIDO" | "ANULADO" | "PEDIDOS";
 }

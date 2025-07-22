@@ -350,3 +350,12 @@ export async function getRol(
   const res=await trabajadores.findOne({ _id: idTrabajador });
   return res.rol || null; // Devuelve la contraseña del trabajador
 }
+
+export async function getRepartidores(): Promise<TrabajadoresInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const trabajadores =
+    database.collection<TrabajadoresInterface>("trabajadores");
+    //rol repartidor y telegram_id not null
+    return await trabajadores.find({ rol: "REPARTIDOR", telegram_id: { $ne: null } }).toArray(); // Devuelve la contraseña del trabajador
+
+}
