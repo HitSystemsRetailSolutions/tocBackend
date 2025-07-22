@@ -34,8 +34,31 @@ import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 import { tarifasInstance } from "src/tarifas/tarifas.class";
 import { tiposIvaInstance } from "../tiposIva/tiposIva.clase";
 import Decimal from "decimal.js";
+import {
+  getDataVersion,
+  versionDescuentosClient,
+} from "src/version/version.clase";
 
 export class CestaClase {
+  constructor() {
+    this.init();
+  }
+
+  // algunas cestas creadas antes de la implementación de la dataVersion
+  // no tienen este campo, por lo que se les asigna el valor actual
+  private async init() {
+    let allCestas = await this.getAllCestas();
+    for (let cesta of allCestas) {
+      let update = false;
+      if (!cesta.dataVersion) {
+        cesta.dataVersion = getDataVersion();
+        update = true;
+      }
+      if (update) {
+        schCestas.updateCesta(cesta);
+      }
+    }
+  }
   async recalcularIvasDescuentoEspecial(cesta: CestasInterface) {
     let totalDeseado = 3.99;
     // Busca el objeto con el idCliente específico
@@ -196,8 +219,12 @@ export class CestaClase {
     io.emit("cargarCestas", arrayCestas);
   }
 
-  async aplicarDescuento(cesta: CestasInterface, total: number) {
-    const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+  async aplicarDescuento(
+    cesta: CestasInterface,
+    total: number,
+    infoCliente: ClientesInterface
+  ) {
+    const cliente = infoCliente;
     let descuento: any =
       cliente && !cliente?.albaran && !cliente?.vip
         ? Number(cliente.descuento)
@@ -265,6 +292,7 @@ export class CestaClase {
 
   async applyDiscountShop(cesta: CestasInterface, precio: number) {
     for (const producto of cesta.lista) {
+      if (producto?.regalo) continue;
       if (producto.arraySuplementos != null || producto.promocion == null) {
         const infoArticulo = await articulosInstance.getInfoArticulo(
           producto.idArticulo
@@ -274,9 +302,8 @@ export class CestaClase {
           infoArticulo.tipoIva,
           producto.unidades,
           false,
-          producto.descuentoTienda
+          producto.descuentoTienda || 0
         );
-
         producto.subtotal =
           Object.entries(objIva)
             .filter(
@@ -288,7 +315,7 @@ export class CestaClase {
             .map(([key, value]) => value)[0] || 0;
 
         if (producto.arraySuplementos != null) {
-          const detallesSuplementos = await this.getDetalleIvaSuplementos(
+          const detallesSuplementos = await this.getDetalleIvaSuplementosv2(
             producto.arraySuplementos,
             cesta.idCliente,
             producto.unidades,
@@ -300,7 +327,6 @@ export class CestaClase {
             objIva,
             detallesSuplementos
           );
-
           producto.subtotal =
             Object.entries(objIvaSuplementos)
               .filter(
@@ -309,7 +335,7 @@ export class CestaClase {
                   typeof value === "number" &&
                   value > 0
               )
-              .map(([key, value]) => value)[0] || 0;
+              .reduce((acc, [_, value]) => acc + value, 0) || 0;
         }
       } // Modificamos el total para añadir el descuento especial del cliente
       producto.subtotal = redondearPrecio(producto.subtotal);
@@ -387,6 +413,7 @@ export class CestaClase {
       trabajadores: [],
       comensales: 1,
       ArticulosFaltaUnoParaPromocion: [],
+      dataVersion: getDataVersion(),
     };
   }
 
@@ -427,6 +454,7 @@ export class CestaClase {
       trabajadores: [],
       comensales: 1,
       ArticulosFaltaUnoParaPromocion: [],
+      dataVersion: getDataVersion(),
     };
   }
 
@@ -558,6 +586,7 @@ export class CestaClase {
       new ObjectId(),
       "RECOGER ENCARGO"
     );
+    nuevaCesta.dataVersion = cestaEncargo?.dataVersion || getDataVersion();
     nuevaCesta.indexMesa = null;
     let id = undefined;
     if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
@@ -688,7 +717,10 @@ export class CestaClase {
 
       cesta.lista.splice(index, 1);
       // Enviar por socket
-      await this.recalcularIvas(cesta);
+      if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+        await this.recalcularIvasv2(cesta);
+      else await this.recalcularIvas(cesta);
+
       if (await this.updateCesta(cesta)) {
         let numProductos = 0;
         let total = 0;
@@ -745,7 +777,10 @@ export class CestaClase {
         }
       }
       // Enviar por socket
-      await this.recalcularIvas(cesta);
+      if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+        await this.recalcularIvasv2(cesta);
+      else await this.recalcularIvas(cesta);
+
       if (await this.updateCesta(cesta)) {
         await this.actualizarCestas();
         return true;
@@ -1008,7 +1043,10 @@ export class CestaClase {
           numProductos: numProductos,
         });
       }
-      await this.recalcularIvas(cesta, menu, cliente);
+      if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+        await this.recalcularIvasv2(cesta, menu, cliente);
+      else await this.recalcularIvas(cesta, menu, cliente);
+
       if (await schCestas.updateCesta(cesta)) return cesta;
     } finally {
       if (this.cola_zona_critica_insertarArticulo.length == 0)
@@ -1413,6 +1451,7 @@ export class CestaClase {
           cesta.modo !== "CONSUMO_PERSONAL" &&
           (cesta.lista[i].descuentoTienda || cesta.lista[i].tipoIva)
         ) {
+          // si no es consumo personal, eliminar
           delete cesta.lista[i].descuentoTienda;
           delete cesta.lista[i].tipoIva;
         }
@@ -1634,6 +1673,310 @@ export class CestaClase {
     return cesta;
   }
 
+  // diferencias con recalcularIvas:
+  // - No usa el decuento del cliente
+  // - Se usan los descuentos de la tienda en clientes no facturación
+  async recalcularIvasv2(
+    cesta: CestasInterface,
+    menu: string = "",
+    clienteCesta: ClientesInterface = null
+  ): Promise<CestasInterface> {
+    cesta.detalleIva = {
+      base1: 0,
+      base2: 0,
+      base3: 0,
+      base4: 0,
+      base5: 0,
+      valorIva1: 0,
+      valorIva2: 0,
+      valorIva3: 0,
+      valorIva4: 0,
+      valorIva5: 0,
+      importe1: 0,
+      importe2: 0,
+      importe3: 0,
+      importe4: 0,
+      importe5: 0,
+    };
+    const arrayIvas = tiposIvaInstance.arrayIvas;
+    const cliente = clienteCesta
+      ? clienteCesta
+      : cesta.idCliente
+      ? await clienteInstance.getClienteById(cesta.idCliente)
+      : null;
+    await this.comprobarRegalos(cesta);
+
+    let vipOalbaran = cliente?.albaran || cliente?.vip ? true : false;
+    if (vipOalbaran) {
+      await this.removePromos(cesta);
+    }
+    for (let i = 0; i < cesta.lista.length; i++) {
+      if (cesta.lista[i].regalo) continue;
+      if (cesta.lista[i].promocion) {
+        // Una promoción no puede llevar suplementos
+        cesta.detalleIva = fusionarObjetosDetalleIva(
+          cesta.detalleIva,
+          await this.getDetalleIvaPromocion(cesta.lista[i])
+        );
+      } else {
+        let articulo = await articulosInstance.getInfoArticulo(
+          cesta.lista[i].idArticulo
+        );
+        let tarifaEsp = false;
+        // encuentra el posible descuento del cliente albaran
+        let dto = 0;
+        if (cliente && cliente?.dto && (cliente?.albaran || cliente?.vip))
+          dto = await clienteInstance.getDtoAlbaran(cliente, articulo);
+        const clienteFacturacion =
+          cliente && (cliente.albaran || cliente?.vip) ? true : false;
+
+        let precioArt =
+          cliente && (cliente.albaran || cliente?.vip)
+            ? articulo.precioBase
+            : articulo.precioConIva;
+        const artPrecioIvaSinTarifa = articulo.precioConIva;
+        const artPrecioSinTarifa = articulo.precioBase;
+        articulo = await articulosInstance.getPrecioConTarifa(
+          articulo,
+          cesta.idCliente
+        );
+
+        if (
+          (cesta.modo === "CONSUMO_PERSONAL" ||
+            !!(!vipOalbaran && cesta?.idCliente)) &&
+          (!cesta.lista[i].descuentoTienda || !cesta.lista[i].tipoIva)
+        ) {
+          // productos con tipoiVA 4 no se cobra
+          cesta.lista[i].descuentoTienda = 0;
+          cesta.lista[i].tipoIva = articulo.tipoIva;
+          if (articulo.tipoIva == 4) {
+            cesta.lista[i].descuentoTienda = 100;
+          }
+          cesta.lista[i].precioOrig = redondearPrecio(
+            precioArt * cesta.lista[i].unidades
+          );
+        } else if (
+          cesta.modo !== "CONSUMO_PERSONAL" &&
+          !!(vipOalbaran || !cesta?.idCliente) &&
+          (cesta.lista[i].descuentoTienda || cesta.lista[i].tipoIva)
+        ) {
+          delete cesta.lista[i].descuentoTienda;
+          delete cesta.lista[i].tipoIva;
+        }
+        if (
+          artPrecioIvaSinTarifa != articulo.precioConIva &&
+          !clienteFacturacion
+        ) {
+          precioArt = articulo.precioConIva;
+          tarifaEsp = true;
+        } else if (
+          artPrecioSinTarifa != articulo.precioBase &&
+          clienteFacturacion
+        ) {
+          precioArt = articulo.precioBase;
+          tarifaEsp = true;
+        }
+
+        if (cesta.indexMesa != null) {
+          precioArt =
+            (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
+            null
+              ? precioArt
+              : (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo))
+                  .precioConIva;
+        }
+        if (menu.length > 0) {
+          let preu = await tarifasInstance.tarifaMenu(
+            cesta.lista[i].idArticulo,
+            menu
+          );
+          precioArt = preu == null ? precioArt : preu.precioConIva;
+        }
+
+        const precioArtDecimal = new Decimal(precioArt);
+        const unidadesDecimal = new Decimal(cesta.lista[i].unidades);
+        // obtiene el precio preciso y evita errores de redondeo
+        let p = precioArtDecimal
+          .times(unidadesDecimal)
+          .toDecimalPlaces(5)
+          .toNumber();
+
+        cesta.lista[i].subtotal = p;
+
+        // precioArt = Number(precioArt - precioArt * (descuento / 100));
+
+        if (dto && !cesta.lista[i]?.dto) {
+          // aplicar el dto en el precioArt para calcular detallesIVA y guardar % de dto en el objeto cesta
+          // para mostrarlo en el frontend y ticket.
+          if (!tarifaEsp || (tarifaEsp && cliente?.descTE))
+            cesta.lista[i].dto = dto;
+        } else if (
+          (!dto && cesta.lista[i]?.dto) ||
+          (tarifaEsp && !cliente?.descTE && cesta.lista[i]?.dto)
+        ) {
+          delete cesta.lista[i].dto;
+        }
+
+        if (tarifaEsp && !cesta.lista[i]?.tarifaEsp) {
+          cesta.lista[i].tarifaEsp = true;
+        } else if (!tarifaEsp && cesta.lista[i]?.tarifaEsp) {
+          delete cesta.lista[i].tarifaEsp;
+        }
+
+        // Si el cliente es albaran y no paga en tienda, se guarda el IVA correspondiente
+        // para mostrarlo en el ticket y en el frontend.
+        if ((cliente?.albaran || cliente?.vip) && !cesta.lista[i]?.iva) {
+          const tipoIvaStr = articulo.tipoIva.toString();
+          const ivaObject = arrayIvas.find((item) => item.tipus === tipoIvaStr);
+          cesta.lista[i].iva = ivaObject.iva;
+        } else if (
+          (cliente === null || // Cliente es null
+            (!cliente?.albaran && !cliente?.vip && !cliente?.noPagaEnTienda)) &&
+          cesta.lista[i]?.iva
+        ) {
+          delete cesta.lista[i].iva;
+        }
+
+        // si contiene dto o iva, añadir precio original para mostrarlo en el ticket
+        if (cesta.lista[i]?.iva || cesta.lista[i]?.dto) {
+          cesta.lista[i].precioOrig = precioArtDecimal
+            .times(unidadesDecimal)
+            .toDecimalPlaces(5)
+            .toNumber();
+        } else if (
+          cesta.lista[i]?.precioOrig &&
+          cesta.modo !== "CONSUMO_PERSONAL"
+        ) {
+          delete cesta.lista[i].precioOrig;
+        }
+        if (cesta.lista[i].dto) {
+          cesta.lista[i].subtotal = new Decimal(cesta.lista[i].subtotal)
+            .times(1 - new Decimal(cesta.lista[i].dto).div(100).toNumber())
+            .toNumber();
+        }
+
+        if (cesta.lista[i].iva || (clienteFacturacion && cesta.lista[i].iva)) {
+          cesta.lista[i].subtotal = new Decimal(cesta.lista[i].subtotal)
+            .times(1 + new Decimal(cesta.lista[i].iva).div(100).toNumber())
+            .toNumber();
+        }
+        let subtotalFinal =
+          Math.round(cesta.lista[i].subtotal * 100000) / 100000;
+        subtotalFinal = new Decimal(subtotalFinal)
+          .toDecimalPlaces(2)
+          .toNumber();
+        cesta.lista[i].subtotal = subtotalFinal;
+
+        // Guardamos el precio original para mostrarlo sin alterar y
+        // aplicarle descuentos al generar el ticket.
+        cesta.lista[i].precioOrig = p;
+
+        // si la cesta proviene de descargas, se añade el timestamp de la cesta para calcular la trama de iva correcta a su fecha de creacion
+        const cestaOfDownloads = menu == "descargas" ? true : false;
+        const auxDetalleIva = construirObjetoIvas(
+          precioArt,
+          articulo.tipoIva,
+          cesta.lista[i].unidades,
+          cliente?.albaran || cliente?.vip,
+          cesta.modo == "CONSUMO_PERSONAL" ||
+            !!(!vipOalbaran && cesta?.idCliente)
+            ? cesta.lista[i].descuentoTienda
+            : cesta.lista[i]?.dto || 0,
+          cestaOfDownloads ? cesta.timestamp : null
+        );
+        cesta.detalleIva = fusionarObjetosDetalleIva(
+          auxDetalleIva,
+          cesta.detalleIva
+        );
+        /* Detalle IVA de suplementos */
+        if (
+          cesta.lista[i].arraySuplementos &&
+          cesta.lista[i].arraySuplementos.length > 0
+        ) {
+          const detalleDeSuplementos = await this.getDetalleIvaSuplementosv2(
+            cesta.lista[i].arraySuplementos,
+            cesta.idCliente,
+            cesta.lista[i].unidades,
+            cesta.modo == "CONSUMO_PERSONAL" ||
+              !!(!vipOalbaran && cesta?.idCliente)
+              ? cesta.lista[i].descuentoTienda
+              : cesta.lista[i]?.dto || 0,
+            cesta?.modo == "CONSUMO_PERSONAL"
+          );
+          const preuSumplements = Number(
+            (
+              await this.getPreuSuplementos(
+                cesta.lista[i].arraySuplementos,
+                cesta.idCliente,
+                cesta.lista[i].unidades
+              )
+            ).toFixed(2)
+          );
+          cesta.lista[i].subtotal += preuSumplements;
+          if (cesta.lista[i].precioOrig) {
+            cesta.lista[i].precioOrig =
+              cesta.modo == "CONSUMO_PERSONAL"
+                ? Math.round(cesta.lista[i].subtotal * 100) / 100
+                : Math.round(
+                    (cesta.lista[i].precioOrig + preuSumplements) * 100
+                  ) / 100;
+          }
+
+          cesta.detalleIva = fusionarObjetosDetalleIva(
+            cesta.detalleIva,
+            detalleDeSuplementos
+          );
+          /*cesta.lista[i].subtotal +=
+            detalleDeSuplementos.importe1 +
+            detalleDeSuplementos.importe2 +
+            detalleDeSuplementos.importe3 +
+            detalleDeSuplementos.importe4 +
+            detalleDeSuplementos.importe5;*/
+        }
+      }
+    }
+    let total = 0;
+    let clienteDescEsp = descuentoEspecial.find(
+      (desc) => desc.idCliente == cesta.idCliente
+    );
+    for (let i = 0; i < cesta.lista.length; i++) {
+      total += cesta.lista[i].subtotal;
+    }
+    if (clienteDescEsp && total >= clienteDescEsp.activacion) {
+      logger.Info("Descuento especial activado en recalcularIvas");
+      await this.recalcularIvasDescuentoEspecial(cesta);
+    }
+    if (cesta.lista.length > 0) {
+      if (
+        cesta.lista[cesta.lista.length - 1].arraySuplementos &&
+        cesta.lista[cesta.lista.length - 1].arraySuplementos.length > 0
+      ) {
+        let numProductos = 0;
+        let total = 0;
+        for (let i = 0; i < cesta.lista.length; i++) {
+          if (cesta.lista[i].gramos == null) {
+            numProductos += cesta.lista[i].unidades;
+          } else {
+            numProductos++;
+          }
+          let valor: any = Number(cesta.lista[i].subtotal.toFixed(2));
+          total += valor;
+        }
+        if (menu != "descargas") {
+          impresoraInstance.mostrarVisor({
+            total: redondearPrecio(total),
+            precio: redondearPrecio(
+              cesta.lista[cesta.lista.length - 1].subtotal
+            ),
+            texto: cesta.lista[cesta.lista.length - 1].nombre,
+            numProductos: numProductos,
+          });
+        }
+      }
+    }
+    return cesta;
+  }
+
   /* Uri */
   async getPreuSuplementos(
     arraySuplementos: ArticulosInterface[],
@@ -1705,6 +2048,60 @@ export class CestaClase {
       if (descuento && !consumoPersonal) {
         precioArt = precioArt - precioArt * (descuento / 100);
       }
+      objetoIva = fusionarObjetosDetalleIva(
+        construirObjetoIvas(
+          precioArt,
+          articulo.tipoIva,
+          unidades,
+          cliente?.albaran || cliente?.vip,
+          dto
+        ),
+        objetoIva
+      );
+    }
+    return objetoIva;
+  }
+
+  /* Eze 4.0 */
+  async getDetalleIvaSuplementosv2(
+    arraySuplementos: ArticulosInterface[],
+    idCliente: ClientesInterface["id"],
+    unidades: number,
+    dto: number = 0,
+    consumoPersonal = false
+  ): Promise<DetalleIvaInterface> {
+    let objetoIva: DetalleIvaInterface = {
+      base1: 0,
+      base2: 0,
+      base3: 0,
+      base4: 0,
+      base5: 0,
+      valorIva1: 0,
+      valorIva2: 0,
+      valorIva3: 0,
+      valorIva4: 0,
+      valorIva5: 0,
+      importe1: 0,
+      importe2: 0,
+      importe3: 0,
+      importe4: 0,
+      importe5: 0,
+    };
+    let cliente = await clienteInstance.getClienteById(idCliente);
+
+    for (let i = 0; i < arraySuplementos.length; i++) {
+      let articulo = await articulosInstance.getInfoArticulo(
+        arraySuplementos[i]._id
+      );
+      articulo = await articulosInstance.getPrecioConTarifa(
+        articulo,
+        idCliente
+      );
+      let precioArt =
+        cliente && (cliente.albaran || cliente?.vip)
+          ? articulo.precioBase
+          : articulo.precioConIva;
+
       objetoIva = fusionarObjetosDetalleIva(
         construirObjetoIvas(
           precioArt,
@@ -1854,7 +2251,11 @@ export class CestaClase {
     item.subtotal = 0;
     item.precioOrig = 0;
     cesta.lista = [...cesta.lista];
-    await cestasInstance.recalcularIvas(cesta);
+
+    if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+      await this.recalcularIvasv2(cesta);
+    else await this.recalcularIvas(cesta);
+
     if (await cestasInstance.updateCesta(cesta)) {
       await this.actualizarCestas();
       return true;
@@ -1983,7 +2384,10 @@ export class CestaClase {
     if (cesta.lista[index]) {
       cesta.lista[index].descuentoTienda = discount;
     }
-    await this.recalcularIvas(cesta);
+
+    if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+      await this.recalcularIvasv2(cesta);
+    else await this.recalcularIvas(cesta);
   }
 }
 

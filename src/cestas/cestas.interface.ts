@@ -18,6 +18,7 @@ export interface CestasInterface {
   trabajadores: ObjectId[];
   comensales: number;
   ArticulosFaltaUnoParaPromocion: ArticulosInterface["_id"][];
+  dataVersion?: string;
 }
 
 export interface CestasCombinadaInterface  extends CestasInterface {

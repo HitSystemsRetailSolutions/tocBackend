@@ -27,7 +27,7 @@ import { ticketsInstance } from "./tickets/tickets.clase";
 let URL_SANPEDRO = "";
 if (process.env.npm_lifecycle_event === "start:dev")
   URL_SANPEDRO = "http://localhost:3001";
-else URL_SANPEDRO = "https://santaana2-elb.nubehit.com:3001";
+else URL_SANPEDRO = "https://santaana2-elb.nubehit.com:3002";
 const io = require("socket.io-client");
 const socket = io(URL_SANPEDRO);
 

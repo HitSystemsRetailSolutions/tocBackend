@@ -16,21 +16,29 @@ import { time } from "console";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
 import { CestaClase, cestasInstance } from "src/cestas/cestas.clase";
-import { CestasInterface, ItemLista, GrupoPromoEnCesta, ArticuloPromoEnCesta } from "src/cestas/cestas.interface";
+import {
+  CestasInterface,
+  ItemLista,
+  GrupoPromoEnCesta,
+  ArticuloPromoEnCesta,
+} from "src/cestas/cestas.interface";
 import { CestasController } from "src/cestas/cestas.controller";
 import { getSuplementos } from "src/articulos/articulos.mongodb";
 import { articulosInstance } from "src/articulos/articulos.clase";
 import {
   NuevaPromocion,
   nuevaInstancePromociones,
-  ArticuloInfoPromoYNormal
+  ArticuloInfoPromoYNormal,
 } from "../promociones/promociones.clase";
-import {
-  PromocionesInterface,
-} from "../promociones/promociones.interface";
+import { PromocionesInterface } from "../promociones/promociones.interface";
 import { cajaInstance } from "src/caja/caja.clase";
 import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
-import { getDataVersion } from "src/version/version.clase";
+import {
+  getDataVersion,
+  obtenerVersionAnterior,
+  versionDescuentosClient,
+} from "src/version/version.clase";
+import Decimal from "decimal.js";
 
 export class Encargos {
   async pruebaImportar() {
@@ -313,12 +321,23 @@ export class Encargos {
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
   setEncargo = async (encargo) => {
     var TEncargo1 = performance.now();
-    await cestasInstance.aplicarDescuento(encargo.cesta, encargo.total);
+
+    const cliente = await clienteInstance.getClienteById(encargo.idCliente);
+    const alboVip = cliente && cliente?.albaran && cliente?.vip;
+
+    // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
+    await cestasInstance.aplicarDescuento(
+      encargo.cesta,
+      encargo.total,
+      cliente
+    );
+
+    if (encargo.cesta.modo == "CONSUMO_PERSONAL" || (cliente && !alboVip))
+      await cestasInstance.applyDiscountShop(encargo.cesta, encargo.total);
 
     for (let i = 0; i < encargo.productos.length; i++) {
       encargo.productos[i].total = encargo.cesta.lista[i].subtotal;
     }
-
 
     let timestamp = new Date().getTime();
     let codigoBarras = await movimientosInstance.generarCodigoBarrasSalida();
@@ -567,6 +586,16 @@ export class Encargos {
       let codigoBarras = detallesArray[0].codigoBarras;
       let client = await clienteInstance.getClienteById(idCliente);
       let total = 0;
+      let dataVersion = detallesArray[0]?.DataVersion
+        ? detallesArray[0].DataVersion
+        : obtenerVersionAnterior(versionDescuentosClient);
+
+      if (cesta.dataVersion && !dataVersion) {
+        delete cesta.dataVersion;
+      } else if (dataVersion) {
+        cesta.dataVersion = dataVersion;
+      }
+
       cesta.idCliente = idCliente;
       cesta.nombreCliente = client?.nombre;
       cesta.trabajador = idDependenta;
@@ -596,17 +625,23 @@ export class Encargos {
             comentario: textoModificado,
             arraySuplementos: cestaEncargo.lista[index].arraySuplementos,
             promocion: cestaEncargo.lista[index].promocion,
+            dataVersion: dataVersion,
           });
         }
       }
       const cliente = await clienteInstance.getClienteById(detallesArray[0].Id);
+
       let descuento: any =
         cliente && !cliente?.albaran && !cliente?.vip
           ? Number(cliente.descuento)
           : 0;
 
-      // modificamos precios con el descuentro del cliente
-      if (descuento && descuento > 0) {
+      // se aplica el descuento a los productos para visualizarlos en pantalla
+      if (
+        descuento &&
+        descuento > 0 &&
+        (!dataVersion || (dataVersion && dataVersion < versionDescuentosClient))
+      ) {
         for (let i = 0; i < productos.length; i++) {
           if (productos[i].id !== -1) {
             productos[i].total = this.redondearPrecio(
@@ -617,7 +652,29 @@ export class Encargos {
             cestaEncargo.lista[i].subtotal = productos[i].total;
           }
         }
+      } else if (dataVersion && dataVersion >= versionDescuentosClient) {
+        let descuentoTienda = new Decimal(0);
+
+        for (let i = 0; i < productos.length; i++) {
+          descuentoTienda = new Decimal(
+            cestaEncargo.lista[i]?.descuentoTienda || 0
+          );
+
+          if (productos[i].id !== -1) {
+            const total = new Decimal(productos[i].total);
+            const descuentoAplicado = total.mul(descuentoTienda).div(100);
+            const totalConDescuento = total.minus(descuentoAplicado);
+
+            productos[i].total = this.redondearPrecio(
+              Number(totalConDescuento)
+            );
+
+            // Asigna el valor de producto.total al subtotal en cesta.lista
+            cestaEncargo.lista[i].subtotal = productos[i].total;
+          }
+        }
       }
+
       let dependenta: TrabajadoresInterface =
         await trabajadoresInstance.getTrabajadorById(idDependenta);
 
@@ -633,6 +690,29 @@ export class Encargos {
       if (this.parametros == null) {
         this.parametros = parametros;
       }
+
+      let dias: EncargosInterface["dias"] = [];
+      if (opcionRecogida == OpcionRecogida.REPETICION) {
+        // generar formato Dias del encargo
+        const diaSemanaNumber: number = new Date(fecha).getDay();
+        const diaSemanaString: string = new Date(fecha).toLocaleDateString(
+          "es-ES",
+          {
+            weekday: "long",
+          }
+        );
+        const diaString =
+          diaSemanaString.charAt(0).toUpperCase() + diaSemanaString.slice(1);
+        dias = [
+          {
+            nDia: diaSemanaNumber - 1,
+            dia: diaString,
+            checked: true,
+          },
+        ];
+      }
+
+      //
       const mongodbEncargo: EncargosInterface = {
         idCliente: idCliente,
         nombreCliente: client.nombre,
@@ -640,7 +720,7 @@ export class Encargos {
         amPm: "pm",
         fecha: fecha,
         hora: hora,
-        dias: [],
+        dias: dias,
         dejaCuenta: anticipo,
         total: total,
         productos: productos,
@@ -708,91 +788,109 @@ export class Encargos {
         Number(detallesArray[otroIndex]?.PromoArtPrinc) === item.Article
       );
     }
-    let PromoEnGrupos=false
+    let PromoEnGrupos = false;
     for (let det of detallesArray) {
       if (det.GrupoPromo) {
-        PromoEnGrupos=true 
-        break
+        PromoEnGrupos = true;
+        break;
       }
     }
-    if (PromoEnGrupos) { // formato de promo nuevos (en grupos)
-      let MapItemsOfPromo:Map<number, {
-        idPromo:string, 
-        grupos:{
-          idxGrupo:number, 
-          idxInGrupo:number, 
-          Article:number, 
-          Quantitat:number, 
-        }[]}>=new Map()
-      let Comentari=""
+    if (PromoEnGrupos) {
+      // formato de promo nuevos (en grupos)
+      let MapItemsOfPromo: Map<
+        number,
+        {
+          idPromo: string;
+          grupos: {
+            idxGrupo: number;
+            idxInGrupo: number;
+            Article: number;
+            Quantitat: number;
+          }[];
+        }
+      > = new Map();
+      let Comentari = "";
       encargo.forEach((item, index) => {
-        let da=detallesArray[index]
-        let GrupoPromoStr:string = da.GrupoPromo
+        let da = detallesArray[index];
+        let GrupoPromoStr: string = da.GrupoPromo;
         if (GrupoPromoStr) {
           // GrupoPromo: idxItemLista,idxGrupo,idxInGrupo
-          let GP = GrupoPromoStr.split(",").map((v)=>parseInt(v))
+          let GP = GrupoPromoStr.split(",").map((v) => parseInt(v));
           let p = {
-            idxGrupo:GP[1], 
-            idxInGrupo:GP[2], 
-            Article:item.Article as number, 
-            Quantitat:item.Quantitat as number,
-          }
-          if (item.Comentari && item.Comentari!="0") Comentari=item.Comentari
-          let promo = MapItemsOfPromo.get(GP[0]) //idxItemLista
-          if (promo == undefined) { MapItemsOfPromo.set(GP[0], { 
-            idPromo:(da.IdPromoCombo || da.IdPromoIndividual || da.IdPromo) as string, grupos: [p]}) 
+            idxGrupo: GP[1],
+            idxInGrupo: GP[2],
+            Article: item.Article as number,
+            Quantitat: item.Quantitat as number,
+          };
+          if (item.Comentari && item.Comentari != "0")
+            Comentari = item.Comentari;
+          let promo = MapItemsOfPromo.get(GP[0]); //idxItemLista
+          if (promo == undefined) {
+            MapItemsOfPromo.set(GP[0], {
+              idPromo: (da.IdPromoCombo ||
+                da.IdPromoIndividual ||
+                da.IdPromo) as string,
+              grupos: [p],
+            });
           } else {
-            promo.grupos.push(p)
+            promo.grupos.push(p);
           }
-          procesados.add(index)
+          procesados.add(index);
         }
-      })
+      });
       for (let [idxItemLista, id_y_grupos] of MapItemsOfPromo) {
-        const promoById = nuevaInstancePromociones.getPromoById(id_y_grupos.idPromo);
-        if (!promoById) continue
-        id_y_grupos.grupos.sort((a,b)=>{
-          let c=a.idxGrupo-b.idxGrupo
-          if (c!=0) return c
-          c=a.idxInGrupo-b.idxInGrupo
-          return c
-        })
-        let grupos:GrupoPromoEnCesta[] = []
-        let unidadesPorGrupo:number[] = []
-        let idxGrupoActual=-1
-        let puntos=0
+        const promoById = nuevaInstancePromociones.getPromoById(
+          id_y_grupos.idPromo
+        );
+        if (!promoById) continue;
+        id_y_grupos.grupos.sort((a, b) => {
+          let c = a.idxGrupo - b.idxGrupo;
+          if (c != 0) return c;
+          c = a.idxInGrupo - b.idxInGrupo;
+          return c;
+        });
+        let grupos: GrupoPromoEnCesta[] = [];
+        let unidadesPorGrupo: number[] = [];
+        let idxGrupoActual = -1;
+        let puntos = 0;
         for (let gr of id_y_grupos.grupos) {
           const artInfo = await articulosInstance.getInfoArticulo(gr.Article);
-          if (artInfo.puntos!=null) puntos+=gr.Quantitat*artInfo.puntos
-          let ArtGrupo:ArticuloInfoPromoYNormal = {
-            idArticulo:gr.Article,
-            unidades:gr.Quantitat, // falta dividir por número de promos
-            nombre:artInfo.nombre,
-            precioPromoPorUnidad:null,
-            precioPorUnidad:artInfo.precioConIva,
-            puntosPorUnidad:artInfo.puntos,
+          if (artInfo.puntos != null) puntos += gr.Quantitat * artInfo.puntos;
+          let ArtGrupo: ArticuloInfoPromoYNormal = {
+            idArticulo: gr.Article,
+            unidades: gr.Quantitat, // falta dividir por número de promos
+            nombre: artInfo.nombre,
+            precioPromoPorUnidad: null,
+            precioPorUnidad: artInfo.precioConIva,
+            puntosPorUnidad: artInfo.puntos,
             impresora: artInfo.impresora,
-          }
-          if (gr.idxGrupo!=idxGrupoActual) {
-            grupos.push([ArtGrupo])
-            unidadesPorGrupo.push(gr.Quantitat)
-            idxGrupoActual=gr.idxGrupo
+          };
+          if (gr.idxGrupo != idxGrupoActual) {
+            grupos.push([ArtGrupo]);
+            unidadesPorGrupo.push(gr.Quantitat);
+            idxGrupoActual = gr.idxGrupo;
           } else {
-            grupos[grupos.length-1].push(ArtGrupo)
-            unidadesPorGrupo[unidadesPorGrupo.length-1] = unidadesPorGrupo[unidadesPorGrupo.length-1] + gr.Quantitat
+            grupos[grupos.length - 1].push(ArtGrupo);
+            unidadesPorGrupo[unidadesPorGrupo.length - 1] =
+              unidadesPorGrupo[unidadesPorGrupo.length - 1] + gr.Quantitat;
           }
         }
-        let num_promos = unidadesPorGrupo[0]/promoById.grupos[0].cantidad
+        let num_promos = unidadesPorGrupo[0] / promoById.grupos[0].cantidad;
         for (let artGrupo of grupos.flat()) {
-          artGrupo.unidades/=num_promos
-        } 
+          artGrupo.unidades /= num_promos;
+        }
 
-        let productoCesta = await nuevaInstancePromociones.crearItemListaPromo(promoById, grupos)
-        productoCesta.unidades = num_promos
-        nuevaInstancePromociones.calculoFinalPromo(productoCesta)
+        let productoCesta = await nuevaInstancePromociones.crearItemListaPromo(
+          promoById,
+          grupos
+        );
+        productoCesta.unidades = num_promos;
+        nuevaInstancePromociones.calculoFinalPromo(productoCesta);
         cesta.lista.push(productoCesta);
         comentarios.push(Comentari);
       }
-    } else { // formato de promo antiguo
+    } else {
+      // formato de promo antiguo
       // recorrer encargo para encontrar promos
       encargo.forEach((item, index) => {
         if (item.Detall.includes("IdPromoCombo") && !procesados.has(index)) {
@@ -832,7 +930,9 @@ export class Encargos {
       });
       // creamos las promos encontradas y las insertamos en cesta
       for (const item of productosPromo) {
-        const promoEncontrado = nuevaInstancePromociones.getPromoById(item.idPromo);
+        const promoEncontrado = nuevaInstancePromociones.getPromoById(
+          item.idPromo
+        );
 
         if (promoEncontrado) {
           let unidadArtPrinc;
@@ -844,18 +944,21 @@ export class Encargos {
             idPrinc = encargo[item.indexArtEnc[0]].Article;
             idSec = null;
 
-            const unidades = unidadArtPrinc / promoEncontrado.grupos[0].cantidad // cantidadPrincipal;
+            const unidades =
+              unidadArtPrinc / promoEncontrado.grupos[0].cantidad; // cantidadPrincipal;
             const articuloPrincipal =
               await articulosInstance.getInfoArticulo(idPrinc);
             const nombre = "Promo. " + articuloPrincipal.nombre;
-            const ArtPromo:ArticuloPromoEnCesta = {
-              idArticulo:idPrinc,
-              nombre:articuloPrincipal.nombre,
-              unidades:promoEncontrado.grupos[0].cantidad,
-              precioPromoPorUnidad:this.redondearPrecio(promoEncontrado.precioFinal/promoEncontrado.grupos[0].cantidad),
+            const ArtPromo: ArticuloPromoEnCesta = {
+              idArticulo: idPrinc,
+              nombre: articuloPrincipal.nombre,
+              unidades: promoEncontrado.grupos[0].cantidad,
+              precioPromoPorUnidad: this.redondearPrecio(
+                promoEncontrado.precioFinal / promoEncontrado.grupos[0].cantidad
+              ),
               impresora: articuloPrincipal.impresora,
-            }
-            const productoCesta:ItemLista = {
+            };
+            const productoCesta: ItemLista = {
               arraySuplementos: null,
               gramos: 0,
               idArticulo: -1,
@@ -867,13 +970,16 @@ export class Encargos {
                   // cantidadPrincipal *
                   promoEncontrado.precioFinal // el precio final en el nuevo formato promo individual ya es el total por promo
               ),
-              puntos: articuloPrincipal.puntos==null?null:unidades*articuloPrincipal.puntos,
+              puntos:
+                articuloPrincipal.puntos == null
+                  ? null
+                  : unidades * articuloPrincipal.puntos,
               impresora: articuloPrincipal.impresora,
               promocion: {
                 idPromocion: promoEncontrado._id,
                 grupos: [[ArtPromo]],
-                precioFinalPorPromo:promoEncontrado.precioFinal,
-                unidadesOferta: unidades
+                precioFinalPorPromo: promoEncontrado.precioFinal,
+                unidadesOferta: unidades,
               },
             };
             cesta.lista.push(productoCesta);
@@ -890,7 +996,8 @@ export class Encargos {
               idSec = encargo[item.indexArtEnc[0]].Article;
             }
 
-            const unidades = unidadArtPrinc / promoEncontrado.grupos[0].cantidad;
+            const unidades =
+              unidadArtPrinc / promoEncontrado.grupos[0].cantidad;
 
             const articuloPrincipal =
               await articulosInstance.getInfoArticulo(idPrinc);
@@ -898,32 +1005,51 @@ export class Encargos {
               await articulosInstance.getInfoArticulo(idSec);
 
             const nombre =
-              "Promo. " + articuloPrincipal.nombre + " + " + articuloSecundario.nombre;
+              "Promo. " +
+              articuloPrincipal.nombre +
+              " + " +
+              articuloSecundario.nombre;
 
-            let totalSinDescuento = articuloPrincipal.precioConIva*promoEncontrado.grupos[0].cantidad+
-              articuloSecundario.precioConIva*promoEncontrado.grupos[1].cantidad
+            let totalSinDescuento =
+              articuloPrincipal.precioConIva *
+                promoEncontrado.grupos[0].cantidad +
+              articuloSecundario.precioConIva *
+                promoEncontrado.grupos[1].cantidad;
 
-            let perc = promoEncontrado.precioFinal/totalSinDescuento
+            let perc = promoEncontrado.precioFinal / totalSinDescuento;
 
-            const ArtPromoPrincipal:ArticuloPromoEnCesta = {
-              idArticulo:idPrinc,
-              nombre:articuloPrincipal.nombre,
-              unidades:promoEncontrado.grupos[0].cantidad,
-              precioPromoPorUnidad:this.redondearPrecio(articuloPrincipal.precioConIva*perc),
+            const ArtPromoPrincipal: ArticuloPromoEnCesta = {
+              idArticulo: idPrinc,
+              nombre: articuloPrincipal.nombre,
+              unidades: promoEncontrado.grupos[0].cantidad,
+              precioPromoPorUnidad: this.redondearPrecio(
+                articuloPrincipal.precioConIva * perc
+              ),
               impresora: articuloPrincipal.impresora,
-            }
-            const ArtPromoSecundario:ArticuloPromoEnCesta = {
-              idArticulo:idSec,
-              nombre:articuloSecundario.nombre,
-              unidades:promoEncontrado.grupos[1].cantidad,
-              precioPromoPorUnidad:this.redondearPrecio(articuloSecundario.precioConIva*perc),
+            };
+            const ArtPromoSecundario: ArticuloPromoEnCesta = {
+              idArticulo: idSec,
+              nombre: articuloSecundario.nombre,
+              unidades: promoEncontrado.grupos[1].cantidad,
+              precioPromoPorUnidad: this.redondearPrecio(
+                articuloSecundario.precioConIva * perc
+              ),
               impresora: articuloSecundario.impresora,
-            }
-            let impresora = articuloPrincipal.impresora? articuloPrincipal.impresora : articuloSecundario.impresora;
-            let puntos=null
-            if (articuloPrincipal.puntos!=null || articuloSecundario.puntos!=null)
-              puntos = unidades*(articuloPrincipal.puntos??0 + articuloSecundario.puntos??0)
-            const productoCesta:ItemLista = {
+            };
+            let impresora = articuloPrincipal.impresora
+              ? articuloPrincipal.impresora
+              : articuloSecundario.impresora;
+            let puntos = null;
+            if (
+              articuloPrincipal.puntos != null ||
+              articuloSecundario.puntos != null
+            )
+              puntos =
+                unidades *
+                (articuloPrincipal.puntos ??
+                  0 + articuloSecundario.puntos ??
+                  0);
+            const productoCesta: ItemLista = {
               arraySuplementos: null,
               gramos: 0,
               idArticulo: -1,
@@ -937,9 +1063,9 @@ export class Encargos {
               impresora: impresora,
               promocion: {
                 idPromocion: promoEncontrado._id,
-                grupos:[[ArtPromoPrincipal],[ArtPromoSecundario]],
-                precioFinalPorPromo:promoEncontrado.precioFinal,
-                unidadesOferta: unidades
+                grupos: [[ArtPromoPrincipal], [ArtPromoSecundario]],
+                precioFinalPorPromo: promoEncontrado.precioFinal,
+                unidadesOferta: unidades,
               },
             };
             cesta.lista.push(productoCesta);
@@ -952,8 +1078,10 @@ export class Encargos {
     const cliente = cesta.idCliente
       ? await clienteInstance.getClienteById(cesta.idCliente)
       : null;
-      // actualizar la cesta con los productos promo, por si no se hace clickTeclaArticulo con los no promo
-    await cestasInstance.recalcularIvas(cesta, "descargas", cliente);
+    // actualizar la cesta con los productos promo, por si no se hace clickTeclaArticulo con los no promo
+    if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+      await cestasInstance.recalcularIvasv2(cesta, "descargas", cliente);
+    else await cestasInstance.recalcularIvas(cesta, "descargas", cliente);
 
     await cestasInstance.updateCesta(cesta);
 
@@ -968,21 +1096,33 @@ export class Encargos {
               )
             : null;
 
-          for (let i = 0; i < item.Quantitat; i++) {
-            cesta = await cestasInstance.clickTeclaArticulo(
-              item.Article,
-              0,
-              cesta._id,
-              1,
-              arraySuplementos,
-              "",
-              "descargas"
-            );
+          cesta = await cestasInstance.clickTeclaArticulo(
+            item.Article,
+            0,
+            cesta._id,
+            item.Quantitat,
+            arraySuplementos,
+            "",
+            "descargas"
+          );
+          if (
+            detallesArray[index]?.Descuento &&
+            detallesArray[index]?.Descuento > 0
+          ) {
+            // si hay descuento, se recalcula iva de cesta
+            cesta.lista[cesta.lista.length - 1].descuentoTienda =
+              Number(detallesArray[index]?.Descuento) || 0;
+            // actualizamos la cesta del mongo para no perder el descuento al pasar a la siguiente iteración
+            await cestasInstance.updateCesta(cesta);
           }
 
           comentarios.push(encargo[index].Comentari);
         }
       }
+      // recalcular iva de cesta si contiene descuentos
+      if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+        await cestasInstance.recalcularIvasv2(cesta, "descargas", cliente);
+      else await cestasInstance.recalcularIvas(cesta, "descargas", cliente);
     } catch (error) {
       console.log("error crear cesta de encargo", error);
     }
