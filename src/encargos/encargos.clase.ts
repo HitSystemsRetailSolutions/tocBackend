@@ -64,8 +64,7 @@ export class Encargos {
   async setPedidoRepartidor(
     idEncargo: EncargosInterface["_id"],
     idRepartidor: TrabajadoresInterface["_id"]
-  )
-  {
+  ) {
     return await schEncargos.setPedidoRepartidor(idEncargo, idRepartidor);
   }
 
@@ -80,7 +79,7 @@ export class Encargos {
     }
     let productos = [];
     cesta.lista.forEach(element => {
-    productos.push({
+      productos.push({
         id: element.idArticulo,
         nombre: element.nombre,
         total: element.subtotal,
@@ -91,7 +90,7 @@ export class Encargos {
       });
     });
 
-    return await schEncargos.setCestaPedidos(idEncargo, cesta,calcularTotal(cesta),productos);
+    return await schEncargos.setCestaPedidos(idEncargo, cesta, calcularTotal(cesta), productos);
   }
 
   setEntregado = async (id) => {
@@ -379,7 +378,7 @@ export class Encargos {
 
 
   setPedido = async (encargo) => {
-    await cestasInstance.aplicarDescuento(encargo.cesta, encargo.total);
+    await cestasInstance.aplicarDescuento(encargo.cesta, encargo.total, encargo.idCliente);
 
 
     let timestamp = new Date().getTime();
@@ -398,7 +397,7 @@ export class Encargos {
       .setEncargo(encargo)
       .then(async (ok: boolean) => {
         if (!ok) return { error: true, msg: "Error al crear el encargo" };
-      
+
         return { error: false, msg: "Encargo creado" };
       })
       .catch((err: string) => ({ error: true, msg: err }));
@@ -967,8 +966,8 @@ export class Encargos {
               regalo: false,
               subtotal: this.redondearPrecio(
                 unidades *
-                  // cantidadPrincipal *
-                  promoEncontrado.precioFinal // el precio final en el nuevo formato promo individual ya es el total por promo
+                // cantidadPrincipal *
+                promoEncontrado.precioFinal // el precio final en el nuevo formato promo individual ya es el total por promo
               ),
               puntos:
                 articuloPrincipal.puntos == null
@@ -1012,9 +1011,9 @@ export class Encargos {
 
             let totalSinDescuento =
               articuloPrincipal.precioConIva *
-                promoEncontrado.grupos[0].cantidad +
+              promoEncontrado.grupos[0].cantidad +
               articuloSecundario.precioConIva *
-                promoEncontrado.grupos[1].cantidad;
+              promoEncontrado.grupos[1].cantidad;
 
             let perc = promoEncontrado.precioFinal / totalSinDescuento;
 
@@ -1092,8 +1091,8 @@ export class Encargos {
         if (!procesados.has(index)) {
           const arraySuplementos = detallesArray[index]?.suplementos
             ? await articulosInstance.getSuplementos(
-                detallesArray[index]?.suplementos.split(",").map(Number)
-              )
+              detallesArray[index]?.suplementos.split(",").map(Number)
+            )
             : null;
 
           cesta = await cestasInstance.clickTeclaArticulo(
