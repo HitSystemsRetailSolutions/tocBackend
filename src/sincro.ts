@@ -35,6 +35,7 @@ import { CajaSincro, objTempCajaInterface } from "./caja/caja.interface";
 import CircuitBreakerAxios from "./circuitBreaker/circuitBreakerAxios";
 import CircuitBreakerSocket from "./circuitBreaker/circuitBreakerSocket";
 import { Console } from "console";
+import { tiposIvaInstance } from "./tiposIva/tiposIva.clase";
 // inicio de breakers
 const failureThreshold = 3; // número de fallos antes de abrir el circuito
 const timeoutOpenCircuit = 300000; // tiempo en ms antes de abrir el circuito
@@ -257,9 +258,9 @@ async function socketSincronizarTickets() {
         database: params.database,
         codigoInternoTienda: params.codigoTienda,
         nombreTienda: params.nombreTienda,
+        iva: await tiposIvaInstance.getArrayIvas(),
         token: "Bearer " + params.token,
       };
-
       CBSocketSincronizarTickets.fire({
         ticket: superTicket,
         parametros,
@@ -402,7 +403,7 @@ async function sincronizarMovimientos(continuar: boolean = false) {
       if (parametros != null) {
         const res = await movimientosInstance.getMovimientoMasAntiguo();
         if (res) {
- 
+
           const resMovimiento: any = await CBSincronizarMovimientos.fire({
             movimiento: res,
           });
