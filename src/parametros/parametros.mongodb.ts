@@ -33,6 +33,7 @@ export async function setParametros(
         prohibirAnular3g: "",
         verInformesVentas: "",
         prohibirAnularTkAlbaran: "",
+
       },
     }
   );

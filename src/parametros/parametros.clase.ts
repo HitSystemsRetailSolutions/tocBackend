@@ -8,6 +8,39 @@ export class ParametrosClase {
     return await schParametros.getParametros();
   };
 
+  setNif = async (): Promise<string> => {
+    try {
+
+      function haveNif(nif: string) {
+        return nif != "false" && nif
+      }
+
+      const nif = await axios.get("nif");
+      let params = await this.getParametros();
+
+      if (params) {
+        if (haveNif(nif.data))
+          params.nif = nif.data;
+        else {
+          delete params.nif;
+          delete params.verifactuEnabled;
+        }
+        if (!params?.verifactuEnabled && params.nif)
+          params.verifactuEnabled = (new Date())
+        await this.setParametros(params);
+      }
+      if (!haveNif) return "";
+      return nif.data;
+    }
+    catch (e) {
+      return null;
+    }
+  };
+
+  getNif = async (): Promise<string> => {
+    const params = await this.getParametros();
+    return params.nif;
+  };
   /* Eze 4.0 */
   actParametros = async (params: ParametrosInterface) =>
     await schParametros.setParametros(params);

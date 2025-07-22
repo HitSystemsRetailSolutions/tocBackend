@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import { conexion } from "../conexion/mongodb";
-import { CestasInterface } from "./cestas.interface";
+import { CestasCombinadaInterface, CestasInterface } from "./cestas.interface";
 import { nuevaInstancePromociones } from "src/promociones/promociones.clase";
 import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 import { log } from "console";
@@ -70,6 +70,34 @@ export async function updateCesta(cesta: CestasInterface): Promise<boolean> {
         lista: cesta.lista,
         modo: cesta.modo,
         idPedido: cesta.idPedido || null,
+        timestamp: cesta.timestamp,
+        nombreCliente: cesta.nombreCliente,
+        albaran: cesta?.albaran,
+        vip: cesta?.vip,
+      },
+    }
+  );
+  return resultado.acknowledged && resultado.matchedCount === 1;
+}
+
+export async function updateCestaCombinada(cesta: CestasCombinadaInterface): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const unaCesta = database.collection<CestasCombinadaInterface>("cestas");
+  for (let i = 0; i < cesta.lista.length; i++) {
+    nuevaInstancePromociones.redondearDecimales(cesta.lista[i].subtotal, 2);
+  }
+
+  const resultado = await unaCesta.updateOne(
+    { _id: new ObjectId(cesta._id) },
+    {
+      $set: {
+        detalleIva: cesta.detalleIva,
+        detalleIvaDeudas: cesta.detalleIvaDeudas,
+        detalleIvaTickets: cesta.detalleIvaTickets,
+        idCliente: cesta.idCliente,
+        lista: cesta.lista,
+        listaDeudas: cesta.listaDeudas,
+        modo: cesta.modo,
         timestamp: cesta.timestamp,
         nombreCliente: cesta.nombreCliente,
         albaran: cesta?.albaran,

@@ -1,6 +1,6 @@
 {
   "name": "toc-backend-nest",
-  "version": "4.25.21.t",
+  "version": "4.25.28",
   "description": "",
   "author": "",
   "private": true,
@@ -20,7 +20,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "obfuscate": "npx javascript-obfuscator dist --output dist-obfuscated --compact true --control-flow-flattening false --dead-code-injection false --string-array true --string-array-encoding base64 --string-array-threshold 0.1"
   },
   "dependencies": {
     "@fastify/static": "^6.11.2",
@@ -80,6 +81,7 @@
     "eslint-plugin-prettier": "^5.0.0",
     "eslint-plugin-vue": "^9.17.0",
     "formidable": "3.5.1",
+    "javascript-obfuscator": "^4.1.1",
     "jest": "29.7.0",
     "prettier": "3.0.3",
     "superagent": "9.0.1",

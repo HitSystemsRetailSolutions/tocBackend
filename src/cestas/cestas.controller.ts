@@ -12,9 +12,13 @@ import { impresoraInstance } from "src/impresora/impresora.class";
 export class CestasController {
   /* Eze 4.0 */
   @Post("borrarCesta")
-  async borrarCesta(@Body() { idCesta }) {
+  async borrarCesta(@Body() { idCesta, quitarCliente = false }) {
     try {
-      if (idCesta) return await cestasInstance.borrarArticulosCesta(idCesta);
+      if (idCesta)
+        return await cestasInstance.borrarArticulosCesta(
+          idCesta,
+          quitarCliente
+        );
 
       throw Error("Error, faltan datos en borrarCesta controller");
     } catch (err) {
@@ -112,7 +116,21 @@ export class CestasController {
       }
       throw Error("Error, faltan datos en cetsaDeudas() controller");
     } catch (err) {
-      logger.Error(61, "PagarDeuda: " + err);
+      logger.Error(61, "cestasDeuda: " + err);
+      return null;
+    }
+  }
+
+  @Post("cestaCombinada")
+  async cestaCombinada(@Body() { cestas }) {
+    try {
+      if (cestas) {
+        return await cestasInstance.CestaPagoCombinado(cestas);
+      }
+      throw Error("Error, faltan datos en cestaCombinada() controller");
+    } catch (err) {
+      console.log("error", err);
+      logger.Error(61, "cestaCombinada: " + err);
       return null;
     }
   }
