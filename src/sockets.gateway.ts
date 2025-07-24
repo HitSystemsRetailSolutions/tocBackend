@@ -144,7 +144,7 @@ io.on("connection", (socket) => {
   /* Eze 4.0 */
   socket.on("recargarPromociones", async () => {
     try {
-      await nuevaInstancePromociones.recargarPromosCache();
+      await nuevaInstancePromociones.recargarPromosCachev2();
     } catch (err) {
       logger.Error("sockets.gateway.ts recargarPromociones", err);
     }
