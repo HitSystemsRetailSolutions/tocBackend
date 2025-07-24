@@ -49,11 +49,14 @@ const redondearPrecio = (precio: number) =>
   Math.round((precio + Number.EPSILON * 100000) * 100) / 100;
 import * as schCestas from "../cestas/cestas.mongodb";
 import { EncargosInterface } from "src/encargos/encargos.interface";
+import { getDataVersion } from "src/version/version.clase";
 
 export type ArticuloInfoPromoYNormal = ArticuloPromoEnCesta & {
   precioPorUnidad: number;
   puntosPorUnidad: number;
   impresora: string;
+  descuentoTienda?: number;
+  tipoIva?: number;
   suplementosPorArticulo?: {
     unidades: number;
     suplementos: ItemLista["arraySuplementos"];
@@ -415,6 +418,10 @@ export class NuevaPromocion {
                 item.puntos == null ? null : item.puntos / item.unidades,
               precioPromoPorUnidad: null,
               impresora: item.impresora,
+              ...(item.descuentoTienda != null && {
+                descuentoTienda: item.descuentoTienda,
+              }),
+              ...(item.tipoIva != null && { tipoIva: item.tipoIva }),
               suplementosPorArticulo: suplementos
                 ? [{ unidades: item.unidades, suplementos: suplementos }]
                 : null,
@@ -738,6 +745,12 @@ export class NuevaPromocion {
             regalo: false,
             pagado: false,
             varis: false,
+            ...(articulo.descuentoTienda !== undefined && {
+              descuentoTienda: articulo.descuentoTienda,
+            }),
+            ...(articulo.tipoIva !== undefined && {
+              tipoIva: articulo.tipoIva,
+            }),
           } as ItemLista);
         }
 
@@ -760,6 +773,12 @@ export class NuevaPromocion {
             promocion: null, // No es una promoción
             puntos: articulo.puntosPorUnidad * bloque.unidades,
             impresora: articulo.impresora,
+            ...(articulo.descuentoTienda !== undefined && {
+              descuentoTienda: articulo.descuentoTienda,
+            }),
+            ...(articulo.tipoIva !== undefined && {
+              tipoIva: articulo.tipoIva,
+            }),
             regalo: false,
             pagado: false,
             varis: false,
@@ -793,6 +812,12 @@ export class NuevaPromocion {
               promocion: null, // No es una promoción
               puntos: articulo.puntosPorUnidad * bloque.unidades,
               impresora: articulo.impresora,
+              ...(articulo.descuentoTienda !== undefined && {
+                descuentoTienda: articulo.descuentoTienda,
+              }),
+              ...(articulo.tipoIva !== undefined && {
+                tipoIva: articulo.tipoIva,
+              }),
               regalo: false,
               pagado: false,
               varis: false,
@@ -814,6 +839,12 @@ export class NuevaPromocion {
             ),
             puntos: articulo.puntosPorUnidad * articulo.unidades,
             impresora: articulo.impresora,
+            ...(articulo.descuentoTienda !== undefined && {
+              descuentoTienda: articulo.descuentoTienda,
+            }),
+            ...(articulo.tipoIva !== undefined && {
+              tipoIva: articulo.tipoIva,
+            }),
             regalo: false,
             pagado: false,
             varis: false,

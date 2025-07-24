@@ -7,6 +7,7 @@ import axios from "axios";
 import { articulosInstance } from "../articulos/articulos.clase";
 import { encargosInstance } from "src/encargos/encargos.clase";
 import { impresoraInstance } from "src/impresora/impresora.class";
+import { versionDescuentosClient } from "src/version/version.clase";
 
 @Controller("cestas")
 export class CestasController {
@@ -147,6 +148,20 @@ export class CestasController {
       return null;
     }
   }
+  @Post("generarCestaPedido")
+  async generarCestaPedido(@Body() { idEncargo,cestaEncargo }) {
+    try {
+      if (cestaEncargo && idEncargo) {
+        return await cestasInstance.CestaModificarPedido(idEncargo,cestaEncargo);
+      }
+      throw Error("Error, faltan datos en PagarDeuda() controller");
+    } catch (err) {
+      logger.Error(63, "cestaEncargo: " + err);
+      return null;
+    }
+  }
+
+
   /* Eze 4.0  (probablemente no se usará porque irá por socket)*/
   @Post("getCestaById")
   async getCestaByID(@Body() { idCesta }) {
@@ -297,7 +312,9 @@ export class CestasController {
     try {
       if (cesta) {
         if (cesta.modo === "CONSUMO_PERSONAL") {
-          cesta = await cestasInstance.recalcularIvas(cesta);
+          if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+            await cestasInstance.recalcularIvasv2(cesta);
+          else await cestasInstance.recalcularIvas(cesta);
         }
 
         const res = await cestasInstance.updateCesta(cesta);
@@ -379,7 +396,9 @@ export class CestasController {
         throw Error("faltan datos en recalcularIvas");
       }
       const cesta = await cestasInstance.getCestaById(idCesta);
-      await cestasInstance.recalcularIvas(cesta);
+      if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+        await cestasInstance.recalcularIvasv2(cesta);
+      else await cestasInstance.recalcularIvas(cesta);
       if (await cestasInstance.updateCesta(cesta)) {
         await cestasInstance.actualizarCestas();
         return true;
@@ -436,6 +455,21 @@ export class CestasController {
       logger.Error(138, error);
     }
   }
+
+  @Post("imprimirNotaPedido")
+  async imprimirNotaPedido(@Body() { idEncargo, idTrabajador,codigo,cesta }) {
+    try {
+      console.log("codigo",codigo,idEncargo,idTrabajador);
+      if (!idEncargo) {
+        throw Error("faltan datos en imprimirNotaPedido");
+      }
+      await impresoraInstance.imprimirNotaPedido(idEncargo,cesta, idTrabajador,codigo);
+      return true;
+    } catch (error) {
+      logger.Error(138, error);
+    }
+  }
+
   // @Post("addSuplementos")
   // async addSuplementos(
   //   @Body() { idCesta, suplementos, idArticuloGeneral, unidades }

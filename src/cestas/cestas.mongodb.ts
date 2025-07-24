@@ -69,17 +69,24 @@ export async function updateCesta(cesta: CestasInterface): Promise<boolean> {
         idCliente: cesta.idCliente,
         lista: cesta.lista,
         modo: cesta.modo,
+        idPedido: cesta.idPedido || null,
         timestamp: cesta.timestamp,
         nombreCliente: cesta.nombreCliente,
         albaran: cesta?.albaran,
         vip: cesta?.vip,
+        ...(cesta?.dataVersion !== undefined && {
+          dataVersion: cesta.dataVersion,
+        }),
+        // Añadido para compatibilidad con la nueva
       },
     }
   );
   return resultado.acknowledged && resultado.matchedCount === 1;
 }
 
-export async function updateCestaCombinada(cesta: CestasCombinadaInterface): Promise<boolean> {
+export async function updateCestaCombinada(
+  cesta: CestasCombinadaInterface
+): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const unaCesta = database.collection<CestasCombinadaInterface>("cestas");
   for (let i = 0; i < cesta.lista.length; i++) {
@@ -254,6 +261,6 @@ export async function borrarCestas() {
     });
     return resultado.acknowledged;
   } catch (error) {
-    logger.Error('777', error);
+    logger.Error("777", error);
   }
 }

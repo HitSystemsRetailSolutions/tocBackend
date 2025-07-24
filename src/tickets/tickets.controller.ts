@@ -27,6 +27,7 @@ import {
   CestasInterface,
 } from "src/cestas/cestas.interface";
 import { DeudasInterface } from "src/deudas/deudas.interface";
+import { versionDescuentosClient } from "src/version/version.clase";
 
 @Controller("tickets")
 export class TicketsController {
@@ -79,9 +80,13 @@ export class TicketsController {
     try {
       var TDeuda1 = performance.now();
       const cesta = await cestasInstance.getCestaById(idCesta);
-      await cestasInstance.aplicarDescuento(cesta, total);
-      if (cesta.modo == "CONSUMO_PERSONAL")
+      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      const alboVip = cliente && cliente?.albaran && cliente?.vip;
+      // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
+      await cestasInstance.aplicarDescuento(cesta, total, cliente);
+      if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
         await cestasInstance.applyDiscountShop(cesta, total);
+
       const ticket = await ticketsInstance.generarNuevoTicket(
         total,
         idTrabajador,
@@ -295,7 +300,12 @@ export class TicketsController {
       }
 
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
-      await cestasInstance.aplicarDescuento(cesta, totalTicket);
+      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      const alboVip = cliente && cliente?.albaran && cliente?.vip;
+      // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
+      await cestasInstance.aplicarDescuento(cesta, total, cliente);
+      if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
+        await cestasInstance.applyDiscountShop(cesta, totalTicket);
 
       if (
         !paytefInstance.dentroIniciarTransaccion &&
@@ -459,7 +469,12 @@ export class TicketsController {
     let totalTicket = Object.keys(cesta.detalleIva)
       .filter((key) => key.startsWith("importe"))
       .reduce((total, key) => total + cesta.detalleIva[key], 0);
-    await cestasInstance.aplicarDescuento(cesta, totalTicket);
+    const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      const alboVip = cliente && cliente?.albaran && cliente?.vip;
+    // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
+    await cestasInstance.aplicarDescuento(cesta, total, cliente);
+      if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
+      await cestasInstance.applyDiscountShop(cesta, totalTicket);
 
     // elimina la última transacción de Paytef
     paytefInstance.deleteUltimaIniciarTransaccion();
@@ -554,8 +569,11 @@ export class TicketsController {
   ) {
     const cesta = await cestasInstance.getCestaById(idCesta);
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
-    await cestasInstance.aplicarDescuento(cesta, total);
-    if (cesta.modo == "CONSUMO_PERSONAL")
+    const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      const alboVip = cliente && cliente?.albaran && cliente?.vip;
+    // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
+    await cestasInstance.aplicarDescuento(cesta, total, cliente);
+      if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
       await cestasInstance.applyDiscountShop(cesta, total);
     // elimina la última transacción de Paytef
     paytefInstance.deleteUltimaIniciarTransaccion();
@@ -669,9 +687,11 @@ export class TicketsController {
 
       if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
 
+      const cliente = await clienteInstance.getClienteById(cesta.idCliente);
+      const alboVip = cliente && cliente?.albaran && cliente?.vip;
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
-      await cestasInstance.aplicarDescuento(cesta, total);
-      if (cesta.modo == "CONSUMO_PERSONAL")
+      await cestasInstance.aplicarDescuento(cesta, total, cliente);
+      if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
         await cestasInstance.applyDiscountShop(cesta, total);
       // caso doble tpv; borrar registro de la última transacción de Paytef cuando no se ha iniciado una transacción
       if (
@@ -714,6 +734,7 @@ export class TicketsController {
         "Error, no se ha podido crear el ticket en crearTicket() controller 2"
       );
     } catch (err) {
+      console.log(err);
       logger.Error(107, err);
       return false;
     }

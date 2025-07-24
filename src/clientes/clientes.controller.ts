@@ -159,6 +159,7 @@ export class ClientesController {
     }
   ) {
     try {
+
       if (!nombre) {
         throw Error("Error, faltan datos en actualizarCliente() controller");
       }
@@ -193,8 +194,12 @@ export class ClientesController {
         idCliente,
         cliente,
         database,
+      }).catch((e) => {
+        console.log(e);
       });
+      return true;
     } catch (err) {
+      console.log("el error:",err);
       logger.Error(68, err);
       return false;
     }
@@ -213,7 +218,7 @@ export class ClientesController {
           "Error, faltan datos en crearNuevoCliente() controller"
         );
       }
-
+      console.log(nombre);
       const nuevoCliente = {
         nombre,
         telefono,
@@ -230,14 +235,10 @@ export class ClientesController {
       try {
         response = await axios.post("clientes/crearNuevoCliente", nuevoCliente);
       } catch (axiosError) {
-        throw {
-          type: "AxiosError",
-          message: "Error al crear el cliente en el servidor remoto",
-          details: axiosError.message,
-        };
+        response = null;
+       
       }
 
-      if (response.data) {
         const clienteMDB: ClientesInterface = {
           id: nuevoCliente.idCliente,
           nombre: nuevoCliente.nombre,
@@ -254,6 +255,14 @@ export class ClientesController {
 
         try {
           await clienteInstance.insertarCliente(clienteMDB);
+          if(!response){
+            return {
+              success: true, // Cambiado a false para indicar un error en la creación del cliente en la nube
+              message: "No se ha podido crear el cliente en la nube, se usará uno temporal.",
+              details: "passerror",
+              idCliente: nuevoCliente.idCliente,
+            };
+          }
           return {
             success: true,
             message: "Cliente creado exitosamente",
@@ -266,11 +275,7 @@ export class ClientesController {
             details: dbError.message,
           };
         }
-      } else {
-        throw new Error(
-          "Error desconocido al crear el cliente en el servidor remoto"
-        );
-      }
+
     } catch (err) {
       if (err.type === "AxiosError" || err.type === "DatabaseError") {
         logger.Error(err.message, err.details);

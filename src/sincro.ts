@@ -35,6 +35,7 @@ import { CajaSincro, objTempCajaInterface } from "./caja/caja.interface";
 import CircuitBreakerAxios from "./circuitBreaker/circuitBreakerAxios";
 import CircuitBreakerSocket from "./circuitBreaker/circuitBreakerSocket";
 import { Console } from "console";
+import { tiposIvaInstance } from "./tiposIva/tiposIva.clase";
 // inicio de breakers
 const failureThreshold = 3; // número de fallos antes de abrir el circuito
 const timeoutOpenCircuit = 300000; // tiempo en ms antes de abrir el circuito
@@ -257,9 +258,9 @@ async function socketSincronizarTickets() {
         database: params.database,
         codigoInternoTienda: params.codigoTienda,
         nombreTienda: params.nombreTienda,
+        iva: await tiposIvaInstance.getArrayIvas(),
         token: "Bearer " + params.token,
       };
-
       CBSocketSincronizarTickets.fire({
         ticket: superTicket,
         parametros,
@@ -402,7 +403,7 @@ async function sincronizarMovimientos(continuar: boolean = false) {
       if (parametros != null) {
         const res = await movimientosInstance.getMovimientoMasAntiguo();
         if (res) {
- 
+
           const resMovimiento: any = await CBSincronizarMovimientos.fire({
             movimiento: res,
           });
@@ -504,6 +505,7 @@ async function sincronizarDeudasCreadas() {
             botiga: parametros.licencia,
             idTicket: deuda.idTicket,
             bbdd: parametros.database,
+            dataVersion: deuda.dataVersion || null,
           };
 
           const res: any = await CBSincronizarDeudasCreadas.fire(deuda_santAna);
@@ -591,12 +593,22 @@ async function sincronizarEncargosCreados() {
             timestamp: encargo.timestamp,
             opcionEncargo: encargo.opcionRecogida,
             codigoBarras: encargo.codigoBarras,
+            dataVersion: encargo.dataVersion || null,
           };
 
+          if(encargo.estado == "PEDIDOS" && encargo.productos.length <= 0){
+            if (await encargosInstance.setEnviado(encargo._id)) {
+              enProcesoEncargosCreados = false;
+              setTimeout(sincronizarEncargosCreados, 100);
+              return;
+            }
+          }
           const res: any =
             await CBSincronizarEncargosCreados.fire(encargo_santAna);
+
           if (res.data) {
-            if (!res.data.error) {
+            
+            if (!res.data.errorv ) {
               if (await encargosInstance.setEnviado(encargo._id)) {
                 setTimeout(function () {
                   enProcesoEncargosCreados = false;

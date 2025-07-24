@@ -9,16 +9,32 @@ export class ParametrosClase {
   };
 
   setNif = async (): Promise<string> => {
-    const nif = await axios.get("nif");
-    let params = await this.getParametros();
-    if (!params?.verifactuEnabled)
-      params.verifactuEnabled = (new Date())
-    if (params) {
-      params.nif = nif.data;
-      await this.setParametros(params);
+    try {
+
+      function haveNif(nif: string) {
+        return nif != "false" && nif
+      }
+
+      const nif = await axios.get("nif");
+      let params = await this.getParametros();
+
+      if (params) {
+        if (haveNif(nif.data))
+          params.nif = nif.data;
+        else {
+          delete params.nif;
+          delete params.verifactuEnabled;
+        }
+        if (!params?.verifactuEnabled && params.nif)
+          params.verifactuEnabled = (new Date())
+        await this.setParametros(params);
+      }
+      if (!haveNif) return "";
+      return nif.data;
     }
-    if (nif.data == false) return "";
-    return nif.data;
+    catch (e) {
+      return null;
+    }
   };
 
   getNif = async (): Promise<string> => {
