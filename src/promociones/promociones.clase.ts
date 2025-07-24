@@ -119,6 +119,10 @@ export class NuevaPromocion {
               precioPromoPorUnidad:
                 itemOld.promocion.precioRealArticuloSecundario,
               impresora: itemOld.impresora,
+              suplementosPorArticulo: [{
+                unidades: 1,
+                suplementos: itemOld.arraySuplementos,
+              }],
             },
           ]);
         }
@@ -556,7 +560,7 @@ export class NuevaPromocion {
       if (
         len_v_idxAC_PG > 0 &&
         ArticulosCandidatos[len_v_idxAC_PG] ==
-          ArticulosCandidatos[len_v_idxAC_PG - 1]
+        ArticulosCandidatos[len_v_idxAC_PG - 1]
       ) {
         // empezar por idx ya que es el mismo articulo y daría una combinación repetida si se empieza por 0
         idxPG = prev_idxPG;
@@ -926,7 +930,7 @@ export class NuevaPromocion {
         );
         if (grupo.idsArticulos.size > 1) {
           // 0312 - Oferta Bocadillos BG (eliminar numeros iniciales y guion)
-          let m = /(?:^\d+ - )?(.*)/.exec(art.familia);
+          let m = /(?:^\d+ - )?(.*)/.exec(art?.familia);
           grupo.familia_o_nombre = m == null ? art.familia : m[1];
         } else grupo.familia_o_nombre = art.nombre;
       }
@@ -994,9 +998,9 @@ export class NuevaPromocion {
       artGrupo.precioPromoPorUnidad = promo_individual
         ? precioPorUnidadPromoIndividual
         : redondearPrecio(
-            artGrupo.precioPorUnidad *
-              (item.promocion.precioFinalPorPromo / totalSinPromocion)
-          );
+          artGrupo.precioPorUnidad *
+          (item.promocion.precioFinalPorPromo / totalSinPromocion)
+        );
       resto -= artGrupo.precioPromoPorUnidad * artGrupo.unidades;
     }
     let ultimoArtGrupo = gruposFlat[gruposFlat.length - 1];
@@ -1156,10 +1160,10 @@ export class NuevaPromocion {
             subtotal: item?.regalo
               ? 0
               : redondearPrecio(
-                  artGrupo.precioPromoPorUnidad *
-                    item.unidades *
-                    artGrupo.unidades
-                ),
+                artGrupo.precioPromoPorUnidad *
+                item.unidades *
+                artGrupo.unidades
+              ),
             nombre: "ArtículoDentroDePromo " + artGrupo.nombre,
           });
         }
