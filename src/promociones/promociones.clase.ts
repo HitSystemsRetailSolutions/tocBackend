@@ -48,6 +48,7 @@ import { articulosInstance } from "src/articulos/articulos.clase";
 const redondearPrecio = (precio: number) =>
   Math.round((precio + Number.EPSILON * 100000) * 100) / 100;
 import * as schCestas from "../cestas/cestas.mongodb";
+import { EncargosInterface } from "src/encargos/encargos.interface";
 
 export type ArticuloInfoPromoYNormal = ArticuloPromoEnCesta & {
   precioPorUnidad: number;
@@ -250,6 +251,12 @@ export class NuevaPromocion {
   public async recargarPromosCachev2() {
     try {
       const promosCombo = await this.getPromosCombo();
+      const promoIndividuales = await this.getPromosIndividuales();
+      // si hay promos combo o individuales, ir a recargarPromosCache
+      if (promosCombo.length > 0 || promoIndividuales.length > 0) {
+        await this.recargarPromosCache();
+        return;
+      }
     } catch (error) {
       logger.Error(1291, error);
     }
@@ -318,7 +325,6 @@ export class NuevaPromocion {
       return a._id < b._id ? -1 : 1; // por id
     });
   }
-
 
   // Este tipo de items no se usan para formar promociones
   public isItemPromocionable(item: ItemLista) {
@@ -1132,6 +1138,39 @@ export class NuevaPromocion {
     }
     ticket.cesta.lista = nuevaLista;
     return ticket.cesta.lista;
+  }
+
+  public deshacerPromocionesEncargo(productos: EncargosInterface["productos"]) {
+    const hayGrupos = productos.some(
+      (p) => Array.isArray(p.promocion?.grupos) && p.promocion.grupos.length > 0
+    );
+    if (
+      productos &&
+      !hayGrupos // si no hay grupos de promociones, no hay nada que deshacer
+    )
+      return productos;
+
+    const nuevaListaProductos = [];
+    for (let item of productos) {
+      if (item.promocion) {
+        const grupos = item.promocion.grupos.flat();
+        for (let i = 0; i < grupos.length; i++) {
+          const artGrupo = grupos[i];
+          nuevaListaProductos.push({
+            id: artGrupo.idArticulo,
+            nombre: artGrupo.nombre,
+            unidades: item.unidades * artGrupo.unidades,
+            comentario: item.comentario,
+            total: redondearPrecio(
+              artGrupo.precioPromoPorUnidad * item.unidades * artGrupo.unidades
+            ),
+          });
+        }
+      } else {
+        nuevaListaProductos.push(item);
+      }
+    }
+    return nuevaListaProductos;
   }
 
   public redondearDecimales(numero, decimales) {
