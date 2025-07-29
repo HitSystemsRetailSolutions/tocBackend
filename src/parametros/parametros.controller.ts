@@ -80,7 +80,6 @@ export class ParametrosController {
 
   /* Uri */
   async getConfiguradorDB() {
-
     const parametros = await parametrosInstance.getParametros();
     const res: any = await axios
       .post("configurador/getConfiguration", {
@@ -91,7 +90,7 @@ export class ParametrosController {
         // console.log(e);
       });
     if (res.data) {
-      return this.setPropiedad({ parametros: res.data });
+      return await parametrosInstance.setPropiedad(res.data);
     } else {
       throw Error("Error al sincronizar con SantaAna");
     }
@@ -103,7 +102,7 @@ export class ParametrosController {
     try {
       const res: any = await axios
         .get("parametros/getParametros")
-        .catch((e) => { });
+        .catch((e) => {});
 
       if (res.data) {
         delete res.data.database;
@@ -127,8 +126,7 @@ export class ParametrosController {
     try {
       if ((await parametrosInstance.setNif()).length >= 8) return true;
       else return false;
-    }
-    catch (err) {
+    } catch (err) {
       logger.Error(42, err);
       return false;
     }
@@ -163,7 +161,7 @@ export class ParametrosController {
     //console.log(ip)
     try {
       const result = await setIpCashlogy(ip);
-      cashlogyInstance.cambio_ip(ip)
+      cashlogyInstance.cambio_ip(ip);
 
       if (result) {
         return { message: "IP almacenada correctamente", data: result };
@@ -196,7 +194,13 @@ export class ParametrosController {
       let startDate = await cajaInstance.getInicioTime();
       let localData = await parametrosInstance.totalPaytef();
       let paytefData = await paytefInstance.getRecuentoTotal(startDate);
-      logger.Info(55.1, "Consulta total paytef -> local paytef:" + localData + "; remoto paytef:" + paytefData);
+      logger.Info(
+        55.1,
+        "Consulta total paytef -> local paytef:" +
+          localData +
+          "; remoto paytef:" +
+          paytefData
+      );
       // devolerá el valor remoto, excepto que dé 0 y el local sea mayor
       if (paytefData == null || (paytefData == 0 && localData > 0))
         return [localData, true];
@@ -242,7 +246,7 @@ export class ParametrosController {
   @Post("getContrasenaAdministrador")
   async getContrasenaAdministrador(@Body() { idTrabajador }) {
     try {
-      return (await parametrosInstance.getContrasenaAdministrador(idTrabajador));
+      return await parametrosInstance.getContrasenaAdministrador(idTrabajador);
     } catch (err) {
       logger.Error(46, err);
       return null;

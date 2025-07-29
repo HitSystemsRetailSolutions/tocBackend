@@ -720,8 +720,10 @@ export class Impresora {
         }
       }
     }
-    if (info.dataVersion && info.dataVersion >= versionDescuentosClient) {
-      detalleDescuento += detalleDescuento + this.calcularImporteDescuentos(arrayCompra);
+
+    if (info.dataVersion && info.dataVersion >= versionDescuentosClient && infoCliente) {
+      detalleDescuento +=
+        detalleDescuento + this.calcularImporteDescuentos(arrayCompra);
     } else {
       if (
         tipoPago !== "CONSUMO_PERSONAL" &&
@@ -2741,7 +2743,7 @@ export class Impresora {
         }
       } else {
         const subtotal = new Decimal(producto.subtotal);
-        totalSinDescuentos = totalSinDescuentos.plus(subtotal.mul(unidades));
+        totalSinDescuentos = totalSinDescuentos.plus(subtotal);
       }
     });
 
@@ -2774,10 +2776,18 @@ export class Impresora {
         encargo.cesta.dataVersion &&
         encargo.cesta.dataVersion < versionDescuentosClient
       ) {
-        detalleImporte = `Total sense descompte: ${(encargo.total / (1 - descuento / 100)).toFixed(
-          2
-        )}€\nDescompte total: ${(((encargo.total / (1 - descuento / 100)) * descuento) / 100).toFixed(2)}€ \n`;
-      } else if (encargo.cesta.dataVersion && encargo.cesta.dataVersion >= versionDescuentosClient) {
+        detalleImporte = `Total sense descompte: ${(
+          encargo.total /
+          (1 - descuento / 100)
+        ).toFixed(2)}€\nDescompte total: ${(
+          ((encargo.total / (1 - descuento / 100)) * descuento) /
+          100
+        ).toFixed(2)}€ \n`;
+      } else if (
+        encargo.cesta.dataVersion &&
+        encargo.cesta.dataVersion >= versionDescuentosClient
+        && encargo?.cesta?.idCliente
+      ) {
         // obtener importe con los descuentos aplicados
         detalleImporte = this.calcularImporteDescuentos(encargo.cesta.lista);
       }
