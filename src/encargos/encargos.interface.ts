@@ -14,6 +14,7 @@ type Productos = {
   idGraellaPromoArtSecundario: null|string;
   nombre: string;
   comentario: string;
+  descuentoTienda?: number;
 };
 
 export enum OpcionRecogida {
