@@ -12,7 +12,7 @@ import axios from "axios";
 @Controller("impresora")
 export class ImpresoraController {
   @Post("imprimirTicket")
-  async imprimirTicket(@Body() { idTicket,albaran=false }) {
+  async imprimirTicket(@Body() { idTicket, albaran = false }) {
 
     try {
       if (idTicket) {
@@ -41,23 +41,22 @@ export class ImpresoraController {
   /* Uri*/
   @Post("imprimirTicketComandero")
   async imprimirTicketComandero(@Body() { products, table, worker, clients }) {
-    try {
-      if (products && table && worker && clients) {
-        let sended: any = await axios.post("impresora/impresoraCola", {
-          tickets: products,
-          table: table,
-          worker: worker,
-          clients: clients,
-        });
-        if (sended.data) return true;
-        return false;
-      }
+    if (!products || !table || !worker || !clients) {
       throw Error("Faltan datos en impresora/imprimirTicketComandero");
-    } catch (err) {
-      console.log(err);
-      logger.Error(139, err);
-      return false;
     }
+    const impresoras = products.map(product => product.impresora).filter(impresora => impresora);
+    const impresorasUnicas = [...new Set(impresoras)];
+    if (impresorasUnicas.length === 0) {
+      throw Error("No hay impresoras disponibles");
+    }
+    for (const impresora of impresorasUnicas) {
+      const productosFiltrados = products.filter(product => product.impresora === impresora);
+      const topic = `hit.hardware/printerIP/${impresora}`;
+      await impresoraInstance.imprimirComandero(productosFiltrados, table, worker, clients, topic);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    return true;
   }
 
   /* Uri */
@@ -108,7 +107,7 @@ export class ImpresoraController {
   }
 
   @Post("firma")
-  async despedidaFirma(@Body() { idTicket,albaran=false }) {
+  async despedidaFirma(@Body() { idTicket, albaran = false }) {
     try {
       if (idTicket) {
         await impresoraInstance.imprimirFirma(idTicket, albaran);
@@ -168,7 +167,7 @@ export class ImpresoraController {
     try {
       io.emit("pocoPapel");
       return true;
-    } catch (err) {}
+    } catch (err) { }
   }
 
   @Post("detallesVip")
