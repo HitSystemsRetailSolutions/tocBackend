@@ -556,6 +556,8 @@ async function sincronizarEncargosCreados() {
             encargo.amPm,
             encargo.timestamp
           );
+          const productos = nuevaInstancePromociones.deshacerPromocionesEncargo(encargo.productos);
+
           const encargo_santAna = {
             id: await encargosInstance.generateId(
               await encargosInstance.getDate(
@@ -585,7 +587,7 @@ async function sincronizarEncargosCreados() {
                 : 0,
             bbdd: parametros.database,
             licencia: parametros.licencia,
-            productos: encargo.productos,
+            productos: productos,
             idTrabajador: encargo.idTrabajador,
             recogido: false,
             timestamp: encargo.timestamp,
