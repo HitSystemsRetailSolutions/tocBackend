@@ -789,7 +789,7 @@ export class Impresora {
         }
       }
     }
-    if (info.dataVersion && info.dataVersion >= versionDescuentosClient) {
+    if (info.dataVersion && info.dataVersion >= versionDescuentosClient && infoCliente) {
 
       detalleDescuento +=
         detalleDescuento + this.calcularImporteDescuentos(arrayCompra);
@@ -3105,7 +3105,7 @@ export class Impresora {
         }
       } else {
         const subtotal = new Decimal(producto.subtotal);
-        totalSinDescuentos = totalSinDescuentos.plus(subtotal.mul(unidades));
+        totalSinDescuentos = totalSinDescuentos.plus(subtotal);
       }
     });
 
@@ -3163,6 +3163,7 @@ export class Impresora {
       } else if (
         encargo.cesta.dataVersion &&
         encargo.cesta.dataVersion >= versionDescuentosClient
+        && encargo?.cesta?.idCliente
       ) {
         // obtener importe con los descuentos aplicados
         detalleImporte = this.calcularImporteDescuentos(encargo.cesta.lista);
