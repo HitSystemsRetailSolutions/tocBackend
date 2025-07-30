@@ -44,6 +44,19 @@ export class ImpresoraController {
     if (!products || !table || !worker || !clients) {
       throw Error("Faltan datos en impresora/imprimirTicketComandero");
     }
+
+    if (products.some(product => product.promocion)) {
+      products = products.map(product => {
+        if (product.promocion) {
+          return product.promocion.grupos.map(promoProduct => {
+            return {
+              ...promoProduct[0],
+            };
+          });
+        }
+        return { ...product, impresora: product.impresora };
+      }).flat();
+    }
     const impresoras = products.map(product => product.impresora).filter(impresora => impresora);
     const impresorasUnicas = [...new Set(impresoras)];
     if (impresorasUnicas.length === 0) {
@@ -55,7 +68,6 @@ export class ImpresoraController {
       await impresoraInstance.imprimirComandero(productosFiltrados, table, worker, clients, topic);
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
-
     return true;
   }
 

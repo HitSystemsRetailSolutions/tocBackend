@@ -3275,7 +3275,6 @@ export class Impresora {
         { tipo: "text", payload: "TIQUET DE COCINA" },
         { tipo: "control", payload: "LF" },
 
-        // Información general con tamaño normal
         { tipo: "size", payload: [0, 0] },
         { tipo: "style", payload: "a" },
         { tipo: "text", payload: `Data de solicitud:` },
@@ -3289,63 +3288,32 @@ export class Impresora {
         { tipo: "size", payload: [0, 0] },
         { tipo: "text", payload: "_".repeat(42) + "\n" },
 
-
-        // Separador visual más grueso
         { tipo: "align", payload: "LT" },
         ...productos.flatMap((item) => {
           const bloques = [];
 
-          // Tamaño grande + negrita
           bloques.push({ tipo: "size", payload: [1, 0] });
           bloques.push({ tipo: "style", payload: "b" });
 
-          // Nombre del producto con cantidad
           bloques.push({
             tipo: "text",
-            payload: `x${item.unidades} ${item.nombre.substring(0, 39)}${item.nombre.length > 39 ? "..." : ""}`
+            payload: `x${item.unidades} ${item.nombre}`
           });
+          if (item.nota) {
+            bloques.push({ tipo: "style", payload: "a" });
+            bloques.push({ tipo: "size", payload: [0, 0] });
+            bloques.push({ tipo: "text", payload: `[Nota] » ${item.nota}` });
+            bloques.push({ tipo: "size", payload: [1, 0] });
+          }
 
-          // Suplementos del producto
           if (item.arraySuplementos) {
             for (const suplemento of item.arraySuplementos) {
-              bloques.push({ tipo: "style", payload: "a" }); // quitar negrita
-              bloques.push({ tipo: "text", payload: `> ${suplemento.nombre.substring(0, 39)}${suplemento.nombre.length > 39 ? "..." : ""}` });
-              bloques.push({ tipo: "style", payload: "b" }); // volver a negrita
+              bloques.push({ tipo: "style", payload: "a" });
+              bloques.push({ tipo: "text", payload: `> ${suplemento.nombre}` });
+              bloques.push({ tipo: "style", payload: "b" });
             }
           }
 
-          // Promoción
-          if (item.promocion) {
-            bloques.push({ tipo: "text", payload: "*** PROMOCIÓN ***" });
-            bloques.push({ tipo: "style", payload: "a" });
-
-            item.promocion.grupos.forEach((grupo) => {
-              for (const articulo of grupo) {
-                // Artículo dentro de promoción
-                bloques.push({
-                  tipo: "text",
-                  payload: `>> x${articulo.unidades} ${articulo.nombre.substring(0, 30)}${articulo.nombre.length > 30 ? "..." : ""}`
-                });
-
-
-                // Suplementos dentro de promoción
-                if (articulo.suplementosPorArticulo) {
-                  articulo.suplementosPorArticulo.forEach(supGroup => {
-                    supGroup.suplementos.forEach(sup => {
-                      bloques.push({
-                        tipo: "text",
-                        payload: `   + ${sup.nombre.substring(0, 30)}${sup.nombre.length > 30 ? "..." : ""}`
-                      });
-                    });
-                  });
-                }
-              }
-            });
-            bloques.push({ tipo: "style", payload: "b" });
-            bloques.push({ tipo: "text", payload: "*** FIN PROMOCIÓN ***" });
-          }
-
-          // Reset estilo/tamaño al final del producto
           bloques.push({ tipo: "style", payload: "a" });
           bloques.push({ tipo: "size", payload: [0, 0] });
 
@@ -3359,14 +3327,12 @@ export class Impresora {
         { tipo: "align", payload: "LT" },
         { tipo: "text", payload: `Treballador: ${worker}` },
         { tipo: "text", payload: `Comensals: ${customer}` },
-        // Pie de ticket
         { tipo: "size", payload: [0, 0] },
         { tipo: "align", payload: "CT" },
         { tipo: "control", payload: "LF" },
 
         { tipo: "cut" }
       ];
-      // console.log("Impresión de comandero:", impresion);
       this.enviarMQTT(impresion, {}, topic);
       return true;
     } catch (err) {
