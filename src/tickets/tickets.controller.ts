@@ -81,7 +81,7 @@ export class TicketsController {
       var TDeuda1 = performance.now();
       const cesta = await cestasInstance.getCestaById(idCesta);
       const cliente = await clienteInstance.getClienteById(cesta.idCliente);
-      const alboVip = cliente && cliente?.albaran && cliente?.vip;
+      const alboVip = cliente && (cliente?.albaran || cliente?.vip);
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
       await cestasInstance.aplicarDescuento(cesta, total, cliente);
       if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
@@ -301,7 +301,7 @@ export class TicketsController {
 
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
       const cliente = await clienteInstance.getClienteById(cesta.idCliente);
-      const alboVip = cliente && cliente?.albaran && cliente?.vip;
+      const alboVip = cliente && (cliente?.albaran || cliente?.vip);
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
       await cestasInstance.aplicarDescuento(cesta, total, cliente);
       if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
@@ -470,7 +470,7 @@ export class TicketsController {
       .filter((key) => key.startsWith("importe"))
       .reduce((total, key) => total + cesta.detalleIva[key], 0);
     const cliente = await clienteInstance.getClienteById(cesta.idCliente);
-      const alboVip = cliente && cliente?.albaran && cliente?.vip;
+    const alboVip = cliente && (cliente?.albaran || cliente?.vip);
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     await cestasInstance.aplicarDescuento(cesta, total, cliente);
       if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
@@ -570,7 +570,7 @@ export class TicketsController {
     const cesta = await cestasInstance.getCestaById(idCesta);
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     const cliente = await clienteInstance.getClienteById(cesta.idCliente);
-      const alboVip = cliente && cliente?.albaran && cliente?.vip;
+    const alboVip = cliente && (cliente?.albaran || cliente?.vip);
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     await cestasInstance.aplicarDescuento(cesta, total, cliente);
       if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
@@ -688,7 +688,7 @@ export class TicketsController {
       if (tipo == "CONSUMO_PERSONAL") cesta.modo = "CONSUMO_PERSONAL";
 
       const cliente = await clienteInstance.getClienteById(cesta.idCliente);
-      const alboVip = cliente && cliente?.albaran && cliente?.vip;
+      const alboVip = cliente && (cliente?.albaran || cliente?.vip);
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
       await cestasInstance.aplicarDescuento(cesta, total, cliente);
       if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))

@@ -322,7 +322,7 @@ export class Encargos {
     var TEncargo1 = performance.now();
 
     const cliente = await clienteInstance.getClienteById(encargo.idCliente);
-    const alboVip = cliente && cliente?.albaran && cliente?.vip;
+    const alboVip = cliente && (cliente?.albaran || cliente?.vip);
 
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     await cestasInstance.aplicarDescuento(
