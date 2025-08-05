@@ -321,7 +321,7 @@ export class Impresora {
       };
     }
 
-    const alboVip = infoCliente && infoCliente?.albaran && infoCliente?.vip;
+    const alboVip = infoCliente && (infoCliente?.albaran || infoCliente?.vip);
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     await cestasInstance.aplicarDescuento(cesta, total, infoCliente);
     if (cesta.modo == "CONSUMO_PERSONAL" || ((infoCliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
