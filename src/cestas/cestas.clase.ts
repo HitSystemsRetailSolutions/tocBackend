@@ -4,6 +4,7 @@ import {
   CestasInterface,
   DetalleIvaInterface,
   ItemLista,
+  ArticulosMenu,
   ModoCesta,
   itemHonei,
 } from "./cestas.interface";
@@ -38,6 +39,8 @@ import {
   getDataVersion,
   versionDescuentosClient,
 } from "src/version/version.clase";
+import { TicketsInterface } from "src/tickets/tickets.interface";
+import { of } from "rxjs";
 
 export class CestaClase {
   constructor() {
@@ -617,9 +620,8 @@ export class CestaClase {
     }
   }
 
-
   // generar cesta modo recoger encargo
-  async CestaModificarPedido(idEncargo:any ,cestaEncargo: any) {
+  async CestaModificarPedido(idEncargo: any, cestaEncargo: any) {
     const nuevaCesta = this.generarObjetoCesta(
       new ObjectId(),
       "MODIFICAR PEDIDO"
@@ -656,7 +658,6 @@ export class CestaClase {
     }
   }
 
-
   async CestaPagoSeparado(articulos) {
     const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO SEPARADO");
     nuevaCesta.indexMesa = null;
@@ -671,6 +672,7 @@ export class CestaClase {
           id,
           e.unidades,
           e.arraySuplementos,
+          null,
           "",
           ""
         );
@@ -688,6 +690,7 @@ export class CestaClase {
         cesta,
         e.unidades,
         e.arraySuplementos,
+        null,
         "",
         ""
       );
@@ -851,6 +854,7 @@ export class CestaClase {
           idDestino,
           item.unidades,
           item.arraySuplementos,
+          null,
           item.nombre,
           ""
         );
@@ -870,6 +874,7 @@ export class CestaClase {
     unidades: number,
     idCesta: CestasInterface["_id"],
     arraySuplementos: ItemLista["arraySuplementos"], // Los suplentos no deben tener tarifa especial para simplificar.
+    articulosMenu: ItemLista["articulosMenu"],
     gramos: ItemLista["gramos"],
     nombre = "",
     menu = "",
@@ -920,7 +925,8 @@ export class CestaClase {
           item.promocion == null &&
           (item.nombre == nombre || nombre.length == 0) &&
           !(menu === "pagados" && !item.pagado) &&
-          !(menu !== "pagados" && item.pagado)
+          !(menu !== "pagados" && item.pagado) &&
+          !articulosMenu
         ) {
           if (
             arraySuplementos &&
@@ -996,6 +1002,7 @@ export class CestaClase {
           idArticulo: articulo._id,
           nombre: articulo.nombre,
           arraySuplementos: arraySuplementos,
+          articulosMenu: articulosMenu || null,
           promocion: null,
           varis: articulo.varis || false,
           regalo: false,
@@ -1099,6 +1106,7 @@ export class CestaClase {
         idCesta,
         suplementos,
         null,
+        null,
         "",
         "honei"
       );
@@ -1134,6 +1142,7 @@ export class CestaClase {
         idCesta,
         suplementos,
         null,
+        null,
         "",
         "pagados"
       );
@@ -1149,6 +1158,7 @@ export class CestaClase {
     idCesta: CestasInterface["_id"],
     unidades: number,
     arraySuplementos: ItemLista["arraySuplementos"],
+    articulosMenu: ItemLista["articulosMenu"],
     nombre: string,
     menu: string,
     regalar: boolean = false
@@ -1186,6 +1196,7 @@ export class CestaClase {
           gramos / 1000,
           idCesta,
           arraySuplementos,
+          null,
           gramos,
           nombre,
           menu,
@@ -1197,6 +1208,7 @@ export class CestaClase {
         unidades,
         idCesta,
         arraySuplementos,
+        articulosMenu,
         null,
         nombre,
         menu,
@@ -2301,6 +2313,7 @@ export class CestaClase {
         idCesta,
         1,
         null,
+        null,
         "",
         "",
         true
@@ -2330,6 +2343,7 @@ export class CestaClase {
             0,
             idCesta,
             1,
+            null,
             null,
             "",
             ""
@@ -2388,6 +2402,117 @@ export class CestaClase {
     if (cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
       await this.recalcularIvasv2(cesta);
     else await this.recalcularIvas(cesta);
+  }
+
+  async modificarArticuloMenu(
+    idCesta: CestasInterface["_id"],
+    articulosMenu: ItemLista["articulosMenu"],
+    indexCesta: number
+  ) {
+    try {
+      const cesta = await this.getCestaById(idCesta);
+      if (!cesta) throw Error("Cesta no encontrada");
+
+      cesta.lista[indexCesta].articulosMenu = articulosMenu;
+      if (await this.updateCesta(cesta)) {
+        await cestasInstance.actualizarCestas();
+        return true;
+      }
+    } catch (error) {
+      logger.Error(138, error);
+      return false;
+    }
+  }
+
+  async deshacerArticulosMenu(ticket: TicketsInterface) {
+    let valor = ticket.total < 0 ? -1 : 1;
+    const nuevaLista = [];
+    // Contador de repeticiones por idArticulo de items con articulosMenu
+    const idArticuloRepetidos: { [id: number]: number } = {};
+
+    for (let item of ticket.cesta.lista) {
+      if (item.articulosMenu && item.articulosMenu.length > 0) {
+        const articulosMenu = item.articulosMenu;
+
+        // Contar repeticiones de este idArticulo
+        if (!idArticuloRepetidos[item.idArticulo]) {
+          idArticuloRepetidos[item.idArticulo] = 1;
+        } else {
+          idArticuloRepetidos[item.idArticulo]++;
+        }
+        const repActual = idArticuloRepetidos[item.idArticulo];
+
+        let puntosAcumulados = 0;
+        const puntosTotales = item?.puntos ? item.puntos : 0;
+        const subtotal = item?.subtotal ? item.subtotal : 0;
+        const totalUnidades = articulosMenu.reduce(
+          (sum, artMenu) => sum + item.unidades * artMenu.unidades * valor,
+          0
+        );
+
+        // Reparto de subtotal en partes iguales, redondeando a 2 decimales y ajustando el último
+        let subtotalRestante = subtotal;
+        let unidadesRestantes = totalUnidades;
+
+        for (let i = 0; i < articulosMenu.length; i++) {
+          const artMenu = articulosMenu[i];
+          const unidadesArt = item.unidades * artMenu.unidades * valor;
+
+          let puntosAsignados = null;
+          if (item?.regalo) {
+            if (i < articulosMenu.length - 1) {
+              puntosAsignados = Math.round(
+                puntosTotales / articulosMenu.length
+              );
+              puntosAcumulados += puntosAsignados;
+            } else {
+              puntosAsignados = puntosTotales - puntosAcumulados;
+            }
+          }
+
+          let subtotalAsignado = 0;
+          if (unidadesRestantes > 0) {
+            // Reparto proporcional por unidades
+            let parte = subtotal / totalUnidades;
+            subtotalAsignado = +redondearPrecio(parte * unidadesArt);
+
+            // Si el subtotal es muy pequeño, solo los primeros reciben cantidad, el resto 0
+            if (subtotalAsignado < 0.01 && subtotalRestante > 0) {
+              subtotalAsignado = +(subtotalRestante > 0
+                ? redondearPrecio(subtotalRestante)
+                : 0);
+              subtotalRestante -= subtotalAsignado;
+              unidadesRestantes -= unidadesArt;
+            } else {
+              // Ajustar el último para cuadrar la suma total
+              if (i === articulosMenu.length - 1) {
+                subtotalAsignado = +redondearPrecio(subtotalRestante);
+              }
+              subtotalRestante -= subtotalAsignado;
+              unidadesRestantes -= unidadesArt;
+            }
+          }
+
+          nuevaLista.push({
+            arraySuplementos: artMenu?.arraySuplementos || null,
+            gramos: null,
+            idArticulo: artMenu.idArticulo,
+            regalo: item?.regalo ? true : false,
+            puntos: puntosAsignados,
+            promocion: null,
+            unidades: unidadesArt,
+            subtotal: item?.regalo ? 0 : subtotalAsignado,
+            nombre: artMenu.nombre,
+            idMenu:`${item.idArticulo}_${repActual}`
+
+          });
+        }
+      } else {
+        nuevaLista.push(item);
+      }
+    }
+    ticket.cesta.lista = nuevaLista;
+    return ticket.cesta.lista;
   }
 }
 

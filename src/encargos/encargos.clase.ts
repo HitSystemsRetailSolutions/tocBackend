@@ -1045,9 +1045,8 @@ export class Encargos {
             )
               puntos =
                 unidades *
-                (articuloPrincipal.puntos ??
-                  0 + articuloSecundario.puntos ??
-                  0);
+                ((articuloPrincipal.puntos ?? 0) +
+                (articuloSecundario.puntos ?? 0));
             const productoCesta: ItemLista = {
               arraySuplementos: null,
               gramos: 0,
@@ -1101,6 +1100,7 @@ export class Encargos {
             cesta._id,
             item.Quantitat,
             arraySuplementos,
+            null,
             "",
             "descargas"
           );

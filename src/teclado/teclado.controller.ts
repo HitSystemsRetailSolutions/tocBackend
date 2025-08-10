@@ -20,6 +20,7 @@ export class TecladoController {
       arraySuplementos,
       nombre = "",
       menu,
+      articulosMenu,
     }
   ) {
     const sourceProgram = headers["x-source-program"];
@@ -37,6 +38,7 @@ export class TecladoController {
           idCesta,
           unidades,
           arraySuplementos,
+          articulosMenu,
           nombre,
           menu
         );

@@ -443,6 +443,18 @@ export class CestasController {
     }
   }
 
+  @Post("modificarArticuloMenu")
+  async modificarArticuloMenu(@Body() { idCesta, articulosMenu, indexCesta }) {
+    try {
+      if (!idCesta || !articulosMenu) {
+        throw Error("faltan datos en modificarArticuloMenu");
+      }
+      return await cestasInstance.modificarArticuloMenu(idCesta, articulosMenu, indexCesta);
+    } catch (error) {
+      logger.Error(137, error);
+    }
+  }
+
   @Post("imprimirNotaMesa")
   async imprimirNotasMesa(@Body() { idCesta, idTrabajador }) {
     try {
@@ -459,7 +471,6 @@ export class CestasController {
   @Post("imprimirNotaPedido")
   async imprimirNotaPedido(@Body() { idEncargo, idTrabajador,codigo,cesta }) {
     try {
-      console.log("codigo",codigo,idEncargo,idTrabajador);
       if (!idEncargo) {
         throw Error("faltan datos en imprimirNotaPedido");
       }

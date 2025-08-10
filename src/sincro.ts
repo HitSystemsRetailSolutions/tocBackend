@@ -36,6 +36,7 @@ import CircuitBreakerAxios from "./circuitBreaker/circuitBreakerAxios";
 import CircuitBreakerSocket from "./circuitBreaker/circuitBreakerSocket";
 import { Console } from "console";
 import { tiposIvaInstance } from "./tiposIva/tiposIva.clase";
+import { cestasInstance } from "./cestas/cestas.clase";
 // inicio de breakers
 const failureThreshold = 3; // número de fallos antes de abrir el circuito
 const timeoutOpenCircuit = 300000; // tiempo en ms antes de abrir el circuito
@@ -243,6 +244,7 @@ async function socketSincronizarTickets() {
     const params = await parametrosInstance.getParametros();
     if (ticket && params) {
       await nuevaInstancePromociones.deshacerPromociones(ticket);
+      await cestasInstance.deshacerArticulosMenu(ticket);
       const superTicket = { ...ticket, tipoPago: null, movimientos: null };
       superTicket.movimientos =
         await movimientosInstance.getMovimientosDelTicket(ticket._id);
@@ -290,6 +292,7 @@ async function sincronizarTicketsOtrosModificado() {
           await ticketsInstance.getTicketOtrosModificadoMasAntiguo();
         if (ticket) {
           await nuevaInstancePromociones.deshacerPromociones(ticket);
+          await cestasInstance.deshacerArticulosMenu(ticket);
           const superTicket = { ...ticket, tipoPago: null, movimientos: null };
           superTicket.movimientos =
             await movimientosInstance.getMovimientosDelTicket(ticket._id);
@@ -821,7 +824,7 @@ async function sincronizarAlbaranesCreados() {
         if (albaran) {
           albaran.cesta.lista =
             await nuevaInstancePromociones.deshacerPromociones(albaran);
-
+          albaran.cesta.lista = await cestasInstance.deshacerArticulosMenu(albaran);
           const res: any = await CBSincronizarAlbaranesCreados.fire(albaran);
           if (res.data && !res.data.error) {
             if (await AlbaranesInstance.setEnviado(albaran._id)) {

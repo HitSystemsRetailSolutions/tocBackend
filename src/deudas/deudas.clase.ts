@@ -700,6 +700,7 @@ export class Deudas {
               cesta._id,
               1,
               arraySuplementos,
+              null,
               "",
               "descargas"
             );
@@ -774,6 +775,7 @@ export class Deudas {
               cesta._id,
               1,
               arraySuplementos,
+              null,
               "",
               "descargas"
             );
