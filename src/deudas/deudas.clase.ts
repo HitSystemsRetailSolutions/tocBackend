@@ -6,7 +6,7 @@ import * as schDeudas from "./deudas.mongodb";
 import { movimientosInstance } from "src/movimientos/movimientos.clase";
 import { cajaInstance } from "src/caja/caja.clase";
 import { cestasInstance } from "src/cestas/cestas.clase";
-import { CestasInterface } from "src/cestas/cestas.interface";
+import { ArticulosMenu, CestasInterface } from "src/cestas/cestas.interface";
 import { clienteInstance } from "src/clientes/clientes.clase";
 import { articulosInstance } from "src/articulos/articulos.clase";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
@@ -753,20 +753,52 @@ export class Deudas {
    */
   async postCestaDeudaV2(deuda: any, cesta: CestasInterface) {
     try {
-      // insertar productos restantes
-      for (const [index, item] of deuda.entries()) {
-        const tipus = deuda[index]?.Tipus_venta || "";
-        const match = tipus.match(/Desc_(\d+)/);
-        const dto = match ? Number(match[1]) : 0;
+      // Map para agrupar los artículos por menú y su precio
+      const menusMap: Map<
+        string,
+        { articulos: ArticulosMenu[]; precios: number[] }
+      > = new Map();
 
+      // Recorrer los items de la deuda
+      for (const [index, item] of deuda.entries()) {
+        // Buscar si Otros contiene Menu
+        const otros = item.Otros || "";
+        const menuMatch = otros.match(/Menu:([^\]]+)/);
+        let menuId = null;
+        if (menuMatch) {
+          menuId = menuMatch[1].trim();
+        }
+
+        // Obtener suplementos si existen
         const arraySuplementos =
-          deuda[index]?.FormaMarcar &&
-          deuda[index]?.FormaMarcar != "," &&
-          deuda[index]?.FormaMarcar != "0"
+          item?.FormaMarcar &&
+          item?.FormaMarcar != "," &&
+          item?.FormaMarcar != "0"
             ? await articulosInstance.getSuplementos(
-                deuda[index]?.FormaMarcar.split(",").map(Number)
+                item?.FormaMarcar.split(",").map(Number)
               )
             : null;
+
+        // Si el item pertenece a un menú, lo agrupamos
+        if (menuId) {
+          const infoArt = await articulosInstance.getInfoArticulo(item.Plu);
+          const artMenu: ArticulosMenu = {
+            idArticulo: item.Plu,
+            gramos: item.Gramos || null,
+            unidades: item.Quantitat,
+            arraySuplementos: arraySuplementos,
+            nombre: infoArt.nombre,
+          };
+          // Guardar el precio individual del artículo para el menú
+          const precioArt = item.Import || 0;
+          if (!menusMap.has(menuId))
+            menusMap.set(menuId, { articulos: [], precios: [] });
+          menusMap.get(menuId).articulos.push(artMenu);
+          menusMap.get(menuId).precios.push(precioArt);
+          continue; // No insertar en la cesta aún
+        }
+
+        // Si no es menú, insertar como siempre
         if (arraySuplementos) {
           for (let i = 0; i < item.Quantitat; i++) {
             cesta = await cestasInstance.clickTeclaArticulo(
@@ -793,7 +825,7 @@ export class Deudas {
             impresora: infoArt.impresora,
             subtotal: item.Import,
             unidades: item.Quantitat,
-            gramos: null,
+            gramos: item.Gramos || null,
             pagado: false,
           });
           const objectIva = construirObjetoIvas(
@@ -804,13 +836,63 @@ export class Deudas {
             0,
             cesta.timestamp
           );
-
           cesta.detalleIva = fusionarObjetosDetalleIva(
             objectIva,
             cesta.detalleIva
           );
         }
         await cestasInstance.updateCesta(cesta);
+      }
+
+      // Insertar los menús agrupados en la cesta
+      for (const [
+        menuId,
+        { articulos: articulosMenu, precios },
+      ] of menusMap.entries()) {
+        let idArticuloMenu = menuId;
+        let repMenu = null;
+        // quitar _X del idMenu
+        const repMatch = menuId.match(/(.+)_([0-9]+)$/);
+
+        if (repMatch) {
+          idArticuloMenu = repMatch[1];
+          repMenu = repMatch[2];
+        }
+
+        const infoMenu = await articulosInstance.getInfoArticulo(
+          Number(idArticuloMenu)
+        );
+        // Calcular subtotal del menú sumando los precios individuales
+        const subtotalMenu = precios.reduce((sum, precio) => sum + precio, 0);
+
+        cesta.lista.push({
+          idArticulo: Number(idArticuloMenu),
+          nombre: infoMenu.nombre,
+          arraySuplementos: null,
+          promocion: null,
+          varis: false,
+          regalo: false,
+          puntos: infoMenu.puntos,
+          impresora: infoMenu.impresora,
+          subtotal: subtotalMenu,
+          unidades: 1,
+          gramos: null,
+          pagado: false,
+          articulosMenu: articulosMenu,
+        });
+
+        const objectIvaMenu = construirObjetoIvas(
+          subtotalMenu,
+          infoMenu.tipoIva,
+          1,
+          false,
+          0,
+          cesta.timestamp
+        );
+        cesta.detalleIva = fusionarObjetosDetalleIva(
+          objectIvaMenu,
+          cesta.detalleIva
+        );
       }
     } catch (error) {
       console.log("error crear cesta de deuda", error);

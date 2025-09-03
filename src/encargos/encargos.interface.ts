@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { CestasInterface } from "../cestas/cestas.interface";
+import { ArticulosMenu, CestasInterface } from "../cestas/cestas.interface";
 import { VersionInterface } from "src/version/version.interface";
 
 type Dias = {
@@ -15,6 +15,9 @@ type Productos = {
   nombre: string;
   comentario: string;
   descuentoTienda?: number;
+  articulosMenu: ArticulosMenu[] | null;
+  total: number;
+  idMenu?: string;
 };
 
 export enum OpcionRecogida {
