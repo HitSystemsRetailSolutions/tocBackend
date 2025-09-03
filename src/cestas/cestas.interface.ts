@@ -81,6 +81,7 @@ export type ItemLista = {
   subtotal: number;
   precioOrig?: number;
   arraySuplementos: ArticulosInterface[];
+  articulosMenu?: ArticulosMenu[];
   promocion: {
     idPromocion: string;
     grupos: GrupoPromoEnCesta[];
@@ -100,7 +101,13 @@ export type ItemLista = {
   tarifaEsp?: boolean;
   varis?: boolean;
 };
-
+export type ArticulosMenu = {
+  idArticulo: number;
+  gramos: number | null;
+  unidades: number;
+  arraySuplementos: ArticulosInterface[] | null;
+  nombre: string;
+};
 export type GrupoPromoEnCesta = ArticuloPromoEnCesta[]
 export type ArticuloPromoEnCesta = {
   idArticulo: number;

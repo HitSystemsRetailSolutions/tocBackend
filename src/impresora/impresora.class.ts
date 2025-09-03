@@ -314,13 +314,13 @@ export class Impresora {
       infoClienteVip: informacionVip || null,
       infoCliente: infoCliente
         ? {
-          idCliente: infoCliente._id,
-          nombre: infoCliente?.nombre,
-          telefono: infoCliente?.telefono,
-          puntos: puntos,
-          descuento: descuento,
-          albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
-        }
+            idCliente: infoCliente._id,
+            nombre: infoCliente?.nombre,
+            telefono: infoCliente?.telefono,
+            puntos: puntos,
+            descuento: descuento,
+            albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
+          }
         : null,
       modoCesta: cesta.modo,
       dejaCuenta: 0,
@@ -344,7 +344,10 @@ export class Impresora {
     codigo: string
   ) {
     let nota;
-    console.log(cesta, (await encargosInstance.getEncargoById(idEncargo)).cesta._id);
+    console.log(
+      cesta,
+      (await encargosInstance.getEncargoById(idEncargo)).cesta._id
+    );
     if (!cesta || (cesta.lista && cesta.lista.length == 0)) return;
     const parametros = await parametrosInstance.getParametros();
     const total = Object.entries(cesta.detalleIva).reduce((sum, [key, value]) => {
@@ -374,7 +377,8 @@ export class Impresora {
     }
     let totalSinDescuento = 0;
 
-    if (descuento > 0) await cestasInstance.aplicarDescuento(cesta, descuento, infoCliente);
+    if (descuento > 0)
+      await cestasInstance.aplicarDescuento(cesta, descuento, infoCliente);
 
     for (let i = 0; i < cesta.lista.length; i++) {
       totalSinDescuento += cesta.lista[i].subtotal;
@@ -394,13 +398,13 @@ export class Impresora {
       infoClienteVip: informacionVip || null,
       infoCliente: infoCliente
         ? {
-          idCliente: infoCliente._id,
-          nombre: infoCliente?.nombre + "\n" + codigo,
-          telefono: infoCliente?.telefono,
-          puntos: puntos,
-          descuento: descuento,
-          albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
-        }
+            idCliente: infoCliente._id,
+            nombre: infoCliente?.nombre + "\n" + codigo,
+            telefono: infoCliente?.telefono,
+            puntos: puntos,
+            descuento: descuento,
+            albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
+          }
         : null,
       modoCesta: cesta.modo,
       dejaCuenta: 0,
@@ -699,7 +703,9 @@ export class Impresora {
         if (infoCliente.puntos == null) {
           detallePuntosCliente = "Punts pendents d'actualitzar";
         } else {
+
           detallePuntosCliente = "Punts restants: " + (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+
         }
 
         if (
@@ -720,7 +726,6 @@ export class Impresora {
         }
       }
     }
-
     if (info.dataVersion && info.dataVersion >= versionDescuentosClient && infoCliente) {
       detalleDescuento +=
         detalleDescuento + this.calcularImporteDescuentos(arrayCompra);
@@ -744,11 +749,13 @@ export class Impresora {
           }
         }
         // Sumamos el total de las bases y el total de los IVA
+
         detalleDescuento += detalleDescuento += `Total sense descompte: ${redondearPrecio(
           (baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)
         )}€\nDescompte total: ${redondearPrecio(
           (((baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)) * infoCliente.descuento) / 100
         ).toFixed(2)}€`;
+
       }
     }
 
@@ -824,7 +831,9 @@ export class Impresora {
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
+
         payload: `Data: ${diasSemana[fechaEspaña.format("d")]} ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+
       },
       {
         tipo: "text",
@@ -850,14 +859,18 @@ export class Impresora {
         },
         {
           tipo: "text",
+
           payload: `${infoClienteVip.nombre ? `\x1B\x45\x01 ${infoClienteVip.nombre} \x1B\x45\x00 \n` : ""}`,
+
         },
         { tipo: "size", payload: [0, 0] },
         {
           tipo: "text",
+
           payload: `${infoClienteVip.telefono ? `\x1B\x45\x01 tel.: ${infoClienteVip.telefono} \x1B\x45\x00 \n` : ""}${infoClienteVip.nif ? `\x1B\x45\x01 DNI/NIF: ${infoClienteVip.nif} \x1B\x45\x00 \n` : ""
             }${infoClienteVip.direccion ? `\x1B\x45\x01 direccion: ${infoClienteVip.direccion} \x1B\x45\x00 \n` : ""}${detallePuntosCliente ? `${detallePuntosCliente}\n` : ""
             }${clienteDescuento ? `${clienteDescuento}\n` : ""}`,
+
         }
       );
     arrayImprimir.push(
@@ -920,7 +933,9 @@ export class Impresora {
       let ticketDate = fecha.getTime();
       let nif = params?.nif || "";
       const isVerifactuTicket = ticketDate >= verifactuDate;
+
       if (!(nif.length > 10) && !(params.licencia.toString().length > 10) && !(numFactura.length > 20))
+
         if (params?.nif && isVerifactuTicket)
           arrayImprimir.push(
             { tipo: "text", payload: "\n\n-" },
@@ -1090,9 +1105,11 @@ export class Impresora {
       { tipo: "size", payload: [0, 0] },
       {
         tipo: "text",
-        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
-          }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${clienteDescuento ? `${clienteDescuento} \n` : ""
-          }`,
+        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${
+          detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
+        }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${
+          clienteDescuento ? `${clienteDescuento} \n` : ""
+        }`,
       },
       { tipo: "control", payload: "LF" },
       {
@@ -1111,6 +1128,7 @@ export class Impresora {
         tipo: "text",
         payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""}${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""
           }`,
+
       },
       { tipo: "size", payload: [1, 1] },
       { tipo: "text", payload: pagoDevolucion },
@@ -1156,9 +1174,11 @@ export class Impresora {
       { tipo: "size", payload: [0, 0] },
       {
         tipo: "text",
-        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
-          }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${clienteDescuento ? `${clienteDescuento} \n` : ""
-          }`,
+        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${
+          detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
+        }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${
+          clienteDescuento ? `${clienteDescuento} \n` : ""
+        }`,
       },
       { tipo: "control", payload: "LF" },
       {
@@ -1443,7 +1463,8 @@ export class Impresora {
           importeStr = sprintf(`%${longImporte}s`, "");
           comprobarLongitud(arrayCompra[i].arraySuplementos[j].nombre);
           // linea del suplemento pos j
-          lineaTicket = `${cantidadStr +
+          lineaTicket = `${
+            cantidadStr +
             margenStr +
             articuloStr +
             margenStr +
@@ -1452,10 +1473,90 @@ export class Impresora {
             (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
             margenStr +
             importeStr
-            }`;
+          }`;
           detalles += lineaTicket + "\n";
         }
         // version antigua Suplementos
+      } else if (arrayCompra[i].articulosMenu) {
+        // Mostrar articulosMenu como suplementos
+        let cantidadStr = sprintf(`%-${longQuant}s`, arrayCompra[i].unidades);
+        let articuloStr = sprintf(`%-${longArticulo}s`, arrayCompra[i].nombre);
+        let precioUnitarioStr =
+          longPreuU == 0
+            ? ""
+            : sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
+        let importeStr = setImporteStr();
+        let lineaTicket =
+          cantidadStr +
+          margenStr +
+          articuloStr +
+          margenStr +
+          precioUnitarioStr +
+          margenStr +
+          (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
+          margenStr +
+          importeStr;
+        detalles += lineaTicket + "\n";
+
+        // Mostrar cada articuloMenu como si fuera un suplemento
+        for (let j = 0; j < arrayCompra[i].articulosMenu.length; j++) {
+          const artMenu = arrayCompra[i].articulosMenu[j];
+          // Si tiene gramos, mostrar cantidad
+          let cantidadMenu =
+            artMenu.gramos && artMenu.gramos > 0
+              ? `${artMenu.gramos}gr`
+              : artMenu.unidades > 1
+              ? `${artMenu.unidades}x`
+              : "";
+
+          let nombreMenu = artMenu.nombre;
+          if (cantidadMenu) {
+            nombreMenu = `${cantidadMenu} ${nombreMenu}`;
+          }
+
+          let cantidadStrMenu = sprintf(`%-${longQuant}s`, "");
+          let articuloStrMenu = sprintf(`%-${longArticulo}s`, nombreMenu);
+
+          // Si el articuloMenu tiene suplementos, mostrarlos también
+          let suplementosMenu = artMenu.arraySuplementos || [];
+          let precioUnitarioMenu = "";
+
+          // Mostrar el articuloMenu como suplemento
+          let lineaMenu =
+            cantidadStrMenu +
+            margenStr +
+            articuloStrMenu +
+            margenStr +
+            precioUnitarioMenu +
+            margenStr +
+            (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
+            margenStr +
+            sprintf(`%${longImporte}s`, "");
+
+          detalles += lineaMenu + "\n";
+
+          // Mostrar los suplementos del articuloMenu
+          for (let k = 0; k < suplementosMenu.length; k++) {
+            let suplemento = suplementosMenu[k];
+            let cantidadStrSup = sprintf(`%-${longQuant}s`, "");
+            let articuloStrSup = sprintf(
+              `%-${longArticulo}s`,
+              " -"+suplemento.nombre
+            );
+            let precioUnitarioSup = "";
+            let lineaSup =
+              cantidadStrSup +
+              margenStr +
+              articuloStrSup +
+              margenStr +
+              precioUnitarioSup +
+              margenStr +
+              (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
+              margenStr +
+              sprintf(`%${longImporte}s`, "");
+            detalles += lineaSup + "\n";
+          }
+        }
       } else {
         // articulo sin promos ni suplementos
         cantidadStr = sprintf(`%-${longQuant}s`, arrayCompra[i].unidades);
@@ -1558,8 +1659,9 @@ export class Impresora {
           while (nombreArtGrupo.length < 20) {
             nombreArtGrupo += " ";
           }
-          detalles += `     >     ${nombreArtGrupo.slice(0, 20) + "(x" + artGrupo.unidades + ")"
-            } ${artGrupo.precioPromoPorUnidad.toFixed(2)}\n`;
+          detalles += `     >     ${
+            nombreArtGrupo.slice(0, 20) + "(x" + artGrupo.unidades + ")"
+          } ${artGrupo.precioPromoPorUnidad.toFixed(2)}\n`;
         }
       } else if (arrayCompra[i].arraySuplementos && arrayCompra[i].arraySuplementos.length > 0) {
         var cantidadStr = sprintf("%-7d", arrayCompra[i].unidades);
@@ -1889,7 +1991,7 @@ export class Impresora {
       mqttInstance.loggerMQTT(err);
     }
   }
-  async imprimirDeudasPagadas(movimiento) { }
+  async imprimirDeudasPagadas(movimiento) {}
   async imprimirTest() {
     try {
       const device = new escpos.Network("localhost");
@@ -2000,8 +2102,9 @@ export class Impresora {
                 .padStart(
                   2,
                   "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${arrayMovimientos[i].concepto
-                }\n`;
+                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
+                arrayMovimientos[i].concepto
+              }\n`;
             }
             break;
           case "ENTRADA_DINERO":
@@ -2026,8 +2129,9 @@ export class Impresora {
                 .padStart(
                   2,
                   "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${arrayMovimientos[i].concepto
-                }\n`;
+                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
+                arrayMovimientos[i].concepto
+              }\n`;
             }
             break;
           case "DATAFONO_3G":
@@ -2785,8 +2889,8 @@ export class Impresora {
         ).toFixed(2)}€ \n`;
       } else if (
         encargo.cesta.dataVersion &&
-        encargo.cesta.dataVersion >= versionDescuentosClient
-        && encargo?.cesta?.idCliente
+        encargo.cesta.dataVersion >= versionDescuentosClient &&
+        encargo?.cesta?.idCliente
       ) {
         // obtener importe con los descuentos aplicados
         detalleImporte = this.calcularImporteDescuentos(encargo.cesta.lista);

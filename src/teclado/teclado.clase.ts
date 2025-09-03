@@ -223,6 +223,7 @@ export class TecladoClase {
             suplementos: teclas[i].suplementos,
             precioConIva: teclas[i].precioConIva,
             precioBase: teclas[i].precioBase,
+            esMenu: teclas[i]?.esMenu || false
           }
         );
       } else {
@@ -235,6 +236,7 @@ export class TecladoClase {
           suplementos: teclas[i].suplementos,
           precioConIva: teclas[i].precioConIva,
           precioBase: teclas[i].precioBase,
+          esMenu: teclas[i]?.esMenu || false
         });
       }
     }

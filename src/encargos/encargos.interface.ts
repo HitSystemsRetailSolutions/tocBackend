@@ -23,6 +23,9 @@ type Productos = {
       precioFinalPorPromo:number;
     };
   descuentoTienda?: number;
+  articulosMenu: ArticulosMenu[] | null;
+  total: number;
+  idMenu?: string;
 };
 
 export enum OpcionRecogida {

@@ -21,6 +21,7 @@ import {
   ItemLista,
   GrupoPromoEnCesta,
   ArticuloPromoEnCesta,
+  ArticulosMenu,
 } from "src/cestas/cestas.interface";
 import { CestasController } from "src/cestas/cestas.controller";
 import { getSuplementos } from "src/articulos/articulos.mongodb";
@@ -39,6 +40,8 @@ import {
   versionDescuentosClient,
 } from "src/version/version.clase";
 import Decimal from "decimal.js";
+import { redondearPrecio } from "src/funciones/funciones";
+import { ArticulosInterface } from "src/articulos/articulos.interface";
 
 export class Encargos {
   async pruebaImportar() {
@@ -69,7 +72,6 @@ export class Encargos {
   }
 
   async setCestaPedidos(idEncargo: any, cesta: any) {
-
     function calcularTotal(cesta: CestasInterface) {
       let total = 0;
       cesta.lista.forEach((item) => {
@@ -78,19 +80,24 @@ export class Encargos {
       return total;
     }
     let productos = [];
-    cesta.lista.forEach(element => {
+    cesta.lista.forEach((element) => {
       productos.push({
         id: element.idArticulo,
         nombre: element.nombre,
         total: element.subtotal,
         unidades: element.unidades,
-        comentario: '',
+        comentario: "",
         arraySuplementos: element.arraySuplementos,
         promocion: element.promocion,
       });
     });
 
-    return await schEncargos.setCestaPedidos(idEncargo, cesta, calcularTotal(cesta), productos);
+    return await schEncargos.setCestaPedidos(
+      idEncargo,
+      cesta,
+      calcularTotal(cesta),
+      productos
+    );
   }
 
   setEntregado = async (id) => {
@@ -373,13 +380,12 @@ export class Encargos {
       .catch((err: string) => ({ error: true, msg: err }));
   };
 
-
-
-
-
   setPedido = async (encargo) => {
-    await cestasInstance.aplicarDescuento(encargo.cesta, encargo.total, encargo.idCliente);
-
+    await cestasInstance.aplicarDescuento(
+      encargo.cesta,
+      encargo.total,
+      encargo.idCliente
+    );
 
     let timestamp = new Date().getTime();
     let codigoBarras = await movimientosInstance.generarCodigoBarrasSalida();
@@ -624,6 +630,7 @@ export class Encargos {
             comentario: textoModificado,
             arraySuplementos: cestaEncargo.lista[index].arraySuplementos,
             promocion: cestaEncargo.lista[index].promocion,
+            articulosMenu: cestaEncargo.lista[index]?.articulosMenu || null,
             dataVersion: dataVersion,
           });
         }
@@ -787,6 +794,91 @@ export class Encargos {
         Number(detallesArray[otroIndex]?.PromoArtPrinc) === item.Article
       );
     }
+    // encontrar y agrupar articulos por menu
+    const menusMap: Map<
+      string,
+      { articulos: ArticulosMenu[]; precios: number[]; comentario: string }
+    > = new Map();
+
+    for (const [index, item] of encargo.entries()) {
+      // saltarse iteracion
+      if (!detallesArray[index]?.Menu) continue;
+      let Comentari = "";
+
+      const menuId = detallesArray[index].Menu;
+
+      const suplementos = detallesArray[index]?.suplementos
+        ? detallesArray[index].suplementos.split(",").map(Number)
+        : [];
+      const arraySuplementos: ArticulosInterface[] = [];
+
+      for (const supId of suplementos) {
+        const artInfo = await articulosInstance.getInfoArticulo(supId);
+        arraySuplementos.push(artInfo);
+      }
+      const artInfo = await articulosInstance.getInfoArticulo(item.Article);
+      const artMenu: ArticulosMenu = {
+        idArticulo: item.Article,
+        gramos: null,
+        unidades: item.Quantitat,
+        arraySuplementos: arraySuplementos.length > 0 ? arraySuplementos : null,
+        nombre: artInfo.nombre,
+      };
+
+      if (item.Comentari && item.Comentari != "0") Comentari = item.Comentari;
+
+      const precioArt = item.Import;
+      if (!menusMap.has(menuId))
+        menusMap.set(menuId, {
+          articulos: [],
+          precios: [],
+          comentario: Comentari,
+        });
+
+      menusMap.get(menuId).articulos.push(artMenu);
+      menusMap.get(menuId).precios.push(precioArt);
+
+      procesados.add(index);
+    }
+
+    // insertar menus a cesta
+    for (const [
+      menuId,
+      { articulos: articulosMenu, precios, comentario },
+    ] of menusMap.entries()) {
+      let idArticuloMenu = menuId;
+      let repMenu = null;
+      // quitar _X del idMenu
+      const repMatch = menuId.match(/(.+)_([0-9]+)$/);
+
+      if (repMatch) {
+        idArticuloMenu = repMatch[1];
+        repMenu = repMatch[2];
+      }
+
+      const infoMenu = await articulosInstance.getInfoArticulo(
+        Number(idArticuloMenu)
+      );
+      const subtotalMenu = precios.reduce((sum, precio) => sum + precio, 0);
+
+      cesta.lista.push({
+        idArticulo: Number(idArticuloMenu),
+        nombre: infoMenu.nombre,
+        arraySuplementos: null,
+        promocion: null,
+        varis: false,
+        regalo: false,
+        puntos: infoMenu.puntos,
+        impresora: infoMenu.impresora,
+        subtotal: subtotalMenu,
+        unidades: 1,
+        gramos: null,
+        pagado: false,
+        articulosMenu: articulosMenu,
+      });
+      comentarios.push(comentario);
+    }
+
     let PromoEnGrupos = false;
     for (let det of detallesArray) {
       if (det.GrupoPromo) {
@@ -812,6 +904,7 @@ export class Encargos {
       encargo.forEach((item, index) => {
         let da = detallesArray[index];
         let GrupoPromoStr: string = da.GrupoPromo;
+
         if (GrupoPromoStr) {
           // GrupoPromo: idxItemLista,idxGrupo,idxInGrupo
           let GP = GrupoPromoStr.split(",").map((v) => parseInt(v));
@@ -821,9 +914,11 @@ export class Encargos {
             Article: item.Article as number,
             Quantitat: item.Quantitat as number,
           };
+
           if (item.Comentari && item.Comentari != "0")
             Comentari = item.Comentari;
           let promo = MapItemsOfPromo.get(GP[0]); //idxItemLista
+
           if (promo == undefined) {
             MapItemsOfPromo.set(GP[0], {
               idPromo: (da.IdPromoCombo ||
@@ -837,10 +932,12 @@ export class Encargos {
           procesados.add(index);
         }
       });
+
       for (let [idxItemLista, id_y_grupos] of MapItemsOfPromo) {
         const promoById = nuevaInstancePromociones.getPromoById(
           id_y_grupos.idPromo
         );
+
         if (!promoById) continue;
         id_y_grupos.grupos.sort((a, b) => {
           let c = a.idxGrupo - b.idxGrupo;
@@ -852,6 +949,7 @@ export class Encargos {
         let unidadesPorGrupo: number[] = [];
         let idxGrupoActual = -1;
         let puntos = 0;
+
         for (let gr of id_y_grupos.grupos) {
           const artInfo = await articulosInstance.getInfoArticulo(gr.Article);
           if (artInfo.puntos != null) puntos += gr.Quantitat * artInfo.puntos;
@@ -865,6 +963,7 @@ export class Encargos {
             impresora: artInfo.impresora,
 
           };
+
           if (gr.idxGrupo != idxGrupoActual) {
             grupos.push([ArtGrupo]);
             unidadesPorGrupo.push(gr.Quantitat);
@@ -875,6 +974,7 @@ export class Encargos {
               unidadesPorGrupo[unidadesPorGrupo.length - 1] + gr.Quantitat;
           }
         }
+
         let num_promos = unidadesPorGrupo[0] / promoById.grupos[0].cantidad;
         for (let artGrupo of grupos.flat()) {
           artGrupo.unidades /= num_promos;
@@ -967,8 +1067,8 @@ export class Encargos {
               regalo: false,
               subtotal: this.redondearPrecio(
                 unidades *
-                // cantidadPrincipal *
-                promoEncontrado.precioFinal // el precio final en el nuevo formato promo individual ya es el total por promo
+                  // cantidadPrincipal *
+                  promoEncontrado.precioFinal // el precio final en el nuevo formato promo individual ya es el total por promo
               ),
               puntos:
                 articuloPrincipal.puntos == null
@@ -1012,9 +1112,9 @@ export class Encargos {
 
             let totalSinDescuento =
               articuloPrincipal.precioConIva *
-              promoEncontrado.grupos[0].cantidad +
+                promoEncontrado.grupos[0].cantidad +
               articuloSecundario.precioConIva *
-              promoEncontrado.grupos[1].cantidad;
+                promoEncontrado.grupos[1].cantidad;
 
             let perc = promoEncontrado.precioFinal / totalSinDescuento;
 
@@ -1046,9 +1146,8 @@ export class Encargos {
             )
               puntos =
                 unidades *
-                (articuloPrincipal.puntos ??
-                  0 + articuloSecundario.puntos ??
-                  0);
+                ((articuloPrincipal.puntos ?? 0) +
+                  (articuloSecundario.puntos ?? 0));
             const productoCesta: ItemLista = {
               arraySuplementos: null,
               gramos: 0,
@@ -1092,8 +1191,8 @@ export class Encargos {
         if (!procesados.has(index)) {
           const arraySuplementos = detallesArray[index]?.suplementos
             ? await articulosInstance.getSuplementos(
-              detallesArray[index]?.suplementos.split(",").map(Number)
-            )
+                detallesArray[index]?.suplementos.split(",").map(Number)
+              )
             : null;
 
           cesta = await cestasInstance.clickTeclaArticulo(
@@ -1102,6 +1201,7 @@ export class Encargos {
             cesta._id,
             item.Quantitat,
             arraySuplementos,
+            null,
             "",
             "descargas"
           );
@@ -1139,6 +1239,81 @@ export class Encargos {
       encargo.codigoBarras = "";
     }
     impresoraInstance.imprimirEncargoSelected(encargo);
+  }
+
+  async deshacerArticulosMenu(productos) {
+    const nuevaLista = [];
+    const idArticuloRepetidos: { [id: number]: number } = {};
+
+    for (const item of productos) {
+      if (item.articulosMenu && item.articulosMenu.length > 0) {
+        const articulosMenu = item.articulosMenu;
+
+        // Contar repeticiones de este idArticulo
+        if (!idArticuloRepetidos[item.idArticulo]) {
+          idArticuloRepetidos[item.idArticulo] = 1;
+        } else {
+          idArticuloRepetidos[item.idArticulo]++;
+        }
+        const repActual = idArticuloRepetidos[item.idArticulo];
+
+        const subtotal = item?.total ? item.total : 0;
+        const totalUnidades = articulosMenu.reduce(
+          (sum, artMenu) => sum + item.unidades * artMenu.unidades,
+          0
+        );
+
+        // Reparto de subtotal en partes iguales, redondeando a 2 decimales y ajustando el último
+        let subtotalRestante = subtotal;
+        let unidadesRestantes = totalUnidades;
+
+        for (let i = 0; i < articulosMenu.length; i++) {
+          const artMenu = articulosMenu[i];
+          const unidadesArt = item.unidades * artMenu.unidades;
+
+          let subtotalAsignado = 0;
+          if (unidadesRestantes > 0) {
+            // Reparto proporcional por unidades
+            let parte = subtotal / totalUnidades;
+            subtotalAsignado = +redondearPrecio(parte * unidadesArt);
+
+            // Si el subtotal es muy pequeño, solo los primeros reciben cantidad, el resto 0
+            if (subtotalAsignado < 0.01 && subtotalRestante > 0) {
+              subtotalAsignado = +(subtotalRestante > 0
+                ? redondearPrecio(subtotalRestante)
+                : 0);
+              subtotalRestante -= subtotalAsignado;
+              unidadesRestantes -= unidadesArt;
+            } else {
+              // Ajustar el último para cuadrar la suma total
+              if (i === articulosMenu.length - 1) {
+                subtotalAsignado = +redondearPrecio(subtotalRestante);
+              }
+              subtotalRestante -= subtotalAsignado;
+              unidadesRestantes -= unidadesArt;
+            }
+          }
+          const suplementos = artMenu?.arraySuplementos?.length
+            ? artMenu.arraySuplementos
+            : null;
+          nuevaLista.push({
+            arraySuplementos: suplementos,
+            id: artMenu.idArticulo,
+            regalo: item?.regalo ? true : false,
+            promocion: null,
+            unidades: unidadesArt,
+            total: item?.regalo ? 0 : subtotalAsignado,
+            nombre: artMenu.nombre,
+            idMenu: `${item.id}_${repActual}`,
+            comentario: item.comentario || "",
+          });
+        }
+      } else {
+        nuevaLista.push(item);
+      }
+    }
+    productos = nuevaLista;
+    return productos;
   }
 }
 
