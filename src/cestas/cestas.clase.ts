@@ -604,7 +604,7 @@ export class CestaClase {
             Math.round(
               (articulo.subtotal +
                 (articulo.subtotal * cliente.descuento) / 100) *
-                100
+              100
             ) / 100;
         }
       }
@@ -640,7 +640,7 @@ export class CestaClase {
             Math.round(
               (articulo.subtotal +
                 (articulo.subtotal * cliente.descuento) / 100) *
-                100
+              100
             ) / 100;
         }
       }
@@ -1176,8 +1176,8 @@ export class CestaClase {
       if (
         nombre &&
         nombre.length > 0 &&
-        (articulo.nombre.toLowerCase().includes("varis") ||
-          articulo.nombre.toLowerCase().includes("varios"))
+        (articulo?.nombre?.toLowerCase().includes("varis") ||
+          articulo?.nombre?.toLowerCase().includes("varios"))
       ) {
         articulo.nombre = nombre;
         articulo.varis = true;
@@ -1402,14 +1402,14 @@ export class CestaClase {
     const cliente = clienteCesta
       ? clienteCesta
       : cesta.idCliente
-      ? await clienteInstance.getClienteById(cesta.idCliente)
-      : null;
+        ? await clienteInstance.getClienteById(cesta.idCliente)
+        : null;
     await this.comprobarRegalos(cesta);
     let descuento: any =
       cesta.modo !== "CONSUMO_PERSONAL" &&
-      cliente &&
-      !cliente?.albaran &&
-      !cliente?.vip
+        cliente &&
+        !cliente?.albaran &&
+        !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
     let vipOalbaran = cliente?.albaran || cliente?.vip;
@@ -1485,10 +1485,10 @@ export class CestaClase {
         if (cesta.indexMesa != null) {
           precioArt =
             (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
-            null
+              null
               ? precioArt
               : (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo))
-                  .precioConIva;
+                .precioConIva;
         }
         if (menu.length > 0) {
           let preu = await tarifasInstance.tarifaMenu(
@@ -1627,8 +1627,8 @@ export class CestaClase {
               cesta.modo == "CONSUMO_PERSONAL"
                 ? Math.round(cesta.lista[i].subtotal * 100) / 100
                 : Math.round(
-                    (cesta.lista[i].precioOrig + preuSumplements) * 100
-                  ) / 100;
+                  (cesta.lista[i].precioOrig + preuSumplements) * 100
+                ) / 100;
           }
           cesta.detalleIva = fusionarObjetosDetalleIva(
             cesta.detalleIva,
@@ -1714,8 +1714,8 @@ export class CestaClase {
     const cliente = clienteCesta
       ? clienteCesta
       : cesta.idCliente
-      ? await clienteInstance.getClienteById(cesta.idCliente)
-      : null;
+        ? await clienteInstance.getClienteById(cesta.idCliente)
+        : null;
     await this.comprobarRegalos(cesta);
 
     let vipOalbaran = cliente?.albaran || cliente?.vip ? true : false;
@@ -1792,10 +1792,10 @@ export class CestaClase {
         if (cesta.indexMesa != null) {
           precioArt =
             (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
-            null
+              null
               ? precioArt
               : (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo))
-                  .precioConIva;
+                .precioConIva;
         }
         if (menu.length > 0) {
           let preu = await tarifasInstance.tarifaMenu(
@@ -1930,8 +1930,8 @@ export class CestaClase {
               cesta.modo == "CONSUMO_PERSONAL"
                 ? Math.round(cesta.lista[i].subtotal * 100) / 100
                 : Math.round(
-                    (cesta.lista[i].precioOrig + preuSumplements) * 100
-                  ) / 100;
+                  (cesta.lista[i].precioOrig + preuSumplements) * 100
+                ) / 100;
           }
 
           cesta.detalleIva = fusionarObjetosDetalleIva(
@@ -2362,11 +2362,11 @@ export class CestaClase {
     try {
       let cliente: number =
         (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
-        undefined
+          undefined
           ? 0
           : Number(
-              (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
-            );
+            (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
+          );
       let parametros = await parametrosInstance.getParametros();
       // si la cesta pertenece a una mesa, cogemos la dependienta en el array
       let dependienta = cesta.trabajador || cesta.trabajadores[0];

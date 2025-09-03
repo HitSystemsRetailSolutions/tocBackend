@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
-import { ArticulosMenu, CestasInterface } from "../cestas/cestas.interface";
+import { ArticuloPromoEnCesta, CestasInterface, GrupoPromoEnCesta } from "../cestas/cestas.interface";
 import { VersionInterface } from "src/version/version.interface";
+import { PromocionesInterface } from "src/promociones/promociones.interface";
 
 type Dias = {
   dia: string;
@@ -14,6 +15,13 @@ type Productos = {
   idGraellaPromoArtSecundario: null|string;
   nombre: string;
   comentario: string;
+  unidades: number;
+  promocion?: {
+      idPromocion: string;
+      grupos:GrupoPromoEnCesta[];
+      unidadesOferta: number;
+      precioFinalPorPromo:number;
+    };
   descuentoTienda?: number;
   articulosMenu: ArticulosMenu[] | null;
   total: number;

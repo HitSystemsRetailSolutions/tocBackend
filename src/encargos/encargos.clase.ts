@@ -961,6 +961,7 @@ export class Encargos {
             precioPorUnidad: artInfo.precioConIva,
             puntosPorUnidad: artInfo.puntos,
             impresora: artInfo.impresora,
+
           };
 
           if (gr.idxGrupo != idxGrupoActual) {

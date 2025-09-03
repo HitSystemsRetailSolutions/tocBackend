@@ -559,7 +559,11 @@ async function sincronizarEncargosCreados() {
             encargo.amPm,
             encargo.timestamp
           );
-          const productos = await encargosInstance.deshacerArticulosMenu(encargo.productos);
+
+          encargo.productos = await encargosInstance.deshacerArticulosMenu(encargo.productos);
+
+          const productos = nuevaInstancePromociones.deshacerPromocionesEncargo(encargo.productos);
+
           const encargo_santAna = {
             id: await encargosInstance.generateId(
               await encargosInstance.getDate(

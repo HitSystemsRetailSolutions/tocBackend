@@ -21,7 +21,7 @@ export interface CestasInterface {
   dataVersion?: string;
 }
 
-export interface CestasCombinadaInterface  extends CestasInterface {
+export interface CestasCombinadaInterface extends CestasInterface {
   listaDeudas?: ItemLista[];
   detalleIvaTickets?: DetalleIvaInterface;
   detalleIvaDeudas?: DetalleIvaInterface;
@@ -84,9 +84,9 @@ export type ItemLista = {
   articulosMenu?: ArticulosMenu[];
   promocion: {
     idPromocion: string;
-    grupos:GrupoPromoEnCesta[];
+    grupos: GrupoPromoEnCesta[];
     unidadesOferta: number;
-    precioFinalPorPromo:number;
+    precioFinalPorPromo: number;
   };
   tipoIva?: number;
   descuentoTienda?: number;
@@ -115,7 +115,12 @@ export type ArticuloPromoEnCesta = {
   unidades: number;
   precioPromoPorUnidad: number;
   impresora: string;
-} 
+  suplementosPorArticulo?: {
+    unidades: number;
+    suplementos: ItemLista["arraySuplementos"];
+  }[];
+
+}
 
 export type DetalleIvaInterface = {
   [key: `base${number}`]: number;
