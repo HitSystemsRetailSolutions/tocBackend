@@ -8,7 +8,8 @@ import { io } from "src/sockets.gateway";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import { cajaInstance } from "src/caja/caja.clase";
 import axios from "axios";
-
+import { articulosInstance } from "../articulos/articulos.clase";
+const printComandero = { enabled: false, setted: false };
 @Controller("impresora")
 export class ImpresoraController {
   @Post("imprimirTicket")
@@ -45,30 +46,38 @@ export class ImpresoraController {
       throw Error("Faltan datos en impresora/imprimirTicketComandero");
     }
 
-    if (products.some(product => product.promocion)) {
-      products = products.map(product => {
-        if (product.promocion) {
-          return product.promocion.grupos.map(promoProduct => {
-            return {
-              ...promoProduct[0],
-            };
-          });
-        }
-        return { ...product, impresora: product.impresora };
-      }).flat();
+    if (!printComandero.setted) {
+      const articulos = await articulosInstance.getArticulos();
+      printComandero.enabled = articulos.some(articulo => articulo.impresora !== null);
+      printComandero.setted = true;
     }
-    const impresoras = products.map(product => product.impresora).filter(impresora => impresora);
-    const impresorasUnicas = [...new Set(impresoras)];
-    if (impresorasUnicas.length === 0) {
-      throw Error("No hay impresoras disponibles");
+    if (printComandero.enabled) {
+      if (products.some(product => product.promocion)) {
+        products = products.map(product => {
+          if (product.promocion) {
+            return product.promocion.grupos.map(promoProduct => {
+              return {
+                ...promoProduct[0],
+              };
+            });
+          }
+          return { ...product, impresora: product.impresora };
+        }).flat();
+      }
+
+      const impresoras = products.map(product => product.impresora).filter(impresora => impresora);
+      const impresorasUnicas = [...new Set(impresoras)];
+      if (impresorasUnicas.length === 0) {
+        throw Error("No hay impresoras disponibles");
+      }
+      for (const impresora of impresorasUnicas) {
+        const productosFiltrados = products.filter(product => product.impresora === impresora);
+        const topic = (impresora as string).toLowerCase().includes('cable') ? `hit.hardware/printer` : `hit.hardware/printerIP/${impresora}`;
+        await impresoraInstance.imprimirComandero(productosFiltrados, table, worker, clients, topic);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      return true;
     }
-    for (const impresora of impresorasUnicas) {
-      const productosFiltrados = products.filter(product => product.impresora === impresora);
-      const topic = `hit.hardware/printerIP/${impresora}`;
-      await impresoraInstance.imprimirComandero(productosFiltrados, table, worker, clients, topic);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
-    return true;
   }
 
   /* Uri */
