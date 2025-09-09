@@ -149,10 +149,10 @@ export class CestasController {
     }
   }
   @Post("generarCestaPedido")
-  async generarCestaPedido(@Body() { idEncargo,cestaEncargo }) {
+  async generarCestaPedido(@Body() { idEncargo, cestaEncargo }) {
     try {
       if (cestaEncargo && idEncargo) {
-        return await cestasInstance.CestaModificarPedido(idEncargo,cestaEncargo);
+        return await cestasInstance.CestaModificarPedido(idEncargo, cestaEncargo);
       }
       throw Error("Error, faltan datos en PagarDeuda() controller");
     } catch (err) {
@@ -361,13 +361,12 @@ export class CestasController {
 
   /* Uri House */
   @Post("setArticuloImprimido")
-  async setArticuloImprimido(@Body() { idCesta, articulos, printed }) {
+  async setArticuloImprimido(@Body() { idCesta, articulos }) {
     try {
-      if (idCesta && articulos && printed != null) {
+      if (idCesta && articulos) {
         return await cestasInstance.setArticuloImprimido(
           idCesta,
           articulos,
-          printed
         );
       }
       throw Error("Error, faltan datos en cestas/insertarArtsPagados");
@@ -469,12 +468,12 @@ export class CestasController {
   }
 
   @Post("imprimirNotaPedido")
-  async imprimirNotaPedido(@Body() { idEncargo, idTrabajador,codigo,cesta }) {
+  async imprimirNotaPedido(@Body() { idEncargo, idTrabajador, codigo, cesta }) {
     try {
       if (!idEncargo) {
         throw Error("faltan datos en imprimirNotaPedido");
       }
-      await impresoraInstance.imprimirNotaPedido(idEncargo,cesta, idTrabajador,codigo);
+      await impresoraInstance.imprimirNotaPedido(idEncargo, cesta, idTrabajador, codigo);
       return true;
     } catch (error) {
       logger.Error(138, error);

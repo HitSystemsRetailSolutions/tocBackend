@@ -70,7 +70,8 @@ export class ImpresoraController {
       if (impresorasUnicas.length === 0) {
         throw Error("No hay impresoras disponibles");
       }
-      for (const impresora of impresorasUnicas) {
+      for (let i = 0; i < impresorasUnicas.length; i++) {
+        const impresora = impresorasUnicas[i];
         const productosFiltrados = products.filter(product => product.impresora === impresora);
         const topic = (impresora as string).toLowerCase().includes('cable') ? `hit.hardware/printer` : `hit.hardware/printerIP/${impresora}`;
         await impresoraInstance.imprimirComandero(productosFiltrados, table, worker, clients, topic);

@@ -65,7 +65,7 @@ export type ItemLista_old = {
   puntos: number;
   gramos: number;
   impresora: string;
-  printed?: boolean;
+  printed?: number;
   regalo: boolean;
   dto?: number;
   iva?: number;
@@ -93,7 +93,7 @@ export type ItemLista = {
   puntos: number;
   gramos: number;
   impresora: string;
-  printed?: boolean;
+  printed?: number;
   regalo: boolean;
   dto?: number;
   iva?: number;

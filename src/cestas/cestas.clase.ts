@@ -2231,17 +2231,17 @@ export class CestaClase {
   setArticuloImprimido = async (
     idCesta: CestasInterface["_id"],
     articulosIDs: number[],
-    printed: boolean
   ) => {
     const cesta = await this.getCestaById(idCesta);
     for (let x = 0; x < cesta.lista.length; x++) {
       if (articulosIDs.includes(cesta.lista[x].idArticulo)) {
-        cesta.lista[x].printed = printed;
+        cesta.lista[x].printed = cesta.lista[x].unidades;
       }
     }
     if (await this.updateCesta(cesta)) {
       this.actualizarCestas();
     }
+
     return true;
   };
 
@@ -2503,7 +2503,7 @@ export class CestaClase {
             unidades: unidadesArt,
             subtotal: item?.regalo ? 0 : subtotalAsignado,
             nombre: artMenu.nombre,
-            idMenu:`${item.idArticulo}_${repActual}`
+            idMenu: `${item.idArticulo}_${repActual}`
 
           });
         }
