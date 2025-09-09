@@ -425,6 +425,26 @@ export class CestasController {
     }
   }
 
+  @Post("traspasarProductos")
+  async traspasarProductos(@Body() { idCestaOrigen, idCestaDestino, idTrabajador }) {
+    try {
+      if (!idCestaOrigen || !idCestaDestino) {
+        return { ok: false, message: "IDs de cestas requeridos" };
+      }
+
+      const resultado = await cestasInstance.pasarCestas(idCestaOrigen, idCestaDestino);
+
+      if (resultado) {
+        await cestasInstance.actualizarCestas();
+        return { ok: true, message: "Productos traspasados correctamente" };
+      } else {
+        return { ok: false, message: "Error al traspasar productos" };
+      }
+    } catch (error) {
+      return { ok: false, message: error.message };
+    }
+  }
+
   @Post("setDiscountShop")
   async setDiscountShop(@Body() { cesta, discount, index }) {
     try {
