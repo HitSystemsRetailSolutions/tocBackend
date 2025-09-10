@@ -120,10 +120,12 @@ export class NuevaPromocion {
               precioPromoPorUnidad:
                 itemOld.promocion.precioRealArticuloSecundario,
               impresora: itemOld.impresora,
-              suplementosPorArticulo: [{
-                unidades: 1,
-                suplementos: itemOld.arraySuplementos,
-              }],
+              suplementosPorArticulo: [
+                {
+                  unidades: 1,
+                  suplementos: itemOld.arraySuplementos,
+                },
+              ],
             },
           ]);
         }
@@ -563,7 +565,7 @@ export class NuevaPromocion {
       if (
         len_v_idxAC_PG > 0 &&
         ArticulosCandidatos[len_v_idxAC_PG] ==
-        ArticulosCandidatos[len_v_idxAC_PG - 1]
+          ArticulosCandidatos[len_v_idxAC_PG - 1]
       ) {
         // empezar por idx ya que es el mismo articulo y daría una combinación repetida si se empieza por 0
         idxPG = prev_idxPG;
@@ -1005,9 +1007,9 @@ export class NuevaPromocion {
       artGrupo.precioPromoPorUnidad = promo_individual
         ? precioPorUnidadPromoIndividual
         : redondearPrecio(
-          artGrupo.precioPorUnidad *
-          (item.promocion.precioFinalPorPromo / totalSinPromocion)
-        );
+            artGrupo.precioPorUnidad *
+              (item.promocion.precioFinalPorPromo / totalSinPromocion)
+          );
       resto -= artGrupo.precioPromoPorUnidad * artGrupo.unidades;
     }
     let ultimoArtGrupo = gruposFlat[gruposFlat.length - 1];
@@ -1080,6 +1082,23 @@ export class NuevaPromocion {
         if (m_inicio <= m_actual && m_actual <= m_final) return true;
       }
       // comprovacion si la fecha de hoy esta en el intervalo utilizado.
+      if (diaInicio !== 7 && diaFinal !== 7) {
+        let dentroIntervalo = false;
+        if (diaInicio <= diaFinal) {
+          // Ej: lunes a viernes
+          dentroIntervalo = diaActual >= diaInicio && diaActual <= diaFinal;
+        } else {
+          // Ej: viernes a lunes (intervalo que cruza el domingo)
+          dentroIntervalo = diaActual >= diaInicio || diaActual <= diaFinal;
+        }
+        if (dentroIntervalo) {
+          var m_inicio = dateInicio.getHours() * 60 + dateInicio.getMinutes();
+          var m_final = dateFinal.getHours() * 60 + dateFinal.getMinutes();
+          var m_actual = fechaActual.getHours() * 60 + fechaActual.getMinutes();
+
+          if (m_inicio <= m_actual && m_actual <= m_final) return true;
+        }
+      }
     } else if (
       fechaActual.getTime() >= dateInicio.getTime() &&
       fechaActual.getTime() <= dateFinal.getTime()
@@ -1167,10 +1186,10 @@ export class NuevaPromocion {
             subtotal: item?.regalo
               ? 0
               : redondearPrecio(
-                artGrupo.precioPromoPorUnidad *
-                item.unidades *
-                artGrupo.unidades
-              ),
+                  artGrupo.precioPromoPorUnidad *
+                    item.unidades *
+                    artGrupo.unidades
+                ),
             nombre: "ArtículoDentroDePromo " + artGrupo.nombre,
           });
         }
