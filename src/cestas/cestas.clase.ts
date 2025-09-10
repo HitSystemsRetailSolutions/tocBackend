@@ -967,6 +967,7 @@ export class CestaClase {
                 2
               );
 
+
               articuloNuevo = false;
               ItemActualizado = item;
               break;
@@ -1012,6 +1013,7 @@ export class CestaClase {
           unidades: unidades,
           gramos: gramos,
           pagado,
+  
         };
         cesta.lista.push(ItemActualizado);
       }

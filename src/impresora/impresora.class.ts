@@ -3339,6 +3339,7 @@ export class Impresora {
   }
   async imprimirComandero(productos: ItemLista[], table: number, worker: string, customer: number, topic: string) {
     try {
+
       const time = momentTZ(new Date()).tz("Europe/Madrid");
       let impresion = [
         { tipo: "size", payload: [1, 1] },

@@ -45,6 +45,7 @@ export class ImpresoraController {
     if (!products || !table || !worker || !clients) {
       throw Error("Faltan datos en impresora/imprimirTicketComandero");
     }
+    console.log(table)
 
     if (!printComandero.setted) {
       const articulos = await articulosInstance.getArticulos();

@@ -55,6 +55,7 @@ export type ArticuloInfoPromoYNormal = ArticuloPromoEnCesta & {
   precioPorUnidad: number;
   puntosPorUnidad: number;
   impresora: string;
+  printed?: number;
   descuentoTienda?: number;
   tipoIva?: number;
   suplementosPorArticulo?: {
@@ -423,6 +424,7 @@ export class NuevaPromocion {
                 item.puntos == null ? null : item.puntos / item.unidades,
               precioPromoPorUnidad: null,
               impresora: item.impresora,
+              printed: item.printed || 0,
               ...(item.descuentoTienda != null && {
                 descuentoTienda: item.descuentoTienda,
               }),
@@ -750,6 +752,7 @@ export class NuevaPromocion {
             regalo: false,
             pagado: false,
             varis: false,
+            printed: (articulo as any).printed || 0,
             ...(articulo.descuentoTienda !== undefined && {
               descuentoTienda: articulo.descuentoTienda,
             }),
@@ -778,6 +781,7 @@ export class NuevaPromocion {
             promocion: null, // No es una promoción
             puntos: articulo.puntosPorUnidad * bloque.unidades,
             impresora: articulo.impresora,
+            printed: (articulo as any).printed || 0,
             ...(articulo.descuentoTienda !== undefined && {
               descuentoTienda: articulo.descuentoTienda,
             }),
@@ -817,6 +821,7 @@ export class NuevaPromocion {
               promocion: null, // No es una promoción
               puntos: articulo.puntosPorUnidad * bloque.unidades,
               impresora: articulo.impresora,
+              printed: (articulo as any).printed || 0,
               ...(articulo.descuentoTienda !== undefined && {
                 descuentoTienda: articulo.descuentoTienda,
               }),
@@ -844,6 +849,7 @@ export class NuevaPromocion {
             ),
             puntos: articulo.puntosPorUnidad * articulo.unidades,
             impresora: articulo.impresora,
+            printed: (articulo as any).printed || 0,
             ...(articulo.descuentoTienda !== undefined && {
               descuentoTienda: articulo.descuentoTienda,
             }),
