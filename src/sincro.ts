@@ -406,7 +406,6 @@ async function sincronizarMovimientos(continuar: boolean = false) {
       if (parametros != null) {
         const res = await movimientosInstance.getMovimientoMasAntiguo();
         if (res) {
-
           const resMovimiento: any = await CBSincronizarMovimientos.fire({
             movimiento: res,
           });
@@ -442,7 +441,6 @@ export function sincronizarFichajes() {
                 parametros,
                 fichaje: res,
               });
-
             }
           })
           .catch((err) => {
@@ -466,7 +464,6 @@ function sincronizarDevoluciones() {
           .getDevolucionMasAntigua()
           .then((res) => {
             if (res !== null) {
-
               CBSocketSincronizarDevoluciones.fire({
                 parametros,
                 devolucion: res,
@@ -560,9 +557,13 @@ async function sincronizarEncargosCreados() {
             encargo.timestamp
           );
 
-          encargo.productos = await encargosInstance.deshacerArticulosMenu(encargo.productos);
+          encargo.productos = await encargosInstance.deshacerArticulosMenu(
+            encargo.productos
+          );
 
-          const productos = nuevaInstancePromociones.deshacerPromocionesEncargo(encargo.productos);
+          const productos = nuevaInstancePromociones.deshacerPromocionesEncargo(
+            encargo.productos
+          );
 
           const encargo_santAna = {
             id: await encargosInstance.generateId(
@@ -602,7 +603,7 @@ async function sincronizarEncargosCreados() {
             dataVersion: encargo.dataVersion || null,
           };
 
-          if(encargo.estado == "PEDIDOS" && encargo.productos.length <= 0){
+          if (encargo.estado == "PEDIDOS" && encargo.productos.length <= 0) {
             if (await encargosInstance.setEnviado(encargo._id)) {
               enProcesoEncargosCreados = false;
               setTimeout(sincronizarEncargosCreados, 100);
@@ -613,8 +614,7 @@ async function sincronizarEncargosCreados() {
             await CBSincronizarEncargosCreados.fire(encargo_santAna);
 
           if (res.data) {
-            
-            if (!res.data.errorv ) {
+            if (!res.data.errorv) {
               if (await encargosInstance.setEnviado(encargo._id)) {
                 setTimeout(function () {
                   enProcesoEncargosCreados = false;
@@ -829,7 +829,8 @@ async function sincronizarAlbaranesCreados() {
         if (albaran) {
           albaran.cesta.lista =
             await nuevaInstancePromociones.deshacerPromociones(albaran);
-          albaran.cesta.lista = await cestasInstance.deshacerArticulosMenu(albaran);
+          albaran.cesta.lista =
+            await cestasInstance.deshacerArticulosMenu(albaran);
           const res: any = await CBSincronizarAlbaranesCreados.fire(albaran);
           if (res.data && !res.data.error) {
             if (await AlbaranesInstance.setEnviado(albaran._id)) {
@@ -912,10 +913,9 @@ setInterval(sincronizarAlbaranesCreados, 11000);
 // setInterval(actualizarTarifas, 3600000);
 setInterval(limpiezaProfunda, 60000);
 setInterval(sincronizarTicketsOtrosModificado, 16000);
-setInterval(actualizarTrabajadores, 3600000);
+// setInterval(actualizarTrabajadores, 3600000);
 // setInterval(actualizarMesas, 3600000);
 setInterval(sincronizarPedidosCaducados, 60000);
-
 
 export {
   reenviarTicket,
