@@ -35,6 +35,7 @@ import { encargosInstance } from "src/encargos/encargos.clase";
 import { versionDescuentosClient } from "src/version/version.clase";
 import e from "express";
 import Decimal from "decimal.js";
+import { mesasInstance } from "src/mesas/mesas.class";
 const momentTZ = require("moment-timezone");
 moment.locale("es");
 const escpos = require("escpos");
@@ -160,6 +161,13 @@ export class Impresora {
     const ticket = albaran
       ? await AlbaranesInstance.getAlbaranById(idTicket)
       : await ticketsInstance.getTicketById(idTicket);
+    const mesasG = await mesasInstance.getMesas();
+    let mesa = null;
+    if (ticket?.cesta?.indexMesa != undefined) {
+      const m = mesasG.find((mesa) => mesa._id == Number(ticket.cesta.indexMesa))
+      if (m.nombre) mesa = m.nombre
+      else mesa = "Mesa " + (ticket.cesta.indexMesa + 1)
+    }
 
     const parametros = await parametrosInstance.getParametros();
     // insertamos parametro imprimir y enviado en false al ticket para enviarlo al santaAna
@@ -193,6 +201,7 @@ export class Impresora {
         for (let i = 0; i < ticket.cesta.lista.length; i++) {
           totalSinDescuento += ticket.cesta.lista[i].subtotal;
         }
+
         // preparamos los parametros que vamos a enviar a la impresora
         sendObject = {
           numFactura: ticket._id,
@@ -238,7 +247,7 @@ export class Impresora {
           dejaCuenta: ticket.dejaCuenta,
           idCliente: ticket.idCliente,
           totalSinDescuento: ticket.total,
-          mesa: ticket?.cesta?.indexMesa == undefined ? null : ticket.cesta.indexMesa,
+          mesa: mesa,
           modoCesta: ticket?.cesta?.modo,
           comensales: ticket?.cesta?.comensales || null,
           tmstpCesta: ticket.cesta.timestamp,
@@ -300,7 +309,13 @@ export class Impresora {
     // if (descuento > 0) await cestasInstance.aplicarDescuento(cesta, descuento);
 
     const timestamp = new Date().getTime();
-
+    const mesasG = await mesasInstance.getMesas();
+    let mesa = null;
+    if (cesta?.indexMesa != undefined) {
+      const m = mesasG.find((mesa) => mesa._id == Number(cesta.indexMesa))
+      if (m.nombre) mesa = m.nombre
+      else mesa = "Mesa " + cesta.indexMesa
+    }
     nota = {
       numFactura: null,
       timestamp: timestamp,
@@ -326,7 +341,7 @@ export class Impresora {
       dejaCuenta: 0,
       idCliente: cesta.idCliente,
       totalSinDescuento: total,
-      mesa: cesta?.indexMesa == undefined ? null : cesta.indexMesa,
+      mesa: mesa,
       tmstpCesta: cesta.timestamp,
       justificacion: null,
       comensales: cesta?.comensales || null,
@@ -379,7 +394,13 @@ export class Impresora {
       totalSinDescuento += cesta.lista[i].subtotal;
     }
     const timestamp = new Date().getTime();
-
+    const mesasG = await mesasInstance.getMesas();
+    let mesa = null;
+    if (cesta?.indexMesa != undefined) {
+      const m = mesasG.find((mesa) => mesa._id == Number(cesta.indexMesa))
+      if (m.nombre) mesa = m.nombre
+      else mesa = "Mesa " + cesta.indexMesa
+    }
     nota = {
       numFactura: null,
       timestamp: timestamp,
@@ -405,7 +426,7 @@ export class Impresora {
       dejaCuenta: 0,
       idCliente: cesta.idCliente,
       totalSinDescuento: total,
-      mesa: cesta?.indexMesa == undefined ? null : cesta.indexMesa,
+      mesa: mesa,
       tmstpCesta: cesta.timestamp,
       justificacion: null,
       comensales: cesta?.comensales || null,
@@ -475,7 +496,7 @@ export class Impresora {
           cabecera: parametros?.header == undefined ? "" : parametros.header,
           pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          infoClienteVip: null, // Mirar bien para terminar todo_venta
+          infoClienteVip: null, // Mirar bien para terminar todo_
           infoCliente: null,
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
@@ -485,7 +506,7 @@ export class Impresora {
       if (ticket.restante > 0) {
         sendObject.restante = ticket.restante;
       }
-      // funcion parecida a _venta pero imprime dos veces el ticket una de las dos con firma
+      // funcion parecida a pero imprime dos veces el ticket una de las dos con firma
       // por que existe esta guarrada? para evitar que se imprima solo una de dos.
       await this.imprimirAlbaran(sendObject);
     }
@@ -817,7 +838,7 @@ export class Impresora {
       { tipo: "font", payload: "A" },
       {
         tipo: "text",
-        payload: info?.nota ? `\x1B\x45\x01 Nota Taula: ${info.mesa + 1} \x1B\x45\x00` : "",
+        payload: info?.nota ? `\x1B\x45\x01 Nota Taula: ${info.mesa} \x1B\x45\x00` : "",
       },
       { tipo: "text", payload: cabecera },
       {
@@ -831,11 +852,12 @@ export class Impresora {
       },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
     ];
+
     if (info.mesa !== undefined && info.mesa !== null)
       arrayImprimir.push(
         {
           tipo: "text",
-          payload: info.mesa == null ? "" : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
+          payload: info.mesa == null ? "" : `Taula: ${info.mesa} | PAX (Clients): ${info.comensales}`,
         },
         { tipo: "size", payload: [1, 0] },
         { tipo: "text", payload: clientTitle },
