@@ -1,1 +1,77 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><link rel="icon" href="/favicon.ico"><link href="/awesomeCss.css" rel="stylesheet"/><link href="/googleCss.css" rel="stylesheet"/><title>toc-game-v4</title><script defer="defer" src="/js/chunk-vendors.226a710b.js"></script><script defer="defer" src="/js/app.e9e005b9.js"></script><link href="/css/chunk-vendors.8d51263f.css" rel="stylesheet"><link href="/css/app.86b0b056.css" rel="stylesheet"></head><body><noscript><strong>We're sorry but toc-game-v4 doesn't work properly without JavaScript enabled. Please enable it to continue.</strong></noscript><div id="app"></div></body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pago Pendiente</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #ff6b6b, #f7d794);
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 40px;
+      border-radius: 20px;
+      max-width: 500px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      color: #ffd93d;
+    }
+
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+
+    a.call {
+      display: inline-block;
+      padding: 15px 25px;
+      background-color: #ffd93d;
+      color: #000;
+      font-weight: bold;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: background 0.3s, transform 0.3s;
+    }
+
+    a.call:hover {
+      background-color: #ffca3a;
+      transform: scale(1.05);
+    }
+
+    .highlight {
+      color: #ff6b6b;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>¡Pago Pendiente!</h1>
+    <p>La <span class="highlight">cuota no se ha pagado</span>. Por favor, efectúe el pago para continuar con el servicio o llame al número:</p>
+    <a class="call" href="tel:+349371161010">937 16 10 10</a>
+  </div>
+</body>
+</html>
