@@ -952,16 +952,16 @@ export class Impresora {
         {
           tipo: "text",
           payload: `${infoClienteVip.nombre
-              ? `\x1B\x45\x01 ${infoClienteVip.nombre} \x1B\x45\x00 \n`
-              : ""
+            ? `\x1B\x45\x01 ${infoClienteVip.nombre} \x1B\x45\x00 \n`
+            : ""
             }`,
         },
         { tipo: "size", payload: [0, 0] },
         {
           tipo: "text",
           payload: `${infoClienteVip.telefono
-              ? `\x1B\x45\x01 tel.: ${infoClienteVip.telefono} \x1B\x45\x00 \n`
-              : ""
+            ? `\x1B\x45\x01 tel.: ${infoClienteVip.telefono} \x1B\x45\x00 \n`
+            : ""
             }${infoClienteVip.nif
               ? `\x1B\x45\x01 DNI/NIF: ${infoClienteVip.nif} \x1B\x45\x00 \n`
               : ""
@@ -1863,10 +1863,10 @@ export class Impresora {
         detalles += ` ${spaces + arrayCompra[i].unidades}  ${arrayCompra[
           i
         ].nombre.slice(0, 20)} ${preuUnitari
-            ? formatSpaces(
-              6 - arrayCompra[i]["preuU"].toFixed(2).toString().length
-            ) + arrayCompra[i]["preuU"].toFixed(2)
-            : "      "
+          ? formatSpaces(
+            6 - arrayCompra[i]["preuU"].toFixed(2).toString().length
+          ) + arrayCompra[i]["preuU"].toFixed(2)
+          : "      "
           }  ${formatSpaces(
             8 - arrayCompra[i].subtotal.toFixed(2).toString().length
           ) + arrayCompra[i].subtotal.toFixed(2)
@@ -2381,7 +2381,7 @@ export class Impresora {
 
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
-
+      const simple = parametros?.params?.cierreSimple == "Si";
       const diasSemana = [
         "Diumenge",
         "Dilluns",
@@ -2445,21 +2445,22 @@ export class Impresora {
             payload: "  Calaix fet:            " + caja.calaixFetZ.toFixed(2),
           },
         ]);
-
-      buffer = buffer.concat([
-        {
-          tipo: "text",
-          payload: "  Desquadre:             " + caja.descuadre.toFixed(2),
-        },
-      ]);
-
-      if (parametros?.params?.MostraTotalAcumulat == "Si")
+      if (!simple)
         buffer = buffer.concat([
           {
             tipo: "text",
-            payload: "  Recaudat:              " + caja.recaudado.toFixed(2),
+            payload: "  Desquadre:             " + caja.descuadre.toFixed(2),
           },
         ]);
+
+      if (!simple)
+        if (parametros?.params?.MostraTotalAcumulat == "Si")
+          buffer = buffer.concat([
+            {
+              tipo: "text",
+              payload: "  Recaudat:              " + caja.recaudado.toFixed(2),
+            },
+          ]);
       buffer = buffer.concat([
         {
           tipo: "text",
@@ -2490,32 +2491,32 @@ export class Impresora {
           payload: "",
         },
         // info canvi
-        {
-          tipo: "text",
-          payload: "Canvi:",
-        },
-        {
-          tipo: "text",
-          payload: "  Inicial:               " + caja.totalApertura.toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload: "  Final:                 " + caja.totalCierre.toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "  Emergència apertura:   " + cambioEmergenciaApertura.toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            "  Emergència tancament:  " + cambioEmergenciaCierre.toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload: "",
-        },
+        ...(simple ? [] : [
+          {
+            tipo: "text",
+            payload: "Canvi:"
+          },
+          {
+            tipo: "text",
+            payload: "  Inicial:               " + caja.totalApertura.toFixed(2)
+          },
+          {
+            tipo: "text",
+            payload: "  Final:                 " + caja.totalCierre.toFixed(2)
+          },
+          {
+            tipo: "text",
+            payload: "  Emergència apertura:   " + cambioEmergenciaApertura.toFixed(2)
+          },
+          {
+            tipo: "text",
+            payload: "  Emergència tancament:  " + cambioEmergenciaCierre.toFixed(2)
+          },
+          {
+            tipo: "text",
+            payload: ""
+          }
+        ]),
         // info 3G
         {
           tipo: "text",
@@ -2533,9 +2534,9 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload:
+          payload: !simple ?
             "  Diferència:            " +
-            (caja.totalDatafono3G - caja.cantidadLocal3G).toFixed(2),
+            (caja.totalDatafono3G - caja.cantidadLocal3G).toFixed(2) : ""
         },
         {
           tipo: "text",
@@ -2573,157 +2574,161 @@ export class Impresora {
           payload: "",
         },
       ]);
-      // info movimientos
+      if (!simple)
+        // info movimientos
+        buffer = buffer.concat([
+          {
+            tipo: "text",
+            payload: caja?.motivoDescuadre
+              ? "Motiu de desquadre: " + caja.motivoDescuadre
+              : "",
+          },
+          { tipo: "text", payload: "" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: "Moviments de caixa:" },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: textoMovimientos },
+          { tipo: "text", payload: "" },
+          { tipo: "text", payload: datafono3G },
+          { tipo: "text", payload: "" },
+          {
+            tipo: "text",
+            payload:
+              " 0.01 ----> " +
+              caja.detalleApertura[0]["valor"].toFixed(2) +
+              "      " +
+              "0.01 ----> " +
+              caja.detalleCierre[0]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 0.02 ----> " +
+              caja.detalleApertura[1]["valor"].toFixed(2) +
+              "      " +
+              "0.02 ----> " +
+              caja.detalleCierre[1]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 0.05 ----> " +
+              caja.detalleApertura[2]["valor"].toFixed(2) +
+              "      " +
+              "0.05 ----> " +
+              caja.detalleCierre[2]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 0.10 ----> " +
+              caja.detalleApertura[3]["valor"].toFixed(2) +
+              "      " +
+              "0.10 ----> " +
+              caja.detalleCierre[3]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 0.20 ----> " +
+              caja.detalleApertura[4]["valor"].toFixed(2) +
+              "      " +
+              "0.20 ----> " +
+              caja.detalleCierre[4]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 0.50 ----> " +
+              caja.detalleApertura[5]["valor"].toFixed(2) +
+              "      " +
+              "0.50 ----> " +
+              caja.detalleCierre[5]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 1.00 ----> " +
+              caja.detalleApertura[6]["valor"].toFixed(2) +
+              "      " +
+              "1.00 ----> " +
+              caja.detalleCierre[6]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 2.00 ----> " +
+              caja.detalleApertura[7]["valor"].toFixed(2) +
+              "      " +
+              "2.00 ----> " +
+              caja.detalleCierre[7]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 5.00 ----> " +
+              caja.detalleApertura[8]["valor"].toFixed(2) +
+              "      " +
+              "5.00 ----> " +
+              caja.detalleCierre[8]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 10.00 ---> " +
+              caja.detalleApertura[9]["valor"].toFixed(2) +
+              "      " +
+              "10.00 ---> " +
+              caja.detalleCierre[9]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 20.00 ---> " +
+              caja.detalleApertura[10]["valor"].toFixed(2) +
+              "      " +
+              "20.00 ---> " +
+              caja.detalleCierre[10]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 50.00 ---> " +
+              caja.detalleApertura[11]["valor"].toFixed(2) +
+              "      " +
+              "50.00 ---> " +
+              caja.detalleCierre[11]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 100.00 --> " +
+              caja.detalleApertura[12]["valor"].toFixed(2) +
+              "      " +
+              "100.00 --> " +
+              caja.detalleCierre[12]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 200.00 --> " +
+              caja.detalleApertura[13]["valor"].toFixed(2) +
+              "      " +
+              "200.00 --> " +
+              caja.detalleCierre[13]["valor"].toFixed(2),
+          },
+          {
+            tipo: "text",
+            payload:
+              " 500.00 --> " +
+              caja.detalleApertura[14]["valor"].toFixed(2) +
+              "      " +
+              "500.00 --> " +
+              caja.detalleCierre[14]["valor"].toFixed(2),
+          },
+
+        ]);
       buffer = buffer.concat([
-        {
-          tipo: "text",
-          payload: caja?.motivoDescuadre
-            ? "Motiu de desquadre: " + caja.motivoDescuadre
-            : "",
-        },
-        { tipo: "text", payload: "" },
-        { tipo: "size", payload: [0, 0] },
-        { tipo: "text", payload: "Moviments de caixa:" },
-        { tipo: "text", payload: "" },
-        { tipo: "text", payload: textoMovimientos },
-        { tipo: "text", payload: "" },
-        { tipo: "text", payload: datafono3G },
-        { tipo: "text", payload: "" },
-        {
-          tipo: "text",
-          payload:
-            " 0.01 ----> " +
-            caja.detalleApertura[0]["valor"].toFixed(2) +
-            "      " +
-            "0.01 ----> " +
-            caja.detalleCierre[0]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 0.02 ----> " +
-            caja.detalleApertura[1]["valor"].toFixed(2) +
-            "      " +
-            "0.02 ----> " +
-            caja.detalleCierre[1]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 0.05 ----> " +
-            caja.detalleApertura[2]["valor"].toFixed(2) +
-            "      " +
-            "0.05 ----> " +
-            caja.detalleCierre[2]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 0.10 ----> " +
-            caja.detalleApertura[3]["valor"].toFixed(2) +
-            "      " +
-            "0.10 ----> " +
-            caja.detalleCierre[3]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 0.20 ----> " +
-            caja.detalleApertura[4]["valor"].toFixed(2) +
-            "      " +
-            "0.20 ----> " +
-            caja.detalleCierre[4]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 0.50 ----> " +
-            caja.detalleApertura[5]["valor"].toFixed(2) +
-            "      " +
-            "0.50 ----> " +
-            caja.detalleCierre[5]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 1.00 ----> " +
-            caja.detalleApertura[6]["valor"].toFixed(2) +
-            "      " +
-            "1.00 ----> " +
-            caja.detalleCierre[6]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 2.00 ----> " +
-            caja.detalleApertura[7]["valor"].toFixed(2) +
-            "      " +
-            "2.00 ----> " +
-            caja.detalleCierre[7]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 5.00 ----> " +
-            caja.detalleApertura[8]["valor"].toFixed(2) +
-            "      " +
-            "5.00 ----> " +
-            caja.detalleCierre[8]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 10.00 ---> " +
-            caja.detalleApertura[9]["valor"].toFixed(2) +
-            "      " +
-            "10.00 ---> " +
-            caja.detalleCierre[9]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 20.00 ---> " +
-            caja.detalleApertura[10]["valor"].toFixed(2) +
-            "      " +
-            "20.00 ---> " +
-            caja.detalleCierre[10]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 50.00 ---> " +
-            caja.detalleApertura[11]["valor"].toFixed(2) +
-            "      " +
-            "50.00 ---> " +
-            caja.detalleCierre[11]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 100.00 --> " +
-            caja.detalleApertura[12]["valor"].toFixed(2) +
-            "      " +
-            "100.00 --> " +
-            caja.detalleCierre[12]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 200.00 --> " +
-            caja.detalleApertura[13]["valor"].toFixed(2) +
-            "      " +
-            "200.00 --> " +
-            caja.detalleCierre[13]["valor"].toFixed(2),
-        },
-        {
-          tipo: "text",
-          payload:
-            " 500.00 --> " +
-            caja.detalleApertura[14]["valor"].toFixed(2) +
-            "      " +
-            "500.00 --> " +
-            caja.detalleCierre[14]["valor"].toFixed(2),
-        },
         { tipo: "text", payload: "" },
         { tipo: "text", payload: "" },
         { tipo: "text", payload: "" },
