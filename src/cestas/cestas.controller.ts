@@ -149,10 +149,10 @@ export class CestasController {
     }
   }
   @Post("generarCestaPedido")
-  async generarCestaPedido(@Body() { idEncargo,cestaEncargo }) {
+  async generarCestaPedido(@Body() { idEncargo, cestaEncargo }) {
     try {
       if (cestaEncargo && idEncargo) {
-        return await cestasInstance.CestaModificarPedido(idEncargo,cestaEncargo);
+        return await cestasInstance.CestaModificarPedido(idEncargo, cestaEncargo);
       }
       throw Error("Error, faltan datos en PagarDeuda() controller");
     } catch (err) {
@@ -361,13 +361,12 @@ export class CestasController {
 
   /* Uri House */
   @Post("setArticuloImprimido")
-  async setArticuloImprimido(@Body() { idCesta, articulos, printed }) {
+  async setArticuloImprimido(@Body() { idCesta, articulos }) {
     try {
-      if (idCesta && articulos && printed != null) {
+      if (idCesta && articulos) {
         return await cestasInstance.setArticuloImprimido(
           idCesta,
           articulos,
-          printed
         );
       }
       throw Error("Error, faltan datos en cestas/insertarArtsPagados");
@@ -426,6 +425,26 @@ export class CestasController {
     }
   }
 
+  @Post("traspasarProductos")
+  async traspasarProductos(@Body() { idCestaOrigen, idCestaDestino, idTrabajador }) {
+    try {
+      if (!idCestaOrigen || !idCestaDestino) {
+        return { ok: false, message: "IDs de cestas requeridos" };
+      }
+
+      const resultado = await cestasInstance.pasarCestas(idCestaOrigen, idCestaDestino);
+
+      if (resultado) {
+        await cestasInstance.actualizarCestas();
+        return { ok: true, message: "Productos traspasados correctamente" };
+      } else {
+        return { ok: false, message: "Error al traspasar productos" };
+      }
+    } catch (error) {
+      return { ok: false, message: error.message };
+    }
+  }
+
   @Post("setDiscountShop")
   async setDiscountShop(@Body() { cesta, discount, index }) {
     try {
@@ -438,6 +457,18 @@ export class CestasController {
         await cestasInstance.actualizarCestas();
         return true;
       }
+    } catch (error) {
+      logger.Error(137, error);
+    }
+  }
+
+  @Post("modificarArticuloMenu")
+  async modificarArticuloMenu(@Body() { idCesta, articulosMenu, indexCesta }) {
+    try {
+      if (!idCesta || !articulosMenu) {
+        throw Error("faltan datos en modificarArticuloMenu");
+      }
+      return await cestasInstance.modificarArticuloMenu(idCesta, articulosMenu, indexCesta);
     } catch (error) {
       logger.Error(137, error);
     }
@@ -457,13 +488,12 @@ export class CestasController {
   }
 
   @Post("imprimirNotaPedido")
-  async imprimirNotaPedido(@Body() { idEncargo, idTrabajador,codigo,cesta }) {
+  async imprimirNotaPedido(@Body() { idEncargo, idTrabajador, codigo, cesta }) {
     try {
-      console.log("codigo",codigo,idEncargo,idTrabajador);
       if (!idEncargo) {
         throw Error("faltan datos en imprimirNotaPedido");
       }
-      await impresoraInstance.imprimirNotaPedido(idEncargo,cesta, idTrabajador,codigo);
+      await impresoraInstance.imprimirNotaPedido(idEncargo, cesta, idTrabajador, codigo);
       return true;
     } catch (error) {
       logger.Error(138, error);

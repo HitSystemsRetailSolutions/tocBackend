@@ -6,10 +6,7 @@ import { clienteInstance } from "../clientes/clientes.clase";
 import { parametrosInstance } from "../parametros/parametros.clase";
 import axios from "axios";
 import { mqttInstance } from "../mqtt";
-import {
-  descuentoEspecial,
-  ClientesInterface,
-} from "../clientes/clientes.interface";
+import { descuentoEspecial, ClientesInterface } from "../clientes/clientes.interface";
 import { CestasInterface, ItemLista } from "../cestas/cestas.interface";
 import { devolucionesInstance } from "../devoluciones/devoluciones.clase";
 import { ObjectId } from "mongodb";
@@ -38,7 +35,8 @@ import { encargosInstance } from "src/encargos/encargos.clase";
 import { versionDescuentosClient } from "src/version/version.clase";
 import e from "express";
 import Decimal from "decimal.js";
-
+import { mesasInstance } from "src/mesas/mesas.class";
+const momentTZ = require("moment-timezone");
 moment.locale("es");
 const escpos = require("escpos");
 const exec = require("child_process").exec;
@@ -143,15 +141,11 @@ export class Impresora {
   /* Eze 4.0 */
   async despedirCliente(data: number) {
     let dataString: string = data.toString();
-    let linea1Visor =
-      "Moltes gracies!!    " + "Total: " + dataString.replace(",", ".") + "E";
+    let linea1Visor = "Moltes gracies!!    " + "Total: " + dataString.replace(",", ".") + "E";
     let restar = linea1Visor;
     linea1Visor += "                                        ";
 
-    let lineasVisor: string = linea1Visor.substring(
-      0,
-      linea1Visor.length - restar.length
-    );
+    let lineasVisor: string = linea1Visor.substring(0, linea1Visor.length - restar.length);
     mqttInstance.enviarVisor(lineasVisor);
   }
 
@@ -167,6 +161,13 @@ export class Impresora {
     const ticket = albaran
       ? await AlbaranesInstance.getAlbaranById(idTicket)
       : await ticketsInstance.getTicketById(idTicket);
+    const mesasG = await mesasInstance.getMesas();
+    let mesa = null;
+    if (ticket?.cesta?.indexMesa != undefined) {
+      const m = mesasG.find((mesa) => mesa._id == Number(ticket.cesta.indexMesa))
+      if (m.nombre) mesa = m.nombre
+      else mesa = "Mesa " + (ticket.cesta.indexMesa + 1)
+    }
 
     const parametros = await parametrosInstance.getParametros();
     // insertamos parametro imprimir y enviado en false al ticket para enviarlo al santaAna
@@ -174,8 +175,7 @@ export class Impresora {
       // solo entramos si nunca antes se habia imprimido antes el ticket
       await ticketsInstance.insertImprimir(idTicket);
     }
-    const trabajador: TrabajadoresInterface =
-      await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
+    const trabajador: TrabajadoresInterface = await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
     // Preparamos el objeto que vamos a mandar a la impresora
     let sendObject;
     // Si el ticket existe y el trabajador tambien
@@ -186,21 +186,14 @@ export class Impresora {
         // recogemos los datos del cliente
 
         const puntos = await clienteInstance.getPuntosCliente(ticket.idCliente);
-        const descuento =
-          infoCliente && !infoCliente?.albaran && !infoCliente?.vip
-            ? Number(infoCliente.descuento)
-            : 0;
+        const descuento = infoCliente && !infoCliente?.albaran && !infoCliente?.vip ? Number(infoCliente.descuento) : 0;
 
         let informacionVip = infoCliente
           ? {
             nombre: infoCliente.nombre,
             nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-            direccion:
-              infoCliente["direccion"] === "0"
-                ? ""
-                : infoCliente["direccion"],
-            telefono:
-              infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+            direccion: infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
+            telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
           }
           : null;
 
@@ -208,6 +201,7 @@ export class Impresora {
         for (let i = 0; i < ticket.cesta.lista.length; i++) {
           totalSinDescuento += ticket.cesta.lista[i].subtotal;
         }
+
         // preparamos los parametros que vamos a enviar a la impresora
         sendObject = {
           numFactura: ticket._id,
@@ -253,10 +247,7 @@ export class Impresora {
           dejaCuenta: ticket.dejaCuenta,
           idCliente: ticket.idCliente,
           totalSinDescuento: ticket.total,
-          mesa:
-            ticket?.cesta?.indexMesa == undefined
-              ? null
-              : ticket.cesta.indexMesa,
+          mesa: mesa,
           modoCesta: ticket?.cesta?.modo,
           comensales: ticket?.cesta?.comensales || null,
           tmstpCesta: ticket.cesta.timestamp,
@@ -276,26 +267,17 @@ export class Impresora {
     }
   }
 
-  async imprimirNotasMesa(
-    idCesta: CestasInterface["_id"],
-    trabajadorEnFrontend: CestasInterface["trabajador"]
-  ) {
+  async imprimirNotasMesa(idCesta: CestasInterface["_id"], trabajadorEnFrontend: CestasInterface["trabajador"]) {
     let nota;
     const cesta = await cestasInstance.getCestaById(idCesta);
     if (!cesta || (cesta.lista && cesta.lista.length == 0)) return;
     const parametros = await parametrosInstance.getParametros();
-    const total = Object.entries(cesta.detalleIva).reduce(
-      (sum, [key, value]) => {
-        return key.includes("importe") ? sum + value : sum;
-      },
-      0
-    );
+    const total = Object.entries(cesta.detalleIva).reduce((sum, [key, value]) => {
+      return key.includes("importe") ? sum + value : sum;
+    }, 0);
     // recogemos el trabajador de la cesta o el que ha iniciado la impresión
-    const idTrabajador = Number(
-      cesta.trabajadores[0] ? cesta.trabajadores[0] : trabajadorEnFrontend
-    );
-    const trabajador =
-      await trabajadoresInstance.getTrabajadorById(idTrabajador);
+    const idTrabajador = Number(cesta.trabajadores[0] ? cesta.trabajadores[0] : trabajadorEnFrontend);
+    const trabajador = await trabajadoresInstance.getTrabajadorById(idTrabajador);
 
     let infoCliente = null;
     if (cesta.idCliente) {
@@ -307,29 +289,33 @@ export class Impresora {
 
     if (infoCliente) {
       puntos = await clienteInstance.getPuntosCliente(cesta.idCliente);
-      descuento =
-        infoCliente && !infoCliente?.albaran && !infoCliente?.vip
-          ? Number(infoCliente.descuento)
-          : 0;
+      descuento = infoCliente && !infoCliente?.albaran && !infoCliente?.vip ? Number(infoCliente.descuento) : 0;
       informacionVip = {
         nombre: infoCliente.nombre,
         nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-        direccion:
-          infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
-        telefono:
-          infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+        direccion: infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
+        telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
       };
     }
 
-    const alboVip = infoCliente && infoCliente?.albaran && infoCliente?.vip;
+    const alboVip = infoCliente && (infoCliente?.albaran || infoCliente?.vip);
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     await cestasInstance.aplicarDescuento(cesta, total, infoCliente);
-    if (cesta.modo == "CONSUMO_PERSONAL" || ((infoCliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
+    if (
+      cesta.modo == "CONSUMO_PERSONAL" ||
+      (infoCliente && !alboVip && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient)
+    )
       await cestasInstance.applyDiscountShop(cesta, total);
     // if (descuento > 0) await cestasInstance.aplicarDescuento(cesta, descuento);
 
     const timestamp = new Date().getTime();
-
+    const mesasG = await mesasInstance.getMesas();
+    let mesa = null;
+    if (cesta?.indexMesa != undefined) {
+      const m = mesasG.find((mesa) => mesa._id == Number(cesta.indexMesa))
+      if (m.nombre) mesa = m.nombre
+      else mesa = "Mesa " + cesta.indexMesa
+    }
     nota = {
       numFactura: null,
       timestamp: timestamp,
@@ -355,7 +341,7 @@ export class Impresora {
       dejaCuenta: 0,
       idCliente: cesta.idCliente,
       totalSinDescuento: total,
-      mesa: cesta?.indexMesa == undefined ? null : cesta.indexMesa,
+      mesa: mesa,
       tmstpCesta: cesta.timestamp,
       justificacion: null,
       comensales: cesta?.comensales || null,
@@ -366,21 +352,21 @@ export class Impresora {
     await this._venta(nota);
   }
 
-  async imprimirNotaPedido(idEncargo: EncargosInterface["_id"], cesta: CestasInterface, trabajadorEnFrontend: CestasInterface["trabajador"], codigo: string) {
+  async imprimirNotaPedido(
+    idEncargo: EncargosInterface["_id"],
+    cesta: CestasInterface,
+    trabajadorEnFrontend: CestasInterface["trabajador"],
+    codigo: string
+  ) {
     let nota;
-    console.log(cesta, (await encargosInstance.getEncargoById(idEncargo)).cesta._id);
     if (!cesta || (cesta.lista && cesta.lista.length == 0)) return;
     const parametros = await parametrosInstance.getParametros();
-    const total = Object.entries(cesta.detalleIva).reduce(
-      (sum, [key, value]) => {
-        return key.includes("importe") ? sum + value : sum;
-      },
-      0
-    );
+    const total = Object.entries(cesta.detalleIva).reduce((sum, [key, value]) => {
+      return key.includes("importe") ? sum + value : sum;
+    }, 0);
     // recogemos el trabajador de la cesta o el que ha iniciado la impresión
     const idTrabajador = Number(cesta.trabajadores[0] ? cesta.trabajadores[0] : trabajadorEnFrontend);
-    const trabajador =
-      await trabajadoresInstance.getTrabajadorById(idTrabajador);
+    const trabajador = await trabajadoresInstance.getTrabajadorById(idTrabajador);
 
     let infoCliente = null;
     if (cesta.idCliente) {
@@ -392,17 +378,12 @@ export class Impresora {
 
     if (infoCliente) {
       puntos = await clienteInstance.getPuntosCliente(cesta.idCliente);
-      descuento =
-        infoCliente && !infoCliente?.albaran && !infoCliente?.vip
-          ? Number(infoCliente.descuento)
-          : 0;
+      descuento = infoCliente && !infoCliente?.albaran && !infoCliente?.vip ? Number(infoCliente.descuento) : 0;
       informacionVip = {
         nombre: infoCliente.nombre + "\n\n PEDIDO: " + codigo,
         nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-        direccion:
-          infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
-        telefono:
-          infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+        direccion: infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
+        telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
       };
     }
     let totalSinDescuento = 0;
@@ -413,7 +394,13 @@ export class Impresora {
       totalSinDescuento += cesta.lista[i].subtotal;
     }
     const timestamp = new Date().getTime();
-
+    const mesasG = await mesasInstance.getMesas();
+    let mesa = null;
+    if (cesta?.indexMesa != undefined) {
+      const m = mesasG.find((mesa) => mesa._id == Number(cesta.indexMesa))
+      if (m.nombre) mesa = m.nombre
+      else mesa = "Mesa " + cesta.indexMesa
+    }
     nota = {
       numFactura: null,
       timestamp: timestamp,
@@ -439,7 +426,7 @@ export class Impresora {
       dejaCuenta: 0,
       idCliente: cesta.idCliente,
       totalSinDescuento: total,
-      mesa: cesta?.indexMesa == undefined ? null : cesta.indexMesa,
+      mesa: mesa,
       tmstpCesta: cesta.timestamp,
       justificacion: null,
       comensales: cesta?.comensales || null,
@@ -449,14 +436,12 @@ export class Impresora {
     await this._venta(nota);
   }
 
-
   async imprimirFirma(idTicket: number, albaran = false) {
     const ticket = albaran
       ? await AlbaranesInstance.getAlbaranById(idTicket)
       : await ticketsInstance.getTicketById(idTicket);
     const parametros = await parametrosInstance.getParametros();
-    const trabajador: TrabajadoresInterface =
-      await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
+    const trabajador: TrabajadoresInterface = await trabajadoresInstance.getTrabajadorById(ticket.idTrabajador);
 
     let sendObject;
 
@@ -466,17 +451,12 @@ export class Impresora {
       ? {
         nombre: infoCliente.nombre,
         nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-        direccion:
-          infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
-        telefono:
-          infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+        direccion: infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
+        telefono: infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
       }
       : null;
 
-    const descuento =
-      infoCliente && !infoCliente?.albaran && !infoCliente?.vip
-        ? Number(infoCliente.descuento)
-        : 0;
+    const descuento = infoCliente && !infoCliente?.albaran && !infoCliente?.vip ? Number(infoCliente.descuento) : 0;
     if (ticket && trabajador) {
       if (ticket.idCliente && ticket.idCliente != "") {
         let infoCliente: ClientesInterface;
@@ -516,7 +496,7 @@ export class Impresora {
           cabecera: parametros?.header == undefined ? "" : parametros.header,
           pie: parametros?.footer == undefined ? "" : parametros.footer,
           nombreTrabajador: trabajador.nombreCorto,
-          infoClienteVip: null, // Mirar bien para terminar todo_venta
+          infoClienteVip: null, // Mirar bien para terminar todo_
           infoCliente: null,
           dejaCuenta: ticket.dejaCuenta,
           firma: true,
@@ -526,7 +506,7 @@ export class Impresora {
       if (ticket.restante > 0) {
         sendObject.restante = ticket.restante;
       }
-      // funcion parecida a _venta pero imprime dos veces el ticket una de las dos con firma
+      // funcion parecida a pero imprime dos veces el ticket una de las dos con firma
       // por que existe esta guarrada? para evitar que se imprima solo una de dos.
       await this.imprimirAlbaran(sendObject);
     }
@@ -535,11 +515,9 @@ export class Impresora {
   /* Eze 4.0 */
   async imprimirDevolucion(idDevolucion: ObjectId) {
     try {
-      const devolucion =
-        await devolucionesInstance.getDevolucionById(idDevolucion);
+      const devolucion = await devolucionesInstance.getDevolucionById(idDevolucion);
       const parametros = await parametrosInstance.getParametros();
-      const trabajador: TrabajadoresInterface =
-        await trabajadoresInstance.getTrabajadorById(devolucion.idTrabajador);
+      const trabajador: TrabajadoresInterface = await trabajadoresInstance.getTrabajadorById(devolucion.idTrabajador);
 
       let sendObject;
 
@@ -570,9 +548,7 @@ export class Impresora {
     const printer = new escpos.Printer(device);
     const fechaImpresion = new Date();
     // fechaFormateada es la fecha en formato dd/mm/yyyy hh:mm:ss
-    const fechaFormateada = moment(fechaImpresion).format(
-      "DD/MM/YYYY HH:mm:ss"
-    );
+    const fechaFormateada = moment(fechaImpresion).format("DD/MM/YYYY HH:mm:ss");
 
     const options = {
       imprimirLogo: false,
@@ -646,7 +622,7 @@ export class Impresora {
       username: "ImpresoraMQTT",
     });
   // recovimos los datos de la impresion
-  private enviarMQTT(encodedData, options) {
+  private enviarMQTT(encodedData, options, mqtturl: string = "hit.hardware/printer") {
     // si el array de encodedData es mayor que 0 los añadimos al array de mensajes pendientes
     if (encodedData.length > 0) {
       mensajesPendientes.push(...encodedData);
@@ -670,17 +646,13 @@ export class Impresora {
       }
 
       const publishToPrinter = () => {
-        clientMqtt.publish(
-          "hit.hardware/printer",
-          JSON.stringify(enviar),
-          (err) => {
-            if (err) {
-              logger.Error("Error al enviar a impresora por MQTT", err);
-            } else {
-              logger.Info("Mensaje enviado a impresora por MQTT");
-            }
+        clientMqtt.publish(mqtturl, JSON.stringify(enviar), (err) => {
+          if (err) {
+            logger.Error("Error al enviar a impresora por MQTT", err);
+          } else {
+            logger.Info("Mensaje enviado a impresora por MQTT");
           }
-        );
+        });
       };
 
       if (clientMqtt.connected) {
@@ -717,15 +689,8 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    let detalles = await this.detallesTicket(
-      arrayCompra,
-      info.idCliente,
-      tipoPago
-    );
-    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
-      arrayCompra,
-      info.idCliente
-    );
+    let detalles = await this.detallesTicket(arrayCompra, info.idCliente, tipoPago);
+    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(arrayCompra, info.idCliente);
     let pagoTarjeta = "";
     let pagoTkrs = "";
     let detalleClienteVip = "";
@@ -740,15 +705,11 @@ export class Impresora {
     if (infoClienteVip) {
       clientTitle = "\nCLIENT:";
       detalleClienteVip = `\n${infoClienteVip.nombre}`;
-      if (infoClienteVip.nif)
-        detalleClienteVip += `\x1B\x45\x00 \nDNI/NIF: ${infoClienteVip.nif}`;
-      if (infoClienteVip.direccion)
-        detalleClienteVip += `\n${infoClienteVip.direccion}`;
+      if (infoClienteVip.nif) detalleClienteVip += `\x1B\x45\x00 \nDNI/NIF: ${infoClienteVip.nif}`;
+      if (infoClienteVip.direccion) detalleClienteVip += `\n${infoClienteVip.direccion}`;
     }
     // recojemos datos del cliente si nos los han mandado
-    const clienteDescEsp = descuentoEspecial.find(
-      (cliente) => cliente.idCliente === infoCliente?.idCliente
-    );
+    const clienteDescEsp = descuentoEspecial.find((cliente) => cliente.idCliente === infoCliente?.idCliente);
 
     if (infoCliente != null) {
       clientTitle = "\nCLIENT:";
@@ -758,9 +719,7 @@ export class Impresora {
         if (infoCliente.puntos == null) {
           detallePuntosCliente = "Punts pendents d'actualitzar";
         } else {
-          detallePuntosCliente =
-            "Punts restants: " +
-            (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+          detallePuntosCliente = "Punts restants: " + (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
         }
 
         if (
@@ -768,31 +727,21 @@ export class Impresora {
           info?.dataVersion &&
           info.dataVersion < versionDescuentosClient
         ) {
-          clienteDescuento =
-            "Descompte de client: " +
-            (infoCliente.descuento ?? "0") +
-            " %" +
-            "\nVenta registrada.";
-          if (infoCliente.descuento == 0)
-            clienteDescuento = "Venta registrada.";
+          clienteDescuento = "Descompte de client: " + (infoCliente.descuento ?? "0") + " %" + "\nVenta registrada.";
+          if (infoCliente.descuento == 0) clienteDescuento = "Venta registrada.";
         } else if (clienteDescEsp && clienteDescEsp.precio == total) {
           const activacionDescEsp =
             clienteDescEsp?.activacion && clienteDescEsp?.activacion
               ? "Total >= " + clienteDescEsp.activacion
               : infoCliente.nombre;
           clienteDescuento = "Descompte Especial " + activacionDescEsp;
-        } else if (
-          info?.dataVersion &&
-          info.dataVersion >= versionDescuentosClient
-        ) {
+        } else if (info?.dataVersion && info.dataVersion >= versionDescuentosClient) {
           clienteDescuento = "Venta registrada.";
         }
       }
     }
-    if (info.dataVersion && info.dataVersion >= versionDescuentosClient) {
-
-      detalleDescuento +=
-        detalleDescuento + this.calcularImporteDescuentos(arrayCompra);
+    if (info.dataVersion && info.dataVersion >= versionDescuentosClient && infoCliente) {
+      detalleDescuento += detalleDescuento + this.calcularImporteDescuentos(arrayCompra);
     } else {
       if (
         tipoPago !== "CONSUMO_PERSONAL" &&
@@ -813,22 +762,19 @@ export class Impresora {
           }
         }
         // Sumamos el total de las bases y el total de los IVA
-        detalleDescuento +=
-          detalleDescuento += `Total sense descompte: ${redondearPrecio(
-            (baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)
-          )}€\nDescompte total: ${redondearPrecio(
-            (((baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)) *
-              infoCliente.descuento) /
-            100
-          ).toFixed(2)}€`;
+
+        detalleDescuento += detalleDescuento += `Total sense descompte: ${redondearPrecio(
+          (baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)
+        )}€\nDescompte total: ${redondearPrecio(
+          (((baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)) * infoCliente.descuento) / 100
+        ).toFixed(2)}€`;
       }
     }
 
-    const moment = require("moment-timezone");
     const fecha = new Date(info.timestamp);
     //const offset = fecha.getTimezoneOffset() * 60000; // Obtener el desplazamiento de la zona horaria en minutos y convertirlo a milisegundos
     // recojemos el tipo de pago
-    const fechaEspaña = moment(info.timestamp).tz("Europe/Madrid");
+    const fechaEspaña = momentTZ(info.timestamp).tz("Europe/Madrid");
     if (tipoPago == "TARJETA") {
       pagoTarjeta = "----------- PAGADO CON TARJETA ---------\n";
     }
@@ -846,15 +792,9 @@ export class Impresora {
     if (info.dejaCuenta > 0) {
       detalleDejaCuenta = "Import pagat: " + info.dejaCuenta.toFixed(2) + "€";
       if (info.modoCesta == "RECOGER ENCARGO") {
-        detalleEncargoDeuda +=
-          "Total restant: " +
-          redondearPrecio(total - info.dejaCuenta).toFixed(2) +
-          " €";
+        detalleEncargoDeuda += "Total restant: " + redondearPrecio(total - info.dejaCuenta).toFixed(2) + " €";
       } else {
-        detalleEncargoDeuda +=
-          "Pagament pendent: " +
-          redondearPrecio(total - info.dejaCuenta).toFixed(2) +
-          " €";
+        detalleEncargoDeuda += "Pagament pendent: " + redondearPrecio(total - info.dejaCuenta).toFixed(2) + " €";
       }
     }
 
@@ -873,15 +813,7 @@ export class Impresora {
       infoConsumoPersonal = "---------------- CONSUM PERSONAL --------------";
     }
 
-    const diasSemana = [
-      "Diumenge",
-      "Dilluns",
-      "Dimarts",
-      "Dimecres",
-      "Dijous",
-      "Divendres",
-      "Dissabte",
-    ];
+    const diasSemana = ["Diumenge", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres", "Dissabte"];
     /*`Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
       fecha.getMonth() + 1
     }-${fecha.getFullYear()}  ${
@@ -892,19 +824,13 @@ export class Impresora {
     //qr info
     const qrData = moment(info.timestamp).format("YYYY-MM-DD");
     const qrLic = (await parametrosInstance.getParametros()).licencia;
-    const qrURL = await encryptWhatsapp(
-      `Lic:${qrLic} Tick:${numFactura} Data:${qrData}`
-    );
-    const qrEnabled =
-      (await parametrosInstance.getParametros())["params"]["QRWhatsApp"] ==
-      "Si";
+    const qrURL = await encryptWhatsapp(`Lic:${qrLic} Tick:${numFactura} Data:${qrData}`);
+    const qrEnabled = (await parametrosInstance.getParametros())["params"]["QRWhatsApp"] == "Si";
     const device = new escpos.Network("localhost");
     const printer = new escpos.Printer(device);
     const database = (await conexion).db("tocgame");
     const coleccion = database.collection("parametros");
-    const preuU =
-      (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
-      "Si";
+    const preuU = (await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si";
     const arrayImprimir = [
       { tipo: "setCharacterCodeTable", payload: 19 },
       { tipo: "setCharacterCodeTable", payload: 19 },
@@ -912,32 +838,26 @@ export class Impresora {
       { tipo: "font", payload: "A" },
       {
         tipo: "text",
-        payload: info?.nota
-          ? `\x1B\x45\x01 Nota Taula: ${info.mesa + 1} \x1B\x45\x00`
-          : "",
+        payload: info?.nota ? `\x1B\x45\x01 Nota Taula: ${info.mesa} \x1B\x45\x00` : "",
       },
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
-        payload: `Data: ${diasSemana[fechaEspaña.format("d")]
-          } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+
+        payload: `Data: ${diasSemana[fechaEspaña.format("d")]} ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
       {
         tipo: "text",
-        payload: numFactura
-          ? `\x1B\x45\x01 Factura simplificada N: ${numFactura}\x1B\x45\x00`
-          : "",
+        payload: numFactura ? `\x1B\x45\x01 Factura simplificada N: ${numFactura}\x1B\x45\x00` : "",
       },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
     ];
+
     if (info.mesa !== undefined && info.mesa !== null)
       arrayImprimir.push(
         {
           tipo: "text",
-          payload:
-            info.mesa == null
-              ? ""
-              : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
+          payload: info.mesa == null ? "" : `Taula: ${info.mesa} | PAX (Clients): ${info.comensales}`,
         },
         { tipo: "size", payload: [1, 0] },
         { tipo: "text", payload: clientTitle },
@@ -951,25 +871,16 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: `${infoClienteVip.nombre
-            ? `\x1B\x45\x01 ${infoClienteVip.nombre} \x1B\x45\x00 \n`
-            : ""
-            }`,
+
+          payload: `${infoClienteVip.nombre ? `\x1B\x45\x01 ${infoClienteVip.nombre} \x1B\x45\x00 \n` : ""}`,
         },
         { tipo: "size", payload: [0, 0] },
         {
           tipo: "text",
-          payload: `${infoClienteVip.telefono
-            ? `\x1B\x45\x01 tel.: ${infoClienteVip.telefono} \x1B\x45\x00 \n`
-            : ""
-            }${infoClienteVip.nif
-              ? `\x1B\x45\x01 DNI/NIF: ${infoClienteVip.nif} \x1B\x45\x00 \n`
-              : ""
-            }${infoClienteVip.direccion
-              ? `\x1B\x45\x01 direccion: ${infoClienteVip.direccion} \x1B\x45\x00 \n`
-              : ""
-            }${detallePuntosCliente ? `${detallePuntosCliente}\n` : ""}${clienteDescuento ? `${clienteDescuento}\n` : ""
-            }`,
+
+          payload: `${infoClienteVip.telefono ? `\x1B\x45\x01 tel.: ${infoClienteVip.telefono} \x1B\x45\x00 \n` : ""}${infoClienteVip.nif ? `\x1B\x45\x01 DNI/NIF: ${infoClienteVip.nif} \x1B\x45\x00 \n` : ""
+            }${infoClienteVip.direccion ? `\x1B\x45\x01 direccion: ${infoClienteVip.direccion} \x1B\x45\x00 \n` : ""}${detallePuntosCliente ? `${detallePuntosCliente}\n` : ""
+            }${clienteDescuento ? `${clienteDescuento}\n` : ""}`,
         }
       );
     arrayImprimir.push(
@@ -978,26 +889,19 @@ export class Impresora {
         tipo: "text",
         payload: formatoDetalle[tipoFormatoDetalle],
       },
-      {
-        tipo: "text",
-        payload: "-----------------------------------------------",
-      },
+      { tipo: "text", payload: "_".repeat(48) + "\n" },
       { tipo: "align", payload: "LT" },
       { tipo: "text", payload: detalles },
       { tipo: "align", payload: "CT" },
+      { tipo: "text", payload: "_".repeat(48) },
       {
         tipo: "text",
-        payload: "------------------------------------------------",
-      },
-      {
-        tipo: "text",
-        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""
-          }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""}${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""
+          }`,
       },
       { tipo: "align", payload: "RT" }
     );
-    if (pagoDevolucion)
-      arrayImprimir.push({ tipo: "text", payload: pagoDevolucion });
+    if (pagoDevolucion) arrayImprimir.push({ tipo: "text", payload: pagoDevolucion });
 
     let totalImporte = total;
     arrayImprimir.push({ tipo: "size", payload: [1, 1] });
@@ -1008,15 +912,10 @@ export class Impresora {
     );
 
     arrayImprimir.push({ tipo: "size", payload: [0, 0] });
-    if (detalleDescuento)
-      arrayImprimir.push({ tipo: "text", payload: detalleDescuento });
-    if (detalleDejaCuenta)
-      arrayImprimir.push({ tipo: "text", payload: detalleDejaCuenta });
+    if (detalleDescuento) arrayImprimir.push({ tipo: "text", payload: detalleDescuento });
+    if (detalleDejaCuenta) arrayImprimir.push({ tipo: "text", payload: detalleDejaCuenta });
     if (detalleEncargoDeuda)
-      arrayImprimir.push(
-        { tipo: "size", payload: [1, 1] },
-        { tipo: "text", payload: detalleEncargoDeuda }
-      );
+      arrayImprimir.push({ tipo: "size", payload: [1, 1] }, { tipo: "text", payload: detalleEncargoDeuda });
     if (info.justificacion)
       arrayImprimir.push(
         { tipo: "size", payload: [0, 0] },
@@ -1042,18 +941,19 @@ export class Impresora {
       let params = await parametrosInstance.getParametros();
       let verifactuDate = new Date(params.verifactuEnabled).getTime();
       let ticketDate = fecha.getTime();
-      let nif = params?.nif || '';
+      let nif = params?.nif || "";
       const isVerifactuTicket = ticketDate >= verifactuDate;
-      if (
-        !(nif.length > 10) && !((params.licencia).toString().length > 10) && !(numFactura.length > 20)
-      )
+
+      if (!(nif.length > 10) && !(params.licencia.toString().length > 10) && !(numFactura.length > 20))
         if (params?.nif && isVerifactuTicket)
           arrayImprimir.push(
             { tipo: "text", payload: "\n\n-" },
             {
               tipo: "qrimage",
-              payload: `https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=${params.nif}&numserie=TK-${params.licencia}-2025-${numFactura}&fecha=${fechaEspaña.format("DD-MM-YYYY")}&importe=${totalImporte}`,
-            }, { tipo: "text", payload: "* Verificado por el sistema VERI*FACTU *" },
+              payload: `https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=${params.nif}&numserie=TK-${params.licencia
+                }-2025-${numFactura}&fecha=${fechaEspaña.format("DD-MM-YYYY")}&importe=${totalImporte}`,
+            },
+            { tipo: "text", payload: "* Verificado por el sistema VERI*FACTU *" }
           );
     }
     arrayImprimir.push({ tipo: "cut", payload: "PAPER_FULL_CUT" });
@@ -1090,18 +990,9 @@ export class Impresora {
       strRecibo = recibo;
     }
 
-    let detalles = await this.detallesTicket(
-      arrayCompra,
-      infoCliente?.idCliente,
-      tipoPago
-    );
-    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
-      arrayCompra,
-      infoCliente?.idCliente
-    );
-    const factura = infoCliente?.albaranNPT
-      ? "Albarà N: "
-      : "Factura simplificada N: ";
+    let detalles = await this.detallesTicket(arrayCompra, infoCliente?.idCliente, tipoPago);
+    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(arrayCompra, infoCliente?.idCliente);
+    const factura = infoCliente?.albaranNPT ? "Albarà N: " : "Factura simplificada N: ";
     let pagoTarjeta = "";
     let pagoTkrs = "";
     let detalleClienteVip = "";
@@ -1115,15 +1006,11 @@ export class Impresora {
     if (infoClienteVip) {
       clientTitle = "\nCLIENT:";
       detalleClienteVip = `\n${infoClienteVip.nombre}`;
-      if (infoClienteVip.nif)
-        detalleClienteVip += `\nDNI/NIF: ${infoClienteVip.nif}`;
-      if (infoClienteVip.direccion)
-        detalleClienteVip += `\nDir.: ${infoClienteVip.direccion}`;
+      if (infoClienteVip.nif) detalleClienteVip += `\nDNI/NIF: ${infoClienteVip.nif}`;
+      if (infoClienteVip.direccion) detalleClienteVip += `\nDir.: ${infoClienteVip.direccion}`;
     }
     // recojemos datos del cliente si nos los han mandado
-    const clienteDescEsp = descuentoEspecial.find(
-      (cliente) => cliente.idCliente === infoCliente?.idCliente
-    );
+    const clienteDescEsp = descuentoEspecial.find((cliente) => cliente.idCliente === infoCliente?.idCliente);
     if (infoCliente != null) {
       clientTitle = "\nCLIENT:";
       detalleNombreCliente = infoCliente.nombre;
@@ -1131,20 +1018,14 @@ export class Impresora {
       if (infoCliente.puntos == null) {
         detallePuntosCliente = "Punts pendents d'actualitzar";
       } else {
-        detallePuntosCliente =
-          "Punts restants: " +
-          (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+        detallePuntosCliente = "Punts restants: " + (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
       }
       if (
         (!clienteDescEsp || clienteDescEsp.precio != total) &&
         info?.dataVersion &&
         info.dataVersion < versionDescuentosClient
       ) {
-        clienteDescuento =
-          "Descompte de client: " +
-          (infoCliente.descuento ?? "0") +
-          " %" +
-          "\nVenta registrada.";
+        clienteDescuento = "Descompte de client: " + (infoCliente.descuento ?? "0") + " %" + "\nVenta registrada.";
         if (infoCliente.descuento == 0) clienteDescuento = "Venta registrada.";
       } else if (clienteDescEsp && clienteDescEsp.precio == total) {
         const activacionDescEsp =
@@ -1152,35 +1033,26 @@ export class Impresora {
             ? "Total >= " + clienteDescEsp.activacion
             : infoCliente.nombre;
         clienteDescuento = "Descompte Especial " + activacionDescEsp;
-      } else if (
-        info?.dataVersion &&
-        info.dataVersion >= versionDescuentosClient
-      ) {
+      } else if (info?.dataVersion && info.dataVersion >= versionDescuentosClient) {
         clienteDescuento = "Venta registrada.";
       }
     }
-    if (
-      infoCliente?.descuento &&
-      infoCliente.descuento != 0 &&
-      (!clienteDescEsp || clienteDescEsp.precio != total)
-    ) {
+    if (infoCliente?.descuento && infoCliente.descuento != 0 && (!clienteDescEsp || clienteDescEsp.precio != total)) {
       detalleDescuento += detalleDescuento += `Total sense descompte: ${(
         (total + dejaCuenta) /
         (1 - infoCliente.descuento / 100)
       ).toFixed(2)}€\nDescompte total: ${(
-        (((total + dejaCuenta) / (1 - infoCliente.descuento / 100)) *
-          infoCliente.descuento) /
+        (((total + dejaCuenta) / (1 - infoCliente.descuento / 100)) * infoCliente.descuento) /
         100
       ).toFixed(2)}€\n`;
     } else if (clienteDescEsp && clienteDescEsp.precio == total) {
       detalleDescuento += "Nou preu total: " + clienteDescEsp.precio;
     }
 
-    const moment = require("moment-timezone");
     const fecha = new Date(info.timestamp);
     //const offset = fecha.getTimezoneOffset() * 60000; // Obtener el desplazamiento de la zona horaria en minutos y convertirlo a milisegundos
     // recojemos el tipo de pago
-    const fechaEspaña = moment(info.timestamp).tz("Europe/Madrid");
+    const fechaEspaña = momentTZ(info.timestamp).tz("Europe/Madrid");
     if (tipoPago == "TARJETA") {
       pagoTarjeta = "----------- PAGADO CON TARJETA ---------\n";
     }
@@ -1209,15 +1081,7 @@ export class Impresora {
 
     let infoConsumoPersonal = "";
 
-    const diasSemana = [
-      "Diumenge",
-      "Dilluns",
-      "Dimarts",
-      "Dimecres",
-      "Dijous",
-      "Divendres",
-      "Dissabte",
-    ];
+    const diasSemana = ["Diumenge", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres", "Dissabte"];
     /*`Data: ${diasSemana[fecha.getDay()]} ${fecha.getDate()}-${
       fecha.getMonth() + 1
     }-${fecha.getFullYear()}  ${
@@ -1228,9 +1092,7 @@ export class Impresora {
     const printer = new escpos.Printer(device);
     const database = (await conexion).db("tocgame");
     const coleccion = database.collection("parametros");
-    const preuU =
-      (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
-      "Si";
+    const preuU = (await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si";
     const arrayImprimir = [
       { tipo: "setCharacterCodeTable", payload: 19 },
       { tipo: "setCharacterCodeTable", payload: 19 },
@@ -1239,17 +1101,13 @@ export class Impresora {
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
-        payload: `Data: ${diasSemana[fechaEspaña.format("d")]
-          } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+        payload: `Data: ${diasSemana[fechaEspaña.format("d")]} ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
       { tipo: "text", payload: factura + numFactura },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
       {
         tipo: "text",
-        payload:
-          info.mesa == null
-            ? ""
-            : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
+        payload: info.mesa == null ? "" : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
       },
       { tipo: "size", payload: [1, 0] },
       { tipo: "text", payload: clientTitle },
@@ -1275,8 +1133,8 @@ export class Impresora {
       },
       {
         tipo: "text",
-        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""
-          }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""}${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""
+          }`,
       },
       { tipo: "size", payload: [1, 1] },
       { tipo: "text", payload: pagoDevolucion },
@@ -1309,17 +1167,13 @@ export class Impresora {
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
-        payload: `Data: ${diasSemana[fechaEspaña.format("d")]
-          } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+        payload: `Data: ${diasSemana[fechaEspaña.format("d")]} ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
       { tipo: "text", payload: factura + numFactura },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
       {
         tipo: "text",
-        payload:
-          info.mesa == null
-            ? ""
-            : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
+        payload: info.mesa == null ? "" : `Taula: ${info.mesa + 1} | PAX (Clients): ${info.comensales}`,
       },
       { tipo: "size", payload: [1, 0] },
       { tipo: "text", payload: clientTitle },
@@ -1345,8 +1199,8 @@ export class Impresora {
       },
       {
         tipo: "text",
-        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""
-          }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""}${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""
+          }`,
       },
       { tipo: "align", payload: "LT" },
       { tipo: "text", payload: detalleDejaCuenta },
@@ -1379,9 +1233,7 @@ export class Impresora {
     this.enviarMQTT(arrayImprimir, options);
   }
   async getDetallesIva(tiposIva, timestamp = null) {
-    const arrayIvas = timestamp
-      ? tiposIvaInstance.getIvasDefault(timestamp)
-      : tiposIvaInstance.arrayIvas;
+    const arrayIvas = timestamp ? tiposIvaInstance.getIvasDefault(timestamp) : tiposIvaInstance.arrayIvas;
     let str1 = "          ";
     let str2 = "                 ";
     let str3 = "              ";
@@ -1478,27 +1330,18 @@ export class Impresora {
     tipoPago: string = ""
   ) {
     // recoje los parametros y saber si mostrar el precio unitario
-    const preuUnitari =
-      (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
-      "Si";
+    const preuUnitari = (await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si";
     // comprueba si hay param dto y param iva
     const thereIsDto = arrayCompra.find((item) => "dto" in item) !== undefined;
-    const thereIsDtoTienda =
-      arrayCompra.find((item) => "descuentoTienda" in item) !== undefined;
+    const thereIsDtoTienda = arrayCompra.find((item) => "descuentoTienda" in item) !== undefined;
     const thereIsIva = arrayCompra.find((item) => "iva" in item) !== undefined;
     // recoje el cliente si lo hay
-    let cliente = idCliente
-      ? await clienteInstance.getClienteById(idCliente)
-      : null;
+    let cliente = idCliente ? await clienteInstance.getClienteById(idCliente) : null;
 
     const albaranNPT_o_vipPT = cliente?.albaran || cliente?.vip ? true : false;
 
     // Longitudes relacionadas con el formato
-    let longDto = albaranNPT_o_vipPT
-      ? 0
-      : thereIsDto || thereIsDtoTienda
-        ? cLongDto
-        : 0;
+    let longDto = albaranNPT_o_vipPT ? 0 : thereIsDto || thereIsDtoTienda ? cLongDto : 0;
     let longQuant = cLongQuant;
     let longPreuU = albaranNPT_o_vipPT ? 0 : preuUnitari ? cLongPreuU : 0;
     let longImporte = albaranNPT_o_vipPT ? 0 : cLongImporte;
@@ -1521,46 +1364,22 @@ export class Impresora {
       // si contiene gramos, obtenemos el precio unitario de la base de datos para evitar errores de redondeo en el calculo.
       try {
         if (arrayCompra[i].gramos > 0) {
-          let infoArt = await articulosInstance.getInfoArticulo(
-            arrayCompra[i].idArticulo
-          );
-          const precioTarifa = await articulosInstance.getPrecioConTarifa(
-            infoArt,
-            idCliente
-          );
-          if (
-            precioTarifa.precioConIva != infoArt.precioConIva &&
-            !albaranNPT_o_vipPT
-          ) {
+          let infoArt = await articulosInstance.getInfoArticulo(arrayCompra[i].idArticulo);
+          const precioTarifa = await articulosInstance.getPrecioConTarifa(infoArt, idCliente);
+          if (precioTarifa.precioConIva != infoArt.precioConIva && !albaranNPT_o_vipPT) {
             arrayCompra[i]["preuU"] = precioTarifa.precioConIva;
-          } else if (
-            precioTarifa.precioBase != infoArt.precioBase &&
-            albaranNPT_o_vipPT
-          ) {
+          } else if (precioTarifa.precioBase != infoArt.precioBase && albaranNPT_o_vipPT) {
             arrayCompra[i]["preuU"] = precioTarifa.precioBase;
           } else {
-            arrayCompra[i]["preuU"] = albaranNPT_o_vipPT
-              ? infoArt.precioBase
-              : infoArt.precioConIva;
+            arrayCompra[i]["preuU"] = albaranNPT_o_vipPT ? infoArt.precioBase : infoArt.precioConIva;
           }
         } else {
-          arrayCompra[i]["preuU"] = await this.calcularPrecioUnitario(
-            arrayCompra[i],
-            albaranNPT_o_vipPT,
-            tipoPago
-          );
+          arrayCompra[i]["preuU"] = await this.calcularPrecioUnitario(arrayCompra[i], albaranNPT_o_vipPT, tipoPago);
         }
       } catch (error) {
-        console.error(
-          `Error al procesar el artículo en el índice ${i}:`,
-          error
-        );
+        console.error(`Error al procesar el artículo en el índice ${i}:`, error);
         // Asignar un valor por defecto en caso de error en la función obtenerPrecioUnitario
-        arrayCompra[i]["preuU"] = this.calcularPrecioUnitario(
-          arrayCompra[i],
-          albaranNPT_o_vipPT,
-          tipoPago
-        );
+        arrayCompra[i]["preuU"] = this.calcularPrecioUnitario(arrayCompra[i], albaranNPT_o_vipPT, tipoPago);
       }
 
       if (thereIsDto && !albaranNPT_o_vipPT) {
@@ -1570,9 +1389,7 @@ export class Impresora {
         descuentoStr = "";
       }
       if (thereIsDtoTienda) {
-        let dto = arrayCompra[i].descuentoTienda
-          ? arrayCompra[i].descuentoTienda + "%"
-          : "";
+        let dto = arrayCompra[i].descuentoTienda ? arrayCompra[i].descuentoTienda + "%" : "";
         descuentoStr = sprintf(`%${longDto}s`, dto);
       } else {
         descuentoStr = "";
@@ -1581,16 +1398,11 @@ export class Impresora {
       if (arrayCompra[i].promocion) {
         // buscamos el nombre del articulo principal
         let nombrePrincipal = (
-          await articulosInstance.getInfoArticulo(
-            arrayCompra[i].promocion.grupos[0][0].idArticulo
-          )
+          await articulosInstance.getInfoArticulo(arrayCompra[i].promocion.grupos[0][0].idArticulo)
         ).nombre;
 
         cantidadStr = sprintf(`%-${longQuant}s`, arrayCompra[i].unidades);
-        precioUnitarioStr =
-          longPreuU == 0
-            ? ""
-            : sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
+        precioUnitarioStr = longPreuU == 0 ? "" : sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
         importeStr = setImporteStr();
         // pasamos de param el nombre porque puede variar si es una promo
         comprobarLongitud("Of. " + nombrePrincipal);
@@ -1609,17 +1421,10 @@ export class Impresora {
 
         for (let artGrupo of arrayCompra[i].promocion.grupos.flat()) {
           // imprime promo ej:'>       oferta nombreP (10x)  1.20'
-          let nombreArtPromo = (
-            await articulosInstance.getInfoArticulo(artGrupo.idArticulo)
-          ).nombre;
+          let nombreArtPromo = (await articulosInstance.getInfoArticulo(artGrupo.idArticulo)).nombre;
           cantidadStr = sprintf(`%-${longQuant}s`, "");
           precioUnitarioStr =
-            longPreuU == 0
-              ? ""
-              : sprintf(
-                `%${longPreuU}s`,
-                `(${artGrupo.unidades}x)` + artGrupo.precioPromoPorUnidad
-              );
+            longPreuU == 0 ? "" : sprintf(`%${longPreuU}s`, `(${artGrupo.unidades}x)` + artGrupo.precioPromoPorUnidad);
           descuentoStr = sprintf(`%${longDto}s`, "");
           importeStr = "";
           comprobarLongitud("> Of. " + nombreArtPromo);
@@ -1636,17 +1441,11 @@ export class Impresora {
             importeStr;
           detalles += `${lineaTicket}\n`;
         }
-      } else if (
-        arrayCompra[i].arraySuplementos &&
-        arrayCompra[i].arraySuplementos.length > 0
-      ) {
+      } else if (arrayCompra[i].arraySuplementos && arrayCompra[i].arraySuplementos.length > 0) {
         // Entra si tiene suplementos
         // imprimir articulo
         cantidadStr = sprintf(`%-${longQuant}s`, arrayCompra[i].unidades);
-        precioUnitarioStr =
-          longPreuU == 0
-            ? ""
-            : sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
+        precioUnitarioStr = longPreuU == 0 ? "" : sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
         importeStr = setImporteStr();
         comprobarLongitud();
         // linea del articulo
@@ -1664,12 +1463,7 @@ export class Impresora {
         for (let j = 0; j < arrayCompra[i].arraySuplementos.length; j++) {
           cantidadStr = sprintf(`%-${longQuant}s`, "");
           precioUnitarioStr =
-            longPreuU == 0
-              ? ""
-              : sprintf(
-                `%${longPreuU}.2f`,
-                arrayCompra[i].arraySuplementos[j].precioConIva
-              );
+            longPreuU == 0 ? "" : sprintf(`%${longPreuU}.2f`, arrayCompra[i].arraySuplementos[j].precioConIva);
           importeStr = sprintf(`%${longImporte}s`, "");
           comprobarLongitud(arrayCompra[i].arraySuplementos[j].nombre);
           // linea del suplemento pos j
@@ -1686,13 +1480,84 @@ export class Impresora {
           detalles += lineaTicket + "\n";
         }
         // version antigua Suplementos
+      } else if (arrayCompra[i].articulosMenu) {
+        // Mostrar articulosMenu como suplementos
+        let cantidadStr = sprintf(`%-${longQuant}s`, arrayCompra[i].unidades);
+        let articuloStr = sprintf(`%-${longArticulo}s`, arrayCompra[i].nombre);
+        let precioUnitarioStr = longPreuU == 0 ? "" : sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
+        let importeStr = setImporteStr();
+        let lineaTicket =
+          cantidadStr +
+          margenStr +
+          articuloStr +
+          margenStr +
+          precioUnitarioStr +
+          margenStr +
+          (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
+          margenStr +
+          importeStr;
+        detalles += lineaTicket + "\n";
+
+        // Mostrar cada articuloMenu como si fuera un suplemento
+        for (let j = 0; j < arrayCompra[i].articulosMenu.length; j++) {
+          const artMenu = arrayCompra[i].articulosMenu[j];
+          // Si tiene gramos, mostrar cantidad
+          let cantidadMenu =
+            artMenu.gramos && artMenu.gramos > 0
+              ? `${artMenu.gramos}gr`
+              : artMenu.unidades > 1
+                ? `${artMenu.unidades}x`
+                : "";
+
+          let nombreMenu = artMenu.nombre;
+          if (cantidadMenu) {
+            nombreMenu = `${cantidadMenu} ${nombreMenu}`;
+          }
+
+          let cantidadStrMenu = sprintf(`%-${longQuant}s`, "");
+          let articuloStrMenu = sprintf(`%-${longArticulo}s`, nombreMenu);
+
+          // Si el articuloMenu tiene suplementos, mostrarlos también
+          let suplementosMenu = artMenu.arraySuplementos || [];
+          let precioUnitarioMenu = "";
+
+          // Mostrar el articuloMenu como suplemento
+          let lineaMenu =
+            cantidadStrMenu +
+            margenStr +
+            articuloStrMenu +
+            margenStr +
+            precioUnitarioMenu +
+            margenStr +
+            (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
+            margenStr +
+            sprintf(`%${longImporte}s`, "");
+
+          detalles += lineaMenu + "\n";
+
+          // Mostrar los suplementos del articuloMenu
+          for (let k = 0; k < suplementosMenu.length; k++) {
+            let suplemento = suplementosMenu[k];
+            let cantidadStrSup = sprintf(`%-${longQuant}s`, "");
+            let articuloStrSup = sprintf(`%-${longArticulo}s`, " -" + suplemento.nombre);
+            let precioUnitarioSup = "";
+            let lineaSup =
+              cantidadStrSup +
+              margenStr +
+              articuloStrSup +
+              margenStr +
+              precioUnitarioSup +
+              margenStr +
+              (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
+              margenStr +
+              sprintf(`%${longImporte}s`, "");
+            detalles += lineaSup + "\n";
+          }
+        }
       } else {
         // articulo sin promos ni suplementos
         cantidadStr = sprintf(`%-${longQuant}s`, arrayCompra[i].unidades);
-        precioUnitarioStr =
-          longPreuU == 0
-            ? ""
-            : sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
+        precioUnitarioStr = longPreuU == 0 ? "" : sprintf(`%${longPreuU}.2f`, arrayCompra[i]["preuU"]);
         importeStr = setImporteStr();
         comprobarLongitud();
         lineaTicket =
@@ -1719,10 +1584,7 @@ export class Impresora {
         if (thereIsDto && descuentoStr.length > longDto) {
           longArticulo = longArticulo + longDto - descuentoStr.length;
         }
-        articuloStr = sprintf(
-          `%-${longArticulo}s`,
-          nombreArticulo ? nombreArticulo : arrayCompra[i].nombre
-        );
+        articuloStr = sprintf(`%-${longArticulo}s`, nombreArticulo ? nombreArticulo : arrayCompra[i].nombre);
         if (articuloStr.length > longArticulo) {
           articuloStr = articuloStr.slice(0, longArticulo);
         }
@@ -1733,14 +1595,8 @@ export class Impresora {
         let str = "";
         if (albaranNPT_o_vipPT) {
           str = `${arrayCompra[i]["preuU"]} p/u`;
-          str +=
-            arrayCompra[i]?.dto != undefined
-              ? ` -${arrayCompra[i]?.dto}% D`
-              : "";
-          str +=
-            arrayCompra[i]?.iva != undefined
-              ? ` +${arrayCompra[i].iva}% Iva`
-              : "";
+          str += arrayCompra[i]?.dto != undefined ? ` -${arrayCompra[i]?.dto}% D` : "";
+          str += arrayCompra[i]?.iva != undefined ? ` +${arrayCompra[i].iva}% Iva` : "";
           str = sprintf(`%${longImporte}s`, str);
         } else {
           str = sprintf(`%${longImporte}.2f`, arrayCompra[i].subtotal);
@@ -1769,32 +1625,21 @@ export class Impresora {
     }
   }
 
-  async precioUnitario(
-    arrayCompra: CestasInterface["lista"],
-    idCliente = null
-  ) {
+  async precioUnitario(arrayCompra: CestasInterface["lista"], idCliente = null) {
     let detalles = "";
     //const preuUnitari =
     // recojemos los productos del ticket
     let descuento = 0;
     if (idCliente) {
       const cliente = await clienteInstance.getClienteById(idCliente);
-      descuento =
-        cliente && !cliente?.albaran && !cliente?.vip
-          ? Number(cliente.descuento)
-          : 0;
+      descuento = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
     }
 
-    const preuUnitari =
-      (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
-      "Si";
+    const preuUnitari = (await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si";
     for (let i = 0; i < arrayCompra.length; i++) {
-      arrayCompra[i].subtotal =
-        arrayCompra[i].subtotal - arrayCompra[i].subtotal * (descuento / 100);
+      arrayCompra[i].subtotal = arrayCompra[i].subtotal - arrayCompra[i].subtotal * (descuento / 100);
       if (preuUnitari) {
-        arrayCompra[i]["preuU"] = Number(
-          (arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2)
-        );
+        arrayCompra[i]["preuU"] = Number((arrayCompra[i].subtotal / arrayCompra[i].unidades).toFixed(2));
       }
       if (arrayCompra[i].promocion) {
         let nombrePrincipal = arrayCompra[i].promocion.grupos[0][0].nombre;
@@ -1802,8 +1647,7 @@ export class Impresora {
         while (nombrePrincipal.length < 20) {
           nombrePrincipal += " ";
         }
-        detalles += `${arrayCompra[i].unidades *
-          arrayCompra[i].promocion.grupos[0][0].unidades
+        detalles += `${arrayCompra[i].unidades * arrayCompra[i].promocion.grupos[0][0].unidades
           }     ${nombrePrincipal.slice(0, 20)}${preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
           }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
         for (let artGrupo of arrayCompra[i].promocion.grupos.flat()) {
@@ -1815,15 +1659,10 @@ export class Impresora {
           detalles += `     >     ${nombreArtGrupo.slice(0, 20) + "(x" + artGrupo.unidades + ")"
             } ${artGrupo.precioPromoPorUnidad.toFixed(2)}\n`;
         }
-      } else if (
-        arrayCompra[i].arraySuplementos &&
-        arrayCompra[i].arraySuplementos.length > 0
-      ) {
+      } else if (arrayCompra[i].arraySuplementos && arrayCompra[i].arraySuplementos.length > 0) {
         var cantidadStr = sprintf("%-7d", arrayCompra[i].unidades);
         var articuloStr = sprintf("%-18s", arrayCompra[i].nombre);
-        var precioUnitario = preuUnitari
-          ? "    " + arrayCompra[i]["preuU"].toFixed(2)
-          : "";
+        var precioUnitario = preuUnitari ? "    " + arrayCompra[i]["preuU"].toFixed(2) : "";
 
         var precioStr = sprintf("%-11.2f", precioUnitario);
 
@@ -1860,16 +1699,13 @@ export class Impresora {
         }
         let qtSpaces = 6 - arrayCompra[i].unidades.toString().length;
         let spaces = formatSpaces(qtSpaces);
-        detalles += ` ${spaces + arrayCompra[i].unidades}  ${arrayCompra[
-          i
-        ].nombre.slice(0, 20)} ${preuUnitari
-          ? formatSpaces(
-            6 - arrayCompra[i]["preuU"].toFixed(2).toString().length
-          ) + arrayCompra[i]["preuU"].toFixed(2)
+
+        detalles += ` ${spaces + arrayCompra[i].unidades}  ${arrayCompra[i].nombre.slice(0, 20)} ${preuUnitari
+          ? formatSpaces(6 - arrayCompra[i]["preuU"].toFixed(2).toString().length) +
+          arrayCompra[i]["preuU"].toFixed(2)
           : "      "
-          }  ${formatSpaces(
-            8 - arrayCompra[i].subtotal.toFixed(2).toString().length
-          ) + arrayCompra[i].subtotal.toFixed(2)
+          }  ${formatSpaces(8 - arrayCompra[i].subtotal.toFixed(2).toString().length) + arrayCompra[i].subtotal.toFixed(2)
+
           }€\n`;
       }
     }
@@ -1887,11 +1723,8 @@ export class Impresora {
   async imprimirSalida(movimiento: MovimientosInterface) {
     try {
       const parametros = await parametrosInstance.getParametros();
-      const moment = require("moment-timezone");
-      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
-      const trabajador = await trabajadoresInstance.getTrabajadorById(
-        movimiento.idTrabajador
-      );
+      const fechaStr = momentTZ(movimiento._id).tz("Europe/Madrid");
+      const trabajador = await trabajadoresInstance.getTrabajadorById(movimiento.idTrabajador);
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
       let buffer = [
@@ -1945,11 +1778,8 @@ export class Impresora {
   async imprimirEntrada(movimiento: MovimientosInterface) {
     try {
       const parametros = await parametrosInstance.getParametros();
-      const moment = require("moment-timezone");
-      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
-      const trabajador = await trabajadoresInstance.getTrabajadorById(
-        movimiento.idTrabajador
-      );
+      const fechaStr = momentTZ(movimiento._id).tz("Europe/Madrid");
+      const trabajador = await trabajadoresInstance.getTrabajadorById(movimiento.idTrabajador);
       let buffer = [
         { tipo: "setCharacterCodeTable", payload: 19 },
         { tipo: "encode", payload: "CP858" },
@@ -2001,11 +1831,8 @@ export class Impresora {
   async imprimirDeuda(movimiento: MovimientosInterface, client: string) {
     try {
       const parametros = await parametrosInstance.getParametros();
-      const moment = require("moment-timezone");
-      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
-      const trabajador = await trabajadoresInstance.getTrabajadorById(
-        movimiento.idTrabajador
-      );
+      const fechaStr = momentTZ(movimiento._id).tz("Europe/Madrid");
+      const trabajador = await trabajadoresInstance.getTrabajadorById(movimiento.idTrabajador);
       let buffer = [
         { tipo: "setCharacterCodeTable", payload: 19 },
         { tipo: "encode", payload: "CP858" },
@@ -2064,8 +1891,7 @@ export class Impresora {
       const printMov3G = parameters["params"]["imprimirMov3G"] == "Si";
       if (!printMov3G) return;
 
-      const moment = require("moment-timezone");
-      const dateStr = moment(movement._id).tz("Europe/Madrid");
+      const dateStr = momentTZ(movement._id).tz("Europe/Madrid");
       const strCliente = client ? "Cliente: " + client : "Cliente general";
       // add elements to buffer
       const addToBuffer = (tipo, payload) => buffer.push({ tipo, payload });
@@ -2095,11 +1921,7 @@ export class Impresora {
       addToBuffer("text", movement?.concepto || "");
 
       if (movement.codigoBarras && movement.codigoBarras !== "") {
-        addToBuffer("barcode", [
-          movement.codigoBarras.slice(0, 12),
-          "EAN13",
-          4,
-        ]);
+        addToBuffer("barcode", [movement.codigoBarras.slice(0, 12), "EAN13", 4]);
       }
       addToBuffer("text", "\n\n\n");
       addToBuffer("cut", "PAPER_FULL_CUT");
@@ -2118,11 +1940,8 @@ export class Impresora {
   async imprimirDeudaSalida(movimiento: MovimientosInterface, client: string) {
     try {
       const parametros = await parametrosInstance.getParametros();
-      const moment = require("moment-timezone");
-      const fechaStr = moment(movimiento._id).tz("Europe/Madrid");
-      const trabajador = await trabajadoresInstance.getTrabajadorById(
-        movimiento.idTrabajador
-      );
+      const fechaStr = momentTZ(movimiento._id).tz("Europe/Madrid");
+      const trabajador = await trabajadoresInstance.getTrabajadorById(movimiento.idTrabajador);
       let buffer = [
         { tipo: "setCharacterCodeTable", payload: 19 },
         { tipo: "encode", payload: "CP858" },
@@ -2201,25 +2020,15 @@ export class Impresora {
   /* Eze 4.0 */
   async imprimirCajaAsync(caja: CajaSincro) {
     try {
-      const moment = require("moment-timezone");
-      const fechaInicio = moment(caja.inicioTime).tz("Europe/Madrid");
-      const fechaFinal = moment(caja.finalTime).tz("Europe/Madrid");
-      const arrayMovimientos =
-        await movimientosInstance.getMovimientosIntervalo(
-          caja.inicioTime,
-          caja.finalTime
-        );
+      const fechaInicio = momentTZ(caja.inicioTime).tz("Europe/Madrid");
+      const fechaFinal = momentTZ(caja.finalTime).tz("Europe/Madrid");
+      const arrayMovimientos = await movimientosInstance.getMovimientosIntervalo(caja.inicioTime, caja.finalTime);
       const parametros = await parametrosInstance.getParametros();
-      const trabajadorApertura = await trabajadoresInstance.getTrabajadorById(
-        caja.idDependientaApertura
-      );
-      const trabajadorCierre = await trabajadoresInstance.getTrabajadorById(
-        caja.idDependientaCierre
-      );
+      const trabajadorApertura = await trabajadoresInstance.getTrabajadorById(caja.idDependientaApertura);
+      const trabajadorCierre = await trabajadoresInstance.getTrabajadorById(caja.idDependientaCierre);
       let dependientas = "";
       for (const item of caja.fichajes) {
-        const nombre = (await trabajadoresInstance.getTrabajadorById(item))
-          .nombre;
+        const nombre = (await trabajadoresInstance.getTrabajadorById(item)).nombre;
         dependientas += `${nombre}\n`;
       }
       let paytef = "";
@@ -2235,24 +2044,23 @@ export class Impresora {
             break;
         }
       }
-      const arrayTickets: TicketsInterface[] =
-        await ticketsInstance.getTicketsIntervalo(
-          caja.inicioTime,
-          caja.finalTime
-        );
+      const arrayTickets: TicketsInterface[] = await ticketsInstance.getTicketsIntervalo(
+        caja.inicioTime,
+        caja.finalTime
+      );
       if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
         datafono3G += "Desglossament Vises 3G:\n";
         for (let i = 0; i < arrayTickets.length; i++) {
           const auxFecha = new Date(arrayTickets[i].timestamp);
           if (arrayTickets[i]?.datafono3G) {
             const signo = arrayTickets[i]?.anulado ? "" : "+";
-            datafono3G += ` Quant: ${signo}${arrayTickets[i].total.toFixed(
-              2
-            )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth() + 1)
+            datafono3G += ` Quant: ${signo}${arrayTickets[i].total.toFixed(2)} Data: ${auxFecha.getDate()}/${(
+              auxFecha.getMonth() + 1
+            )
               .toString()
-              .padStart(2, "0")}/${auxFecha.getFullYear()} ${this.dosDigitos(
-                auxFecha.getHours()
-              )}:${this.dosDigitos(auxFecha.getMinutes())}\n`;
+              .padStart(2, "0")}/${auxFecha.getFullYear()} ${this.dosDigitos(auxFecha.getHours())}:${this.dosDigitos(
+                auxFecha.getMinutes()
+              )}\n`;
           }
         }
       }
@@ -2273,33 +2081,21 @@ export class Impresora {
             break;
           case "SALIDA":
             if (arrayMovimientos[i].concepto == "DEUDA") {
-              textoMovimientos += ` Deute deixat a deure:\n  Quant: -${arrayMovimientos[
-                i
-              ].valor.toFixed(2)} Data: ${auxFecha.getDate()}/${(
-                auxFecha.getMonth() + 1
-              )
+              textoMovimientos += ` Deute deixat a deure:\n  Quant: -${arrayMovimientos[i].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth() + 1)
                 .toString()
-                .padStart(
-                  2,
-                  "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+                .padStart(2, "0")}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             } else if (arrayMovimientos[i].concepto == "DEUDA ALBARAN") {
-              textoMovimientos += ` Deute albara deixat a deure:\n  Quant: -${arrayMovimientos[
-                i
-              ].valor.toFixed(2)} Data: ${auxFecha.getDate()}/${(
-                auxFecha.getMonth() + 1
-              )
+              textoMovimientos += ` Deute albara deixat a deure:\n  Quant: -${arrayMovimientos[i].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth() + 1)
                 .toString()
-                .padStart(
-                  2,
-                  "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+                .padStart(2, "0")}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             } else {
-              textoMovimientos += ` Sortida:\n  Quant: -${arrayMovimientos[
-                i
-              ].valor.toFixed(2)} Data: ${auxFecha.getDate()}/${(
-                auxFecha.getMonth() + 1
-              )
+              textoMovimientos += ` Sortida:\n  Quant: -${arrayMovimientos[i].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth() + 1)
                 .toString()
                 .padStart(
                   2,
@@ -2310,34 +2106,22 @@ export class Impresora {
             break;
           case "ENTRADA_DINERO":
             if (arrayMovimientos[i].concepto == "DEUDA") {
-              textoMovimientos += ` Deute pagat:\n  Quant: +${arrayMovimientos[
-                i
-              ].valor.toFixed(2)} Data: ${auxFecha.getDate()}/${(
-                auxFecha.getMonth() + 1
-              )
+              textoMovimientos += ` Deute pagat:\n  Quant: +${arrayMovimientos[i].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth() + 1)
                 .toString()
-                .padStart(
-                  2,
-                  "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+                .padStart(2, "0")}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             } else if (arrayMovimientos[i].concepto == "DEUDA ALBARAN") {
-              textoMovimientos += ` Deute albara pagat:\n  Quant: +${arrayMovimientos[
-                i
-              ].valor.toFixed(2)} Data: ${auxFecha.getDate()}/${(
-                auxFecha.getMonth() + 1
-              )
+              textoMovimientos += ` Deute albara pagat:\n  Quant: +${arrayMovimientos[i].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth() + 1)
                 .toString()
-                .padStart(
-                  2,
-                  "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+                .padStart(2, "0")}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             }
             {
-              textoMovimientos += ` Entrada:\n  Quant: +${arrayMovimientos[
-                i
-              ].valor.toFixed(2)} Data: ${auxFecha.getDate()}/${(
-                auxFecha.getMonth() + 1
-              )
+              textoMovimientos += ` Entrada:\n  Quant: +${arrayMovimientos[i].valor.toFixed(
+                2
+              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth() + 1)
                 .toString()
                 .padStart(
                   2,
@@ -2348,49 +2132,32 @@ export class Impresora {
             break;
           case "DATAFONO_3G":
             if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
-              datafono3G += `  Quant: +${arrayMovimientos[i].valor.toFixed(
-                2
-              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth() + 1)
+              datafono3G += `  Quant: +${arrayMovimientos[i].valor.toFixed(2)} Data: ${auxFecha.getDate()}/${(
+                auxFecha.getMonth() + 1
+              )
                 .toString()
-                .padStart(
-                  2,
-                  "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+                .padStart(2, "0")}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             }
           case "DEV_DATAFONO_3G":
             if (parametros?.params?.DesgloseVisasCierreCaja == "Si") {
-              datafono3G += `  Quant: -${arrayMovimientos[i].valor.toFixed(
-                2
-              )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth() + 1)
+              datafono3G += `  Quant: -${arrayMovimientos[i].valor.toFixed(2)} Data: ${auxFecha.getDate()}/${(
+                auxFecha.getMonth() + 1
+              )
                 .toString()
-                .padStart(
-                  2,
-                  "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
+                .padStart(2, "0")}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n`;
             }
             break;
         }
       }
-      textoMovimientos += `\nTotal targeta: ${(
-        caja.cantidadPaytef + caja.totalDatafono3G
-      ).toFixed(
+      textoMovimientos += `\nTotal targeta: ${(caja.cantidadPaytef + caja.totalDatafono3G).toFixed(
         2
-      )}\nDeutes acumulades en la caixa: ${totalDeudaCaja}\nTotal deutes acumulades: ${caja.totalDeudas.toFixed(
-        2
-      )}`;
+      )}\nDeutes acumulades en la caixa: ${totalDeudaCaja}\nTotal deutes acumulades: ${caja.totalDeudas.toFixed(2)}`;
 
       const device = new escpos.Network("localhost");
       const printer = new escpos.Printer(device);
-      const simple = parametros?.params?.cierreSimple == "Si";
-      const diasSemana = [
-        "Diumenge",
-        "Dilluns",
-        "Dimarts",
-        "Dimecres",
-        "Dijous",
-        "Divendres",
-        "Dissabte",
-      ];
+
+      const diasSemana = ["Diumenge", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres", "Dissabte"];
+
       let buffer = [
         { tipo: "setCharacterCodeTable", payload: 19 },
         { tipo: "encode", payload: "CP858" },
@@ -2413,13 +2180,11 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: `Inici: ${diasSemana[fechaInicio.format("d")]
-            } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
+          payload: `Inici: ${diasSemana[fechaInicio.format("d")]} ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
         },
         {
           tipo: "text",
-          payload: `Final: ${diasSemana[fechaFinal.format("d")]
-            } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
+          payload: `Final: ${diasSemana[fechaFinal.format("d")]} ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
         },
         {
           tipo: "text",
@@ -2491,6 +2256,7 @@ export class Impresora {
           payload: "",
         },
         // info canvi
+
         ...(simple ? [] : [
           {
             tipo: "text",
@@ -2517,6 +2283,7 @@ export class Impresora {
             payload: ""
           }
         ]),
+
         // info 3G
         {
           tipo: "text",
@@ -2524,19 +2291,19 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload:
-            "  Import introduït:      " + caja.totalDatafono3G.toFixed(2),
+          payload: "  Import introduït:      " + caja.totalDatafono3G.toFixed(2),
         },
         {
           tipo: "text",
-          payload:
-            "  Ventes (Tickets):      " + caja.cantidadLocal3G.toFixed(2),
+          payload: "  Ventes (Tickets):      " + caja.cantidadLocal3G.toFixed(2),
         },
         {
           tipo: "text",
+
           payload: !simple ?
             "  Diferència:            " +
             (caja.totalDatafono3G - caja.cantidadLocal3G).toFixed(2) : ""
+
         },
         {
           tipo: "text",
@@ -2553,8 +2320,7 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload:
-            " Ventes (Tickets):       " + caja.totalLocalPaytef.toFixed(2),
+          payload: " Ventes (Tickets):       " + caja.totalLocalPaytef.toFixed(2),
         },
         {
           tipo: "text",
@@ -2924,8 +2690,7 @@ export class Impresora {
     // buscamos deudas con pagado=false des del intervalo que ha llegado a la funcion
     const deudas = await schDeudas.getIntervaloDeuda(tmpInicial, tmpFinal);
 
-    if (deudas.length == 0)
-      return { error: true, msg: "No se encontraron deudas en ese intervalo" };
+    if (deudas.length == 0) return { error: true, msg: "No se encontraron deudas en ese intervalo" };
     let string = "";
 
     // Imprimir las deudas por orden de fecha
@@ -2948,9 +2713,7 @@ export class Impresora {
       deuda.cesta.lista.forEach((producto) => {
         const nombreProducto = producto.nombre.substring(0, 32);
         const suplementos = producto.arraySuplementos || [];
-        const productoConSuplementos = ` ${suplementos
-          .map((suplemento) => `\n    ${suplemento.nombre}`)
-          .join(", ")}`;
+        const productoConSuplementos = ` ${suplementos.map((suplemento) => `\n    ${suplemento.nombre}`).join(", ")}`;
         const unidades = producto.unidades;
         string += `\n  -> ${producto.nombre}: ${unidades}u`;
         string += `${productoConSuplementos}\n`;
@@ -2975,20 +2738,12 @@ export class Impresora {
   }
   async imprimirPedido(encargo: EncargosInterface) {
     const parametros = await parametrosInstance.getParametros();
-    const trabajador: TrabajadoresInterface =
-      await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
+    const trabajador: TrabajadoresInterface = await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador);
 
     const cabecera = parametros?.header == undefined ? "" : parametros.header;
-    const moment = require("moment-timezone");
-    const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
-    let detalles = await this.detallesTicket(
-      encargo.cesta.lista,
-      encargo.idCliente
-    );
-    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
-      encargo.cesta.lista,
-      encargo.idCliente
-    );
+    const fecha = momentTZ(encargo.timestamp).tz("Europe/Madrid");
+    let detalles = await this.detallesTicket(encargo.cesta.lista, encargo.idCliente);
+    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(encargo.cesta.lista, encargo.idCliente);
     let detalleImporte = "";
     let importe = "Total:" + encargo.total.toFixed(2) + " €";
 
@@ -3004,9 +2759,7 @@ export class Impresora {
     let observacions = "";
     for (const producto of encargo.productos) {
       if (producto.comentario != "") {
-        const nombreLimpio = producto.nombre.startsWith("+")
-          ? producto.nombre.substring(1)
-          : producto.nombre;
+        const nombreLimpio = producto.nombre.startsWith("+") ? producto.nombre.substring(1) : producto.nombre;
         observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;
       }
     }
@@ -3099,56 +2852,37 @@ export class Impresora {
           totalSinDescuentos = totalSinDescuentos.plus(precioOriginal);
           descuentoTotal = descuentoTotal.plus(precioOriginal);
         } else {
-          const precioSinDescuento = subtotal.div(
-            new Decimal(1).minus(descuento.div(100))
-          );
+          const precioSinDescuento = subtotal.div(new Decimal(1).minus(descuento.div(100)));
 
           totalSinDescuentos = totalSinDescuentos.plus(precioSinDescuento);
-          descuentoTotal = descuentoTotal.plus(
-            precioSinDescuento.minus(subtotal)
-          );
+          descuentoTotal = descuentoTotal.plus(precioSinDescuento.minus(subtotal));
         }
       } else {
         const subtotal = new Decimal(producto.subtotal);
-        totalSinDescuentos = totalSinDescuentos.plus(subtotal.mul(unidades));
+        totalSinDescuentos = totalSinDescuentos.plus(subtotal);
       }
     });
 
-    return `Total sense descompte: ${totalSinDescuentos.toFixed(
-      2
-    )}€\nDescompte total: ${descuentoTotal.toFixed(2)}€\n`;
+    return `Total sense descompte: ${totalSinDescuentos.toFixed(2)}€\nDescompte total: ${descuentoTotal.toFixed(2)}€\n`;
   }
 
   async imprimirEncargo(encargo: EncargosInterface) {
     const parametros = await parametrosInstance.getParametros();
     const duplicarRebuts = parametros?.params?.DuplicarRebuts == "Si";
-    const trabajador: TrabajadoresInterface | any =
-      (await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador)) || {
-        nombreCorto: "No en té",
-      };
-    const cliente: ClientesInterface = await clienteInstance.isClienteDescuento(
-      encargo.idCliente
-    );
-    const descuento: any =
-      cliente && !cliente?.albaran && !cliente?.vip
-        ? Number(cliente.descuento)
-        : 0;
+    const trabajador: TrabajadoresInterface | any = (await trabajadoresInstance.getTrabajadorById(
+      encargo.idTrabajador
+    )) || {
+      nombreCorto: "No en té",
+    };
+    const cliente: ClientesInterface = await clienteInstance.isClienteDescuento(encargo.idCliente);
+    const descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
     const clienteEnc = cliente && cliente?.nombre ? cliente.nombre : "No en té";
     const telefono: ClientesInterface["telefono"] =
-      cliente?.telefono && cliente?.telefono.length > 1
-        ? cliente.telefono
-        : "No en té";
+      cliente?.telefono && cliente?.telefono.length > 1 ? cliente.telefono : "No en té";
     const cabecera = parametros?.header == undefined ? "" : parametros.header;
-    const moment = require("moment-timezone");
-    const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
-    let detalles = await this.detallesTicket(
-      encargo.cesta.lista,
-      encargo.idCliente
-    );
-    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
-      encargo.cesta.lista,
-      encargo.idCliente
-    );
+    const fecha = momentTZ(encargo.timestamp).tz("Europe/Madrid");
+    let detalles = await this.detallesTicket(encargo.cesta.lista, encargo.idCliente);
+    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(encargo.cesta.lista, encargo.idCliente);
     let detalleImporte = "";
     let importe = "";
     if (encargo.dejaCuenta == 0) {
@@ -3158,16 +2892,13 @@ export class Impresora {
         encargo.cesta.dataVersion &&
         encargo.cesta.dataVersion < versionDescuentosClient
       ) {
-        detalleImporte = `Total sense descompte: ${(
-          encargo.total /
-          (1 - descuento / 100)
-        ).toFixed(2)}€\nDescompte total: ${(
-          ((encargo.total / (1 - descuento / 100)) * descuento) /
-          100
-        ).toFixed(2)}€ \n`;
+        detalleImporte = `Total sense descompte: ${(encargo.total / (1 - descuento / 100)).toFixed(
+          2
+        )}€\nDescompte total: ${(((encargo.total / (1 - descuento / 100)) * descuento) / 100).toFixed(2)}€ \n`;
       } else if (
         encargo.cesta.dataVersion &&
-        encargo.cesta.dataVersion >= versionDescuentosClient
+        encargo.cesta.dataVersion >= versionDescuentosClient &&
+        encargo?.cesta?.idCliente
       ) {
         // obtener importe con los descuentos aplicados
         detalleImporte = this.calcularImporteDescuentos(encargo.cesta.lista);
@@ -3180,17 +2911,10 @@ export class Impresora {
         encargo.cesta.dataVersion &&
         encargo.cesta.dataVersion < versionDescuentosClient
       ) {
-        detalleImporte = `Total sense descompte: ${(
-          encargo.total /
-          (1 - descuento / 100)
-        ).toFixed(2)}€\nDescompte total: ${(
-          ((encargo.total / (1 - descuento / 100)) * descuento) /
-          100
-        ).toFixed(2)}€ \n`;
-      } else if (
-        encargo.cesta.dataVersion &&
-        encargo.cesta.dataVersion >= versionDescuentosClient
-      ) {
+        detalleImporte = `Total sense descompte: ${(encargo.total / (1 - descuento / 100)).toFixed(
+          2
+        )}€\nDescompte total: ${(((encargo.total / (1 - descuento / 100)) * descuento) / 100).toFixed(2)}€ \n`;
+      } else if (encargo.cesta.dataVersion && encargo.cesta.dataVersion >= versionDescuentosClient) {
         // obtener importe con los descuentos aplicados
         detalleImporte = this.calcularImporteDescuentos(encargo.cesta.lista);
       }
@@ -3214,9 +2938,7 @@ export class Impresora {
     let observacions = "";
     for (const producto of encargo.productos) {
       if (producto.comentario != "") {
-        const nombreLimpio = producto.nombre.startsWith("+")
-          ? producto.nombre.substring(1)
-          : producto.nombre;
+        const nombreLimpio = producto.nombre.startsWith("+") ? producto.nombre.substring(1) : producto.nombre;
         observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;
       }
     }
@@ -3252,8 +2974,7 @@ export class Impresora {
         default:
           break;
       }
-      fechaEncargo =
-        "Cada " + diaSemana + ",\n proper " + diaSemana + " " + encargo.fecha;
+      fechaEncargo = "Cada " + diaSemana + ",\n proper " + diaSemana + " " + encargo.fecha;
     } else {
       fechaEncargo = encargo.fecha + " " + encargo.hora;
     }
@@ -3283,10 +3004,7 @@ export class Impresora {
         { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
         {
           tipo: "text",
-          payload:
-            "\x1B\x2D\x01\x1D\x21\x10Client: " +
-            clienteEnc +
-            "\x1B\x2D\x00\x1D\x21\x00",
+          payload: "\x1B\x2D\x01\x1D\x21\x10Client: " + clienteEnc + "\x1B\x2D\x00\x1D\x21\x00",
         },
         { tipo: "text", payload: "Telèfon Client: " + telefono },
         { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
@@ -3346,10 +3064,7 @@ export class Impresora {
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           {
             tipo: "text",
-            payload:
-              "\x1B\x2D\x01\x1D\x21\x10Client: " +
-              clienteEnc +
-              "\x1B\x2D\x00\x1D\x21\x00",
+            payload: "\x1B\x2D\x01\x1D\x21\x10Client: " + clienteEnc + "\x1B\x2D\x00\x1D\x21\x00",
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
@@ -3405,10 +3120,7 @@ export class Impresora {
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           {
             tipo: "text",
-            payload:
-              "\x1B\x2D\x01\x1D\x21\x10Client: " +
-              clienteEnc +
-              "\x1B\x2D\x00\x1D\x21\x00",
+            payload: "\x1B\x2D\x01\x1D\x21\x10Client: " + clienteEnc + "\x1B\x2D\x00\x1D\x21\x00",
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
@@ -3460,33 +3172,20 @@ export class Impresora {
   }
   async imprimirEncargoSelected(encargo: EncargosInterface) {
     const parametros = await parametrosInstance.getParametros();
-    const trabajador: TrabajadoresInterface | any =
-      (await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador)) || {
-        nombreCorto: "No en té",
-      };
-    const cliente: ClientesInterface = await clienteInstance.isClienteDescuento(
-      encargo.idCliente
-    );
-    const descuento: any =
-      cliente && !cliente?.albaran && !cliente?.vip
-        ? Number(cliente.descuento)
-        : 0;
+    const trabajador: TrabajadoresInterface | any = (await trabajadoresInstance.getTrabajadorById(
+      encargo.idTrabajador
+    )) || {
+      nombreCorto: "No en té",
+    };
+    const cliente: ClientesInterface = await clienteInstance.isClienteDescuento(encargo.idCliente);
+    const descuento: any = cliente && !cliente?.albaran && !cliente?.vip ? Number(cliente.descuento) : 0;
     const clienteEnc = cliente && cliente?.nombre ? cliente.nombre : "No en té";
     const telefono: ClientesInterface["telefono"] =
-      cliente?.telefono && cliente?.telefono.length > 1
-        ? cliente.telefono
-        : "No en té";
+      cliente?.telefono && cliente?.telefono.length > 1 ? cliente.telefono : "No en té";
     const cabecera = parametros?.header == undefined ? "" : parametros.header;
-    const moment = require("moment-timezone");
-    const fecha = moment(encargo.timestamp).tz("Europe/Madrid");
-    let detalles = await this.detallesTicket(
-      encargo.cesta.lista,
-      encargo.idCliente
-    );
-    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(
-      encargo.cesta.lista,
-      encargo.idCliente
-    );
+    const fecha = momentTZ(encargo.timestamp).tz("Europe/Madrid");
+    let detalles = await this.detallesTicket(encargo.cesta.lista, encargo.idCliente);
+    let tipoFormatoDetalle = await this.comprobarFormatoDetalle(encargo.cesta.lista, encargo.idCliente);
     let detalleImporte = "";
     let importe = "";
     if (encargo.dejaCuenta == 0) {
@@ -3496,17 +3195,10 @@ export class Impresora {
         encargo.cesta.dataVersion &&
         encargo.cesta.dataVersion < versionDescuentosClient
       ) {
-        detalleImporte = `Total sense descompte: ${(
-          encargo.total /
-          (1 - descuento / 100)
-        ).toFixed(2)}€\nDescompte total: ${(
-          ((encargo.total / (1 - descuento / 100)) * descuento) /
-          100
-        ).toFixed(2)}€ \n`;
-      } else if (
-        encargo.cesta.dataVersion &&
-        encargo.cesta.dataVersion >= versionDescuentosClient
-      ) {
+        detalleImporte = `Total sense descompte: ${(encargo.total / (1 - descuento / 100)).toFixed(
+          2
+        )}€\nDescompte total: ${(((encargo.total / (1 - descuento / 100)) * descuento) / 100).toFixed(2)}€ \n`;
+      } else if (encargo.cesta.dataVersion && encargo.cesta.dataVersion >= versionDescuentosClient) {
         // obtener importe con los descuentos aplicados
         detalleImporte = this.calcularImporteDescuentos(encargo.cesta.lista);
       }
@@ -3518,17 +3210,10 @@ export class Impresora {
         encargo.cesta.dataVersion &&
         encargo.cesta.dataVersion < versionDescuentosClient
       ) {
-        detalleImporte = `Total sense descompte: ${(
-          encargo.total /
-          (1 - descuento / 100)
-        ).toFixed(2)}€\nDescompte total: ${(
-          ((encargo.total / (1 - descuento / 100)) * descuento) /
-          100
-        ).toFixed(2)}€ \n`;
-      } else if (
-        encargo.cesta.dataVersion &&
-        encargo.cesta.dataVersion >= versionDescuentosClient
-      ) {
+        detalleImporte = `Total sense descompte: ${(encargo.total / (1 - descuento / 100)).toFixed(
+          2
+        )}€\nDescompte total: ${(((encargo.total / (1 - descuento / 100)) * descuento) / 100).toFixed(2)}€ \n`;
+      } else if (encargo.cesta.dataVersion && encargo.cesta.dataVersion >= versionDescuentosClient) {
         // obtener importe con los descuentos aplicados
         detalleImporte = this.calcularImporteDescuentos(encargo.cesta.lista);
       }
@@ -3552,9 +3237,7 @@ export class Impresora {
     let observacions = "";
     for (const producto of encargo.productos) {
       if (producto.comentario && producto.comentario !== "0") {
-        const nombreLimpio = producto.nombre.startsWith("+")
-          ? producto.nombre.substring(1)
-          : producto.nombre;
+        const nombreLimpio = producto.nombre.startsWith("+") ? producto.nombre.substring(1) : producto.nombre;
         observacions += `- ${nombreLimpio}: ${producto.comentario}\n`;
       }
     }
@@ -3596,8 +3279,7 @@ export class Impresora {
         default:
           break;
       }
-      fechaEncargo =
-        "Cada " + diaSemana + ",\n proper " + diaSemana + " " + encargo.fecha;
+      fechaEncargo = "Cada " + diaSemana + ",\n proper " + diaSemana + " " + encargo.fecha;
     } else {
       fechaEncargo = encargo.fecha + " " + encargo.hora;
     }
@@ -3625,10 +3307,7 @@ export class Impresora {
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           {
             tipo: "text",
-            payload:
-              "\x1B\x2D\x01\x1D\x21\x10Client: " +
-              clienteEnc +
-              "\x1B\x2D\x00\x1D\x21\x00",
+            payload: "\x1B\x2D\x01\x1D\x21\x10Client: " + clienteEnc + "\x1B\x2D\x00\x1D\x21\x00",
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
@@ -3674,18 +3353,12 @@ export class Impresora {
   }
   async comprobarFormatoDetalle(lista: ItemLista[], idCliente: string) {
     const cliente = await clienteInstance.isClienteDescuento(idCliente);
-    const preuUnitari =
-      (await parametrosInstance.getParametros())["params"]["PreuUnitari"] ==
-      "Si";
+    const preuUnitari = (await parametrosInstance.getParametros())["params"]["PreuUnitari"] == "Si";
     // comprueba si hay param dto y param iva
     const thereIsDto = lista.find((item) => "dto" in item) !== undefined;
-    const thereIsDtoTienda =
-      lista.find((item) => "descuentoTienda" in item) !== undefined;
+    const thereIsDtoTienda = lista.find((item) => "descuentoTienda" in item) !== undefined;
     const thereIsIva = lista.find((item) => "iva" in item) !== undefined;
-    if (
-      cliente &&
-      ((cliente.albaran && cliente.noPagaEnTienda) || cliente?.vip)
-    ) {
+    if (cliente && ((cliente.albaran && cliente.noPagaEnTienda) || cliente?.vip)) {
       // formato albaranNPT
       return 4;
     } else if (preuUnitari && (thereIsDto || thereIsDtoTienda)) {
@@ -3703,6 +3376,91 @@ export class Impresora {
     }
     console.log("No se ha cumplido ninguna condicion");
     return 3;
+  }
+  async imprimirComandero(productos: ItemLista[], table: number, worker: string, customer: number, topic: string) {
+    try {
+
+      const time = momentTZ(new Date()).tz("Europe/Madrid");
+      let impresion = [
+        { tipo: "size", payload: [1, 1] },
+        { tipo: "align", payload: "CT" },
+        { tipo: "style", payload: "b" },
+        { tipo: "text", payload: "TIQUET DE COCINA" },
+        { tipo: "control", payload: "LF" },
+
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "style", payload: "a" },
+        { tipo: "text", payload: `Data de solicitud:` },
+        { tipo: "text", payload: time.format("DD-MM-YYYY HH:mm") },
+        { tipo: "control", payload: "LF" },
+        { tipo: "text", payload: "_".repeat(42) + "\n" },
+        { tipo: "style", payload: "b" },
+        { tipo: "size", payload: [2, 1] },
+        { tipo: "text", payload: `TAULA ${table}` },
+        { tipo: "style", payload: "a" },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "text", payload: "_".repeat(42) + "\n" },
+
+        { tipo: "align", payload: "LT" },
+        ...productos.flatMap((item) => {
+          const bloques = [];
+
+          bloques.push({ tipo: "size", payload: [1, 0] });
+          bloques.push({ tipo: "style", payload: "b" });
+
+          bloques.push({
+            tipo: "text",
+            payload: `x${item.unidades - (item.printed || 0)} ${item.nombre}`,
+          });
+
+          if (item.arraySuplementos) {
+            for (const suplemento of item.arraySuplementos) {
+              bloques.push({ tipo: "style", payload: "a" });
+              bloques.push({ tipo: "text", payload: `> ${suplemento.nombre}` });
+              bloques.push({ tipo: "style", payload: "b" });
+            }
+          }
+
+          if (item.articulosMenu) {
+            for (const articulo of item.articulosMenu) {
+              bloques.push({ tipo: "style", payload: "a" });
+              bloques.push({ tipo: "text", payload: `> ${articulo.nombre}` });
+              bloques.push({ tipo: "style", payload: "b" });
+
+              if (articulo.arraySuplementos) {
+                for (const suplemento of articulo.arraySuplementos) {
+                  bloques.push({ tipo: "style", payload: "a" });
+                  bloques.push({ tipo: "text", payload: `+ + ${suplemento.nombre}` });
+                  bloques.push({ tipo: "style", payload: "b" });
+                }
+              }
+            }
+          }
+          bloques.push({ tipo: "style", payload: "a" });
+          bloques.push({ tipo: "size", payload: [0, 0] });
+
+          return bloques;
+        }),
+
+        { tipo: "control", payload: "LF" },
+
+        { tipo: "text", payload: "_".repeat(42) + "\n" },
+        { tipo: "align", payload: "LT" },
+        { tipo: "text", payload: `Treballador: ${worker}` },
+        { tipo: "text", payload: `Comensals: ${customer}` },
+        { tipo: "size", payload: [0, 0] },
+        { tipo: "align", payload: "CT" },
+        { tipo: "control", payload: "LF" },
+
+        { tipo: "cut" },
+      ];
+      this.enviarMQTT(impresion, {}, topic);
+      return true;
+    } catch (err) {
+      console.error("Error al imprimir comandero:", err);
+      logger.Error(160, err);
+      throw new Error("Error al imprimir comandero");
+    }
   }
 }
 export const impresoraInstance = new Impresora();

@@ -42,17 +42,20 @@ import {
 import {
   PromocionesEnServer,
   PromocionesInterface,
+  PromocionesEnServerConGrupos,
 } from "./promociones.interface";
 import { articulosInstance } from "src/articulos/articulos.clase";
 const redondearPrecio = (precio: number) =>
   Math.round((precio + Number.EPSILON * 100000) * 100) / 100;
 import * as schCestas from "../cestas/cestas.mongodb";
+import { EncargosInterface } from "src/encargos/encargos.interface";
 import { getDataVersion } from "src/version/version.clase";
 
 export type ArticuloInfoPromoYNormal = ArticuloPromoEnCesta & {
   precioPorUnidad: number;
   puntosPorUnidad: number;
   impresora: string;
+  printed?: number;
   descuentoTienda?: number;
   tipoIva?: number;
   suplementosPorArticulo?: {
@@ -64,11 +67,12 @@ export class NuevaPromocion {
   private promos: PromocionesInterface[] = [];
   private promosCombo: PromocionesEnServer[] = [];
   private promosIndividuales: PromocionesEnServer[] = [];
+  private promosPorGrupo: PromocionesEnServerConGrupos[] = [];
   constructor() {
     this.promos = [];
     (async () => {
       try {
-        this.recargarPromosCache();
+        this.recargarPromosCachev2();
         // el dia del cambio de versión puede haber cestas que tengan el formato antiguo
         // así que se convierten al nuevo
         let allCestas = await schCestas.getAllCestas();
@@ -116,6 +120,12 @@ export class NuevaPromocion {
               precioPromoPorUnidad:
                 itemOld.promocion.precioRealArticuloSecundario,
               impresora: itemOld.impresora,
+              suplementosPorArticulo: [
+                {
+                  unidades: 1,
+                  suplementos: itemOld.arraySuplementos,
+                },
+              ],
             },
           ]);
         }
@@ -147,7 +157,25 @@ export class NuevaPromocion {
 
       resPromos = resPromos?.data as PromocionesInterface[];
       if (resPromos) {
-        return await schPromociones.insertarPromociones(resPromos);
+        const res = await schPromociones.insertarPromociones(resPromos);
+        await nuevaInstancePromociones.recargarPromosCache();
+        return res;
+      }
+      throw Error("No hay promociones para descargar");
+    } catch (e) {
+      console.log(e);
+      return false;
+    }
+  }
+
+  async descargarPromocionesv2() {
+    try {
+      let resPromos: any = await axios.get("promociones/getPromocionesv2");
+      resPromos = resPromos?.data as PromocionesInterface[];
+      if (resPromos) {
+        const res = await schPromociones.insertarPromocionesv2(resPromos);
+        await nuevaInstancePromociones.recargarPromosCachev2();
+        return res;
       }
       throw Error("No hay promociones para descargar");
     } catch (e) {
@@ -209,8 +237,87 @@ export class NuevaPromocion {
         promo.sortInfo.unidades_por_grupo.push(grupo.cantidad);
       }
       promo.sortInfo.unidades_por_grupo.sort((a, b) => -(a - b));
+
       if (promo.grupos.length) this.promos.push(promo);
     }
+    this.promos.sort((a, b) => {
+      let c = -(a.sortInfo.unidades_totales - b.sortInfo.unidades_totales); // unidades totales desc
+      if (c != 0) return c;
+      c = -(
+        a.sortInfo.unidades_por_grupo.length -
+        b.sortInfo.unidades_por_grupo.length
+      ); // número de grupos asc
+      if (c != 0) return c;
+      for (let i = 0; i < a.sortInfo.unidades_por_grupo.length; i++) {
+        c = -(
+          a.sortInfo.unidades_por_grupo[i] - b.sortInfo.unidades_por_grupo[i]
+        ); // unidades grupo[0],[...] asc
+        if (c != 0) return c;
+      }
+      return a._id < b._id ? -1 : 1; // por id
+    });
+  }
+
+  public async recargarPromosCachev2() {
+    try {
+      const promosCombo = await this.getPromosCombo();
+      const promoIndividuales = await this.getPromosIndividuales();
+      // si hay promos combo o individuales, ir a recargarPromosCache
+      if (promosCombo.length > 0 || promoIndividuales.length > 0) {
+        await this.recargarPromosCache();
+        return;
+      }
+    } catch (error) {
+      logger.Error(1291, error);
+    }
+    this.promosPorGrupo = await schPromociones.getPromocionesv2();
+    function nueva_promo(
+      promoServer: PromocionesEnServerConGrupos
+    ): PromocionesInterface {
+      return {
+        _id: promoServer._id,
+        nombre: promoServer?.nombre,
+        fechaFinal: promoServer.fechaFinal,
+        fechaInicio: promoServer.fechaInicio,
+        precioFinal: promoServer.precioFinal,
+        grupos: [],
+        sortInfo: { unidades_totales: 0, unidades_por_grupo: [] },
+      };
+    }
+    function insertar_grupo(
+      promo: PromocionesInterface,
+      ar_art: number[],
+      cantidad: number
+    ) {
+      if (Array.isArray(ar_art) && ar_art.length > 0 && ar_art[0] >= 0) {
+        promo.grupos.push({
+          idsArticulos: new Set(ar_art),
+          cantidad: cantidad,
+        });
+        return cantidad;
+      } else return 0;
+    }
+    for (let promoEnServer of this.promosPorGrupo) {
+      let promo = nueva_promo(promoEnServer);
+      const productos = promoEnServer.productos;
+      productos.forEach((element) => {
+        insertar_grupo(promo, element.producto, element.cantidad);
+      });
+
+      if (promo.grupos.length == 1) {
+        // Si es una promo individual, el precioFinal es por unidad no es el total de la promo
+        promo.precioFinal = redondearPrecio(
+          promo.precioFinal * promo.grupos[0].cantidad
+        );
+      }
+      for (let grupo of promo.grupos) {
+        promo.sortInfo.unidades_totales += grupo.cantidad;
+        promo.sortInfo.unidades_por_grupo.push(grupo.cantidad);
+      }
+      promo.sortInfo.unidades_por_grupo.sort((a, b) => -(a - b));
+      if (promo.grupos.length) this.promos.push(promo);
+    }
+
     this.promos.sort((a, b) => {
       let c = -(a.sortInfo.unidades_totales - b.sortInfo.unidades_totales); // unidades totales desc
       if (c != 0) return c;
@@ -235,6 +342,7 @@ export class NuevaPromocion {
     if (item.varis) return false;
     if (item.regalo) return false;
     if (item.pagado) return false;
+    if (item.articulosMenu) return false;
     return true;
   }
 
@@ -318,6 +426,7 @@ export class NuevaPromocion {
                 item.puntos == null ? null : item.puntos / item.unidades,
               precioPromoPorUnidad: null,
               impresora: item.impresora,
+              printed: item.printed || 0,
               ...(item.descuentoTienda != null && {
                 descuentoTienda: item.descuentoTienda,
               }),
@@ -576,6 +685,7 @@ export class NuevaPromocion {
           PromosCandidatas[idx_p],
           grupos
         );
+        // si la promo es individual, el precioFinal
         if (
           UltimaPromoAplicada &&
           PromosIguales(PromoAplicada, UltimaPromoAplicada)
@@ -644,6 +754,7 @@ export class NuevaPromocion {
             regalo: false,
             pagado: false,
             varis: false,
+            printed: (articulo as any).printed || 0,
             ...(articulo.descuentoTienda !== undefined && {
               descuentoTienda: articulo.descuentoTienda,
             }),
@@ -672,6 +783,7 @@ export class NuevaPromocion {
             promocion: null, // No es una promoción
             puntos: articulo.puntosPorUnidad * bloque.unidades,
             impresora: articulo.impresora,
+            printed: (articulo as any).printed || 0,
             ...(articulo.descuentoTienda !== undefined && {
               descuentoTienda: articulo.descuentoTienda,
             }),
@@ -711,6 +823,7 @@ export class NuevaPromocion {
               promocion: null, // No es una promoción
               puntos: articulo.puntosPorUnidad * bloque.unidades,
               impresora: articulo.impresora,
+              printed: (articulo as any).printed || 0,
               ...(articulo.descuentoTienda !== undefined && {
                 descuentoTienda: articulo.descuentoTienda,
               }),
@@ -738,6 +851,7 @@ export class NuevaPromocion {
             ),
             puntos: articulo.puntosPorUnidad * articulo.unidades,
             impresora: articulo.impresora,
+            printed: (articulo as any).printed || 0,
             ...(articulo.descuentoTienda !== undefined && {
               descuentoTienda: articulo.descuentoTienda,
             }),
@@ -825,7 +939,7 @@ export class NuevaPromocion {
         );
         if (grupo.idsArticulos.size > 1) {
           // 0312 - Oferta Bocadillos BG (eliminar numeros iniciales y guion)
-          let m = /(?:^\d+ - )?(.*)/.exec(art.familia);
+          let m = /(?:^\d+ - )?(.*)/.exec(art?.familia);
           grupo.familia_o_nombre = m == null ? art.familia : m[1];
         } else grupo.familia_o_nombre = art.nombre;
       }
@@ -838,9 +952,10 @@ export class NuevaPromocion {
         }
       }
     }
+    const nombrePromo = promo.nombre || nombres.join(" + ");
     return {
       idArticulo: -1,
-      nombre: "Promo. " + nombres.join(" + "),
+      nombre: "Promo. " + nombrePromo,
       unidades: 1,
       promocion: {
         idPromocion: promo._id,
@@ -967,6 +1082,23 @@ export class NuevaPromocion {
         if (m_inicio <= m_actual && m_actual <= m_final) return true;
       }
       // comprovacion si la fecha de hoy esta en el intervalo utilizado.
+      if (diaInicio !== 7 && diaFinal !== 7) {
+        let dentroIntervalo = false;
+        if (diaInicio <= diaFinal) {
+          // Ej: lunes a viernes
+          dentroIntervalo = diaActual >= diaInicio && diaActual <= diaFinal;
+        } else {
+          // Ej: viernes a lunes (intervalo que cruza el domingo)
+          dentroIntervalo = diaActual >= diaInicio || diaActual <= diaFinal;
+        }
+        if (dentroIntervalo) {
+          var m_inicio = dateInicio.getHours() * 60 + dateInicio.getMinutes();
+          var m_final = dateFinal.getHours() * 60 + dateFinal.getMinutes();
+          var m_actual = fechaActual.getHours() * 60 + fechaActual.getMinutes();
+
+          if (m_inicio <= m_actual && m_actual <= m_final) return true;
+        }
+      }
     } else if (
       fechaActual.getTime() >= dateInicio.getTime() &&
       fechaActual.getTime() <= dateFinal.getTime()
@@ -1067,6 +1199,39 @@ export class NuevaPromocion {
     }
     ticket.cesta.lista = nuevaLista;
     return ticket.cesta.lista;
+  }
+
+  public deshacerPromocionesEncargo(productos: EncargosInterface["productos"]) {
+    const hayGrupos = productos.some(
+      (p) => Array.isArray(p.promocion?.grupos) && p.promocion.grupos.length > 0
+    );
+    if (
+      productos &&
+      !hayGrupos // si no hay grupos de promociones, no hay nada que deshacer
+    )
+      return productos;
+
+    const nuevaListaProductos = [];
+    for (let item of productos) {
+      if (item.promocion) {
+        const grupos = item.promocion.grupos.flat();
+        for (let i = 0; i < grupos.length; i++) {
+          const artGrupo = grupos[i];
+          nuevaListaProductos.push({
+            id: artGrupo.idArticulo,
+            nombre: artGrupo.nombre,
+            unidades: item.unidades * artGrupo.unidades,
+            comentario: item.comentario,
+            total: redondearPrecio(
+              artGrupo.precioPromoPorUnidad * item.unidades * artGrupo.unidades
+            ),
+          });
+        }
+      } else {
+        nuevaListaProductos.push(item);
+      }
+    }
+    return nuevaListaProductos;
   }
 
   public redondearDecimales(numero, decimales) {
