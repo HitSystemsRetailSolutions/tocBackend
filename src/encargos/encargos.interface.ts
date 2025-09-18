@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
-import { CestasInterface } from "../cestas/cestas.interface";
+import { ArticuloPromoEnCesta, ArticulosMenu, CestasInterface, GrupoPromoEnCesta } from "../cestas/cestas.interface";
 import { VersionInterface } from "src/version/version.interface";
+import { PromocionesInterface } from "src/promociones/promociones.interface";
 
 type Dias = {
   dia: string;
@@ -11,10 +12,20 @@ type Dias = {
 type Productos = {
   id: number;
   idGraella: string;
-  idGraellaPromoArtSecundario: null|string;
+  idGraellaPromoArtSecundario: null | string;
   nombre: string;
   comentario: string;
+  unidades: number;
+  promocion?: {
+    idPromocion: string;
+    grupos: GrupoPromoEnCesta[];
+    unidadesOferta: number;
+    precioFinalPorPromo: number;
+  };
   descuentoTienda?: number;
+  articulosMenu: ArticulosMenu[] | null;
+  total: number;
+  idMenu?: string;
 };
 
 export enum OpcionRecogida {
@@ -33,7 +44,7 @@ export enum Periodo {
   PERIODO = 1,
 }
 
-export interface EncargosInterface extends VersionInterface{
+export interface EncargosInterface extends VersionInterface {
   _id?: ObjectId | string | undefined;
   nombreCliente: string;
   amPm: string | null;
@@ -49,7 +60,7 @@ export interface EncargosInterface extends VersionInterface{
   idTrabajador: number;
   total: number;
   codigoBarras: number;
-  timestamp:number;
+  timestamp: number;
   nombreDependienta?: string;
   pedido?: boolean;
   enviado?: boolean;

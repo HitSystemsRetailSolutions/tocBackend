@@ -15,6 +15,15 @@ export class PromocionesController {
       return false;
     }
   }
+  @Get("descargarPromocionesv2")
+  async descargarPromocionesv2() {
+    try {
+      return await nuevaInstancePromociones.descargarPromocionesv2();
+    } catch (err) {
+      logger.Error(1271, err);
+      return false;
+    }
+  }
 
   @Get("test")
   async test() {
