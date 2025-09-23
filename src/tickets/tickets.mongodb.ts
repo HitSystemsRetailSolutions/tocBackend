@@ -210,11 +210,15 @@ export async function getTotalLocal3G() {
 
 /* Eze v23 */
 export async function nuevoTicket(ticket: TicketsInterface): Promise<boolean> {
-  // conexion con mongo
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
-  // insertar ticket
-  return (await tickets.insertOne(ticket)).acknowledged;
+
+  // Insertar ticket y esperar que se escriba en el journal
+
+  const result = await tickets.insertOne(ticket, {
+    writeConcern: { j: true },
+  });
+  return result.acknowledged;
 }
 
 /* Uri */
