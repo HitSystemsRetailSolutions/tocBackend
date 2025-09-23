@@ -2584,7 +2584,8 @@ export class Impresora {
           payload: "Caixa:",
         },
       ]);
-      if (parametros?.params?.MostraTotalAcumulat == "Si")
+      // mostrar total acumulado hace lo contrario a lo que indica su nombre
+      if (parametros?.params?.MostraTotalAcumulat !== "Si")
         buffer = buffer.concat([
           {
             tipo: "text",
@@ -2600,7 +2601,7 @@ export class Impresora {
         ]);
 
       if (!simple)
-        if (parametros?.params?.MostraTotalAcumulat == "Si")
+        if (parametros?.params?.MostraTotalAcumulat !== "Si")
           buffer = buffer.concat([
             {
               tipo: "text",
