@@ -29,7 +29,7 @@ import { redondearPrecio } from "src/funciones/funciones";
 import { getDataVersion } from "src/version/version.clase";
 require("dotenv").config();
 export class CajaClase {
-  
+
   postFichajesCaja = async (
     arrayTrabajadores: CajaAbiertaInterface["fichajes"]
   ) => await schCajas.postfichajesCaja(arrayTrabajadores);
@@ -126,7 +126,7 @@ export class CajaClase {
         };
       });
       //console.log(detalleCierre)
-      
+
       const cajaAbiertaActual = await this.getInfoCajaAbierta();
       if (!cajaAbiertaActual)
         throw new Error("Error al obtener información de caja abierta");
@@ -317,14 +317,20 @@ export class CajaClase {
       if (!res) return false;
       if ((await trabajadoresInstance.getTrabajadoresFichados()).length == 0)
         return false;
-      const fechaApertura = new Date(res.inicioTime).toDateString();
-      const fechaHoy = new Date().toDateString();
-      let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0][
-        "_id"
-      ];
+
+      const fechaApertura = new Date(res.inicioTime);
+      const fechaActual = new Date();
+      let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0]["_id"];
 
       if (trabId == undefined) trabId = 0;
-      if (fechaHoy != fechaApertura) {
+
+      // Crear fecha límite para el cierre (5:00 AM del día siguiente)
+      const fechaLimiteCierre = new Date(fechaApertura);
+      fechaLimiteCierre.setDate(fechaLimiteCierre.getDate() + 1); // Día siguiente
+      fechaLimiteCierre.setHours(5, 0, 0, 0); // 5:00 AM
+
+      // Si la fecha actual es mayor o igual a las 5:00 AM del día siguiente
+      if (fechaActual >= fechaLimiteCierre) {
         // parametrosController.totalPaytef llama a paytefInstance.getRecuentoTotal que llama al server de paytef
         // solo hay que realizar la petición cuando se cierra caja por fecha (hoy!=apertura)
         const paytef = await parametrosController.totalPaytef();
@@ -523,7 +529,7 @@ export class CajaClase {
           totalCierre +
           cantidadPaytef +
           totalHonei)) *
-        -1
+      -1
     );
     recaudado = totalTickets + descuadre;
     let mediaTickets = 0;

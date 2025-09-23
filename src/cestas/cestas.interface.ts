@@ -21,7 +21,7 @@ export interface CestasInterface {
   dataVersion?: string;
 }
 
-export interface CestasCombinadaInterface  extends CestasInterface {
+export interface CestasCombinadaInterface extends CestasInterface {
   listaDeudas?: ItemLista[];
   detalleIvaTickets?: DetalleIvaInterface;
   detalleIvaDeudas?: DetalleIvaInterface;
@@ -65,7 +65,7 @@ export type ItemLista_old = {
   puntos: number;
   gramos: number;
   impresora: string;
-  printed?: boolean;
+  printed?: number;
   regalo: boolean;
   dto?: number;
   iva?: number;
@@ -81,18 +81,19 @@ export type ItemLista = {
   subtotal: number;
   precioOrig?: number;
   arraySuplementos: ArticulosInterface[];
+  articulosMenu?: ArticulosMenu[];
   promocion: {
     idPromocion: string;
-    grupos:GrupoPromoEnCesta[];
+    grupos: GrupoPromoEnCesta[];
     unidadesOferta: number;
-    precioFinalPorPromo:number;
+    precioFinalPorPromo: number;
   };
   tipoIva?: number;
   descuentoTienda?: number;
   puntos: number;
   gramos: number;
   impresora: string;
-  printed?: boolean;
+  printed?: number;
   regalo: boolean;
   dto?: number;
   iva?: number;
@@ -100,7 +101,13 @@ export type ItemLista = {
   tarifaEsp?: boolean;
   varis?: boolean;
 };
-
+export type ArticulosMenu = {
+  idArticulo: number;
+  gramos: number | null;
+  unidades: number;
+  arraySuplementos: ArticulosInterface[] | null;
+  nombre: string;
+};
 export type GrupoPromoEnCesta = ArticuloPromoEnCesta[]
 export type ArticuloPromoEnCesta = {
   idArticulo: number;
@@ -108,7 +115,12 @@ export type ArticuloPromoEnCesta = {
   unidades: number;
   precioPromoPorUnidad: number;
   impresora: string;
-} 
+  suplementosPorArticulo?: {
+    unidades: number;
+    suplementos: ItemLista["arraySuplementos"];
+  }[];
+
+}
 
 export type DetalleIvaInterface = {
   [key: `base${number}`]: number;
