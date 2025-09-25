@@ -3940,6 +3940,13 @@ export class Impresora {
               }
             }
           }
+          if (item.suplementosPorArticulo) {
+            for (const articulo of item.suplementosPorArticulo[0].suplementos) {
+              bloques.push({ tipo: "style", payload: "a" });
+              bloques.push({ tipo: "text", payload: `> ${articulo.nombre}` });
+              bloques.push({ tipo: "style", payload: "b" });
+            }
+          }
           bloques.push({ tipo: "style", payload: "a" });
           bloques.push({ tipo: "size", payload: [0, 0] });
 
