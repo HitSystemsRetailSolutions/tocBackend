@@ -148,30 +148,34 @@ export class ClientesController {
   async actualizarCliente(
     @Body()
     {
-      idCliente = "",
+      idCliente,
       nombre,
-      telefono = "",
-      email = "",
-      direccion = "",
-      tarjetaCliente = "",
-      nif = "",
-      descuento = 0,
+      telefono,
+      email,
+      direccion,
+      tarjetaCliente,
+      nif,
+      descuento,
     }
   ) {
     try {
-
-      if (!nombre) {
+      if (!idCliente) {
         throw Error("Error, faltan datos en actualizarCliente() controller");
       }
-      const cliente = {
-        nombre,
-        telefono,
-        email,
-        direccion,
-        tarjetaCliente,
-        nif,
-        descuento,
-      };
+      // Solo actualizar los campos definidos
+      const cliente: any = {};
+      if (nombre !== undefined && nombre !== null) cliente.nombre = nombre;
+      if (telefono !== undefined && telefono !== null)
+        cliente.telefono = telefono;
+      if (email !== undefined && email !== null) cliente.email = email;
+      if (direccion !== undefined && direccion !== null)
+        cliente.direccion = direccion;
+      if (tarjetaCliente !== undefined && tarjetaCliente !== null)
+        cliente.tarjetaCliente = tarjetaCliente;
+      if (nif !== undefined && nif !== null) cliente.nif = nif;
+      if (descuento !== undefined && descuento !== null)
+        cliente.descuento = descuento;
+
       const db = (await conexion).db("tocgame");
       const params = db.collection("parametros");
       const clientes = db.collection("clientes");
@@ -188,18 +192,22 @@ export class ClientesController {
           return false;
         });
 
+      // Solo actualiza los campos definidos
       await clientes.findOneAndUpdate({ id: idCliente }, { $set: cliente });
 
-      await axios.post("clientes/updateCliente", {
-        idCliente,
-        cliente,
-        database,
-      }).catch((e) => {
-        console.log(e);
-      });
+      // Solo envía los campos definidos en la consulta axios
+      try {
+        await axios.post("clientes/updateCliente", {
+          idCliente,
+          cliente: cliente,
+          database,
+        });
+      } catch (e) {
+        logger.Error(68, "Error al actualizar cliente en la nube: " + e);
+      }
       return true;
     } catch (err) {
-      console.log("el error:",err);
+      console.log("el error:", err);
       logger.Error(68, err);
       return false;
     }
@@ -218,7 +226,6 @@ export class ClientesController {
           "Error, faltan datos en crearNuevoCliente() controller"
         );
       }
-      console.log(nombre);
       const nuevoCliente = {
         nombre,
         telefono,
@@ -236,46 +243,45 @@ export class ClientesController {
         response = await axios.post("clientes/crearNuevoCliente", nuevoCliente);
       } catch (axiosError) {
         response = null;
-       
       }
 
-        const clienteMDB: ClientesInterface = {
-          id: nuevoCliente.idCliente,
-          nombre: nuevoCliente.nombre,
-          tarjetaCliente: nuevoCliente.tarjetaCliente,
-          descuento: nuevoCliente.descuento,
-          nif: nuevoCliente.nif.toString(),
-          telefono: nuevoCliente.telefono,
-          direccion: nuevoCliente.direccion,
-          email: nuevoCliente.email,
-          albaran: false,
-          noPagaEnTienda: false,
-          vip: false,
-        };
+      const clienteMDB: ClientesInterface = {
+        id: nuevoCliente.idCliente,
+        nombre: nuevoCliente.nombre,
+        tarjetaCliente: nuevoCliente.tarjetaCliente,
+        descuento: nuevoCliente.descuento,
+        nif: nuevoCliente.nif.toString(),
+        telefono: nuevoCliente.telefono,
+        direccion: nuevoCliente.direccion,
+        email: nuevoCliente.email,
+        albaran: false,
+        noPagaEnTienda: false,
+        vip: false,
+      };
 
-        try {
-          await clienteInstance.insertarCliente(clienteMDB);
-          if(!response){
-            return {
-              success: true, // Cambiado a false para indicar un error en la creación del cliente en la nube
-              message: "No se ha podido crear el cliente en la nube, se usará uno temporal.",
-              details: "passerror",
-              idCliente: nuevoCliente.idCliente,
-            };
-          }
+      try {
+        await clienteInstance.insertarCliente(clienteMDB);
+        if (!response) {
           return {
-            success: true,
-            message: "Cliente creado exitosamente",
+            success: true, // Cambiado a false para indicar un error en la creación del cliente en la nube
+            message:
+              "No se ha podido crear el cliente en la nube, se usará uno temporal.",
+            details: "passerror",
             idCliente: nuevoCliente.idCliente,
           };
-        } catch (dbError) {
-          throw {
-            type: "DatabaseError",
-            message: "Error al insertar el cliente en la base de datos",
-            details: dbError.message,
-          };
         }
-
+        return {
+          success: true,
+          message: "Cliente creado exitosamente",
+          idCliente: nuevoCliente.idCliente,
+        };
+      } catch (dbError) {
+        throw {
+          type: "DatabaseError",
+          message: "Error al insertar el cliente en la base de datos",
+          details: dbError.message,
+        };
+      }
     } catch (err) {
       if (err.type === "AxiosError" || err.type === "DatabaseError") {
         logger.Error(err.message, err.details);

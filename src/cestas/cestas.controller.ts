@@ -487,6 +487,20 @@ export class CestasController {
     }
   }
 
+
+  @Post("imprimirNotaKitchen")
+  async imprimirNotaKitchen(@Body() { idCesta, nombre, trabajador }) {
+    try {
+      if (!idCesta) {
+        throw Error("faltan datos en imprimirNotasMesa");
+      }
+      return await cestasInstance.imprimirNotaKitchen(idCesta, nombre, trabajador);
+      return true;
+    } catch (error) {
+      logger.Error(138, error);
+    }
+  }
+
   @Post("imprimirNotaPedido")
   async imprimirNotaPedido(@Body() { idEncargo, idTrabajador, codigo, cesta }) {
     try {
