@@ -270,6 +270,7 @@ export class NuevaPromocion {
     } catch (error) {
       logger.Error(1291, error);
     }
+    this.promos = [];
     this.promosPorGrupo = await schPromociones.getPromocionesv2();
     function nueva_promo(
       promoServer: PromocionesEnServerConGrupos
