@@ -2227,7 +2227,7 @@ export class CestaClase {
       };
 
       // limpiar comensales y encargado de la mesa
-      if (cesta.indexMesa != null && cesta.indexMesa != undefined) {
+      if (cesta.indexMesa !== null && cesta.indexMesa !== undefined) {
         cesta.comensales = 1;
         cesta.encargadoMesa = null;
       }
