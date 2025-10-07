@@ -77,6 +77,8 @@ export async function updateCesta(cesta: CestasInterface): Promise<boolean> {
         ...(cesta?.dataVersion !== undefined && {
           dataVersion: cesta.dataVersion,
         }),
+        comensales: cesta?.comensales || 1,
+        encargadoMesa: cesta?.encargadoMesa || null,
         // Añadido para compatibilidad con la nueva
       },
     }
