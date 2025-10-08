@@ -205,15 +205,15 @@ export class Impresora {
 
         let informacionVip = infoCliente
           ? {
-            nombre: infoCliente.nombre,
-            nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-            direccion:
-              infoCliente["direccion"] === "0"
-                ? ""
-                : infoCliente["direccion"],
-            telefono:
-              infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
-          }
+              nombre: infoCliente.nombre,
+              nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+              direccion:
+                infoCliente["direccion"] === "0"
+                  ? ""
+                  : infoCliente["direccion"],
+              telefono:
+                infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+            }
           : null;
 
         let totalSinDescuento = 0;
@@ -287,37 +287,52 @@ export class Impresora {
   }
 
   async imprimiTicketComandero(products, table, worker, clients) {
-
     if (!printComandero.setted) {
       const articulos = await articulosInstance.getArticulos();
-      printComandero.enabled = articulos.some(articulo => articulo.impresora !== null);
+      printComandero.enabled = articulos.some(
+        (articulo) => articulo.impresora !== null
+      );
       printComandero.setted = true;
     }
     if (printComandero.enabled) {
-      if (products.some(product => product.promocion)) {
-        products = products.map(product => {
-          if (product.promocion) {
-            return product.promocion.grupos.map(promoProduct => {
-              return {
-                ...promoProduct[0],
-              };
-            });
-          }
-          return { ...product, impresora: product.impresora };
-        }).flat();
+      if (products.some((product) => product.promocion)) {
+        products = products
+          .map((product) => {
+            if (product.promocion) {
+              return product.promocion.grupos.map((promoProduct) => {
+                return {
+                  ...promoProduct[0],
+                };
+              });
+            }
+            return { ...product, impresora: product.impresora };
+          })
+          .flat();
       }
 
-      const impresoras = products.map(product => product.impresora).filter(impresora => impresora);
+      const impresoras = products
+        .map((product) => product.impresora)
+        .filter((impresora) => impresora);
       const impresorasUnicas = [...new Set(impresoras)];
       if (impresorasUnicas.length === 0) {
         throw Error("No hay impresoras disponibles");
       }
       for (let i = 0; i < impresorasUnicas.length; i++) {
         const impresora = impresorasUnicas[i];
-        const productosFiltrados = products.filter(product => product.impresora === impresora);
-        const topic = (impresora as string).toLowerCase().includes('cable') ? `hit.hardware/printer` : `hit.hardware/printerIP/${impresora}`;
-        await this.imprimirComandero(productosFiltrados, table, worker, clients, topic);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        const productosFiltrados = products.filter(
+          (product) => product.impresora === impresora
+        );
+        const topic = (impresora as string).toLowerCase().includes("cable")
+          ? `hit.hardware/printer`
+          : `hit.hardware/printerIP/${impresora}`;
+        await this.imprimirComandero(
+          productosFiltrados,
+          table,
+          worker,
+          clients,
+          topic
+        );
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
       return true;
     }
@@ -402,13 +417,13 @@ export class Impresora {
       infoClienteVip: informacionVip || null,
       infoCliente: infoCliente
         ? {
-          idCliente: infoCliente._id,
-          nombre: infoCliente?.nombre,
-          telefono: infoCliente?.telefono,
-          puntos: puntos,
-          descuento: descuento,
-          albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
-        }
+            idCliente: infoCliente._id,
+            nombre: infoCliente?.nombre,
+            telefono: infoCliente?.telefono,
+            puntos: puntos,
+            descuento: descuento,
+            albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
+          }
         : null,
       modoCesta: cesta.modo,
       dejaCuenta: 0,
@@ -424,7 +439,6 @@ export class Impresora {
 
     await this._venta(nota);
   }
-
 
   async imprimirNotaPedido(
     idEncargo: EncargosInterface["_id"],
@@ -500,13 +514,13 @@ export class Impresora {
       infoClienteVip: informacionVip || null,
       infoCliente: infoCliente
         ? {
-          idCliente: infoCliente._id,
-          nombre: infoCliente?.nombre + "\n" + codigo,
-          telefono: infoCliente?.telefono,
-          puntos: puntos,
-          descuento: descuento,
-          albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
-        }
+            idCliente: infoCliente._id,
+            nombre: infoCliente?.nombre + "\n" + codigo,
+            telefono: infoCliente?.telefono,
+            puntos: puntos,
+            descuento: descuento,
+            albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
+          }
         : null,
       modoCesta: cesta.modo,
       dejaCuenta: 0,
@@ -536,13 +550,13 @@ export class Impresora {
 
     let informacionVip = infoCliente
       ? {
-        nombre: infoCliente.nombre,
-        nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-        direccion:
-          infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
-        telefono:
-          infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
-      }
+          nombre: infoCliente.nombre,
+          nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+          direccion:
+            infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
+          telefono:
+            infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+        }
       : null;
 
     const descuento =
@@ -832,7 +846,7 @@ export class Impresora {
         } else {
           detallePuntosCliente =
             "Punts restants: " +
-            (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+              (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
         }
 
         if (
@@ -895,7 +909,7 @@ export class Impresora {
           )}€\nDescompte total: ${redondearPrecio(
             (((baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)) *
               infoCliente.descuento) /
-            100
+              100
           ).toFixed(2)}€`;
       }
     }
@@ -995,8 +1009,9 @@ export class Impresora {
       {
         tipo: "text",
 
-        payload: `Data: ${diasSemana[fechaEspaña.format("d")]
-          } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+        payload: `Data: ${
+          diasSemana[fechaEspaña.format("d")]
+        } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
       {
         tipo: "text",
@@ -1029,26 +1044,31 @@ export class Impresora {
         {
           tipo: "text",
 
-          payload: `${infoClienteVip.nombre
-            ? `\x1B\x45\x01 ${infoClienteVip.nombre} \x1B\x45\x00 \n`
-            : ""
-            }`,
+          payload: `${
+            infoClienteVip.nombre
+              ? `\x1B\x45\x01 ${infoClienteVip.nombre} \x1B\x45\x00 \n`
+              : ""
+          }`,
         },
         { tipo: "size", payload: [0, 0] },
         {
           tipo: "text",
 
-          payload: `${infoClienteVip.telefono
-            ? `\x1B\x45\x01 tel.: ${infoClienteVip.telefono} \x1B\x45\x00 \n`
-            : ""
-            }${infoClienteVip.nif
+          payload: `${
+            infoClienteVip.telefono
+              ? `\x1B\x45\x01 tel.: ${infoClienteVip.telefono} \x1B\x45\x00 \n`
+              : ""
+          }${
+            infoClienteVip.nif
               ? `\x1B\x45\x01 DNI/NIF: ${infoClienteVip.nif} \x1B\x45\x00 \n`
               : ""
-            }${infoClienteVip.direccion
+          }${
+            infoClienteVip.direccion
               ? `\x1B\x45\x01 direccion: ${infoClienteVip.direccion} \x1B\x45\x00 \n`
               : ""
-            }${detallePuntosCliente ? `${detallePuntosCliente}\n` : ""}${clienteDescuento ? `${clienteDescuento}\n` : ""
-            }`,
+          }${detallePuntosCliente ? `${detallePuntosCliente}\n` : ""}${
+            clienteDescuento ? `${clienteDescuento}\n` : ""
+          }`,
         }
       );
     arrayImprimir.push(
@@ -1064,8 +1084,9 @@ export class Impresora {
       { tipo: "text", payload: "_".repeat(48) },
       {
         tipo: "text",
-        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""
-          }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${
+          pagoTkrs != "" ? `${pagoTkrs}` : ""
+        }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
       },
       { tipo: "align", payload: "RT" }
     );
@@ -1128,11 +1149,13 @@ export class Impresora {
             { tipo: "text", payload: "\n\n-" },
             {
               tipo: "qrimage",
-              payload: `https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=${params.nif
-                }&numserie=TK-${params.licencia
-                }-2025-${numFactura}&fecha=${fechaEspaña.format(
-                  "DD-MM-YYYY"
-                )}&importe=${totalImporte}`,
+              payload: `https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=${
+                params.nif
+              }&numserie=TK-${
+                params.licencia
+              }-2025-${numFactura}&fecha=${fechaEspaña.format(
+                "DD-MM-YYYY"
+              )}&importe=${totalImporte}`,
             },
             {
               tipo: "text",
@@ -1217,7 +1240,7 @@ export class Impresora {
       } else {
         detallePuntosCliente =
           "Punts restants: " +
-          (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+            (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
       }
       if (
         (!clienteDescEsp || clienteDescEsp.precio != total) &&
@@ -1322,8 +1345,9 @@ export class Impresora {
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
-        payload: `Data: ${diasSemana[fechaEspaña.format("d")]
-          } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+        payload: `Data: ${
+          diasSemana[fechaEspaña.format("d")]
+        } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
       { tipo: "text", payload: factura + numFactura },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
@@ -1339,9 +1363,11 @@ export class Impresora {
       { tipo: "size", payload: [0, 0] },
       {
         tipo: "text",
-        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
-          }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${clienteDescuento ? `${clienteDescuento} \n` : ""
-          }`,
+        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${
+          detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
+        }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${
+          clienteDescuento ? `${clienteDescuento} \n` : ""
+        }`,
       },
       { tipo: "control", payload: "LF" },
       {
@@ -1358,8 +1384,9 @@ export class Impresora {
       },
       {
         tipo: "text",
-        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""
-          }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${
+          pagoTkrs != "" ? `${pagoTkrs}` : ""
+        }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
       },
       { tipo: "size", payload: [1, 1] },
       { tipo: "text", payload: pagoDevolucion },
@@ -1392,8 +1419,9 @@ export class Impresora {
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
-        payload: `Data: ${diasSemana[fechaEspaña.format("d")]
-          } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+        payload: `Data: ${
+          diasSemana[fechaEspaña.format("d")]
+        } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
       { tipo: "text", payload: factura + numFactura },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
@@ -1409,9 +1437,11 @@ export class Impresora {
       { tipo: "size", payload: [0, 0] },
       {
         tipo: "text",
-        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
-          }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${clienteDescuento ? `${clienteDescuento} \n` : ""
-          }`,
+        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${
+          detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
+        }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${
+          clienteDescuento ? `${clienteDescuento} \n` : ""
+        }`,
       },
       { tipo: "control", payload: "LF" },
       {
@@ -1428,8 +1458,9 @@ export class Impresora {
       },
       {
         tipo: "text",
-        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""
-          }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${
+          pagoTkrs != "" ? `${pagoTkrs}` : ""
+        }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
       },
       { tipo: "align", payload: "LT" },
       { tipo: "text", payload: detalleDejaCuenta },
@@ -1580,8 +1611,8 @@ export class Impresora {
     let longDto = albaranNPT_o_vipPT
       ? 0
       : thereIsDto || thereIsDtoTienda
-        ? cLongDto
-        : 0;
+      ? cLongDto
+      : 0;
     let longQuant = cLongQuant;
     let longPreuU = albaranNPT_o_vipPT ? 0 : preuUnitari ? cLongPreuU : 0;
     let longImporte = albaranNPT_o_vipPT ? 0 : cLongImporte;
@@ -1653,9 +1684,10 @@ export class Impresora {
         descuentoStr = "";
       }
       if (thereIsDtoTienda) {
-        let dto = arrayCompra[i].descuentoTienda
-          ? arrayCompra[i].descuentoTienda + "%"
-          : "";
+        let dto =
+          arrayCompra[i].descuentoTienda && arrayCompra[i].descuentoTienda > 0
+            ? arrayCompra[i].descuentoTienda + "%"
+            : "";
         descuentoStr = sprintf(`%${longDto}s`, dto);
       } else {
         descuentoStr = "";
@@ -1700,9 +1732,9 @@ export class Impresora {
             longPreuU == 0
               ? ""
               : sprintf(
-                `%${longPreuU}s`,
-                `(${artGrupo.unidades}x)` + artGrupo.precioPromoPorUnidad
-              );
+                  `%${longPreuU}s`,
+                  `(${artGrupo.unidades}x)` + artGrupo.precioPromoPorUnidad
+                );
           descuentoStr = sprintf(`%${longDto}s`, "");
           importeStr = "";
           comprobarLongitud("> Of. " + nombreArtPromo);
@@ -1750,13 +1782,14 @@ export class Impresora {
             longPreuU == 0
               ? ""
               : sprintf(
-                `%${longPreuU}.2f`,
-                arrayCompra[i].arraySuplementos[j].precioConIva
-              );
+                  `%${longPreuU}.2f`,
+                  arrayCompra[i].arraySuplementos[j].precioConIva
+                );
           importeStr = sprintf(`%${longImporte}s`, "");
           comprobarLongitud(arrayCompra[i].arraySuplementos[j].nombre);
           // linea del suplemento pos j
-          lineaTicket = `${cantidadStr +
+          lineaTicket = `${
+            cantidadStr +
             margenStr +
             articuloStr +
             margenStr +
@@ -1765,7 +1798,7 @@ export class Impresora {
             (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
             margenStr +
             importeStr
-            }`;
+          }`;
           detalles += lineaTicket + "\n";
         }
         // version antigua Suplementos
@@ -1798,8 +1831,8 @@ export class Impresora {
             artMenu.gramos && artMenu.gramos > 0
               ? `${artMenu.gramos}gr`
               : artMenu.unidades > 1
-                ? `${artMenu.unidades}x`
-                : "";
+              ? `${artMenu.unidades}x`
+              : "";
 
           let nombreMenu = artMenu.nombre;
           if (cantidadMenu) {
@@ -1965,18 +1998,21 @@ export class Impresora {
         while (nombrePrincipal.length < 20) {
           nombrePrincipal += " ";
         }
-        detalles += `${arrayCompra[i].unidades *
+        detalles += `${
+          arrayCompra[i].unidades *
           arrayCompra[i].promocion.grupos[0][0].unidades
-          }     ${nombrePrincipal.slice(0, 20)}${preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
-          }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+        }     ${nombrePrincipal.slice(0, 20)}${
+          preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
+        }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
         for (let artGrupo of arrayCompra[i].promocion.grupos.flat()) {
           let nombreArtGrupo = artGrupo.nombre;
           nombreArtGrupo = "Oferta " + nombreArtGrupo;
           while (nombreArtGrupo.length < 20) {
             nombreArtGrupo += " ";
           }
-          detalles += `     >     ${nombreArtGrupo.slice(0, 20) + "(x" + artGrupo.unidades + ")"
-            } ${artGrupo.precioPromoPorUnidad.toFixed(2)}\n`;
+          detalles += `     >     ${
+            nombreArtGrupo.slice(0, 20) + "(x" + artGrupo.unidades + ")"
+          } ${artGrupo.precioPromoPorUnidad.toFixed(2)}\n`;
         }
       } else if (
         arrayCompra[i].arraySuplementos &&
@@ -2026,15 +2062,17 @@ export class Impresora {
 
         detalles += ` ${spaces + arrayCompra[i].unidades}  ${arrayCompra[
           i
-        ].nombre.slice(0, 20)} ${preuUnitari
-          ? formatSpaces(
-            6 - arrayCompra[i]["preuU"].toFixed(2).toString().length
-          ) + arrayCompra[i]["preuU"].toFixed(2)
-          : "      "
-          }  ${formatSpaces(
+        ].nombre.slice(0, 20)} ${
+          preuUnitari
+            ? formatSpaces(
+                6 - arrayCompra[i]["preuU"].toFixed(2).toString().length
+              ) + arrayCompra[i]["preuU"].toFixed(2)
+            : "      "
+        }  ${
+          formatSpaces(
             8 - arrayCompra[i].subtotal.toFixed(2).toString().length
           ) + arrayCompra[i].subtotal.toFixed(2)
-          }€\n`;
+        }€\n`;
       }
     }
     let finaltxt = "";
@@ -2329,7 +2367,7 @@ export class Impresora {
       mqttInstance.loggerMQTT(err);
     }
   }
-  async imprimirDeudasPagadas(movimiento) { }
+  async imprimirDeudasPagadas(movimiento) {}
   async imprimirTest() {
     try {
       const device = new escpos.Network("localhost");
@@ -2409,8 +2447,8 @@ export class Impresora {
             )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth() + 1)
               .toString()
               .padStart(2, "0")}/${auxFecha.getFullYear()} ${this.dosDigitos(
-                auxFecha.getHours()
-              )}:${this.dosDigitos(auxFecha.getMinutes())}\n`;
+              auxFecha.getHours()
+            )}:${this.dosDigitos(auxFecha.getMinutes())}\n`;
           }
         }
       }
@@ -2462,8 +2500,9 @@ export class Impresora {
                 .padStart(
                   2,
                   "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${arrayMovimientos[i].concepto
-                }\n`;
+                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
+                arrayMovimientos[i].concepto
+              }\n`;
             }
             break;
           case "ENTRADA_DINERO":
@@ -2500,8 +2539,9 @@ export class Impresora {
                 .padStart(
                   2,
                   "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${arrayMovimientos[i].concepto
-                }\n`;
+                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
+                arrayMovimientos[i].concepto
+              }\n`;
             }
             break;
           case "DATAFONO_3G":
@@ -2572,13 +2612,15 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: `Inici: ${diasSemana[fechaInicio.format("d")]
-            } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
+          payload: `Inici: ${
+            diasSemana[fechaInicio.format("d")]
+          } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
         },
         {
           tipo: "text",
-          payload: `Final: ${diasSemana[fechaFinal.format("d")]
-            } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
+          payload: `Final: ${
+            diasSemana[fechaFinal.format("d")]
+          } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
         },
         {
           tipo: "text",
@@ -2655,37 +2697,37 @@ export class Impresora {
         ...(simple
           ? []
           : [
-            {
-              tipo: "text",
-              payload: "Canvi:",
-            },
-            {
-              tipo: "text",
-              payload:
-                "  Inicial:               " + caja.totalApertura.toFixed(2),
-            },
-            {
-              tipo: "text",
-              payload:
-                "  Final:                 " + caja.totalCierre.toFixed(2),
-            },
-            {
-              tipo: "text",
-              payload:
-                "  Emergència apertura:   " +
-                cambioEmergenciaApertura.toFixed(2),
-            },
-            {
-              tipo: "text",
-              payload:
-                "  Emergència tancament:  " +
-                cambioEmergenciaCierre.toFixed(2),
-            },
-            {
-              tipo: "text",
-              payload: "",
-            },
-          ]),
+              {
+                tipo: "text",
+                payload: "Canvi:",
+              },
+              {
+                tipo: "text",
+                payload:
+                  "  Inicial:               " + caja.totalApertura.toFixed(2),
+              },
+              {
+                tipo: "text",
+                payload:
+                  "  Final:                 " + caja.totalCierre.toFixed(2),
+              },
+              {
+                tipo: "text",
+                payload:
+                  "  Emergència apertura:   " +
+                  cambioEmergenciaApertura.toFixed(2),
+              },
+              {
+                tipo: "text",
+                payload:
+                  "  Emergència tancament:  " +
+                  cambioEmergenciaCierre.toFixed(2),
+              },
+              {
+                tipo: "text",
+                payload: "",
+              },
+            ]),
 
         // info 3G
         {
@@ -2707,7 +2749,7 @@ export class Impresora {
 
           payload: !simple
             ? "  Diferència:            " +
-            (caja.totalDatafono3G - caja.cantidadLocal3G).toFixed(2)
+              (caja.totalDatafono3G - caja.cantidadLocal3G).toFixed(2)
             : "",
         },
         {
