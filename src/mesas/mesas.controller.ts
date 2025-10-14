@@ -49,4 +49,26 @@ export class MesasController {
       return null;
     }
   }
+
+  @Post("iniciarMesa")
+  async iniciarMesa(@Body() { indexMesa, comensales, encargadoMesa }) {
+    try {
+      if (
+        indexMesa === undefined ||
+        comensales === undefined ||
+        encargadoMesa === undefined
+      )
+        throw Error(
+          "Faltan datos o son incorrectos en iniciarMesa mesas.controller.ts"
+        );
+      return await mesasInstance.iniciarMesa(
+        indexMesa,
+        comensales,
+        encargadoMesa
+      );
+    } catch (err) {
+      logger.Error(128, err);
+      return null;
+    }
+  }
 }

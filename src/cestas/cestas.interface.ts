@@ -14,6 +14,7 @@ export interface CestasInterface {
   indexMesa?: number;
   albaran?: boolean;
   vip?: boolean;
+  encargadoMesa?: number;
   trabajador: number;
   trabajadores: ObjectId[];
   comensales: number;
@@ -112,7 +113,7 @@ export type ArticulosMenu = {
   arraySuplementos: ArticulosInterface[] | null;
   nombre: string;
 };
-export type GrupoPromoEnCesta = ArticuloPromoEnCesta[]
+export type GrupoPromoEnCesta = ArticuloPromoEnCesta[];
 export type ArticuloPromoEnCesta = {
   idArticulo: number;
   nombre: string;
@@ -123,8 +124,7 @@ export type ArticuloPromoEnCesta = {
     unidades: number;
     suplementos: ItemLista["arraySuplementos"];
   }[];
-
-}
+};
 
 export type DetalleIvaInterface = {
   [key: `base${number}`]: number;

@@ -155,6 +155,10 @@ class PaytefClass {
         // proteger esta variable de posibles excepciones
         this.dentroIniciarTransaccion = false;
       }
+      if (errorConexion && !transaccionAprobada) {
+        [transaccionAprobada, errorConexion] =
+          await this.ultimaComprobacion(idTicket);
+      }
       if (errorConexion) {
         this.timeUltimaTransaccionNoFinalizada = Date.now();
       }
@@ -175,6 +179,41 @@ class PaytefClass {
       io.emit("errorConexionPaytef");
     }
     return transaccionAprobada;
+  }
+
+  async ultimaComprobacion(idTicket: number): Promise<[boolean, boolean]> {
+    let transaccionAprobada = false;
+    let errorConexion = false;
+    io.emit("procesoPaytef", {
+      proceso: "errorConexion",
+    });
+    for (let intento = 0; intento < 3; intento++) {
+      if (intento > 0) {
+        await new Promise((r) => setTimeout(r, 10000)); // Espera 10s entre intentos
+      }
+      try {
+        const lastFive = await this.getLastFive();
+        if (Array.isArray(lastFive) && lastFive.length > 0) {
+          const encontrado = lastFive.find(
+            (ticket) => ticket.reference == idTicket
+          );
+          if (encontrado) {
+            transaccionAprobada = !!encontrado.approved;
+            errorConexion = !encontrado.approved;
+            io.emit("consultaPaytef", { valid: true, ticket: idTicket });
+            io.emit("procesoPaytef", {
+              proceso: "aprobado",
+            });
+            break;
+          }
+        }
+      } catch (e) {
+        logger.Error(
+          `ultimaComprobacion: Error en intento ${intento + 1}: ${e}`
+        );
+      }
+    }
+    return [transaccionAprobada, errorConexion];
   }
 
   /* Eze 4.0 */
