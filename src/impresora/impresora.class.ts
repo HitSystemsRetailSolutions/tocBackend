@@ -1579,10 +1579,30 @@ export class Impresora {
   }
 
   calcularPrecioUnitario(item, albaranNPT, tipoPago) {
-    const precioUnitario =
-      albaranNPT || !albaranNPT || tipoPago == "CONSUMO_PERSONAL"
-        ? item.precioOrig / item.unidades
-        : item.subtotal / item.unidades;
+    // Detectar suplementos y restar su precioConIva o precioBase
+    let totalSuplementos = 0;
+    // no entra si no hay suplem o el ticket es albaranNPT
+    if (
+      Array.isArray(item.arraySuplementos) &&
+      item.arraySuplementos.length > 0 &&
+      !albaranNPT
+    ) {
+      for (const suplemento of item.arraySuplementos) {
+        if (!albaranNPT) {
+          totalSuplementos += suplemento.precioConIva;
+        } else {
+          totalSuplementos += suplemento.precioBase;
+        }
+      }
+    }
+    let precioBase = 0;
+    if (albaranNPT || !albaranNPT || tipoPago == "CONSUMO_PERSONAL") {
+      precioBase = item.precioOrig - totalSuplementos;
+    } else {
+      precioBase = item.subtotal - totalSuplementos;
+    }
+    const precioUnitario = precioBase / item.unidades;
+
     return Number(precioUnitario.toFixed(2));
   }
   // funcion para imprimir detalles ticket vip
