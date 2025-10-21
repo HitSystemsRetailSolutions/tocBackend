@@ -191,9 +191,9 @@ class PaytefClass {
     io.emit("procesoPaytef", {
       proceso: "errorConexion",
     });
-    for (let intento = 0; intento < 3; intento++) {
+    for (let intento = 0; intento < 4; intento++) {
       if (intento > 0) {
-        await new Promise((r) => setTimeout(r, 10000)); // Espera 10s entre intentos
+        await new Promise((r) => setTimeout(r, 15000)); // Espera 15s entre intentos
       }
       try {
         const lastFive = await this.getLastFive();
@@ -238,6 +238,7 @@ class PaytefClass {
 
     while (!salirBucleComprobacion) {
       try {
+        throw new Error("test");
         const resEstadoPaytef: any = (
           await axios.post(
             `http://${ipDatafono}:8887/transaction/poll`,
