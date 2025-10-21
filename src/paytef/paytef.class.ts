@@ -86,7 +86,7 @@ class PaytefClass {
     if (parametros.ipTefpay) {
       io.emit("procesoPaytef", { proceso: "" });
       try {
-        this.dentroIniciarTransaccion = true;
+        this.setDentroIniciarTransaccion(true);
         let salirBucleStart = false;
         let intentosBucleStart = 0;
         while (!salirBucleStart) {
@@ -153,7 +153,6 @@ class PaytefClass {
         } // while !salirBucleStart
       } finally {
         // proteger esta variable de posibles excepciones
-        this.dentroIniciarTransaccion = false;
       }
       if (errorConexion && !transaccionAprobada) {
         [transaccionAprobada, errorConexion] =
@@ -178,7 +177,12 @@ class PaytefClass {
       transaccionAprobada = false;
       io.emit("errorConexionPaytef");
     }
+    this.setDentroIniciarTransaccion(false);
     return transaccionAprobada;
+  }
+
+  setDentroIniciarTransaccion(finalizado: boolean) {
+    this.dentroIniciarTransaccion = finalizado;
   }
 
   async ultimaComprobacion(idTicket: number): Promise<[boolean, boolean]> {

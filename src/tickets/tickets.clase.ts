@@ -177,8 +177,10 @@ export class TicketsClase {
     let newId = ultimoIdTicket + 1;
 
     // Si el ID generado es igual al de la última transacción de Paytef, incrementarlo
-    if (paytefInstance.ultimaIniciarTransaccion?.idTicket === newId) {
-      newId++;
+    if (paytefInstance.dentroIniciarTransaccion) {
+      throw new Error(
+        "El ID generado no puede generarse en mitad de una transacción de Paytef"
+      );
     }
 
     // Resetea el ID
@@ -278,7 +280,6 @@ export class TicketsClase {
     return tipo === "CONSUMO_PERSONAL" || modo === "CONSUMO_PERSONAL";
   }
 
-
   validarNIF(nif: string) {
     nif = nif.toUpperCase().trim();
 
@@ -330,13 +331,15 @@ export class TicketsClase {
         return control === String(digitoControl); // debe ser número
       } else {
         // puede ser letra o número
-        return control === String(digitoControl) || control === letrasControl[digitoControl];
+        return (
+          control === String(digitoControl) ||
+          control === letrasControl[digitoControl]
+        );
       }
     }
 
     return false;
   }
-
 
   /* Eze 4.0 */
   async generarNuevoTicket(
@@ -356,14 +359,14 @@ export class TicketsClase {
       });
     }*/
     try {
-      let nif = (await parametrosInstance.getParametros())?.nif
-      if (nif) nif = nif.toString(); else nif = "";
+      let nif = (await parametrosInstance.getParametros())?.nif;
+      if (nif) nif = nif.toString();
+      else nif = "";
       if (!this.validarNIF(nif)) {
         parametrosInstance.setNif();
       }
-    }
-    catch (e) {
-      console.log(e)
+    } catch (e) {
+      console.log(e);
     }
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
