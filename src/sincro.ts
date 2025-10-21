@@ -37,6 +37,8 @@ import CircuitBreakerSocket from "./circuitBreaker/circuitBreakerSocket";
 import { Console } from "console";
 import { tiposIvaInstance } from "./tiposIva/tiposIva.clase";
 import { cestasInstance } from "./cestas/cestas.clase";
+import { limpiezaEncargos } from "./encargos/encargos.mongodb";
+import { limpiezaDeudas } from "./deudas/deudas.mongodb";
 // inicio de breakers
 const failureThreshold = 3; // número de fallos antes de abrir el circuito
 const timeoutOpenCircuit = 300000; // tiempo en ms antes de abrir el circuito
@@ -891,6 +893,8 @@ function limpiezaProfunda(): void {
   limpiezaFichajes();
   limpiezaCajas();
   limpiezaMovimientos();
+  limpiezaDeudas();
+  limpiezaEncargos();
 }
 
 function actualizarTrabajadores() {
@@ -916,7 +920,8 @@ setInterval(sincronizarTicketsOtrosModificado, 16000);
 // setInterval(actualizarTrabajadores, 3600000);
 // setInterval(actualizarMesas, 3600000);
 setInterval(sincronizarPedidosCaducados, 60000);
-
+// cada hora borrar encargos recurrentes expirados y generar el proximo encargo recurrente
+setInterval(encargosInstance.anularEncargosRecurrentesExpirados, 3600000);
 export {
   reenviarTicket,
   reenviarTicketPago,

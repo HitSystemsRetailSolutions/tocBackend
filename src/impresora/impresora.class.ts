@@ -21,6 +21,7 @@ import { logger } from "../logger";
 import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import { buffer } from "stream/consumers";
 import * as schDeudas from "../deudas/deudas.mongodb";
+import * as schEncargos from "../encargos/encargos.mongodb";
 import { conexion } from "../conexion/mongodb";
 import { sprintf } from "sprintf-js";
 import { paytefInstance } from "src/paytef/paytef.class";
@@ -39,6 +40,7 @@ import { versionDescuentosClient } from "src/version/version.clase";
 import e from "express";
 import Decimal from "decimal.js";
 import { mesasInstance } from "src/mesas/mesas.class";
+import { get } from "http";
 const momentTZ = require("moment-timezone");
 moment.locale("es");
 const escpos = require("escpos");
@@ -205,15 +207,15 @@ export class Impresora {
 
         let informacionVip = infoCliente
           ? {
-            nombre: infoCliente.nombre,
-            nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-            direccion:
-              infoCliente["direccion"] === "0"
-                ? ""
-                : infoCliente["direccion"],
-            telefono:
-              infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
-          }
+              nombre: infoCliente.nombre,
+              nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+              direccion:
+                infoCliente["direccion"] === "0"
+                  ? ""
+                  : infoCliente["direccion"],
+              telefono:
+                infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+            }
           : null;
 
         let totalSinDescuento = 0;
@@ -287,37 +289,52 @@ export class Impresora {
   }
 
   async imprimiTicketComandero(products, table, worker, clients) {
-
     if (!printComandero.setted) {
       const articulos = await articulosInstance.getArticulos();
-      printComandero.enabled = articulos.some(articulo => articulo.impresora !== null);
+      printComandero.enabled = articulos.some(
+        (articulo) => articulo.impresora !== null
+      );
       printComandero.setted = true;
     }
     if (printComandero.enabled) {
-      if (products.some(product => product.promocion)) {
-        products = products.map(product => {
-          if (product.promocion) {
-            return product.promocion.grupos.map(promoProduct => {
-              return {
-                ...promoProduct[0],
-              };
-            });
-          }
-          return { ...product, impresora: product.impresora };
-        }).flat();
+      if (products.some((product) => product.promocion)) {
+        products = products
+          .map((product) => {
+            if (product.promocion) {
+              return product.promocion.grupos.map((promoProduct) => {
+                return {
+                  ...promoProduct[0],
+                };
+              });
+            }
+            return { ...product, impresora: product.impresora };
+          })
+          .flat();
       }
 
-      const impresoras = products.map(product => product.impresora).filter(impresora => impresora);
+      const impresoras = products
+        .map((product) => product.impresora)
+        .filter((impresora) => impresora);
       const impresorasUnicas = [...new Set(impresoras)];
       if (impresorasUnicas.length === 0) {
         throw Error("No hay impresoras disponibles");
       }
       for (let i = 0; i < impresorasUnicas.length; i++) {
         const impresora = impresorasUnicas[i];
-        const productosFiltrados = products.filter(product => product.impresora === impresora);
-        const topic = (impresora as string).toLowerCase().includes('cable') ? `hit.hardware/printer` : `hit.hardware/printerIP/${impresora}`;
-        await this.imprimirComandero(productosFiltrados, table, worker, clients, topic);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        const productosFiltrados = products.filter(
+          (product) => product.impresora === impresora
+        );
+        const topic = (impresora as string).toLowerCase().includes("cable")
+          ? `hit.hardware/printer`
+          : `hit.hardware/printerIP/${impresora}`;
+        await this.imprimirComandero(
+          productosFiltrados,
+          table,
+          worker,
+          clients,
+          topic
+        );
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
       return true;
     }
@@ -402,13 +419,13 @@ export class Impresora {
       infoClienteVip: informacionVip || null,
       infoCliente: infoCliente
         ? {
-          idCliente: infoCliente._id,
-          nombre: infoCliente?.nombre,
-          telefono: infoCliente?.telefono,
-          puntos: puntos,
-          descuento: descuento,
-          albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
-        }
+            idCliente: infoCliente._id,
+            nombre: infoCliente?.nombre,
+            telefono: infoCliente?.telefono,
+            puntos: puntos,
+            descuento: descuento,
+            albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
+          }
         : null,
       modoCesta: cesta.modo,
       dejaCuenta: 0,
@@ -424,7 +441,6 @@ export class Impresora {
 
     await this._venta(nota);
   }
-
 
   async imprimirNotaPedido(
     idEncargo: EncargosInterface["_id"],
@@ -500,13 +516,13 @@ export class Impresora {
       infoClienteVip: informacionVip || null,
       infoCliente: infoCliente
         ? {
-          idCliente: infoCliente._id,
-          nombre: infoCliente?.nombre + "\n" + codigo,
-          telefono: infoCliente?.telefono,
-          puntos: puntos,
-          descuento: descuento,
-          albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
-        }
+            idCliente: infoCliente._id,
+            nombre: infoCliente?.nombre + "\n" + codigo,
+            telefono: infoCliente?.telefono,
+            puntos: puntos,
+            descuento: descuento,
+            albaranNPT: infoCliente?.albaran && infoCliente?.noPagaEnTienda,
+          }
         : null,
       modoCesta: cesta.modo,
       dejaCuenta: 0,
@@ -536,13 +552,13 @@ export class Impresora {
 
     let informacionVip = infoCliente
       ? {
-        nombre: infoCliente.nombre,
-        nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
-        direccion:
-          infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
-        telefono:
-          infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
-      }
+          nombre: infoCliente.nombre,
+          nif: infoCliente["nif"] === "0" ? "" : infoCliente["nif"],
+          direccion:
+            infoCliente["direccion"] === "0" ? "" : infoCliente["direccion"],
+          telefono:
+            infoCliente["telefono"] === "0" ? "" : infoCliente["telefono"],
+        }
       : null;
 
     const descuento =
@@ -832,7 +848,7 @@ export class Impresora {
         } else {
           detallePuntosCliente =
             "Punts restants: " +
-            (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+              (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
         }
 
         if (
@@ -895,7 +911,7 @@ export class Impresora {
           )}€\nDescompte total: ${redondearPrecio(
             (((baseTotal + ivaTotal) / (1 - infoCliente.descuento / 100)) *
               infoCliente.descuento) /
-            100
+              100
           ).toFixed(2)}€`;
       }
     }
@@ -995,8 +1011,9 @@ export class Impresora {
       {
         tipo: "text",
 
-        payload: `Data: ${diasSemana[fechaEspaña.format("d")]
-          } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+        payload: `Data: ${
+          diasSemana[fechaEspaña.format("d")]
+        } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
       {
         tipo: "text",
@@ -1029,26 +1046,31 @@ export class Impresora {
         {
           tipo: "text",
 
-          payload: `${infoClienteVip.nombre
-            ? `\x1B\x45\x01 ${infoClienteVip.nombre} \x1B\x45\x00 \n`
-            : ""
-            }`,
+          payload: `${
+            infoClienteVip.nombre
+              ? `\x1B\x45\x01 ${infoClienteVip.nombre} \x1B\x45\x00 \n`
+              : ""
+          }`,
         },
         { tipo: "size", payload: [0, 0] },
         {
           tipo: "text",
 
-          payload: `${infoClienteVip.telefono
-            ? `\x1B\x45\x01 tel.: ${infoClienteVip.telefono} \x1B\x45\x00 \n`
-            : ""
-            }${infoClienteVip.nif
+          payload: `${
+            infoClienteVip.telefono
+              ? `\x1B\x45\x01 tel.: ${infoClienteVip.telefono} \x1B\x45\x00 \n`
+              : ""
+          }${
+            infoClienteVip.nif
               ? `\x1B\x45\x01 DNI/NIF: ${infoClienteVip.nif} \x1B\x45\x00 \n`
               : ""
-            }${infoClienteVip.direccion
+          }${
+            infoClienteVip.direccion
               ? `\x1B\x45\x01 direccion: ${infoClienteVip.direccion} \x1B\x45\x00 \n`
               : ""
-            }${detallePuntosCliente ? `${detallePuntosCliente}\n` : ""}${clienteDescuento ? `${clienteDescuento}\n` : ""
-            }`,
+          }${detallePuntosCliente ? `${detallePuntosCliente}\n` : ""}${
+            clienteDescuento ? `${clienteDescuento}\n` : ""
+          }`,
         }
       );
     arrayImprimir.push(
@@ -1064,8 +1086,9 @@ export class Impresora {
       { tipo: "text", payload: "_".repeat(48) },
       {
         tipo: "text",
-        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""
-          }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${
+          pagoTkrs != "" ? `${pagoTkrs}` : ""
+        }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
       },
       { tipo: "align", payload: "RT" }
     );
@@ -1128,11 +1151,13 @@ export class Impresora {
             { tipo: "text", payload: "\n\n-" },
             {
               tipo: "qrimage",
-              payload: `https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=${params.nif
-                }&numserie=TK-${params.licencia
-                }-2025-${numFactura}&fecha=${fechaEspaña.format(
-                  "DD-MM-YYYY"
-                )}&importe=${totalImporte}`,
+              payload: `https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=${
+                params.nif
+              }&numserie=TK-${
+                params.licencia
+              }-2025-${numFactura}&fecha=${fechaEspaña.format(
+                "DD-MM-YYYY"
+              )}&importe=${totalImporte}`,
             },
             {
               tipo: "text",
@@ -1217,7 +1242,7 @@ export class Impresora {
       } else {
         detallePuntosCliente =
           "Punts restants: " +
-          (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
+            (infoCliente.puntos === "" ? "0" : infoCliente.puntos) || "0";
       }
       if (
         (!clienteDescEsp || clienteDescEsp.precio != total) &&
@@ -1322,8 +1347,9 @@ export class Impresora {
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
-        payload: `Data: ${diasSemana[fechaEspaña.format("d")]
-          } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+        payload: `Data: ${
+          diasSemana[fechaEspaña.format("d")]
+        } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
       { tipo: "text", payload: factura + numFactura },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
@@ -1339,9 +1365,11 @@ export class Impresora {
       { tipo: "size", payload: [0, 0] },
       {
         tipo: "text",
-        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
-          }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${clienteDescuento ? `${clienteDescuento} \n` : ""
-          }`,
+        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${
+          detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
+        }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${
+          clienteDescuento ? `${clienteDescuento} \n` : ""
+        }`,
       },
       { tipo: "control", payload: "LF" },
       {
@@ -1358,8 +1386,9 @@ export class Impresora {
       },
       {
         tipo: "text",
-        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""
-          }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${
+          pagoTkrs != "" ? `${pagoTkrs}` : ""
+        }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
       },
       { tipo: "size", payload: [1, 1] },
       { tipo: "text", payload: pagoDevolucion },
@@ -1392,8 +1421,9 @@ export class Impresora {
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
-        payload: `Data: ${diasSemana[fechaEspaña.format("d")]
-          } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
+        payload: `Data: ${
+          diasSemana[fechaEspaña.format("d")]
+        } ${fechaEspaña.format("DD-MM-YYYY HH:mm")}`,
       },
       { tipo: "text", payload: factura + numFactura },
       { tipo: "text", payload: "Ates per: " + nombreDependienta },
@@ -1409,9 +1439,11 @@ export class Impresora {
       { tipo: "size", payload: [0, 0] },
       {
         tipo: "text",
-        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
-          }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${clienteDescuento ? `${clienteDescuento} \n` : ""
-          }`,
+        payload: `${detalleClienteVip ? `${detalleClienteVip} \n` : ""}${
+          detalleNombreCliente ? `${detalleNombreCliente} \n` : ""
+        }${detallePuntosCliente ? `${detallePuntosCliente} \n` : ""}${
+          clienteDescuento ? `${clienteDescuento} \n` : ""
+        }`,
       },
       { tipo: "control", payload: "LF" },
       {
@@ -1428,8 +1460,9 @@ export class Impresora {
       },
       {
         tipo: "text",
-        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${pagoTkrs != "" ? `${pagoTkrs}` : ""
-          }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
+        payload: `${pagoTarjeta != "" ? `${pagoTarjeta}` : ""}${
+          pagoTkrs != "" ? `${pagoTkrs}` : ""
+        }${infoConsumoPersonal != "" ? `${infoConsumoPersonal}` : ""}`,
       },
       { tipo: "align", payload: "LT" },
       { tipo: "text", payload: detalleDejaCuenta },
@@ -1580,8 +1613,8 @@ export class Impresora {
     let longDto = albaranNPT_o_vipPT
       ? 0
       : thereIsDto || thereIsDtoTienda
-        ? cLongDto
-        : 0;
+      ? cLongDto
+      : 0;
     let longQuant = cLongQuant;
     let longPreuU = albaranNPT_o_vipPT ? 0 : preuUnitari ? cLongPreuU : 0;
     let longImporte = albaranNPT_o_vipPT ? 0 : cLongImporte;
@@ -1700,9 +1733,9 @@ export class Impresora {
             longPreuU == 0
               ? ""
               : sprintf(
-                `%${longPreuU}s`,
-                `(${artGrupo.unidades}x)` + artGrupo.precioPromoPorUnidad
-              );
+                  `%${longPreuU}s`,
+                  `(${artGrupo.unidades}x)` + artGrupo.precioPromoPorUnidad
+                );
           descuentoStr = sprintf(`%${longDto}s`, "");
           importeStr = "";
           comprobarLongitud("> Of. " + nombreArtPromo);
@@ -1750,13 +1783,14 @@ export class Impresora {
             longPreuU == 0
               ? ""
               : sprintf(
-                `%${longPreuU}.2f`,
-                arrayCompra[i].arraySuplementos[j].precioConIva
-              );
+                  `%${longPreuU}.2f`,
+                  arrayCompra[i].arraySuplementos[j].precioConIva
+                );
           importeStr = sprintf(`%${longImporte}s`, "");
           comprobarLongitud(arrayCompra[i].arraySuplementos[j].nombre);
           // linea del suplemento pos j
-          lineaTicket = `${cantidadStr +
+          lineaTicket = `${
+            cantidadStr +
             margenStr +
             articuloStr +
             margenStr +
@@ -1765,7 +1799,7 @@ export class Impresora {
             (thereIsDto || thereIsDtoTienda ? descuentoStr : "") +
             margenStr +
             importeStr
-            }`;
+          }`;
           detalles += lineaTicket + "\n";
         }
         // version antigua Suplementos
@@ -1798,8 +1832,8 @@ export class Impresora {
             artMenu.gramos && artMenu.gramos > 0
               ? `${artMenu.gramos}gr`
               : artMenu.unidades > 1
-                ? `${artMenu.unidades}x`
-                : "";
+              ? `${artMenu.unidades}x`
+              : "";
 
           let nombreMenu = artMenu.nombre;
           if (cantidadMenu) {
@@ -1965,18 +1999,21 @@ export class Impresora {
         while (nombrePrincipal.length < 20) {
           nombrePrincipal += " ";
         }
-        detalles += `${arrayCompra[i].unidades *
+        detalles += `${
+          arrayCompra[i].unidades *
           arrayCompra[i].promocion.grupos[0][0].unidades
-          }     ${nombrePrincipal.slice(0, 20)}${preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
-          }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
+        }     ${nombrePrincipal.slice(0, 20)}${
+          preuUnitari ? "     " + arrayCompra[i]["preuU"] : ""
+        }       ${arrayCompra[i].subtotal.toFixed(2)}\n`;
         for (let artGrupo of arrayCompra[i].promocion.grupos.flat()) {
           let nombreArtGrupo = artGrupo.nombre;
           nombreArtGrupo = "Oferta " + nombreArtGrupo;
           while (nombreArtGrupo.length < 20) {
             nombreArtGrupo += " ";
           }
-          detalles += `     >     ${nombreArtGrupo.slice(0, 20) + "(x" + artGrupo.unidades + ")"
-            } ${artGrupo.precioPromoPorUnidad.toFixed(2)}\n`;
+          detalles += `     >     ${
+            nombreArtGrupo.slice(0, 20) + "(x" + artGrupo.unidades + ")"
+          } ${artGrupo.precioPromoPorUnidad.toFixed(2)}\n`;
         }
       } else if (
         arrayCompra[i].arraySuplementos &&
@@ -2026,15 +2063,17 @@ export class Impresora {
 
         detalles += ` ${spaces + arrayCompra[i].unidades}  ${arrayCompra[
           i
-        ].nombre.slice(0, 20)} ${preuUnitari
-          ? formatSpaces(
-            6 - arrayCompra[i]["preuU"].toFixed(2).toString().length
-          ) + arrayCompra[i]["preuU"].toFixed(2)
-          : "      "
-          }  ${formatSpaces(
+        ].nombre.slice(0, 20)} ${
+          preuUnitari
+            ? formatSpaces(
+                6 - arrayCompra[i]["preuU"].toFixed(2).toString().length
+              ) + arrayCompra[i]["preuU"].toFixed(2)
+            : "      "
+        }  ${
+          formatSpaces(
             8 - arrayCompra[i].subtotal.toFixed(2).toString().length
           ) + arrayCompra[i].subtotal.toFixed(2)
-          }€\n`;
+        }€\n`;
       }
     }
     let finaltxt = "";
@@ -2329,7 +2368,7 @@ export class Impresora {
       mqttInstance.loggerMQTT(err);
     }
   }
-  async imprimirDeudasPagadas(movimiento) { }
+  async imprimirDeudasPagadas(movimiento) {}
   async imprimirTest() {
     try {
       const device = new escpos.Network("localhost");
@@ -2409,8 +2448,8 @@ export class Impresora {
             )} Data: ${auxFecha.getDate()}/${(auxFecha.getMonth() + 1)
               .toString()
               .padStart(2, "0")}/${auxFecha.getFullYear()} ${this.dosDigitos(
-                auxFecha.getHours()
-              )}:${this.dosDigitos(auxFecha.getMinutes())}\n`;
+              auxFecha.getHours()
+            )}:${this.dosDigitos(auxFecha.getMinutes())}\n`;
           }
         }
       }
@@ -2462,8 +2501,9 @@ export class Impresora {
                 .padStart(
                   2,
                   "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${arrayMovimientos[i].concepto
-                }\n`;
+                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
+                arrayMovimientos[i].concepto
+              }\n`;
             }
             break;
           case "ENTRADA_DINERO":
@@ -2500,8 +2540,9 @@ export class Impresora {
                 .padStart(
                   2,
                   "0"
-                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${arrayMovimientos[i].concepto
-                }\n`;
+                )}/${auxFecha.getFullYear()} ${auxFecha.getHours()}:${auxFecha.getMinutes()}\n  Concepte: ${
+                arrayMovimientos[i].concepto
+              }\n`;
             }
             break;
           case "DATAFONO_3G":
@@ -2572,13 +2613,15 @@ export class Impresora {
         },
         {
           tipo: "text",
-          payload: `Inici: ${diasSemana[fechaInicio.format("d")]
-            } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
+          payload: `Inici: ${
+            diasSemana[fechaInicio.format("d")]
+          } ${fechaInicio.format("DD-MM-YYYY HH:mm")}`,
         },
         {
           tipo: "text",
-          payload: `Final: ${diasSemana[fechaFinal.format("d")]
-            } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
+          payload: `Final: ${
+            diasSemana[fechaFinal.format("d")]
+          } ${fechaFinal.format("DD-MM-YYYY HH:mm")}`,
         },
         {
           tipo: "text",
@@ -2655,37 +2698,37 @@ export class Impresora {
         ...(simple
           ? []
           : [
-            {
-              tipo: "text",
-              payload: "Canvi:",
-            },
-            {
-              tipo: "text",
-              payload:
-                "  Inicial:               " + caja.totalApertura.toFixed(2),
-            },
-            {
-              tipo: "text",
-              payload:
-                "  Final:                 " + caja.totalCierre.toFixed(2),
-            },
-            {
-              tipo: "text",
-              payload:
-                "  Emergència apertura:   " +
-                cambioEmergenciaApertura.toFixed(2),
-            },
-            {
-              tipo: "text",
-              payload:
-                "  Emergència tancament:  " +
-                cambioEmergenciaCierre.toFixed(2),
-            },
-            {
-              tipo: "text",
-              payload: "",
-            },
-          ]),
+              {
+                tipo: "text",
+                payload: "Canvi:",
+              },
+              {
+                tipo: "text",
+                payload:
+                  "  Inicial:               " + caja.totalApertura.toFixed(2),
+              },
+              {
+                tipo: "text",
+                payload:
+                  "  Final:                 " + caja.totalCierre.toFixed(2),
+              },
+              {
+                tipo: "text",
+                payload:
+                  "  Emergència apertura:   " +
+                  cambioEmergenciaApertura.toFixed(2),
+              },
+              {
+                tipo: "text",
+                payload:
+                  "  Emergència tancament:  " +
+                  cambioEmergenciaCierre.toFixed(2),
+              },
+              {
+                tipo: "text",
+                payload: "",
+              },
+            ]),
 
         // info 3G
         {
@@ -2707,7 +2750,7 @@ export class Impresora {
 
           payload: !simple
             ? "  Diferència:            " +
-            (caja.totalDatafono3G - caja.cantidadLocal3G).toFixed(2)
+              (caja.totalDatafono3G - caja.cantidadLocal3G).toFixed(2)
             : "",
         },
         {
@@ -3290,6 +3333,42 @@ export class Impresora {
   }
 
   async imprimirEncargo(encargo: EncargosInterface) {
+    let encRecurrentes = null;
+    let proximaFechaRecurrente = null;
+    let proximaDiaSemanaRecurrente = null;
+    if (encargo.opcionRecogida == 3) {
+      encRecurrentes = await schEncargos.getEncargoByNumber(
+        encargo.codigoBarras
+      );
+
+      // obtener la fecha
+      // más próxima del array comprobando el estado SIN_RECOGER y que el cliente sea el mismo al del encargo
+      if (encRecurrentes && encRecurrentes.length > 0) {
+        const hoy = new Date();
+        let fechaMasProxima = null;
+        for (const enc of encRecurrentes) {
+          if (
+            enc.estado == "SIN_RECOGER" &&
+            enc.idCliente == encargo.idCliente &&
+            enc.opcionRecogida == 3
+          ) {
+            const fechaEncargo = new Date(enc.fecha);
+            if (fechaEncargo >= hoy) {
+              if (
+                fechaMasProxima == null ||
+                fechaEncargo < new Date(fechaMasProxima)
+              ) {
+                proximaDiaSemanaRecurrente = enc.dias[0].dia;
+                fechaMasProxima = enc.fecha;
+              }
+            }
+          }
+        }
+        if (fechaMasProxima != null) {
+          proximaFechaRecurrente = fechaMasProxima;
+        }
+      }
+    }
     const parametros = await parametrosInstance.getParametros();
     const duplicarRebuts = parametros?.params?.DuplicarRebuts == "Si";
     const trabajador: TrabajadoresInterface | any =
@@ -3397,35 +3476,22 @@ export class Impresora {
       encargo.hora = encargo.fecha + "torn de matí";
     } else if (encargo.opcionRecogida == 3) {
       let diaSemana = "";
-      switch (encargo.dias[0].dia) {
-        case "Lunes":
-          diaSemana = "Dilluns";
-          break;
-        case "Martes":
-          diaSemana = "Dimarts";
-          break;
-        case "Miércoles":
-          diaSemana = "Dimecres";
-          break;
-        case "Jueves":
-          diaSemana = "Dijous";
-          break;
-        case "Viernes":
-          diaSemana = "Divendres";
-          break;
-        case "Sábado":
-          diaSemana = "Dissabte";
-          break;
-        case "Domingo":
-          diaSemana = "Diumenge";
-          break;
-        default:
-          break;
+      diaSemana = this.getDiaSemana(encargo.dias[0].dia);
+      if (proximaFechaRecurrente && proximaFechaRecurrente != encargo.fecha) {
+        proximaDiaSemanaRecurrente = this.getDiaSemana(
+          proximaDiaSemanaRecurrente
+        );
+        fechaEncargo +=
+          "Propera entrega: " +
+          proximaDiaSemanaRecurrente +
+          " " +
+          proximaFechaRecurrente;
+      } else {
+        fechaEncargo =
+          "Data d'entrega: Proper " + diaSemana + " " + encargo.fecha;
       }
-      fechaEncargo =
-        "Cada " + diaSemana + ",\n proper " + diaSemana + " " + encargo.fecha;
     } else {
-      fechaEncargo = encargo.fecha + " " + encargo.hora;
+      fechaEncargo = "Data d'entrega: " + encargo.fecha + " " + encargo.hora;
     }
     try {
       const device = new escpos.Network();
@@ -3459,7 +3525,7 @@ export class Impresora {
             "\x1B\x2D\x00\x1D\x21\x00",
         },
         { tipo: "text", payload: "Telèfon Client: " + telefono },
-        { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+        { tipo: "text", payload: fechaEncargo },
         { tipo: "control", payload: "LF" },
         {
           tipo: "text",
@@ -3522,7 +3588,7 @@ export class Impresora {
               "\x1B\x2D\x00\x1D\x21\x00",
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
-          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+          { tipo: "text", payload: fechaEncargo },
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
@@ -3581,7 +3647,7 @@ export class Impresora {
               "\x1B\x2D\x00\x1D\x21\x00",
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
-          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+          { tipo: "text", payload: fechaEncargo },
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
@@ -3628,7 +3694,72 @@ export class Impresora {
       return { error: true, info: "Error en CATCH imprimirEntregas() 2" };
     }
   }
+
+  getDiaSemana(dia: string) {
+    let diaSemana = "";
+    switch (dia) {
+      case "Lunes":
+        diaSemana = "Dilluns";
+        break;
+      case "Martes":
+        diaSemana = "Dimarts";
+        break;
+      case "Miércoles":
+        diaSemana = "Dimecres";
+        break;
+      case "Jueves":
+        diaSemana = "Dijous";
+        break;
+      case "Viernes":
+        diaSemana = "Divendres";
+        break;
+      case "Sábado":
+        diaSemana = "Dissabte";
+        break;
+      case "Domingo":
+        diaSemana = "Diumenge";
+        break;
+      default:
+        break;
+    }
+    return diaSemana;
+  }
   async imprimirEncargoSelected(encargo: EncargosInterface) {
+    let encRecurrentes = null;
+    let proximaFechaRecurrente = null;
+    let proximaDiaSemanaRecurrente = null;
+    if (encargo.opcionRecogida == 3) {
+      encRecurrentes = await schEncargos.getEncargoByNumber(
+        encargo.codigoBarras
+      );
+      // obtener la fecha
+      // más próxima del array comprobando el estado SIN_RECOGER y que el cliente sea el mismo al del encargo
+      if (encRecurrentes && encRecurrentes.length > 0) {
+        const hoy = new Date();
+        let fechaMasProxima = null;
+        for (const enc of encRecurrentes) {
+          if (
+            enc.estado == "SIN_RECOGER" &&
+            enc.idCliente == encargo.idCliente &&
+            enc.opcionRecogida == 3
+          ) {
+            const fechaEncargo = new Date(enc.fecha);
+            if (fechaEncargo >= hoy) {
+              if (
+                fechaMasProxima == null ||
+                fechaEncargo < new Date(fechaMasProxima)
+              ) {
+                proximaDiaSemanaRecurrente = enc.dias[0].dia;
+                fechaMasProxima = enc.fecha;
+              }
+            }
+          }
+        }
+        if (fechaMasProxima != null) {
+          proximaFechaRecurrente = fechaMasProxima;
+        }
+      }
+    }
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface | any =
       (await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador)) || {
@@ -3740,35 +3871,23 @@ export class Impresora {
       let diaSemana = dia.toLocaleDateString("es-ES", { weekday: "long" });
       diaSemana = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
 
-      switch (diaSemana) {
-        case "Lunes":
-          diaSemana = "Dilluns";
-          break;
-        case "Martes":
-          diaSemana = "Dimarts";
-          break;
-        case "Miércoles":
-          diaSemana = "Dimecres";
-          break;
-        case "Jueves":
-          diaSemana = "Dijous";
-          break;
-        case "Viernes":
-          diaSemana = "Divendres";
-          break;
-        case "Sábado":
-          diaSemana = "Dissabte";
-          break;
-        case "Domingo":
-          diaSemana = "Diumenge";
-          break;
-        default:
-          break;
+      diaSemana = this.getDiaSemana(encargo.dias[0].dia);
+
+      if (proximaFechaRecurrente && proximaFechaRecurrente != encargo.fecha) {
+        proximaDiaSemanaRecurrente = this.getDiaSemana(
+          proximaDiaSemanaRecurrente
+        );
+        fechaEncargo +=
+          "Propera entrega: " +
+          proximaDiaSemanaRecurrente +
+          " " +
+          proximaFechaRecurrente;
+      } else {
+        fechaEncargo =
+          "Data d'entrega: Proper " + diaSemana + " " + encargo.fecha;
       }
-      fechaEncargo =
-        "Cada " + diaSemana + ",\n proper " + diaSemana + " " + encargo.fecha;
     } else {
-      fechaEncargo = encargo.fecha + " " + encargo.hora;
+      fechaEncargo = "Data d'entrega: " + encargo.fecha + " " + encargo.hora;
     }
     try {
       const device = new escpos.Network();
@@ -3800,7 +3919,7 @@ export class Impresora {
               "\x1B\x2D\x00\x1D\x21\x00",
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
-          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+          { tipo: "text", payload: fechaEncargo },
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
