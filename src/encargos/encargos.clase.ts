@@ -325,7 +325,7 @@ export class Encargos {
     await schEncargos.borrarEncargos();
   };
   redondearPrecio = (precio: number) => Math.round(precio * 100) / 100;
-  setEncargo = async (encargo) => {
+  setEncargo = async (encargo, reusarBarCode = false) => {
     var TEncargo1 = performance.now();
 
     const cliente = await clienteInstance.getClienteById(encargo.idCliente);
@@ -345,6 +345,86 @@ export class Encargos {
       encargo.productos[i].total = encargo.cesta.lista[i].subtotal;
     }
 
+    // Si opcionRecogida es 3 y hay más de un día en 'dias', crear un encargo por cada día
+    if (
+      encargo.opcionRecogida === 3 &&
+      Array.isArray(encargo.dias) &&
+      encargo.dias.length > 1
+    ) {
+      const hoy = new Date();
+      let resultados = [];
+      // Generar un solo código de barras para todos los encargos
+      let codigoBarras = await movimientosInstance.generarCodigoBarrasSalida();
+      codigoBarras = await calculoEAN13(codigoBarras);
+      // Calcular la fecha más próxima para cada día y guardar los nuevos encargos
+      // Eliminada declaración duplicada de 'hoy'
+      let encargosAGuardar = [];
+      for (const diaObj of encargo.dias) {
+        if (!diaObj || typeof diaObj.nDia !== "number") continue;
+        const diaSemanaHoy = hoy.getDay();
+        const diaEncargo = diaObj.nDia + 1;
+        const diasASumar = (diaEncargo - diaSemanaHoy + 7) % 7;
+        const fechaProxima = new Date(
+          hoy.getTime() + diasASumar * 24 * 60 * 60 * 1000
+        );
+        const anio = fechaProxima.getFullYear();
+        const mes = fechaProxima.getMonth() + 1;
+        const dia = fechaProxima.getDate();
+        const nuevoEncargo = JSON.parse(JSON.stringify(encargo));
+        nuevoEncargo.fecha = `${anio}-${mes.toString().padStart(2, "0")}-${dia
+          .toString()
+          .padStart(2, "0")}`;
+        nuevoEncargo.dias = [diaObj];
+        nuevoEncargo.timestamp = new Date().getTime();
+        if (!reusarBarCode) nuevoEncargo.codigoBarras = codigoBarras;
+        nuevoEncargo.dataVersion = getDataVersion();
+        nuevoEncargo.enviado = false;
+        nuevoEncargo.estado = nuevoEncargo?.pedido ? "RECOGIDO" : "SIN_RECOGER";
+        encargosAGuardar.push(nuevoEncargo);
+      }
+      // Buscar el encargo con la fecha más próxima a hoy para imprimir
+      let encargoMasCercano = encargosAGuardar[0];
+      let minDiff = Math.abs(
+        new Date(encargosAGuardar[0].fecha).getTime() - hoy.getTime()
+      );
+      for (const enc of encargosAGuardar) {
+        const diff = Math.abs(new Date(enc.fecha).getTime() - hoy.getTime());
+        if (diff < minDiff) {
+          minDiff = diff;
+          encargoMasCercano = enc;
+        }
+      }
+      // Imprimir solo el encargo más cercano
+      var TEncargo2 = performance.now();
+      var TiempoEncargo = TEncargo2 - TEncargo1;
+      logger.Info("TiempoEncargo", TiempoEncargo.toFixed(4) + " ms");
+      // Guardar todos los encargos en la base de datos
+      // Eliminada declaración duplicada de 'resultados'
+      for (const enc of encargosAGuardar) {
+        const res = await schEncargos
+          .setEncargo(enc)
+          .then(async (ok) => {
+            if (!ok) return { error: true, msg: "Error al crear el encargo" };
+            await cestasInstance.borrarArticulosCesta(
+              enc.cesta._id,
+              true,
+              true,
+              false
+            );
+            return { error: false, msg: "Encargo creado" };
+          })
+          .catch((err) => ({ error: true, msg: err }));
+        resultados.push(res);
+      }
+      const encargoCopia = JSON.parse(JSON.stringify(encargoMasCercano));
+      if (encargoMasCercano?.pedido) {
+        await impresoraInstance.imprimirPedido(encargoCopia);
+      } else {
+        await impresoraInstance.imprimirEncargo(encargoCopia);
+      }
+      return resultados[resultados.length - 1];
+    }
+
     let timestamp = new Date().getTime();
     let codigoBarras = await movimientosInstance.generarCodigoBarrasSalida();
     codigoBarras = await calculoEAN13(codigoBarras);
@@ -353,7 +433,7 @@ export class Encargos {
     encargo.enviado = false;
 
     encargo.estado = encargo?.pedido ? "RECOGIDO" : "SIN_RECOGER";
-    encargo.codigoBarras = codigoBarras;
+    if (!reusarBarCode) encargo.codigoBarras = codigoBarras;
     encargo.dataVersion = getDataVersion();
     const encargoCopia = JSON.parse(JSON.stringify(encargo));
     if (encargo?.pedido) {
@@ -367,7 +447,7 @@ export class Encargos {
     // creamos un encargo en mongodb
     return schEncargos
       .setEncargo(encargo)
-      .then(async (ok: boolean) => {
+      .then(async (ok) => {
         if (!ok) return { error: true, msg: "Error al crear el encargo" };
         await cestasInstance.borrarArticulosCesta(
           encargo.cesta._id,
@@ -377,7 +457,7 @@ export class Encargos {
         );
         return { error: false, msg: "Encargo creado" };
       })
-      .catch((err: string) => ({ error: true, msg: err }));
+      .catch((err) => ({ error: true, msg: err }));
   };
 
   setPedido = async (encargo) => {
@@ -409,8 +489,38 @@ export class Encargos {
       .catch((err: string) => ({ error: true, msg: err }));
   };
 
-  getEncargoByNumber = async (idTarjeta: string): Promise<EncargosInterface> =>
-    await schEncargos.getEncargoByNumber(idTarjeta);
+  getEncargoByNumber = async (
+    idTarjeta: string
+  ): Promise<EncargosInterface> => {
+    const enc = await schEncargos.getEncargoByNumber(idTarjeta);
+    if (!enc || enc.length === 0) return null;
+    if (enc.length === 1) return enc[0];
+    if (enc.length > 1 && enc[0].opcionRecogida === 3) {
+      // si hay más de un encargo con el mismo idTarjeta y es repetición, devolvemos el más próximo a recoger con estado SIN_RECOGER
+      let encargoMasCercano = null;
+      let minDiff = Number.POSITIVE_INFINITY;
+      for (let i = 0; i < enc.length; i++) {
+        if (enc[i].estado === "SIN_RECOGER") {
+          let fechaI =
+            typeof enc[i].fecha === "number"
+              ? enc[i].fecha
+              : new Date(enc[i].fecha).getTime();
+          const diff = Math.abs(Number(fechaI) - Date.now());
+          if (diff < minDiff) {
+            minDiff = diff;
+            encargoMasCercano = enc[i];
+          }
+        }
+      }
+      // Si no hay ninguno con estado SIN_RECOGER, devolvemos cualquiera (el más próximo)
+      if (!encargoMasCercano) {
+        encargoMasCercano = enc[0];
+      }
+      return encargoMasCercano;
+    }
+    // Si hay más de un encargo con el mismo idTarjeta y no es repetición, devolvemos el primero
+    return enc[0];
+  };
   // actualiza el registro del encargo al recoger
   updateEncargoGraella = async (idEncargo) => {
     const encargo = await this.getEncargoById(idEncargo);
@@ -422,14 +532,14 @@ export class Encargos {
       return true;
     } else if (encargo.opcionRecogida == 3) {
       // se creara automaticamente un encargo si el que se ha recogido es la opcionRecogida 3
-      let diaEnc = new Date(encargo.fecha);
-      diaEnc.setDate(diaEnc.getDate() + 7);
+      // Usar la fecha actual del encargo como referencia para la siguiente
+      let fechaReferencia = new Date(encargo.fecha);
+      fechaReferencia.setDate(fechaReferencia.getDate() + 7);
 
-      // Creamos una nueva fecha sumando una semana mas a la que tiene el encargo
-
-      const anio = diaEnc.getFullYear();
-      const mes = diaEnc.getMonth() + 1; // Se suma 1 porque los meses empiezan en 0
-      const dia = diaEnc.getDate();
+      // Creamos una nueva fecha sumando una semana a la fecha del encargo actual
+      const anio = fechaReferencia.getFullYear();
+      const mes = fechaReferencia.getMonth() + 1; // Se suma 1 porque los meses empiezan en 0
+      const dia = fechaReferencia.getDate();
 
       let nuevaFecha = `${anio}-${mes.toString().padStart(2, "0")}-${dia
         .toString()
@@ -441,7 +551,7 @@ export class Encargos {
       encargo._id = undefined;
       encargo.enviado = false;
       delete encargo.finalizado;
-      await this.setEncargo(encargo);
+      await this.setEncargo(encargo, true);
       return true;
     }
 
@@ -961,7 +1071,6 @@ export class Encargos {
             precioPorUnidad: artInfo.precioConIva,
             puntosPorUnidad: artInfo.puntos,
             impresora: artInfo.impresora,
-
           };
 
           if (gr.idxGrupo != idxGrupoActual) {
@@ -1314,6 +1423,27 @@ export class Encargos {
     }
     productos = nuevaLista;
     return productos;
+  }
+
+  async anularEncargosRecurrentesExpirados() {
+    const encargosRecurrentes =
+      await schEncargos.getEncargosByOpcionRecogida(3);
+
+    const encargosSinRecoger = encargosRecurrentes.filter((encargo) => {
+      return encargo.estado === "SIN_RECOGER";
+    });
+
+    for (const encargo of encargosSinRecoger) {
+      if (new Date(encargo.fecha).getTime() < new Date().setHours(0, 0, 0, 0)) {
+        encargo.estado = "ANULADO";
+        await schEncargos.setAnulado(encargo._id);
+        const proximaFecha = new Date(encargo.fecha);
+        proximaFecha.setDate(proximaFecha.getDate() + 7);
+        encargo.fecha = moment(proximaFecha).format("YYYY-MM-DD");
+        delete encargo._id;
+        await schEncargos.setEncargo(encargo);
+      }
+    }
   }
 }
 
