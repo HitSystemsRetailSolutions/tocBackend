@@ -1875,8 +1875,8 @@ export class CestaClase {
         // aplicar descuento del cliente
         if (
           descuentoCliente &&
-          descuentoCliente > 0 &&
-          descuentoCliente < 100 &&
+          descuentoCliente >= 0 &&
+          descuentoCliente <= 100 &&
           !cesta.lista[i].descuentoTienda &&
           !cestaOfDownloads
         ) {
