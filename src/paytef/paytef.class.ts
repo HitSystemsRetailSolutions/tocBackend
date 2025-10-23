@@ -238,7 +238,6 @@ class PaytefClass {
 
     while (!salirBucleComprobacion) {
       try {
-        throw new Error("test");
         const resEstadoPaytef: any = (
           await axios.post(
             `http://${ipDatafono}:8887/transaction/poll`,
