@@ -62,7 +62,7 @@ export class TecladoClase {
   // }
 
   /* Eze 4.0 */
-  async actualizarTeclado(force:boolean=false): Promise<any> {
+  async actualizarTeclado(force: boolean = false): Promise<any> {
     await backupRestoreInstance.backupCollection("teclas");
 
     const articulos = await articulosInstance.descargarArticulos();
@@ -84,13 +84,13 @@ export class TecladoClase {
     try {
       return await this.insertarTeclas(resTeclas.data);
     } catch (err) {
-      logger.Error(103,'insertarTeclas', err);
+      logger.Error(103, "insertarTeclas", err);
       // restauramos teclas y articulos para que los datos relacionados coincidan
       await backupRestoreInstance.restoreCollection("articulos");
       const restore = await backupRestoreInstance.restoreCollection("teclas");
       return restore
-        ? { error: true, restore: 'success', message: err.message }
-        : { error: true, restore: 'failed', message: err.message };
+        ? { error: true, restore: "success", message: err.message }
+        : { error: true, restore: "failed", message: err.message };
     }
   }
 
@@ -195,18 +195,22 @@ export class TecladoClase {
     const tarifas = await tarifasInstance.allTarifas();
     const articulos = await articulosInstance.getArticulos();
     const menus = [];
+
+    // Crear un Map para tarifas: clave = idArticulo + '|' + idClienteFinal
+    const tarifasMap = new Map();
+    for (const tarifa of tarifas) {
+      tarifasMap.set(`${tarifa.idArticulo}|${tarifa.idClienteFinal}`, tarifa);
+    }
+
     for (let i = 0; i < teclas.length; i++) {
-      let tarifa = tarifas.find(
-        (tarifa) =>
-          tarifa.idArticulo == teclas[i].idArticle &&
-          tarifa.idClienteFinal ==
-            teclas[i].nomMenu.split("]")[0].replace("[", "")
-      );
-      teclas[i].precioConIva =
-        tarifa == undefined ? teclas[i].precioConIva : tarifa.precioConIva;
-      let articulo = articulos.find(
-        (articulo) => articulo._id == teclas[i].idArticle
-      );
+      const idArticulo = teclas[i].idArticle;
+      const idClienteFinal = teclas[i].nomMenu.split("]")[0].replace("[", "");
+      const tarifaKey = `${idArticulo}|${idClienteFinal}`;
+      const tarifa = tarifasMap.get(tarifaKey);
+      teclas[i].precioConIva = tarifa
+        ? tarifa.precioConIva
+        : teclas[i].precioConIva;
+      let articulo = articulos.find((articulo) => articulo._id == idArticulo);
       teclas[i].precioConIva = articulo?.precioConIva;
       teclas[i].precioBase = articulo?.precioBase;
       if (this.tienePrefijoSubmenu(teclas[i].nomMenu)) {
@@ -223,7 +227,7 @@ export class TecladoClase {
             suplementos: teclas[i].suplementos,
             precioConIva: teclas[i].precioConIva,
             precioBase: teclas[i].precioBase,
-            esMenu: teclas[i]?.esMenu || false
+            esMenu: teclas[i]?.esMenu || false,
           }
         );
       } else {
@@ -236,7 +240,7 @@ export class TecladoClase {
           suplementos: teclas[i].suplementos,
           precioConIva: teclas[i].precioConIva,
           precioBase: teclas[i].precioBase,
-          esMenu: teclas[i]?.esMenu || false
+          esMenu: teclas[i]?.esMenu || false,
         });
       }
     }
