@@ -658,7 +658,6 @@ export class MovimientosClase {
           return "EFECTIVO";
         }
       } else if (superTicket.movimientos.length > 1) {
-        
         // caso encargo con dejaACuentaSobrante (en principio, solo es posible este concepto  en efectivo)
         if (
           superTicket.cesta.modo == "RECOGER ENCARGO" &&

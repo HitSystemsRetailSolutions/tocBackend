@@ -3,6 +3,7 @@ import { conexion } from "../conexion/mongodb";
 import { DeudasInterface } from "./deudas.interface";
 import { log } from "console";
 import { logger } from "src/logger";
+import { UtilesModule } from "src/utiles/utiles.module";
 
 export async function setDeuda(deuda): Promise<boolean> {
   const database = (await conexion).db("tocgame");
@@ -25,7 +26,9 @@ export async function getDeudasByIdCliente(
 ): Promise<DeudasInterface[]> {
   const database = (await conexion).db("tocgame");
   const deudas = database.collection<DeudasInterface>("deudas");
-  return await deudas.find({ idCliente: idCliente, estado: "SIN_PAGAR" }).toArray();
+  return await deudas
+    .find({ idCliente: idCliente, estado: "SIN_PAGAR" })
+    .toArray();
 }
 export async function getAllDeudas(): Promise<DeudasInterface[]> {
   const database = (await conexion).db("tocgame");
@@ -195,4 +198,17 @@ export async function getDeudaByIdTicket(
   } catch (error) {
     logger.Error(501, error);
   }
+}
+
+export async function limpiezaDeudas(): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const deudas = database.collection<DeudasInterface>("deudas");
+  return (
+    await deudas.deleteMany({
+      finalizado: true,
+      timestamp: {
+        $lte: UtilesModule.restarDiasTimestamp(Date.now(), 21),
+      },
+    })
+  ).acknowledged;
 }

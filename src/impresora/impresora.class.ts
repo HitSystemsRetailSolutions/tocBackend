@@ -21,6 +21,7 @@ import { logger } from "../logger";
 import { nuevaInstancePromociones } from "../promociones/promociones.clase";
 import { buffer } from "stream/consumers";
 import * as schDeudas from "../deudas/deudas.mongodb";
+import * as schEncargos from "../encargos/encargos.mongodb";
 import { conexion } from "../conexion/mongodb";
 import { sprintf } from "sprintf-js";
 import { paytefInstance } from "src/paytef/paytef.class";
@@ -39,6 +40,7 @@ import { versionDescuentosClient } from "src/version/version.clase";
 import e from "express";
 import Decimal from "decimal.js";
 import { mesasInstance } from "src/mesas/mesas.class";
+import { get } from "http";
 const momentTZ = require("moment-timezone");
 moment.locale("es");
 const escpos = require("escpos");
@@ -3352,6 +3354,42 @@ export class Impresora {
   }
 
   async imprimirEncargo(encargo: EncargosInterface) {
+    let encRecurrentes = null;
+    let proximaFechaRecurrente = null;
+    let proximaDiaSemanaRecurrente = null;
+    if (encargo.opcionRecogida == 3) {
+      encRecurrentes = await schEncargos.getEncargoByNumber(
+        encargo.codigoBarras
+      );
+
+      // obtener la fecha
+      // más próxima del array comprobando el estado SIN_RECOGER y que el cliente sea el mismo al del encargo
+      if (encRecurrentes && encRecurrentes.length > 0) {
+        const hoy = new Date();
+        let fechaMasProxima = null;
+        for (const enc of encRecurrentes) {
+          if (
+            enc.estado == "SIN_RECOGER" &&
+            enc.idCliente == encargo.idCliente &&
+            enc.opcionRecogida == 3
+          ) {
+            const fechaEncargo = new Date(enc.fecha);
+            if (fechaEncargo >= hoy) {
+              if (
+                fechaMasProxima == null ||
+                fechaEncargo < new Date(fechaMasProxima)
+              ) {
+                proximaDiaSemanaRecurrente = enc.dias[0].dia;
+                fechaMasProxima = enc.fecha;
+              }
+            }
+          }
+        }
+        if (fechaMasProxima != null) {
+          proximaFechaRecurrente = fechaMasProxima;
+        }
+      }
+    }
     const parametros = await parametrosInstance.getParametros();
     const duplicarRebuts = parametros?.params?.DuplicarRebuts == "Si";
     const trabajador: TrabajadoresInterface | any =
@@ -3459,35 +3497,22 @@ export class Impresora {
       encargo.hora = encargo.fecha + "torn de matí";
     } else if (encargo.opcionRecogida == 3) {
       let diaSemana = "";
-      switch (encargo.dias[0].dia) {
-        case "Lunes":
-          diaSemana = "Dilluns";
-          break;
-        case "Martes":
-          diaSemana = "Dimarts";
-          break;
-        case "Miércoles":
-          diaSemana = "Dimecres";
-          break;
-        case "Jueves":
-          diaSemana = "Dijous";
-          break;
-        case "Viernes":
-          diaSemana = "Divendres";
-          break;
-        case "Sábado":
-          diaSemana = "Dissabte";
-          break;
-        case "Domingo":
-          diaSemana = "Diumenge";
-          break;
-        default:
-          break;
+      diaSemana = this.getDiaSemana(encargo.dias[0].dia);
+      if (proximaFechaRecurrente && proximaFechaRecurrente != encargo.fecha) {
+        proximaDiaSemanaRecurrente = this.getDiaSemana(
+          proximaDiaSemanaRecurrente
+        );
+        fechaEncargo +=
+          "Propera entrega: " +
+          proximaDiaSemanaRecurrente +
+          " " +
+          proximaFechaRecurrente;
+      } else {
+        fechaEncargo =
+          "Data d'entrega: Proper " + diaSemana + " " + encargo.fecha;
       }
-      fechaEncargo =
-        "Cada " + diaSemana + ",\n proper " + diaSemana + " " + encargo.fecha;
     } else {
-      fechaEncargo = encargo.fecha + " " + encargo.hora;
+      fechaEncargo = "Data d'entrega: " + encargo.fecha + " " + encargo.hora;
     }
     try {
       const device = new escpos.Network();
@@ -3521,7 +3546,7 @@ export class Impresora {
             "\x1B\x2D\x00\x1D\x21\x00",
         },
         { tipo: "text", payload: "Telèfon Client: " + telefono },
-        { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+        { tipo: "text", payload: fechaEncargo },
         { tipo: "control", payload: "LF" },
         {
           tipo: "text",
@@ -3584,7 +3609,7 @@ export class Impresora {
               "\x1B\x2D\x00\x1D\x21\x00",
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
-          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+          { tipo: "text", payload: fechaEncargo },
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
@@ -3643,7 +3668,7 @@ export class Impresora {
               "\x1B\x2D\x00\x1D\x21\x00",
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
-          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+          { tipo: "text", payload: fechaEncargo },
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",
@@ -3690,7 +3715,72 @@ export class Impresora {
       return { error: true, info: "Error en CATCH imprimirEntregas() 2" };
     }
   }
+
+  getDiaSemana(dia: string) {
+    let diaSemana = "";
+    switch (dia) {
+      case "Lunes":
+        diaSemana = "Dilluns";
+        break;
+      case "Martes":
+        diaSemana = "Dimarts";
+        break;
+      case "Miércoles":
+        diaSemana = "Dimecres";
+        break;
+      case "Jueves":
+        diaSemana = "Dijous";
+        break;
+      case "Viernes":
+        diaSemana = "Divendres";
+        break;
+      case "Sábado":
+        diaSemana = "Dissabte";
+        break;
+      case "Domingo":
+        diaSemana = "Diumenge";
+        break;
+      default:
+        break;
+    }
+    return diaSemana;
+  }
   async imprimirEncargoSelected(encargo: EncargosInterface) {
+    let encRecurrentes = null;
+    let proximaFechaRecurrente = null;
+    let proximaDiaSemanaRecurrente = null;
+    if (encargo.opcionRecogida == 3) {
+      encRecurrentes = await schEncargos.getEncargoByNumber(
+        encargo.codigoBarras
+      );
+      // obtener la fecha
+      // más próxima del array comprobando el estado SIN_RECOGER y que el cliente sea el mismo al del encargo
+      if (encRecurrentes && encRecurrentes.length > 0) {
+        const hoy = new Date();
+        let fechaMasProxima = null;
+        for (const enc of encRecurrentes) {
+          if (
+            enc.estado == "SIN_RECOGER" &&
+            enc.idCliente == encargo.idCliente &&
+            enc.opcionRecogida == 3
+          ) {
+            const fechaEncargo = new Date(enc.fecha);
+            if (fechaEncargo >= hoy) {
+              if (
+                fechaMasProxima == null ||
+                fechaEncargo < new Date(fechaMasProxima)
+              ) {
+                proximaDiaSemanaRecurrente = enc.dias[0].dia;
+                fechaMasProxima = enc.fecha;
+              }
+            }
+          }
+        }
+        if (fechaMasProxima != null) {
+          proximaFechaRecurrente = fechaMasProxima;
+        }
+      }
+    }
     const parametros = await parametrosInstance.getParametros();
     const trabajador: TrabajadoresInterface | any =
       (await trabajadoresInstance.getTrabajadorById(encargo.idTrabajador)) || {
@@ -3802,35 +3892,23 @@ export class Impresora {
       let diaSemana = dia.toLocaleDateString("es-ES", { weekday: "long" });
       diaSemana = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
 
-      switch (diaSemana) {
-        case "Lunes":
-          diaSemana = "Dilluns";
-          break;
-        case "Martes":
-          diaSemana = "Dimarts";
-          break;
-        case "Miércoles":
-          diaSemana = "Dimecres";
-          break;
-        case "Jueves":
-          diaSemana = "Dijous";
-          break;
-        case "Viernes":
-          diaSemana = "Divendres";
-          break;
-        case "Sábado":
-          diaSemana = "Dissabte";
-          break;
-        case "Domingo":
-          diaSemana = "Diumenge";
-          break;
-        default:
-          break;
+      diaSemana = this.getDiaSemana(encargo.dias[0].dia);
+
+      if (proximaFechaRecurrente && proximaFechaRecurrente != encargo.fecha) {
+        proximaDiaSemanaRecurrente = this.getDiaSemana(
+          proximaDiaSemanaRecurrente
+        );
+        fechaEncargo +=
+          "Propera entrega: " +
+          proximaDiaSemanaRecurrente +
+          " " +
+          proximaFechaRecurrente;
+      } else {
+        fechaEncargo =
+          "Data d'entrega: Proper " + diaSemana + " " + encargo.fecha;
       }
-      fechaEncargo =
-        "Cada " + diaSemana + ",\n proper " + diaSemana + " " + encargo.fecha;
     } else {
-      fechaEncargo = encargo.fecha + " " + encargo.hora;
+      fechaEncargo = "Data d'entrega: " + encargo.fecha + " " + encargo.hora;
     }
     try {
       const device = new escpos.Network();
@@ -3862,7 +3940,7 @@ export class Impresora {
               "\x1B\x2D\x00\x1D\x21\x00",
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
-          { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
+          { tipo: "text", payload: fechaEncargo },
           { tipo: "control", payload: "LF" },
           {
             tipo: "text",

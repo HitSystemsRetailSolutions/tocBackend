@@ -86,7 +86,7 @@ class PaytefClass {
     if (parametros.ipTefpay) {
       io.emit("procesoPaytef", { proceso: "" });
       try {
-        this.dentroIniciarTransaccion = true;
+        this.setDentroIniciarTransaccion(true);
         let salirBucleStart = false;
         let intentosBucleStart = 0;
         while (!salirBucleStart) {
@@ -153,7 +153,6 @@ class PaytefClass {
         } // while !salirBucleStart
       } finally {
         // proteger esta variable de posibles excepciones
-        this.dentroIniciarTransaccion = false;
       }
       if (errorConexion && !transaccionAprobada) {
         [transaccionAprobada, errorConexion] =
@@ -178,7 +177,12 @@ class PaytefClass {
       transaccionAprobada = false;
       io.emit("errorConexionPaytef");
     }
+    this.setDentroIniciarTransaccion(false);
     return transaccionAprobada;
+  }
+
+  setDentroIniciarTransaccion(finalizado: boolean) {
+    this.dentroIniciarTransaccion = finalizado;
   }
 
   async ultimaComprobacion(idTicket: number): Promise<[boolean, boolean]> {
@@ -187,9 +191,9 @@ class PaytefClass {
     io.emit("procesoPaytef", {
       proceso: "errorConexion",
     });
-    for (let intento = 0; intento < 3; intento++) {
+    for (let intento = 0; intento < 4; intento++) {
       if (intento > 0) {
-        await new Promise((r) => setTimeout(r, 10000)); // Espera 10s entre intentos
+        await new Promise((r) => setTimeout(r, 15000)); // Espera 15s entre intentos
       }
       try {
         const lastFive = await this.getLastFive();

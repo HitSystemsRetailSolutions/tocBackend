@@ -84,7 +84,13 @@ export class TicketsController {
       const alboVip = cliente && (cliente?.albaran || cliente?.vip);
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
       await cestasInstance.aplicarDescuento(cesta, total, cliente);
-      if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
+      if (
+        cesta.modo == "CONSUMO_PERSONAL" ||
+        (cliente &&
+          !alboVip &&
+          cesta.dataVersion &&
+          cesta.dataVersion >= versionDescuentosClient)
+      )
         await cestasInstance.applyDiscountShop(cesta, total);
 
       const ticket = await ticketsInstance.generarNuevoTicket(
@@ -304,7 +310,13 @@ export class TicketsController {
       const alboVip = cliente && (cliente?.albaran || cliente?.vip);
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
       await cestasInstance.aplicarDescuento(cesta, total, cliente);
-      if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
+      if (
+        cesta.modo == "CONSUMO_PERSONAL" ||
+        (cliente &&
+          !alboVip &&
+          cesta.dataVersion &&
+          cesta.dataVersion >= versionDescuentosClient)
+      )
         await cestasInstance.applyDiscountShop(cesta, totalTicket);
 
       if (
@@ -473,7 +485,13 @@ export class TicketsController {
     const alboVip = cliente && (cliente?.albaran || cliente?.vip);
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     await cestasInstance.aplicarDescuento(cesta, total, cliente);
-      if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
+    if (
+      cesta.modo == "CONSUMO_PERSONAL" ||
+      (cliente &&
+        !alboVip &&
+        cesta.dataVersion &&
+        cesta.dataVersion >= versionDescuentosClient)
+    )
       await cestasInstance.applyDiscountShop(cesta, totalTicket);
 
     // elimina la última transacción de Paytef
@@ -573,7 +591,13 @@ export class TicketsController {
     const alboVip = cliente && (cliente?.albaran || cliente?.vip);
     // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
     await cestasInstance.aplicarDescuento(cesta, total, cliente);
-      if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
+    if (
+      cesta.modo == "CONSUMO_PERSONAL" ||
+      (cliente &&
+        !alboVip &&
+        cesta.dataVersion &&
+        cesta.dataVersion >= versionDescuentosClient)
+    )
       await cestasInstance.applyDiscountShop(cesta, total);
     // elimina la última transacción de Paytef
     paytefInstance.deleteUltimaIniciarTransaccion();
@@ -691,7 +715,13 @@ export class TicketsController {
       const alboVip = cliente && (cliente?.albaran || cliente?.vip);
       // aplica posible descuento a la cesta a los clientes que no son de facturación (albaranes y vips)
       await cestasInstance.aplicarDescuento(cesta, total, cliente);
-      if (cesta.modo == "CONSUMO_PERSONAL" || ((cliente && !alboVip) && cesta.dataVersion && cesta.dataVersion >= versionDescuentosClient))
+      if (
+        cesta.modo == "CONSUMO_PERSONAL" ||
+        (cliente &&
+          !alboVip &&
+          cesta.dataVersion &&
+          cesta.dataVersion >= versionDescuentosClient)
+      )
         await cestasInstance.applyDiscountShop(cesta, total);
       // caso doble tpv; borrar registro de la última transacción de Paytef cuando no se ha iniciado una transacción
       if (

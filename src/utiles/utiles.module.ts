@@ -16,9 +16,12 @@ export class UtilesModule {
   static generateUuid(): string {
     return uuidv4();
   }
-
+  static readonly DiasPredefinidos = 60;
   /* Calcula 60 días antes de la fecha dada */
-  static restarDiasTimestamp(fechaMilisegundos: number): number {
-    return fechaMilisegundos - 60 * 24 * 60 * 60 * 1000;
+  static restarDiasTimestamp(
+    fechaMilisegundos: number,
+    diasAntes: number = UtilesModule.DiasPredefinidos
+  ): number {
+    return fechaMilisegundos - diasAntes * 24 * 60 * 60 * 1000;
   }
 }

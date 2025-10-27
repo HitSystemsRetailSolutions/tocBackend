@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import { conexion } from "../conexion/mongodb";
 import { EncargosInterface } from "./encargos.interface";
+import { UtilesModule } from "src/utiles/utiles.module";
 
 export async function getEncargos(): Promise<EncargosInterface[]> {
   const database = (await conexion).db("tocgame");
@@ -9,26 +10,21 @@ export async function getEncargos(): Promise<EncargosInterface[]> {
   return await encargos.find({ estado: "SIN_RECOGER" }).toArray();
 }
 
-
 export async function setPedidoRepartidor(
   idEncargo: EncargosInterface["_id"],
   idRepartidor: EncargosInterface["idRepartidor"]
-)
- {
+) {
   const database = (await conexion).db("tocgame");
   const encargos = database.collection<EncargosInterface>("encargos");
-  return (
-    await encargos.updateOne(
-      { _id: new ObjectId(idEncargo) },
-      {
-        $set: {
-          idRepartidor: idRepartidor,
-        }
-      }
-    )
-  )
- }
-
+  return await encargos.updateOne(
+    { _id: new ObjectId(idEncargo) },
+    {
+      $set: {
+        idRepartidor: idRepartidor,
+      },
+    }
+  );
+}
 
 export async function getPedidos(): Promise<EncargosInterface[]> {
   const database = (await conexion).db("tocgame");
@@ -48,12 +44,17 @@ export async function getEncargosByIdCliente(
     .toArray();
 }
 
-export async function setCestaPedidos(idEncargo: any, cesta: any,total:number,productos:any): Promise<boolean> {
+export async function setCestaPedidos(
+  idEncargo: any,
+  cesta: any,
+  total: number,
+  productos: any
+): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const encargos = database.collection<EncargosInterface>("encargos");
   return (
     await encargos.updateOne(
-      { _id: new ObjectId(idEncargo)  },
+      { _id: new ObjectId(idEncargo) },
       {
         $set: {
           total: total,
@@ -66,7 +67,6 @@ export async function setCestaPedidos(idEncargo: any, cesta: any,total:number,pr
   ).acknowledged;
 }
 
-
 export async function setEncargo(encargo): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const encargos = database.collection<EncargosInterface>("encargos");
@@ -75,6 +75,7 @@ export async function setEncargo(encargo): Promise<boolean> {
     .insertOne(encargo)
     .then(() => true)
     .catch((err: any) => {
+      console.error("Error al insertar el encargo: ", err);
       return false;
     });
 }
@@ -142,10 +143,18 @@ export async function setChecked(
 
 export async function getEncargoByNumber(
   codigoBarras
-): Promise<EncargosInterface> {
+): Promise<EncargosInterface[]> {
   const database = (await conexion).db("tocgame");
   const clientes = database.collection<EncargosInterface>("encargos");
-  return await clientes.findOne({ codigoBarras: codigoBarras });
+  return await clientes.find({ codigoBarras: codigoBarras }).toArray();
+}
+
+export async function getEncargosByOpcionRecogida(
+  opcionRecogida: EncargosInterface["opcionRecogida"]
+): Promise<EncargosInterface[]> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  return await encargos.find({ opcionRecogida: opcionRecogida }).toArray();
 }
 
 export async function borrarEncargos(): Promise<void> {
@@ -267,4 +276,17 @@ export async function getUpdateEncargos(): Promise<boolean> {
     console.error("Error al buscar documentos: ", error);
     throw error; // Lanza el error si ocurre un problema durante la búsqueda.
   }
+}
+
+export async function limpiezaEncargos(): Promise<boolean> {
+  const database = (await conexion).db("tocgame");
+  const encargos = database.collection<EncargosInterface>("encargos");
+  return (
+    await encargos.deleteMany({
+      finalizado: true,
+      timestamp: {
+        $lte: UtilesModule.restarDiasTimestamp(Date.now(), 21),
+      },
+    })
+  ).acknowledged;
 }
