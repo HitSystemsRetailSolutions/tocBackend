@@ -998,8 +998,8 @@ export class Impresora {
       "Si";
     const arrayImprimir = [
       { tipo: "setCharacterCodeTable", payload: 19 },
-      { tipo: "setCharacterCodeTable", payload: 19 },
-      { tipo: "encode", payload: "cp858" },
+      { tipo: "encode", payload: "CP858" },
+      { tipo: "style", payload: "b" },
       { tipo: "font", payload: "A" },
       {
         tipo: "text",
@@ -1074,7 +1074,7 @@ export class Impresora {
         }
       );
     arrayImprimir.push(
-      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: " " },
       {
         tipo: "text",
         payload: formatoDetalle[tipoFormatoDetalle],
@@ -1121,7 +1121,7 @@ export class Impresora {
         { tipo: "text", payload: `Motivo: ${info.justificacion}` }
       );
     arrayImprimir.push(
-      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: " " },
       { tipo: "size", payload: [0, 0] },
       { tipo: "align", payload: "CT" }
     );
@@ -1341,8 +1341,8 @@ export class Impresora {
       "Si";
     const arrayImprimir = [
       { tipo: "setCharacterCodeTable", payload: 19 },
-      { tipo: "setCharacterCodeTable", payload: 19 },
-      { tipo: "encode", payload: "cp858" },
+      { tipo: "encode", payload: "CP858" },
+      { tipo: "style", payload: "b" },
       { tipo: "font", payload: "A" },
       { tipo: "text", payload: cabecera },
       {
@@ -1371,7 +1371,7 @@ export class Impresora {
           clienteDescuento ? `${clienteDescuento} \n` : ""
         }`,
       },
-      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: " " },
       {
         tipo: "text",
         payload: formatoDetalle[tipoFormatoDetalle],
@@ -1401,22 +1401,21 @@ export class Impresora {
       { tipo: "text", payload: pagoDevolucion },
       { tipo: "align", payload: "RT" },
       { tipo: "text", payload: "TOTAL PARCIAL: " + total.toFixed(2) + " €" },
-      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: " " },
       { tipo: "size", payload: [0, 0] },
       { tipo: "align", payload: "CT" },
       { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
       { tipo: "text", payload: detalleIva },
       { tipo: "text", payload: "-- FIRMA CLIENT --\n\n\n\n\n" },
-      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: " " },
       { tipo: "text", payload: "ID: " + random() + " - " + random() },
       { tipo: "text", payload: pie },
-      { tipo: "control", payload: "LF" },
-      { tipo: "control", payload: "LF" },
-      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: " " },
+      { tipo: "text", payload: " " },
+      { tipo: "text", payload: " " },
       { tipo: "cut", payload: "PAPER_FULL_CUT" },
       { tipo: "setCharacterCodeTable", payload: 19 },
-      { tipo: "setCharacterCodeTable", payload: 19 },
-      { tipo: "encode", payload: "cp858" },
+      { tipo: "encode", payload: "CP858" },
       { tipo: "font", payload: "A" },
       { tipo: "text", payload: cabecera },
       {
@@ -1445,7 +1444,7 @@ export class Impresora {
           clienteDescuento ? `${clienteDescuento} \n` : ""
         }`,
       },
-      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: " " },
       {
         tipo: "text",
         payload: formatoDetalle[tipoFormatoDetalle],
@@ -1471,19 +1470,19 @@ export class Impresora {
       { tipo: "text", payload: pagoDevolucion },
       { tipo: "align", payload: "RT" },
       { tipo: "text", payload: "TOTAL PARCIAL: " + total.toFixed(2) + " €" },
-      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: " " },
       { tipo: "size", payload: [0, 0] },
       { tipo: "align", payload: "CT" },
       { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
       { tipo: "text", payload: detalleIva },
       { tipo: "text", payload: copiaText },
       { tipo: "text", payload: firmaText },
-      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: " " },
       { tipo: "text", payload: "ID: " + random() + " - " + random() },
       { tipo: "text", payload: pie },
-      { tipo: "control", payload: "LF" },
-      { tipo: "control", payload: "LF" },
-      { tipo: "control", payload: "LF" },
+      { tipo: "text", payload: " " },
+      { tipo: "text", payload: " " },
+      { tipo: "text", payload: " " },
       { tipo: "cut", payload: "PAPER_FULL_CUT" },
     ];
     const options = {
@@ -3268,7 +3267,7 @@ export class Impresora {
           },
           { tipo: "text", payload: "Ates per: " + trabajador.nombreCorto },
           { tipo: "text", payload: "Data d'entrega: " + fechaEncargo },
-          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: " " },
           {
             tipo: "text",
             payload: formatoDetalle[tipoFormatoDetalle],
@@ -3296,7 +3295,7 @@ export class Impresora {
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },
           { tipo: "text", payload: "-- ES COPIA --" },
-          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: " " },
           { tipo: "text", payload: "ID: " + random() + " - " + random() },
           {
             tipo: "barcode",
@@ -3547,7 +3546,7 @@ export class Impresora {
         },
         { tipo: "text", payload: "Telèfon Client: " + telefono },
         { tipo: "text", payload: fechaEncargo },
-        { tipo: "control", payload: "LF" },
+        { tipo: "text", payload: " " },
         {
           tipo: "text",
           payload: formatoDetalle[tipoFormatoDetalle],
@@ -3574,7 +3573,7 @@ export class Impresora {
         { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
         { tipo: "text", payload: detalleIva },
         { tipo: "text", payload: "-- ES COPIA --" },
-        { tipo: "control", payload: "LF" },
+        { tipo: "text", payload: " " },
         { tipo: "text", payload: "ID: " + random() + " - " + random() },
         {
           tipo: "barcode",
@@ -3610,7 +3609,7 @@ export class Impresora {
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: fechaEncargo },
-          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: " " },
           {
             tipo: "text",
             payload: formatoDetalle[tipoFormatoDetalle],
@@ -3637,7 +3636,7 @@ export class Impresora {
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },
           { tipo: "text", payload: "-- ES COPIA --" },
-          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: " " },
           { tipo: "text", payload: "ID: " + random() + " - " + random() },
           {
             tipo: "barcode",
@@ -3669,7 +3668,7 @@ export class Impresora {
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: fechaEncargo },
-          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: " " },
           {
             tipo: "text",
             payload: formatoDetalle[tipoFormatoDetalle],
@@ -3696,7 +3695,7 @@ export class Impresora {
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },
           { tipo: "text", payload: "-- ES COPIA --" },
-          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: " " },
           { tipo: "text", payload: "ID: " + random() + " - " + random() },
           {
             tipo: "barcode",
@@ -3941,7 +3940,7 @@ export class Impresora {
           },
           { tipo: "text", payload: "Telèfon Client: " + telefono },
           { tipo: "text", payload: fechaEncargo },
-          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: " " },
           {
             tipo: "text",
             payload: formatoDetalle[tipoFormatoDetalle],
@@ -3969,7 +3968,7 @@ export class Impresora {
           { tipo: "text", payload: "Base IVA         IVA         IMPORT" },
           { tipo: "text", payload: detalleIva },
           { tipo: "text", payload: "-- ES COPIA --" },
-          { tipo: "control", payload: "LF" },
+          { tipo: "text", payload: " " },
           { tipo: "text", payload: "ID: " + random() + " - " + random() },
           { tipo: "cut", payload: "PAPER_FULL_CUT" },
         ],
@@ -4027,13 +4026,13 @@ export class Impresora {
         { tipo: "align", payload: "CT" },
         { tipo: "style", payload: "b" },
         { tipo: "text", payload: "TIQUET DE COCINA" },
-        { tipo: "control", payload: "LF" },
+        { tipo: "text", payload: " " },
 
         { tipo: "size", payload: [0, 0] },
         { tipo: "style", payload: "a" },
         { tipo: "text", payload: `Data de solicitud:` },
         { tipo: "text", payload: time.format("DD-MM-YYYY HH:mm") },
-        { tipo: "control", payload: "LF" },
+        { tipo: "text", payload: " " },
         { tipo: "text", payload: "_".repeat(42) + "\n" },
         { tipo: "style", payload: "b" },
         { tipo: "size", payload: [2, 1] },
@@ -4093,7 +4092,7 @@ export class Impresora {
           return bloques;
         }),
 
-        { tipo: "control", payload: "LF" },
+        { tipo: "text", payload: " " },
 
         { tipo: "text", payload: "_".repeat(42) + "\n" },
         { tipo: "align", payload: "LT" },
@@ -4101,7 +4100,7 @@ export class Impresora {
         { tipo: "text", payload: `Comensals: ${customer}` },
         { tipo: "size", payload: [0, 0] },
         { tipo: "align", payload: "CT" },
-        { tipo: "control", payload: "LF" },
+        { tipo: "text", payload: " " },
 
         { tipo: "cut" },
       ];
