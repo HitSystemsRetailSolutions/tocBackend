@@ -89,6 +89,7 @@ export class NuevaPromocion {
   }
 
   public convertirAFormatoNuevoSiEsNecesario(cesta: CestasInterface) {
+
     let update = false;
     for (let item of cesta.lista) {
       let itemOld = item as unknown as ItemLista_old;
@@ -206,6 +207,7 @@ export class NuevaPromocion {
       ar_art: number[],
       cantidad: number
     ) {
+
       if (Array.isArray(ar_art) && ar_art.length > 0 && ar_art[0] >= 0) {
         promo.grupos.push({
           idsArticulos: new Set(ar_art),
@@ -290,6 +292,7 @@ export class NuevaPromocion {
       ar_art: number[],
       cantidad: number
     ) {
+
       if (Array.isArray(ar_art) && ar_art.length > 0 && ar_art[0] >= 0) {
         promo.grupos.push({
           idsArticulos: new Set(ar_art),
@@ -393,6 +396,8 @@ export class NuevaPromocion {
                 precioPromoPorUnidad: artGrupo.precioPromoPorUnidad,
                 puntosPorUnidad: info.puntos,
                 impresora: info.impresora,
+                suplementosPorArticulo: artGrupo.suplementosPorArticulo,
+                printed: artGrupo.printed || 0,
               });
             }
           }
@@ -566,7 +571,7 @@ export class NuevaPromocion {
       if (
         len_v_idxAC_PG > 0 &&
         ArticulosCandidatos[len_v_idxAC_PG] ==
-          ArticulosCandidatos[len_v_idxAC_PG - 1]
+        ArticulosCandidatos[len_v_idxAC_PG - 1]
       ) {
         // empezar por idx ya que es el mismo articulo y daría una combinación repetida si se empieza por 0
         idxPG = prev_idxPG;
@@ -1008,9 +1013,9 @@ export class NuevaPromocion {
       artGrupo.precioPromoPorUnidad = promo_individual
         ? precioPorUnidadPromoIndividual
         : redondearPrecio(
-            artGrupo.precioPorUnidad *
-              (item.promocion.precioFinalPorPromo / totalSinPromocion)
-          );
+          artGrupo.precioPorUnidad *
+          (item.promocion.precioFinalPorPromo / totalSinPromocion)
+        );
       resto -= artGrupo.precioPromoPorUnidad * artGrupo.unidades;
     }
     let ultimoArtGrupo = gruposFlat[gruposFlat.length - 1];
@@ -1187,10 +1192,10 @@ export class NuevaPromocion {
             subtotal: item?.regalo
               ? 0
               : redondearPrecio(
-                  artGrupo.precioPromoPorUnidad *
-                    item.unidades *
-                    artGrupo.unidades
-                ),
+                artGrupo.precioPromoPorUnidad *
+                item.unidades *
+                artGrupo.unidades
+              ),
             nombre: "ArtículoDentroDePromo " + artGrupo.nombre,
           });
         }
