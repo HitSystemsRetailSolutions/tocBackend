@@ -685,7 +685,7 @@ export class MovimientosClase {
           const debeSerCero =
             superTicket.movimientos[0].valor - superTicket.movimientos[1].valor;
           if (debeSerCero === 0) return "EFECTIVO";
-          return "ERROR_DETECTADO";
+          return "DEUDA";
         }
         if (
           superTicket.movimientos.filter((e) => e.tipo === "DATAFONO_3G")
