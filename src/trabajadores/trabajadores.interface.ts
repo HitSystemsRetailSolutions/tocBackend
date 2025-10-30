@@ -13,6 +13,7 @@ export interface TrabajadoresInterface {
   activo: boolean;
   password: string;
   rol: string;
+  tokenMoodle: string;
 }
 
 export interface SincroFichajesInterface extends VersionInterface {
