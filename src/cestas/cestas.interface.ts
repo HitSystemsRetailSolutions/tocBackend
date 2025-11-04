@@ -118,6 +118,7 @@ export type ArticuloPromoEnCesta = {
   idArticulo: number;
   nombre: string;
   unidades: number;
+  printed?: number;
   precioPromoPorUnidad: number;
   impresora: string;
   suplementosPorArticulo?: {
