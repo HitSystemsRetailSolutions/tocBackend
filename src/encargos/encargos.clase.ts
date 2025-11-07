@@ -1059,7 +1059,7 @@ export class Encargos {
         let unidadesPorGrupo: number[] = [];
         let idxGrupoActual = -1;
         let puntos = 0;
-
+        const suplementosUsados: Set<any> = new Set();
         for (let gr of id_y_grupos.grupos) {
           const artInfo = await articulosInstance.getInfoArticulo(gr.Article);
           if (artInfo.puntos != null) puntos += gr.Quantitat * artInfo.puntos;
@@ -1091,7 +1091,8 @@ export class Encargos {
 
         let productoCesta = await nuevaInstancePromociones.crearItemListaPromo(
           promoById,
-          grupos
+          grupos,
+          suplementosUsados
         );
         productoCesta.unidades = num_promos;
         nuevaInstancePromociones.calculoFinalPromo(productoCesta);
