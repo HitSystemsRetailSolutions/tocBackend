@@ -417,10 +417,7 @@ export class NuevaPromocion {
               let infoArt = await articulosInstance.getInfoArticulo(
                 artGrupo.idArticulo
               );
-              console.log(
-                "suplementosBloque",
-                JSON.stringify(suplementosBloque, null, 2)
-              );
+
               MapPromocionables.set(artGrupo.idArticulo, {
                 idArticulo: artGrupo.idArticulo,
                 nombre: infoArt.nombre,
@@ -466,7 +463,6 @@ export class NuevaPromocion {
                 });
               }
             }
-            console.log(info.suplementosPorArticulo);
           } else {
             let suplementos = item.arraySuplementos || null;
             let suplementosBloque =
@@ -615,8 +611,55 @@ export class NuevaPromocion {
         for (let idxPromo of Array.from(SetP)) {
           total_p += PromosCandidatas[idxPromo].precioFinal;
         }
+        // --- FORZAR USO DE ARTICULOS DE COPIACESTA SI COINCIDE ---
+        let forzarCopia = false;
+        let gruposCopia = null;
+        let idxPromoCopia = null;
+        for (let itemCesta of copiaCesta.lista) {
+          if (itemCesta.promocion) {
+            for (let idxPromo of Array.from(SetP)) {
+              if (
+                itemCesta.promocion.idPromocion ===
+                PromosCandidatas[idxPromo]._id
+              ) {
+                forzarCopia = true;
+                gruposCopia = itemCesta.promocion.grupos;
+                idxPromoCopia = idxPromo;
+                break;
+              }
+            }
+          }
+          if (forzarCopia) break;
+        }
+        if (forzarCopia && gruposCopia && idxPromoCopia !== null) {
+          // Comprobar si se pueden cubrir los grupos de copiaCesta con ArticulosCandidatos
+          let puedeCubrir = true;
+          for (let g = 0; g < gruposCopia.length; g++) {
+            for (const articuloCopia of gruposCopia[g]) {
+              let unidadesNecesarias = articuloCopia.unidades;
+              let unidadesAsignadas = 0;
+              for (let idx_v = 0; idx_v < v_idxAC_PG.length; idx_v++) {
+                let pg = ArticulosCandidatos[idx_v].PG[v_idxAC_PG[idx_v]];
+                if (
+                  pg &&
+                  pg.p === idxPromoCopia &&
+                  pg.g === g &&
+                  ArticulosCandidatos[idx_v].idArticulo ===
+                    articuloCopia.idArticulo
+                ) {
+                  unidadesAsignadas++;
+                }
+              }
+              if (unidadesAsignadas < unidadesNecesarias) {
+                puedeCubrir = false;
+                break;
+              }
+            }
+            if (!puedeCubrir) break;
+          }
+          if (!puedeCubrir) return;
+        }
         if (min > total_articulos_candidatos - total_v + total_p) {
-          // guardar promo
           min = total_articulos_candidatos - total_v + total_p;
           min_V = v_idxAC_PG.map((a) => a); // copiar
         }
@@ -710,7 +753,6 @@ export class NuevaPromocion {
       } else ArticulosAplicadosEnPromo.push(null);
     }
     let ArticulosEnNingunaPromocion: Map<number, number> = new Map();
-
     for (let idx_v = 0; idx_v < min_V.length; idx_v++) {
       let idArticulo = ArticulosCandidatos[idx_v].idArticulo;
       let pg = ArticulosCandidatos[idx_v].PG[min_V[idx_v]];
@@ -726,7 +768,6 @@ export class NuevaPromocion {
         ArticulosEnNingunaPromocion.set(idArticulo, n);
       }
     }
-
     let UltimaPromoAplicada: ItemLista = null;
     //let PromocionesAplicadas:ItemLista[]=[]
     for (let idx_p = 0; idx_p < PromosCandidatas.length; idx_p++) {
@@ -754,7 +795,6 @@ export class NuevaPromocion {
           copiaCesta.lista,
           usadosEnCopiaCesta
         );
-        console.log("unidades");
         // si la promo es individual, el precioFinal
         if (
           UltimaPromoAplicada &&
@@ -1028,7 +1068,6 @@ export class NuevaPromocion {
   }
 
   public PromosIguales(A: ItemLista, B: ItemLista) {
-    console.log("promosIguales?");
     let Ap = A.promocion,
       Bp = B.promocion;
     if (Ap.idPromocion != Bp.idPromocion) return false;
@@ -1055,7 +1094,6 @@ export class NuevaPromocion {
         }
       }
     }
-    console.log("true");
     return true;
   }
 
@@ -1081,18 +1119,9 @@ export class NuevaPromocion {
       )
         continue;
 
-      console.log(
-        "Comparando promo con item cesta:",
-        i,
-        promo.idArticulo,
-        listaCesta[i].idArticulo
-      );
       if (this.PromosIguales(promo, listaCesta[i])) {
-        console.log("printed asignado");
         promo.printed = listaCesta[i].printed;
         usados.add(i);
-      } else {
-        console.log("printd no asignado");
       }
     }
   }
@@ -1131,7 +1160,6 @@ export class NuevaPromocion {
     const deepCloneGrupos = (
       gruposOrig: GrupoPromoEnCesta[]
     ): GrupoPromoEnCesta[] => {
-      console.log("grupoAgua", JSON.stringify(gruposOrig, null, 2));
       return gruposOrig.map((grupoArr) =>
         grupoArr.map((articulo) => {
           let suplementosAsignados = [];
@@ -1156,7 +1184,8 @@ export class NuevaPromocion {
               }
               if (bloqueUsadoTotal) continue; // No usar este bloque
               // Calcular cuántas unidades quedan libres en el bloque
-              let unidadesDisponibles = (bloque.unidades || 0) - bloqueUsadoParcial;
+              let unidadesDisponibles =
+                (bloque.unidades || 0) - bloqueUsadoParcial;
               if (unidadesDisponibles <= 0) continue;
               if (unidadesAsignadas >= articulo.unidades) break;
               let usar = Math.min(
@@ -1175,11 +1204,17 @@ export class NuevaPromocion {
                   if (usar === (bloque.unidades || 0)) {
                     suplementosUsados.add(bloque);
                   } else {
-                    suplementosUsados.add({ _bloque: bloque, _parcialUsadas: usar });
+                    suplementosUsados.add({
+                      _bloque: bloque,
+                      _parcialUsadas: usar,
+                    });
                   }
                 } else {
                   // Se usa parcialmente: guardar referencia y unidades usadas
-                  suplementosUsados.add({ _bloque: bloque, _parcialUsadas: usar });
+                  suplementosUsados.add({
+                    _bloque: bloque,
+                    _parcialUsadas: usar,
+                  });
                 }
                 unidadesAsignadas += usar;
               }
@@ -1200,7 +1235,7 @@ export class NuevaPromocion {
     // Guardar los suplementos usados en la instancia para acceso en crearItemListaNormal
     (this as any)._suplementosUsadosUltimaPromo = suplementosUsados;
     const nombrePromo = promo.nombre || nombres.join(" + ");
-    console.log("suplementosUsados", suplementosUsados);
+
     return {
       idArticulo: -1,
       nombre: "Promo. " + nombrePromo,
