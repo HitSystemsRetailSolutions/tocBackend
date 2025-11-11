@@ -1177,8 +1177,8 @@ export class Encargos {
               regalo: false,
               subtotal: this.redondearPrecio(
                 unidades *
-                  // cantidadPrincipal *
-                  promoEncontrado.precioFinal // el precio final en el nuevo formato promo individual ya es el total por promo
+                // cantidadPrincipal *
+                promoEncontrado.precioFinal // el precio final en el nuevo formato promo individual ya es el total por promo
               ),
               puntos:
                 articuloPrincipal.puntos == null
@@ -1222,9 +1222,9 @@ export class Encargos {
 
             let totalSinDescuento =
               articuloPrincipal.precioConIva *
-                promoEncontrado.grupos[0].cantidad +
+              promoEncontrado.grupos[0].cantidad +
               articuloSecundario.precioConIva *
-                promoEncontrado.grupos[1].cantidad;
+              promoEncontrado.grupos[1].cantidad;
 
             let perc = promoEncontrado.precioFinal / totalSinDescuento;
 
@@ -1301,8 +1301,8 @@ export class Encargos {
         if (!procesados.has(index)) {
           const arraySuplementos = detallesArray[index]?.suplementos
             ? await articulosInstance.getSuplementos(
-                detallesArray[index]?.suplementos.split(",").map(Number)
-              )
+              detallesArray[index]?.suplementos.split(",").map(Number)
+            )
             : null;
 
           cesta = await cestasInstance.clickTeclaArticulo(

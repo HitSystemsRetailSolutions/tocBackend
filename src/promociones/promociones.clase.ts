@@ -60,6 +60,7 @@ export type ArticuloInfoPromoYNormal = ArticuloPromoEnCesta & {
   tipoIva?: number;
   suplementosPorArticulo?: {
     printed?: number;
+
     unidades: number;
     suplementos: ItemLista["arraySuplementos"];
   }[];
@@ -90,6 +91,7 @@ export class NuevaPromocion {
   }
 
   public convertirAFormatoNuevoSiEsNecesario(cesta: CestasInterface) {
+
     let update = false;
     for (let item of cesta.lista) {
       let itemOld = item as unknown as ItemLista_old;
@@ -207,6 +209,7 @@ export class NuevaPromocion {
       ar_art: number[],
       cantidad: number
     ) {
+
       if (Array.isArray(ar_art) && ar_art.length > 0 && ar_art[0] >= 0) {
         promo.grupos.push({
           idsArticulos: new Set(ar_art),
@@ -291,6 +294,7 @@ export class NuevaPromocion {
       ar_art: number[],
       cantidad: number
     ) {
+
       if (Array.isArray(ar_art) && ar_art.length > 0 && ar_art[0] >= 0) {
         promo.grupos.push({
           idsArticulos: new Set(ar_art),
@@ -355,8 +359,8 @@ export class NuevaPromocion {
     cliente: ClientesInterface
   ) {
     const copiaCesta = JSON.parse(JSON.stringify(cesta)) as CestasInterface;
-    // Set para almacenar los suplementos usados en la última promo aplicada
     const suplementosUsados = new Set();
+
     if (cesta.modo === "CONSUMO_PERSONAL" || cesta.modo === "DEVOLUCION")
       return false;
 
@@ -387,14 +391,14 @@ export class NuevaPromocion {
               artGrupo.suplementosPorArticulo
             )
               ? artGrupo.suplementosPorArticulo.map((bloque) => {
-                  return {
-                    ...bloque,
-                    printed: artGrupo.printed || 0,
-                  };
-                })
+                return {
+                  ...bloque,
+                  printed: artGrupo.printed || 0,
+                };
+              })
               : artGrupo.suplementosPorArticulo;
+            console.log(suplementosBloque)
             if (info != undefined) {
-              // Acumular unidades y suplementosPorArticulo
               info.unidades += artGrupo.unidades * item.unidades;
               if (suplementosBloque) {
                 if (
@@ -417,7 +421,6 @@ export class NuevaPromocion {
               let infoArt = await articulosInstance.getInfoArticulo(
                 artGrupo.idArticulo
               );
-
               MapPromocionables.set(artGrupo.idArticulo, {
                 idArticulo: artGrupo.idArticulo,
                 nombre: infoArt.nombre,
@@ -444,22 +447,23 @@ export class NuevaPromocion {
               if (!info.suplementosPorArticulo) {
                 info.suplementosPorArticulo = [
                   Array.isArray(item.arraySuplementos) &&
-                  item.arraySuplementos.length > 0
+                    item.arraySuplementos.length > 0
                     ? {
-                        unidades: item.unidades,
-                        suplementos: item.arraySuplementos,
-                        printed: item.printed || 0,
-                      }
+                      unidades: item.unidades,
+                      suplementos: item.arraySuplementos,
+                      printed: item.printed || 0,
+                    }
                     : {
-                        unidades: item.unidades,
-                        suplementos: item.arraySuplementos,
-                      },
+                      unidades: item.unidades,
+                      suplementos: item.arraySuplementos,
+                    },
                 ];
               } else {
                 info.suplementosPorArticulo.push({
                   unidades: item.unidades,
                   suplementos: item.arraySuplementos,
                   printed: item.printed || 0,
+
                 });
               }
             }
@@ -468,15 +472,15 @@ export class NuevaPromocion {
             let suplementosBloque =
               Array.isArray(suplementos) && suplementos.length > 0
                 ? [
-                    {
-                      unidades: item.unidades,
-                      suplementos: suplementos,
-                      printed: item.printed || 0,
-                    },
-                  ]
+                  {
+                    unidades: item.unidades,
+                    suplementos: suplementos,
+                    printed: item.printed || 0,
+                  },
+                ]
                 : suplementos
-                ? [{ unidades: item.unidades, suplementos: suplementos }]
-                : null;
+                  ? [{ unidades: item.unidades, suplementos: suplementos }]
+                  : null;
             MapPromocionables.set(item.idArticulo, {
               idArticulo: item.idArticulo,
               nombre: item.nombre,
@@ -491,7 +495,7 @@ export class NuevaPromocion {
                 descuentoTienda: item.descuentoTienda,
               }),
               ...(item.tipoIva != null && { tipoIva: item.tipoIva }),
-              suplementosPorArticulo: suplementosBloque,
+              suplementosPorArticulo: suplementosBloque
             });
           }
         }
@@ -611,55 +615,8 @@ export class NuevaPromocion {
         for (let idxPromo of Array.from(SetP)) {
           total_p += PromosCandidatas[idxPromo].precioFinal;
         }
-        // --- FORZAR USO DE ARTICULOS DE COPIACESTA SI COINCIDE ---
-        let forzarCopia = false;
-        let gruposCopia = null;
-        let idxPromoCopia = null;
-        for (let itemCesta of copiaCesta.lista) {
-          if (itemCesta.promocion) {
-            for (let idxPromo of Array.from(SetP)) {
-              if (
-                itemCesta.promocion.idPromocion ===
-                PromosCandidatas[idxPromo]._id
-              ) {
-                forzarCopia = true;
-                gruposCopia = itemCesta.promocion.grupos;
-                idxPromoCopia = idxPromo;
-                break;
-              }
-            }
-          }
-          if (forzarCopia) break;
-        }
-        if (forzarCopia && gruposCopia && idxPromoCopia !== null) {
-          // Comprobar si se pueden cubrir los grupos de copiaCesta con ArticulosCandidatos
-          let puedeCubrir = true;
-          for (let g = 0; g < gruposCopia.length; g++) {
-            for (const articuloCopia of gruposCopia[g]) {
-              let unidadesNecesarias = articuloCopia.unidades;
-              let unidadesAsignadas = 0;
-              for (let idx_v = 0; idx_v < v_idxAC_PG.length; idx_v++) {
-                let pg = ArticulosCandidatos[idx_v].PG[v_idxAC_PG[idx_v]];
-                if (
-                  pg &&
-                  pg.p === idxPromoCopia &&
-                  pg.g === g &&
-                  ArticulosCandidatos[idx_v].idArticulo ===
-                    articuloCopia.idArticulo
-                ) {
-                  unidadesAsignadas++;
-                }
-              }
-              if (unidadesAsignadas < unidadesNecesarias) {
-                puedeCubrir = false;
-                break;
-              }
-            }
-            if (!puedeCubrir) break;
-          }
-          if (!puedeCubrir) return;
-        }
         if (min > total_articulos_candidatos - total_v + total_p) {
+          // guardar promo
           min = total_articulos_candidatos - total_v + total_p;
           min_V = v_idxAC_PG.map((a) => a); // copiar
         }
@@ -670,7 +627,7 @@ export class NuevaPromocion {
       if (
         len_v_idxAC_PG > 0 &&
         ArticulosCandidatos[len_v_idxAC_PG] ==
-          ArticulosCandidatos[len_v_idxAC_PG - 1]
+        ArticulosCandidatos[len_v_idxAC_PG - 1]
       ) {
         // empezar por idx ya que es el mismo articulo y daría una combinación repetida si se empieza por 0
         idxPG = prev_idxPG;
@@ -753,6 +710,7 @@ export class NuevaPromocion {
       } else ArticulosAplicadosEnPromo.push(null);
     }
     let ArticulosEnNingunaPromocion: Map<number, number> = new Map();
+
     for (let idx_v = 0; idx_v < min_V.length; idx_v++) {
       let idArticulo = ArticulosCandidatos[idx_v].idArticulo;
       let pg = ArticulosCandidatos[idx_v].PG[min_V[idx_v]];
@@ -768,6 +726,7 @@ export class NuevaPromocion {
         ArticulosEnNingunaPromocion.set(idArticulo, n);
       }
     }
+
     let UltimaPromoAplicada: ItemLista = null;
     //let PromocionesAplicadas:ItemLista[]=[]
     for (let idx_p = 0; idx_p < PromosCandidatas.length; idx_p++) {
@@ -799,9 +758,11 @@ export class NuevaPromocion {
         if (
           UltimaPromoAplicada &&
           this.PromosIguales(PromoAplicada, UltimaPromoAplicada)
-        ) {
+
+        )
+
           UltimaPromoAplicada.unidades++;
-        } else {
+        else {
           if (UltimaPromoAplicada) this.calculoFinalPromo(UltimaPromoAplicada);
           let promosConMismoNombrePeroDiferentesElementos =
             PromosAplicadasTotales.get(PromoAplicada.nombre);
@@ -814,6 +775,8 @@ export class NuevaPromocion {
       }
     }
     if (UltimaPromoAplicada) this.calculoFinalPromo(UltimaPromoAplicada);
+
+
 
     function crearItemListaNormal(
       articulo: ArticuloInfoPromoYNormal,
@@ -834,7 +797,7 @@ export class NuevaPromocion {
           unidadesUsadasPorBloque.set(
             usado._bloque,
             (unidadesUsadasPorBloque.get(usado._bloque) || 0) +
-              usado._parcialUsadas
+            usado._parcialUsadas
           );
         } else if (usado) {
           // Total
@@ -864,10 +827,12 @@ export class NuevaPromocion {
         (sum, s) => sum + s.unidades,
         0
       );
+
       const unidadesSinSuplementos = articulo.unidades - unidadesConSuplementos;
 
-      // CASO 1: Coinciden unidades del artículo y las totales
       if (articulo.unidades === unidadesTotales) {
+
+
         // Primero agregar las unidades sin suplementos, si hay
         if (unidadesSinSuplementos > 0) {
           salida.push({
@@ -883,7 +848,8 @@ export class NuevaPromocion {
             regalo: false,
             pagado: false,
             varis: false,
-            printed: (articulo as any).printed || 0,
+            // Preservar el printed del artículo original si existe
+            printed: articulo.printed || 0,
             ...(articulo.descuentoTienda !== undefined && {
               descuentoTienda: articulo.descuentoTienda,
             }),
@@ -895,10 +861,9 @@ export class NuevaPromocion {
 
         // Luego agregar cada bloque con suplementos
         for (const bloque of bloquesLibres) {
-          const totalSuplementos = bloque.suplementos.reduce(
-            (sum, s) => sum + s.precioConIva,
-            0
-          );
+          const totalSuplementos = Array.isArray(bloque.suplementos)
+            ? bloque.suplementos.reduce((sum, s) => sum + s.precioConIva, 0)
+            : 0;
           salida.push({
             idArticulo: articulo.idArticulo,
             nombre: articulo.nombre,
@@ -926,18 +891,19 @@ export class NuevaPromocion {
 
       // CASO 2: Unidades del artículo NO coinciden con las totales
       else {
+
         let unidadesRestantes = articulo.unidades;
 
         // Prioridad: con suplementos
         for (const bloque of bloquesLibres) {
+
           if (unidadesRestantes <= 0) break;
 
           const usar = Math.min(unidadesRestantes, bloque.unidades);
           if (usar > 0) {
-            const totalSuplementos = bloque.suplementos.reduce(
-              (sum, s) => sum + s.precioConIva,
-              0
-            );
+            const totalSuplementos = Array.isArray(bloque.suplementos)
+              ? bloque.suplementos.reduce((sum, s) => sum + s.precioConIva, 0)
+              : 0;
             salida.push({
               idArticulo: articulo.idArticulo,
               nombre: articulo.nombre,
@@ -949,6 +915,7 @@ export class NuevaPromocion {
               promocion: null, // No es una promoción
               puntos: articulo.puntosPorUnidad * usar,
               impresora: articulo.impresora,
+              // Nunca heredar printed desde el agregado; usar el del bloque si existe
               printed: (bloque as any).printed || 0,
               ...(articulo.descuentoTienda !== undefined && {
                 descuentoTienda: articulo.descuentoTienda,
@@ -963,7 +930,7 @@ export class NuevaPromocion {
             unidadesRestantes -= usar;
           }
         }
-
+        console.log(articulo)
         // Luego sin suplementos
         if (unidadesRestantes > 0 && unidadesSinSuplementos > 0) {
           const usar = Math.min(unidadesRestantes, unidadesSinSuplementos);
@@ -977,7 +944,8 @@ export class NuevaPromocion {
             ),
             puntos: articulo.puntosPorUnidad * articulo.unidades,
             impresora: articulo.impresora,
-            printed: (articulo as any).printed || 0,
+            // Unidades sobrantes sin suplementos (nuevas) no deben heredar printed
+            printed: 0,
             ...(articulo.descuentoTienda !== undefined && {
               descuentoTienda: articulo.descuentoTienda,
             }),
@@ -1019,10 +987,7 @@ export class NuevaPromocion {
             ArticulosEnNingunaPromocion.delete(item_in.idArticulo);
           } else if (MapNoCandidatos.has(item_in.idArticulo)) {
             lista_out.push(
-              ...crearItemListaNormal(
-                MapNoCandidatos.get(item_in.idArticulo),
-                suplementosUsados
-              )
+              ...crearItemListaNormal(MapNoCandidatos.get(item_in.idArticulo), suplementosUsados)
             );
             MapNoCandidatos.delete(item_in.idArticulo);
           }
@@ -1037,13 +1002,10 @@ export class NuevaPromocion {
     // insertar en lista articulos y promos que no estaban en la lista de entrada
     for (let [idArticulo, unidades] of ArticulosEnNingunaPromocion) {
       lista_out.push(
-        ...crearItemListaNormal(
-          {
-            ...MapPromocionables.get(idArticulo),
-            unidades,
-          },
-          suplementosUsados
-        )
+        ...crearItemListaNormal({
+          ...MapPromocionables.get(idArticulo),
+          unidades,
+        }, suplementosUsados)
       );
     }
     for (let articulo of MapNoCandidatos.values()) {
@@ -1054,76 +1016,7 @@ export class NuevaPromocion {
         lista_out.push(promo);
       });
     }
-
-    // dejar a null los arraySuplementos vacíos
-    for (let item of lista_out) {
-      if (
-        Array.isArray(item.arraySuplementos) &&
-        item.arraySuplementos.length == 0
-      )
-        item.arraySuplementos = null;
-    }
-
     cesta.lista = lista_out;
-  }
-
-  public PromosIguales(A: ItemLista, B: ItemLista) {
-    let Ap = A.promocion,
-      Bp = B.promocion;
-    if (Ap.idPromocion != Bp.idPromocion) return false;
-    if (Ap.grupos.length != Bp.grupos.length) return false;
-    for (let i = 0; i < Ap.grupos.length; i++) {
-      if (Ap.grupos[i].length != Bp.grupos[i].length) return false;
-      for (let j = 0; j < Ap.grupos[i].length; j++) {
-        const artA = Ap.grupos[i][j];
-        const artB = Bp.grupos[i][j];
-        if (artA.idArticulo != artB.idArticulo) return false;
-        if (artA.unidades != artB.unidades) return false;
-        // Compare suplementosPorArticulo (ignore printed)
-        const supA = artA.suplementosPorArticulo || [];
-        const supB = artB.suplementosPorArticulo || [];
-        if (supA.length !== supB.length) return false;
-        for (let k = 0; k < supA.length; k++) {
-          const sA = supA[k].suplementos || [];
-          const sB = supB[k].suplementos || [];
-          if (sA.length !== sB.length) return false;
-          for (let l = 0; l < sA.length; l++) {
-            // Compare by _id only
-            if (sA[l]._id !== sB[l]._id) return false;
-          }
-        }
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Asigna el printed de los items originales de la cesta a los artículos de la promo,
-   * evitando reutilizar la misma posición de listaCesta más de una vez.
-   * @param promo ItemLista de la promoción
-   * @param listaCesta Lista original de la cesta
-   * @param usados Set de índices de listaCesta ya utilizados (opcional, se crea si no se pasa)
-   */
-  public devolverPrintedEnPromo(
-    promo: ItemLista,
-    listaCesta: ItemLista[],
-    usados: Set<number> = new Set()
-  ) {
-    if (!promo.promocion) return;
-    // Aquí iría la lógica de asignación, ejemplo de uso del set:
-    for (let i = 0; i < listaCesta.length; i++) {
-      if (
-        usados.has(i) ||
-        !listaCesta[i].printed ||
-        (!listaCesta[i].promocion && !listaCesta[i].promocion?.idPromocion)
-      )
-        continue;
-
-      if (this.PromosIguales(promo, listaCesta[i])) {
-        promo.printed = listaCesta[i].printed;
-        usados.add(i);
-      }
-    }
   }
 
   public async crearItemListaPromo(
@@ -1155,78 +1048,124 @@ export class NuevaPromocion {
         }
       }
     }
-
-    // Clonar y asignar solo los suplementosPorArticulo necesarios para igualar las unidades del grupo
+    // Clona grupos asignando suplementos solo cuando son necesarios,
+    // priorizando el uso de unidades sin suplemento primero, y marcando consumo
+    // en suplementosUsados para evitar duplicados en reconstrucción normal.
     const deepCloneGrupos = (
       gruposOrig: GrupoPromoEnCesta[]
     ): GrupoPromoEnCesta[] => {
       return gruposOrig.map((grupoArr) =>
         grupoArr.map((articulo) => {
-          let suplementosAsignados = [];
-          let unidadesAsignadas = 0;
-          if (Array.isArray(articulo.suplementosPorArticulo)) {
-            for (const bloque of articulo.suplementosPorArticulo) {
-              // Comprobar si el bloque ya está usado (por referencia o por parcial)
-              let bloqueUsadoTotal = false;
-              let bloqueUsadoParcial = 0;
-              for (const usado of suplementosUsados) {
-                if (usado === bloque) {
-                  bloqueUsadoTotal = true;
-                  break;
-                } else if (
-                  usado &&
-                  typeof usado === "object" &&
-                  usado._bloque === bloque &&
-                  typeof usado._parcialUsadas === "number"
-                ) {
-                  bloqueUsadoParcial += usado._parcialUsadas;
-                }
-              }
-              if (bloqueUsadoTotal) continue; // No usar este bloque
-              // Calcular cuántas unidades quedan libres en el bloque
-              let unidadesDisponibles =
-                (bloque.unidades || 0) - bloqueUsadoParcial;
-              if (unidadesDisponibles <= 0) continue;
-              if (unidadesAsignadas >= articulo.unidades) break;
-              let usar = Math.min(
-                unidadesDisponibles,
-                articulo.unidades - unidadesAsignadas
+          // Bloques originales con suplemento (pueden venir de MapPromocionables o de una promo previa)
+          const bloquesOriginales =
+            Array.isArray(articulo.suplementosPorArticulo)
+              ? articulo.suplementosPorArticulo
+              : [];
+
+          // Map de uso previo de bloques (total/parcial) para no reutilizar lo ya consumido
+          const unidadesUsadasPorBloque = new Map<any, number>();
+          for (const usado of suplementosUsados) {
+            if (
+              usado &&
+              typeof usado === "object" &&
+              "_bloque" in usado &&
+              "_parcialUsadas" in usado
+            ) {
+              unidadesUsadasPorBloque.set(
+                usado._bloque,
+                (unidadesUsadasPorBloque.get(usado._bloque) || 0) +
+                usado._parcialUsadas
               );
-              if (usar > 0) {
-                // Si el bloque se usa parcialmente, clonar solo la parte usada
-                const bloqueUsado =
-                  usar === unidadesDisponibles
-                    ? { ...bloque, unidades: usar }
-                    : { ...bloque, unidades: usar };
-                suplementosAsignados.push(bloqueUsado);
-                if (usar === unidadesDisponibles) {
-                  // Se usa todo lo que quedaba del bloque
-                  if (usar === (bloque.unidades || 0)) {
-                    suplementosUsados.add(bloque);
-                  } else {
-                    suplementosUsados.add({
-                      _bloque: bloque,
-                      _parcialUsadas: usar,
-                    });
-                  }
-                } else {
-                  // Se usa parcialmente: guardar referencia y unidades usadas
-                  suplementosUsados.add({
-                    _bloque: bloque,
-                    _parcialUsadas: usar,
-                  });
-                }
-                unidadesAsignadas += usar;
-              }
+            } else if (usado) {
+              unidadesUsadasPorBloque.set(
+                usado,
+                (unidadesUsadasPorBloque.get(usado) || 0) +
+                (usado.unidades || 1)
+              );
             }
           }
-          // Si no hay suplementos o no se asignaron suficientes, el resto va sin suplementos
+
+          // Bloques libres (no usados o parcialmente usados) que tienen suplementos reales
+          const bloquesLibresConSuplementos = bloquesOriginales
+            .flatMap((bloque) => {
+              const usadas = unidadesUsadasPorBloque.get(bloque) || 0;
+              const unidadesBloque = bloque?.unidades ?? 0;
+              if (usadas >= unidadesBloque) {
+                return [];
+              } else if (usadas > 0) {
+                return [
+                  { ...bloque, unidades: Math.max(0, unidadesBloque - usadas) },
+                ];
+              } else {
+                return [bloque];
+              }
+            })
+            .filter(
+              (b) => Array.isArray(b?.suplementos) && b.suplementos.length > 0
+            );
+
+          const unidadesSuplDisponibles = bloquesLibresConSuplementos.reduce(
+            (sum, b) => sum + (b?.unidades ?? 0),
+            0
+          );
+          const unidadesRequeridas = articulo.unidades;
+
+          const suplementosAsignados: {
+            printed?: number;
+            unidades: number;
+            suplementos: ItemLista["arraySuplementos"];
+          }[] = [];
+          let asignadas = 0;
+
+          // Heurística:
+          // - Si hay suficientes unidades con suplemento para cubrir TODA la demanda,
+          //   entendemos que este artículo “era” suplementado (ej. Cocacola frío) y la promo los conserva.
+          // - Si NO son suficientes, se prioriza SIN suplemento y solo se toma suplemento para la parte que falte.
+          const consumirSuplementosPrimero =
+            unidadesSuplDisponibles >= unidadesRequeridas;
+
+          if (consumirSuplementosPrimero) {
+            for (const bloque of bloquesLibresConSuplementos) {
+              if (asignadas >= unidadesRequeridas) break;
+              const disp = bloque?.unidades ?? 0;
+              const usar = Math.min(disp, unidadesRequeridas - asignadas);
+              if (usar > 0) {
+                suplementosAsignados.push({ ...bloque, unidades: usar });
+                if (usar === disp) {
+                  // uso total del bloque
+                  suplementosUsados.add(bloque);
+                } else {
+                  // uso parcial del bloque
+                  suplementosUsados.add({ _bloque: bloque, _parcialUsadas: usar });
+                }
+                asignadas += usar;
+              }
+            }
+            // Si faltaran unidades (poco probable), esas irán sin suplemento.
+          } else {
+            // Prioriza SIN suplemento; si faltan unidades, toma de bloques con suplemento
+            for (const bloque of bloquesLibresConSuplementos) {
+              if (asignadas >= unidadesRequeridas) break;
+              const disp = bloque?.unidades ?? 0;
+              const usar = Math.min(disp, unidadesRequeridas - asignadas);
+              if (usar > 0) {
+                suplementosAsignados.push({ ...bloque, unidades: usar });
+                if (usar === disp) {
+                  suplementosUsados.add(bloque);
+                } else {
+                  suplementosUsados.add({ _bloque: bloque, _parcialUsadas: usar });
+                }
+                asignadas += usar;
+              }
+            }
+            // El resto (si queda) será sin suplemento
+          }
+
+          // Resultado: si asignamos bloques con suplemento, se conservan en la promo; si no, la promo irá sin suplementos.
           return {
             ...articulo,
             suplementosPorArticulo:
-              suplementosAsignados.length > 0
-                ? suplementosAsignados
-                : undefined,
+              suplementosAsignados.length > 0 ? suplementosAsignados : undefined,
           };
         })
       );
@@ -1235,7 +1174,6 @@ export class NuevaPromocion {
     // Guardar los suplementos usados en la instancia para acceso en crearItemListaNormal
     (this as any)._suplementosUsadosUltimaPromo = suplementosUsados;
     const nombrePromo = promo.nombre || nombres.join(" + ");
-
     return {
       idArticulo: -1,
       nombre: "Promo. " + nombrePromo,
@@ -1252,7 +1190,6 @@ export class NuevaPromocion {
       varis: false,
     } as ItemLista;
   }
-
   // Divide suplementosPorArticulo en subgrupos según las unidades del grupo
   private dividirSuplementosEnSubgrupos(grupos: GrupoPromoEnCesta[]) {
     for (let grupo of grupos) {
@@ -1292,7 +1229,6 @@ export class NuevaPromocion {
   public calculoFinalPromo(item: ItemLista) {
     // Dividir suplementosPorArticulo en subgrupos antes de calcular precios
     this.dividirSuplementosEnSubgrupos(item.promocion.grupos);
-
     let gruposFlat = item.promocion.grupos.flat() as ArticuloInfoPromoYNormal[];
     item.promocion.unidadesOferta = item.unidades;
     item.subtotal = redondearPrecio(
@@ -1328,9 +1264,9 @@ export class NuevaPromocion {
       artGrupo.precioPromoPorUnidad = promo_individual
         ? precioPorUnidadPromoIndividual
         : redondearPrecio(
-            artGrupo.precioPorUnidad *
-              (item.promocion.precioFinalPorPromo / totalSinPromocion)
-          );
+          artGrupo.precioPorUnidad *
+          (item.promocion.precioFinalPorPromo / totalSinPromocion)
+        );
       resto -= artGrupo.precioPromoPorUnidad * artGrupo.unidades;
     }
     let ultimoArtGrupo = gruposFlat[gruposFlat.length - 1];
@@ -1507,10 +1443,10 @@ export class NuevaPromocion {
             subtotal: item?.regalo
               ? 0
               : redondearPrecio(
-                  artGrupo.precioPromoPorUnidad *
-                    item.unidades *
-                    artGrupo.unidades
-                ),
+                artGrupo.precioPromoPorUnidad *
+                item.unidades *
+                artGrupo.unidades
+              ),
             nombre: "ArtículoDentroDePromo " + artGrupo.nombre,
           });
         }
@@ -1564,6 +1500,145 @@ export class NuevaPromocion {
       return Number(numero.toFixed(decimales)) === 0 ? 0 : numero; // En valores muy bajos, se comprueba si el numero es 0 (con el redondeo deseado), si no lo es se devuelve el numero otra vez.
     }
   }
+
+
+  public PromosIguales(A: ItemLista, B: ItemLista) {
+    let Ap = A.promocion,
+      Bp = B.promocion;
+    if (Ap.idPromocion != Bp.idPromocion) return false;
+    if (Ap.grupos.length != Bp.grupos.length) return false;
+    for (let i = 0; i < Ap.grupos.length; i++) {
+      if (Ap.grupos[i].length != Bp.grupos[i].length) return false;
+      for (let j = 0; j < Ap.grupos[i].length; j++) {
+        const artA = Ap.grupos[i][j];
+        const artB = Bp.grupos[i][j];
+        if (artA.idArticulo != artB.idArticulo) return false;
+        if (artA.unidades != artB.unidades) return false;
+        // Compare suplementosPorArticulo (ignore printed)
+        const supA = artA.suplementosPorArticulo || [];
+        const supB = artB.suplementosPorArticulo || [];
+        if (supA.length !== supB.length) return false;
+        for (let k = 0; k < supA.length; k++) {
+          const sA = supA[k].suplementos || [];
+          const sB = supB[k].suplementos || [];
+          if (sA.length !== sB.length) return false;
+          for (let l = 0; l < sA.length; l++) {
+            // Compare by _id only
+            if (sA[l]._id !== sB[l]._id) return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Asigna el printed de los items originales de la cesta a los artículos de la promo,
+   * evitando reutilizar la misma posición de listaCesta más de una vez.
+   * @param promo ItemLista de la promoción
+   * @param listaCesta Lista original de la cesta
+   * @param usados Set de índices de listaCesta ya utilizados (opcional, se crea si no se pasa)
+   */
+  public devolverPrintedEnPromo(
+    promo: ItemLista,
+    listaCesta: ItemLista[],
+    usados: Set<number> = new Set()
+  ) {
+    // Debe existir promo y su id
+    if (!promo?.promocion?.idPromocion) return;
+
+    // Comparación más tolerante: ignora completamente los suplementos y solo compara estructura básica
+    const igualesIgnorandoSuplementos = (A: ItemLista, B: ItemLista): boolean => {
+      if (!A?.promocion || !B?.promocion) return false;
+      const Ap = A.promocion.grupos;
+      const Bp = B.promocion.grupos;
+      if (!Array.isArray(Ap) || !Array.isArray(Bp)) return false;
+      if (Ap.length !== Bp.length) return false;
+      for (let i = 0; i < Ap.length; i++) {
+        if (Ap[i].length !== Bp[i].length) return false;
+        for (let j = 0; j < Ap[i].length; j++) {
+          const artA = Ap[i][j];
+          const artB = Bp[i][j];
+          if (artA.idArticulo !== artB.idArticulo) return false;
+          if (artA.unidades !== artB.unidades) return false;
+        }
+      }
+      return true;
+    };
+
+    let asignado = false;
+
+    const asignarPrintedEnGrupos = (
+      gruposNuevos: GrupoPromoEnCesta[],
+      gruposPrevios: GrupoPromoEnCesta[]
+    ) => {
+      for (let gi = 0; gi < gruposNuevos.length && gi < gruposPrevios.length; gi++) {
+        const gNew = gruposNuevos[gi];
+        const gPrev = gruposPrevios[gi];
+        for (let ai = 0; ai < gNew.length && ai < gPrev.length; ai++) {
+          const artNew = gNew[ai] as any;
+          const artPrev = gPrev[ai] as any;
+          if (artNew.idArticulo === artPrev.idArticulo) {
+            const prevPrinted = artPrev.printed || 0;
+            if (prevPrinted > 0) {
+              // Limitar por unidades presentes
+              artNew.printed = Math.min(prevPrinted, artNew.unidades || prevPrinted);
+            }
+            // Asignar printed en bloques de suplementos si existen
+            if (Array.isArray(artNew.suplementosPorArticulo) && Array.isArray(artPrev.suplementosPorArticulo)) {
+              for (let bi = 0; bi < artNew.suplementosPorArticulo.length && bi < artPrev.suplementosPorArticulo.length; bi++) {
+                const bNew = artNew.suplementosPorArticulo[bi] as any;
+                const bPrev = artPrev.suplementosPorArticulo[bi] as any;
+                const bPrevPrinted = bPrev?.printed || artPrev.printed || 0;
+                if (bPrevPrinted > 0) {
+                  bNew.printed = Math.min(bPrevPrinted, bNew.unidades || bPrevPrinted);
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+
+    // 1) Intentar asignar desde una promo anterior equivalente (ignorando suplementos) y con mismo id
+    for (let i = 0; i < listaCesta.length; i++) {
+      const prev = listaCesta[i];
+      if (usados.has(i)) continue;
+      if (!prev?.promocion?.idPromocion) continue;
+      if (!prev.printed || prev.printed <= 0) continue;
+      if (prev.promocion.idPromocion !== promo.promocion.idPromocion) continue;
+      if (igualesIgnorandoSuplementos(promo, prev)) {
+        promo.printed = prev.printed;
+        asignarPrintedEnGrupos(promo.promocion.grupos, prev.promocion.grupos);
+        usados.add(i);
+        asignado = true;
+        break;
+      }
+    }
+
+    // 2) Fallback: si no encontramos una equivalencia estructural, asignar por coincidencia de idPromocion y nombre
+    if (!asignado) {
+      for (let i = 0; i < listaCesta.length; i++) {
+        const prev = listaCesta[i];
+        if (usados.has(i)) continue;
+        if (!prev?.promocion?.idPromocion) continue;
+        if (!prev.printed || prev.printed <= 0) continue;
+        if (prev.promocion.idPromocion === promo.promocion.idPromocion && prev.nombre === promo.nombre) {
+          promo.printed = prev.printed;
+          asignarPrintedEnGrupos(promo.promocion.grupos, prev.promocion.grupos);
+          usados.add(i);
+          break;
+        }
+      }
+    }
+  }
+
 }
 
+
+
+
+
 export const nuevaInstancePromociones = new NuevaPromocion();
+
+
