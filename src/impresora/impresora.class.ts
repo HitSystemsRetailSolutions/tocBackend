@@ -4086,5 +4086,161 @@ export class Impresora {
       throw new Error("Error al imprimir comandero");
     }
   }
+
+  async imprimirTicketCancelacion(
+    productos: ItemLista[],
+    table: string,
+    worker: string,
+    customer: number
+  ) {
+    try {
+      // Procesar productos para extraer items de promociones
+      let productosParaImprimir: any[] = [];
+
+      for (const product of productos) {
+        if (product.promocion) {
+          // Extraer artículos de la promoción que tengan printed > 0
+          for (const grupo of product.promocion.grupos) {
+            for (const artGrupo of grupo) {
+              if (artGrupo.printed > 0 && artGrupo.impresora) {
+                productosParaImprimir.push({
+                  ...artGrupo,
+                  // Para promociones, mostrar solo las unidades impresas
+                  unidades: artGrupo.printed,
+                });
+              }
+            }
+          }
+        } else if (product.printed > 0 && product.impresora) {
+          // Item normal, mostrar solo unidades impresas
+          productosParaImprimir.push({
+            ...product,
+            unidades: product.printed,
+          });
+        }
+      }
+
+      const impresoras = productosParaImprimir
+        .map((product) => product.impresora)
+        .filter((impresora) => impresora);
+      const impresorasUnicas = [...new Set(impresoras)];
+
+      if (impresorasUnicas.length === 0) {
+        return true; // No hay impresoras, salir silenciosamente
+      }
+
+      const time = momentTZ(new Date()).tz("Europe/Madrid");
+
+      for (let i = 0; i < impresorasUnicas.length; i++) {
+        const impresora = impresorasUnicas[i];
+        const productosFiltrados = productosParaImprimir.filter(
+          (product) => product.impresora === impresora
+        );
+
+        const topic = (impresora as string).toLowerCase().includes("cable")
+          ? `hit.hardware/printer`
+          : `hit.hardware/printerIP/${impresora}`;
+
+        let impresion = [
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "align", payload: "CT" },
+          { tipo: "style", payload: "b" },
+          { tipo: "text", payload: "*** CANCELACIÓN ***" },
+          { tipo: "text", payload: " " },
+
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "style", payload: "a" },
+          { tipo: "text", payload: `Data de cancelación:` },
+          { tipo: "text", payload: time.format("DD-MM-YYYY HH:mm") },
+          { tipo: "text", payload: " " },
+          { tipo: "text", payload: "_".repeat(42) + "\n" },
+          { tipo: "style", payload: "b" },
+          { tipo: "size", payload: [2, 1] },
+          { tipo: "text", payload: `${table}` },
+          { tipo: "style", payload: "a" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: "_".repeat(42) + "\n" },
+
+          { tipo: "align", payload: "LT" },
+          { tipo: "size", payload: [1, 0] },
+          { tipo: "style", payload: "b" },
+          { tipo: "text", payload: "PRODUCTOS CANCELADOS:" },
+          { tipo: "text", payload: " " },
+          ...productosFiltrados.flatMap((item) => {
+            const bloques = [];
+            // Las unidades ya están ajustadas a las que estaban impresas
+            if (item.unidades === 0) return bloques;
+
+            bloques.push({ tipo: "size", payload: [1, 0] });
+            bloques.push({ tipo: "style", payload: "b" });
+            bloques.push({
+              tipo: "text",
+              payload: `x${item.unidades} ${item.nombre}`,
+            });
+
+            if (item.arraySuplementos) {
+              for (const suplemento of item.arraySuplementos) {
+                bloques.push({ tipo: "style", payload: "a" });
+                bloques.push({ tipo: "text", payload: `> ${suplemento.nombre}` });
+                bloques.push({ tipo: "style", payload: "b" });
+              }
+            }
+
+            if (item.suplementosPorArticulo) {
+              for (const bloque of item.suplementosPorArticulo) {
+                for (const suplemento of bloque.suplementos) {
+                  bloques.push({ tipo: "style", payload: "a" });
+                  bloques.push({ tipo: "text", payload: `> ${suplemento.nombre}` });
+                  bloques.push({ tipo: "style", payload: "b" });
+                }
+              }
+            }
+
+            if (item.articulosMenu) {
+              for (const menuItem of item.articulosMenu) {
+                bloques.push({ tipo: "style", payload: "a" });
+                bloques.push({ tipo: "text", payload: `  - ${menuItem.nombre}` });
+                if (menuItem.arraySuplementos) {
+                  for (const supl of menuItem.arraySuplementos) {
+                    bloques.push({ tipo: "text", payload: `    > ${supl.nombre}` });
+                  }
+                }
+                bloques.push({ tipo: "style", payload: "b" });
+              }
+            }
+
+            bloques.push({ tipo: "text", payload: " " });
+            return bloques;
+          }),
+
+          { tipo: "text", payload: " " },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: "_".repeat(42) + "\n" },
+          { tipo: "align", payload: "LT" },
+          { tipo: "text", payload: `Treballador: ${worker}` },
+          { tipo: "text", payload: `Comensals: ${customer}` },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "align", payload: "CT" },
+          { tipo: "text", payload: " " },
+          { tipo: "style", payload: "b" },
+          { tipo: "size", payload: [1, 1] },
+          { tipo: "text", payload: "*** NO PREPARAR ***" },
+          { tipo: "size", payload: [0, 0] },
+          { tipo: "text", payload: " " },
+
+          { tipo: "cut" },
+        ];
+
+        this.enviarMQTT(impresion, {}, topic);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Error al imprimir ticket de cancelación:", err);
+      logger.Error(161, err);
+      throw new Error("Error al imprimir ticket de cancelación");
+    }
+  }
 }
 export const impresoraInstance = new Impresora();
