@@ -33,6 +33,7 @@ import axios from "axios";
 import { parametrosInstance } from "src/parametros/parametros.clase";
 import { TrabajadoresInterface } from "src/trabajadores/trabajadores.interface";
 import { trabajadoresInstance } from "src/trabajadores/trabajadores.clase";
+import { mesasInstance } from "src/mesas/mesas.class";
 import { tarifasInstance } from "src/tarifas/tarifas.class";
 import { tiposIvaInstance } from "../tiposIva/tiposIva.clase";
 import Decimal from "decimal.js";
@@ -729,9 +730,18 @@ export class CestaClase {
 
       if (tienePrintedNormal || tienePrintedEnPromo) {
         try {
-          const nombreMesa = cesta.indexMesa != null
-            ? `Mesa ${cesta.indexMesa + 1}`
-            : cesta.nombreCliente || "Sin nombre";
+          // Obtener nombre de la mesa (con custom name si existe)
+          let nombreMesa = "Sin nombre";
+          if (cesta.indexMesa != null) {
+            const mesas = await mesasInstance.getMesas();
+            if (mesas && mesas[cesta.indexMesa]) {
+              nombreMesa = mesas[cesta.indexMesa].nombre || `Mesa ${cesta.indexMesa + 1}`;
+            } else {
+              nombreMesa = `Mesa ${cesta.indexMesa + 1}`;
+            }
+          } else {
+            nombreMesa = cesta.nombreCliente || "Sin nombre";
+          }
 
           // Obtener trabajador - convertir ObjectId a número
           const idTrabajador = cesta.trabajadores[0]
@@ -1020,6 +1030,52 @@ export class CestaClase {
                 const instanciasNoImpresas = item.instancias.filter(inst => !inst.printed);
                 const instanciasImpresas = item.instancias.filter(inst => inst.printed);
 
+                // Calcular cuántas instancias IMPRESAS se van a eliminar
+                let instanciasImpresasAEliminar = 0;
+                if (unidadesAEliminar > instanciasNoImpresas.length) {
+                  instanciasImpresasAEliminar = unidadesAEliminar - instanciasNoImpresas.length;
+                }
+
+                // Si se van a eliminar instancias impresas, imprimir ticket de cancelación
+                if (instanciasImpresasAEliminar > 0 && item.impresora) {
+                  try {
+                    // Obtener nombre de la mesa (con custom name si existe)
+                    let nombreMesa = "Sin nombre";
+                    if (cesta.indexMesa != null) {
+                      const mesas = await mesasInstance.getMesas();
+                      if (mesas && mesas[cesta.indexMesa]) {
+                        nombreMesa = mesas[cesta.indexMesa].nombre || `Mesa ${cesta.indexMesa + 1}`;
+                      } else {
+                        nombreMesa = `Mesa ${cesta.indexMesa + 1}`;
+                      }
+                    } else {
+                      nombreMesa = cesta.nombreCliente || "Sin nombre";
+                    }
+
+                    const idTrabajador = cesta.trabajadores[0]
+                      ? Number(cesta.trabajadores[0].toString())
+                      : cesta.trabajador;
+                    const trabajador = await trabajadoresInstance.getTrabajadorById(idTrabajador);
+                    const nombreTrabajador = trabajador?.nombre || "Trabajador";
+
+                    // Crear item temporal con solo las unidades impresas que se eliminan
+                    const itemCancelacion = {
+                      ...item,
+                      unidades: instanciasImpresasAEliminar,
+                      printed: instanciasImpresasAEliminar,
+                    };
+
+                    await impresoraInstance.imprimirTicketCancelacion(
+                      [itemCancelacion],
+                      nombreMesa,
+                      nombreTrabajador,
+                      cesta.comensales || 1
+                    );
+                  } catch (error) {
+                    console.error("Error al imprimir ticket de cancelación:", error);
+                  }
+                }
+
                 let eliminadas = 0;
                 // Primero eliminar de las no impresas
                 if (instanciasNoImpresas.length >= unidadesAEliminar) {
@@ -1078,6 +1134,52 @@ export class CestaClase {
               const unidadesAEliminar = Math.abs(unidades);
               const instanciasNoImpresas = item.instancias.filter(inst => !inst.printed);
               const instanciasImpresas = item.instancias.filter(inst => inst.printed);
+
+              // Calcular cuántas instancias IMPRESAS se van a eliminar
+              let instanciasImpresasAEliminar = 0;
+              if (unidadesAEliminar > instanciasNoImpresas.length) {
+                instanciasImpresasAEliminar = unidadesAEliminar - instanciasNoImpresas.length;
+              }
+
+              // Si se van a eliminar instancias impresas, imprimir ticket de cancelación
+              if (instanciasImpresasAEliminar > 0 && item.impresora) {
+                try {
+                  // Obtener nombre de la mesa (con custom name si existe)
+                  let nombreMesa = "Sin nombre";
+                  if (cesta.indexMesa != null) {
+                    const mesas = await mesasInstance.getMesas();
+                    if (mesas && mesas[cesta.indexMesa]) {
+                      nombreMesa = mesas[cesta.indexMesa].nombre || `Mesa ${cesta.indexMesa + 1}`;
+                    } else {
+                      nombreMesa = `Mesa ${cesta.indexMesa + 1}`;
+                    }
+                  } else {
+                    nombreMesa = cesta.nombreCliente || "Sin nombre";
+                  }
+
+                  const idTrabajador = cesta.trabajadores[0]
+                    ? Number(cesta.trabajadores[0].toString())
+                    : cesta.trabajador;
+                  const trabajador = await trabajadoresInstance.getTrabajadorById(idTrabajador);
+                  const nombreTrabajador = trabajador?.nombre || "Trabajador";
+
+                  // Crear item temporal con solo las unidades impresas que se eliminan
+                  const itemCancelacion = {
+                    ...item,
+                    unidades: instanciasImpresasAEliminar,
+                    printed: instanciasImpresasAEliminar,
+                  };
+
+                  await impresoraInstance.imprimirTicketCancelacion(
+                    [itemCancelacion],
+                    nombreMesa,
+                    nombreTrabajador,
+                    cesta.comensales || 1
+                  );
+                } catch (error) {
+                  console.error("Error al imprimir ticket de cancelación:", error);
+                }
+              }
 
               let eliminadas = 0;
               // Primero eliminar de las no impresas
