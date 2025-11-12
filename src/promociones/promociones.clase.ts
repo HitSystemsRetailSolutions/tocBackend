@@ -847,9 +847,33 @@ export class NuevaPromocion {
         if (
           UltimaPromoAplicada &&
           PromosIguales(PromoAplicada, UltimaPromoAplicada)
-        )
+        ) {
           UltimaPromoAplicada.unidades++;
-        else {
+
+          // IMPORTANTE: Agregar las instancias de la nueva promo a la existente
+          for (let g = 0; g < PromoAplicada.promocion.grupos.length; g++) {
+            for (let a = 0; a < PromoAplicada.promocion.grupos[g].length; a++) {
+              const artNuevo = PromoAplicada.promocion.grupos[g][a];
+              const artExistente = UltimaPromoAplicada.promocion.grupos[g][a];
+
+              // Incrementar unidades del artículo (cada promo tiene sus propias unidades)
+              artExistente.unidades += artNuevo.unidades;
+
+              if (artNuevo.instancias && artNuevo.instancias.length > 0) {
+                if (!artExistente.instancias) {
+                  artExistente.instancias = [];
+                }
+                // Agregar las instancias de la nueva promo
+                artExistente.instancias.push(...artNuevo.instancias);
+                // Recalcular printed basándose en instancias
+                artExistente.printed = artExistente.instancias.filter(inst => inst.printed).length;
+              } else if (artNuevo.printed) {
+                // Compatibilidad: sumar printed si no hay instancias
+                artExistente.printed = (artExistente.printed || 0) + artNuevo.printed;
+              }
+            }
+          }
+        } else {
           if (UltimaPromoAplicada) this.calculoFinalPromo(UltimaPromoAplicada);
           let promosConMismoNombrePeroDiferentesElementos =
             PromosAplicadasTotales.get(PromoAplicada.nombre);

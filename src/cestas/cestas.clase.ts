@@ -1314,11 +1314,43 @@ export class CestaClase {
       const cesta = await this.getCestaById(idCesta);
       let ticketsWithPrinter: ItemLista[] = [];
       for (let i = 0; i < cesta.lista.length; i++) {
-        if (
-          cesta.lista[i].impresora &&
-          cesta.lista[i].printed != cesta.lista[i].unidades
-        ) {
-          ticketsWithPrinter.push(cesta.lista[i]);
+        const item = cesta.lista[i];
+
+        // Para items normales, verificar si hay instancias no impresas
+        if (item.impresora && !item.promocion) {
+          if (item.printed != item.unidades) {
+            ticketsWithPrinter.push(item);
+          }
+        }
+
+        // Para promociones, verificar si hay instancias no impresas en los artículos de los grupos
+        if (item.promocion) {
+          let hayInstanciasNoImpresas = false;
+
+          for (const grupo of item.promocion.grupos) {
+            for (const artGrupo of grupo) {
+              if (artGrupo.impresora) {
+                if (artGrupo.instancias && artGrupo.instancias.length > 0) {
+                  // Verificar si hay alguna instancia no impresa
+                  if (artGrupo.instancias.some(inst => !inst.printed)) {
+                    hayInstanciasNoImpresas = true;
+                    break;
+                  }
+                } else {
+                  // Compatibilidad: verificar printed vs unidades
+                  if (artGrupo.printed < artGrupo.unidades) {
+                    hayInstanciasNoImpresas = true;
+                    break;
+                  }
+                }
+              }
+            }
+            if (hayInstanciasNoImpresas) break;
+          }
+
+          if (hayInstanciasNoImpresas) {
+            ticketsWithPrinter.push(item);
+          }
         }
       }
       if (ticketsWithPrinter.length > 0) {

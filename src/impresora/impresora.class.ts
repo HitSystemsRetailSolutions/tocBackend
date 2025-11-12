@@ -301,11 +301,30 @@ export class Impresora {
         products = products
           .map((product) => {
             if (product.promocion) {
-              return product.promocion.grupos.map((promoProduct) => {
-                return {
-                  ...promoProduct[0],
-                };
-              });
+              // Extraer TODOS los artículos de TODOS los grupos
+              const articulosDePromo = [];
+              for (const grupo of product.promocion.grupos) {
+                for (const artGrupo of grupo) {
+                  // Calcular cuántas unidades NO impresas hay
+                  let unidadesNoImpresas = 0;
+                  if (artGrupo.instancias && artGrupo.instancias.length > 0) {
+                    unidadesNoImpresas = artGrupo.instancias.filter(inst => !inst.printed).length;
+                  } else {
+                    // Compatibilidad
+                    unidadesNoImpresas = artGrupo.unidades - (artGrupo.printed || 0);
+                  }
+
+                  // Solo agregar si hay unidades no impresas
+                  if (unidadesNoImpresas > 0) {
+                    articulosDePromo.push({
+                      ...artGrupo,
+                      unidades: unidadesNoImpresas,
+                      printed: 0, // Ya están filtradas las no impresas
+                    });
+                  }
+                }
+              }
+              return articulosDePromo;
             }
             return { ...product, impresora: product.impresora };
           })
