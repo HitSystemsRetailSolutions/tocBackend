@@ -94,7 +94,6 @@ export class NuevaPromocion {
   }
 
   public convertirAFormatoNuevoSiEsNecesario(cesta: CestasInterface) {
-
     let update = false;
     for (let item of cesta.lista) {
       let itemOld = item as unknown as ItemLista_old;
@@ -212,7 +211,6 @@ export class NuevaPromocion {
       ar_art: number[],
       cantidad: number
     ) {
-
       if (Array.isArray(ar_art) && ar_art.length > 0 && ar_art[0] >= 0) {
         promo.grupos.push({
           idsArticulos: new Set(ar_art),
@@ -297,7 +295,6 @@ export class NuevaPromocion {
       ar_art: number[],
       cantidad: number
     ) {
-
       if (Array.isArray(ar_art) && ar_art.length > 0 && ar_art[0] >= 0) {
         promo.grupos.push({
           idsArticulos: new Set(ar_art),
@@ -372,6 +369,8 @@ export class NuevaPromocion {
         return false;
       }
     }
+
+    const copiaCesta: CestasInterface = JSON.parse(JSON.stringify(cesta));
     // articulos que no entran en promociones
     let SetNoPromocionables: Set<ItemLista> = new Set();
     // articulos que pueden formar parte de promociones - usar instanceId como key para mantener instancias separadas
@@ -403,17 +402,24 @@ export class NuevaPromocion {
                   info.instancias.push(...artGrupo.instancias);
                 }
                 // Recalcular printed basándose en las instancias
-                info.printed = info.instancias.filter(inst => inst.printed).length;
+                info.printed = info.instancias.filter(
+                  (inst) => inst.printed
+                ).length;
               } else if (artGrupo.printed) {
                 info.printed = (info.printed || 0) + artGrupo.printed;
               }
 
               // Agregar suplementos si existen
-              if (artGrupo.suplementosPorArticulo && artGrupo.suplementosPorArticulo.length > 0) {
+              if (
+                artGrupo.suplementosPorArticulo &&
+                artGrupo.suplementosPorArticulo.length > 0
+              ) {
                 if (!info.suplementosPorArticulo) {
                   info.suplementosPorArticulo = [];
                 }
-                info.suplementosPorArticulo.push(...artGrupo.suplementosPorArticulo);
+                info.suplementosPorArticulo.push(
+                  ...artGrupo.suplementosPorArticulo
+                );
               }
             } else {
               let infoArticulo = await articulosInstance.getInfoArticulo(
@@ -440,7 +446,9 @@ export class NuevaPromocion {
                 puntosPorUnidad: infoArticulo.puntos,
                 impresora: infoArticulo.impresora,
                 suplementosPorArticulo: artGrupo.suplementosPorArticulo,
-                printed: instancias ? instancias.filter(inst => inst.printed).length : (artGrupo.printed || 0),
+                printed: instancias
+                  ? instancias.filter((inst) => inst.printed).length
+                  : artGrupo.printed || 0,
                 instanceId: artGrupo.instanceId,
                 instancias: instancias,
               });
@@ -462,7 +470,9 @@ export class NuevaPromocion {
               }
               info.instancias.push(...item.instancias);
               // Recalcular printed basándose en las instancias
-              info.printed = info.instancias.filter(inst => inst.printed).length;
+              info.printed = info.instancias.filter(
+                (inst) => inst.printed
+              ).length;
             } else if (item.printed) {
               info.printed = (info.printed || 0) + item.printed;
             }
@@ -488,7 +498,9 @@ export class NuevaPromocion {
                 item.puntos == null ? null : item.puntos / item.unidades,
               precioPromoPorUnidad: null,
               impresora: item.impresora,
-              printed: item.instancias ? item.instancias.filter(inst => inst.printed).length : (item.printed || 0),
+              printed: item.instancias
+                ? item.instancias.filter((inst) => inst.printed).length
+                : item.printed || 0,
               instanceId: item.instanceId,
               instancias: item.instancias || null,
               ...(item.descuentoTienda != null && {
@@ -518,7 +530,8 @@ export class NuevaPromocion {
         }
         let grupo = promo.grupos[idxG];
         for (let [key, articulo] of MapPromocionables) {
-          if (grupo.idsArticulos.has(articulo.idArticulo)) n[idxG] += articulo.unidades;
+          if (grupo.idsArticulos.has(articulo.idArticulo))
+            n[idxG] += articulo.unidades;
         }
         n[idxG] = Math.trunc(n[idxG] / grupo.cantidad); // numero de grupos llenos posibles
         if (n[idxG] == 0) {
@@ -631,7 +644,7 @@ export class NuevaPromocion {
       if (
         len_v_idxAC_PG > 0 &&
         ArticulosCandidatos[len_v_idxAC_PG] ==
-        ArticulosCandidatos[len_v_idxAC_PG - 1]
+          ArticulosCandidatos[len_v_idxAC_PG - 1]
       ) {
         // empezar por idx ya que es el mismo articulo y daría una combinación repetida si se empieza por 0
         idxPG = prev_idxPG;
@@ -743,38 +756,57 @@ export class NuevaPromocion {
 
             // Distribuir instancias individuales entre promo y no-promo
             let instanciasParaPromo: typeof artOriginal.instancias = null;
-            let suplementosParaPromo: typeof artOriginal.suplementosPorArticulo = null;
+            let suplementosParaPromo: typeof artOriginal.suplementosPorArticulo =
+              null;
             let printedParaPromo = 0;
 
             if (artOriginal.instancias && artOriginal.instancias.length > 0) {
               // NUEVO: Trabajar con array de instancias individuales
               // Separar instancias no impresas e impresas
-              const instanciasNoImpresas = artOriginal.instancias.filter(inst => !inst.printed);
-              const instanciasImpresas = artOriginal.instancias.filter(inst => inst.printed);
+              const instanciasNoImpresas = artOriginal.instancias.filter(
+                (inst) => !inst.printed
+              );
+              const instanciasImpresas = artOriginal.instancias.filter(
+                (inst) => inst.printed
+              );
 
               instanciasParaPromo = [];
 
               // Prioridad: tomar primero las NO impresas para la promo
-              const tomarNoImpresas = Math.min(unidades, instanciasNoImpresas.length);
+              const tomarNoImpresas = Math.min(
+                unidades,
+                instanciasNoImpresas.length
+              );
               if (tomarNoImpresas > 0) {
-                instanciasParaPromo.push(...instanciasNoImpresas.slice(0, tomarNoImpresas));
+                instanciasParaPromo.push(
+                  ...instanciasNoImpresas.slice(0, tomarNoImpresas)
+                );
               }
 
               // Si necesitamos más, tomar de las impresas
               const necesitamosImpresas = unidades - tomarNoImpresas;
               if (necesitamosImpresas > 0) {
-                instanciasParaPromo.push(...instanciasImpresas.slice(0, necesitamosImpresas));
+                instanciasParaPromo.push(
+                  ...instanciasImpresas.slice(0, necesitamosImpresas)
+                );
               }
 
               // Las que quedan fuera de la promo
               const instanciasQuedanFuera = [
                 ...instanciasNoImpresas.slice(tomarNoImpresas),
-                ...instanciasImpresas.slice(necesitamosImpresas > 0 ? necesitamosImpresas : 0),
+                ...instanciasImpresas.slice(
+                  necesitamosImpresas > 0 ? necesitamosImpresas : 0
+                ),
               ];
 
-              artOriginal.instancias = instanciasQuedanFuera.length > 0 ? instanciasQuedanFuera : null;
-              printedParaPromo = instanciasParaPromo.filter(inst => inst.printed).length;
-              artOriginal.printed = instanciasQuedanFuera.filter(inst => inst.printed).length;
+              artOriginal.instancias =
+                instanciasQuedanFuera.length > 0 ? instanciasQuedanFuera : null;
+              printedParaPromo = instanciasParaPromo.filter(
+                (inst) => inst.printed
+              ).length;
+              artOriginal.printed = instanciasQuedanFuera.filter(
+                (inst) => inst.printed
+              ).length;
             } else {
               // COMPATIBILIDAD: código antiguo sin instancias
               const printedOriginal = artOriginal.printed || 0;
@@ -791,10 +823,14 @@ export class NuevaPromocion {
             }
 
             // Distribuir los suplementos: tomar las unidades necesarias para la promo
-            if (artOriginal.suplementosPorArticulo && artOriginal.suplementosPorArticulo.length > 0) {
+            if (
+              artOriginal.suplementosPorArticulo &&
+              artOriginal.suplementosPorArticulo.length > 0
+            ) {
               suplementosParaPromo = [];
               let unidadesRestantes = unidades;
-              const suplementosRestantes: typeof artOriginal.suplementosPorArticulo = [];
+              const suplementosRestantes: typeof artOriginal.suplementosPorArticulo =
+                [];
 
               for (const bloque of artOriginal.suplementosPorArticulo) {
                 if (unidadesRestantes > 0) {
@@ -816,7 +852,8 @@ export class NuevaPromocion {
                   suplementosRestantes.push(bloque);
                 }
               }
-              artOriginal.suplementosPorArticulo = suplementosRestantes.length > 0 ? suplementosRestantes : null;
+              artOriginal.suplementosPorArticulo =
+                suplementosRestantes.length > 0 ? suplementosRestantes : null;
             }
 
             // Restar las unidades asignadas a la promo del artículo original
@@ -843,10 +880,16 @@ export class NuevaPromocion {
           PromosCandidatas[idx_p],
           grupos
         );
+        const usadosEnCopiaCesta: Set<number> = new Set();
+        this.devolverPrintedEnPromo(
+          PromoAplicada,
+          copiaCesta.lista,
+          usadosEnCopiaCesta
+        );
         // si la promo es individual, el precioFinal
         if (
           UltimaPromoAplicada &&
-          PromosIguales(PromoAplicada, UltimaPromoAplicada)
+          this.PromosIguales(PromoAplicada, UltimaPromoAplicada)
         ) {
           UltimaPromoAplicada.unidades++;
 
@@ -857,7 +900,6 @@ export class NuevaPromocion {
               const artExistente = UltimaPromoAplicada.promocion.grupos[g][a];
 
               // Incrementar unidades del artículo (cada promo tiene sus propias unidades)
-              artExistente.unidades += artNuevo.unidades;
 
               if (artNuevo.instancias && artNuevo.instancias.length > 0) {
                 if (!artExistente.instancias) {
@@ -866,10 +908,13 @@ export class NuevaPromocion {
                 // Agregar las instancias de la nueva promo
                 artExistente.instancias.push(...artNuevo.instancias);
                 // Recalcular printed basándose en instancias
-                artExistente.printed = artExistente.instancias.filter(inst => inst.printed).length;
+                artExistente.printed = artExistente.instancias.filter(
+                  (inst) => inst.printed
+                ).length;
               } else if (artNuevo.printed) {
                 // Compatibilidad: sumar printed si no hay instancias
-                artExistente.printed = (artExistente.printed || 0) + artNuevo.printed;
+                artExistente.printed =
+                  (artExistente.printed || 0) + artNuevo.printed;
               }
             }
           }
@@ -887,23 +932,6 @@ export class NuevaPromocion {
     }
     // Calcular precios para la última promo y cualquiera que se haya agrupado
     if (UltimaPromoAplicada) this.calculoFinalPromo(UltimaPromoAplicada);
-
-    function PromosIguales(A: ItemLista, B: ItemLista) {
-      let Ap = A.promocion,
-        Bp = B.promocion;
-      if (Ap.idPromocion != Bp.idPromocion) return false;
-      if (Ap.grupos.length != Bp.grupos.length) return false;
-      for (let i = 0; i < Ap.grupos.length; i++) {
-        if (Ap.grupos[i].length != Ap.grupos[i].length) return false;
-        for (let j = 0; j < Ap.grupos[i].length; j++) {
-          if (Ap.grupos[i][j].idArticulo != Bp.grupos[i][j].idArticulo)
-            return false;
-          if (Ap.grupos[i][j].unidades != Bp.grupos[i][j].unidades)
-            return false;
-        }
-      }
-      return true;
-    }
 
     function crearItemListaNormal(
       articulo: ArticuloInfoPromoYNormal,
@@ -1000,9 +1028,7 @@ export class NuevaPromocion {
             nombre: articulo.nombre,
             arraySuplementos: null,
             unidades: usar,
-            subtotal: redondearPrecio(
-              articulo.precioPorUnidad * usar
-            ),
+            subtotal: redondearPrecio(articulo.precioPorUnidad * usar),
             puntos: articulo.puntosPorUnidad * usar,
             impresora: articulo.impresora,
             printed: printedValue,
@@ -1045,7 +1071,8 @@ export class NuevaPromocion {
               impresora: articulo.impresora,
               printed: unidadesSinSuplementos > 0 ? 0 : printedValue,
               instanceId: articulo.instanceId,
-              instancias: unidadesSinSuplementos > 0 ? null : articulo.instancias,
+              instancias:
+                unidadesSinSuplementos > 0 ? null : articulo.instancias,
               ...(articulo.descuentoTienda !== undefined && {
                 descuentoTienda: articulo.descuentoTienda,
               }),
@@ -1087,9 +1114,7 @@ export class NuevaPromocion {
 
             ArticulosEnNingunaPromocion.delete(key);
           } else if (MapNoCandidatos.has(key)) {
-            lista_out.push(
-              ...crearItemListaNormal(MapNoCandidatos.get(key))
-            );
+            lista_out.push(...crearItemListaNormal(MapNoCandidatos.get(key)));
             MapNoCandidatos.delete(key);
           }
         } else if (PromosAplicadasTotales.has(item_in.nombre)) {
@@ -1120,6 +1145,43 @@ export class NuevaPromocion {
     cesta.lista = lista_out;
   }
 
+  public devolverPrintedEnPromo(
+    promo: ItemLista,
+    listaCesta: ItemLista[],
+    usadosEnCopiaCesta: Set<number>
+  ) {
+    if (!promo.promocion) return;
+    // Aquí iría la lógica de asignación, ejemplo de uso del set:
+    for (let i = 0; i < listaCesta.length; i++) {
+      if (
+        usadosEnCopiaCesta.has(i) ||
+        !listaCesta[i].printed ||
+        (!listaCesta[i].promocion && !listaCesta[i].promocion?.idPromocion)
+      )
+        continue;
+
+      if (this.PromosIguales(promo, listaCesta[i])) {
+        promo.printed = listaCesta[i].printed;
+        usadosEnCopiaCesta.add(i);
+      }
+    }
+  }
+
+  public PromosIguales(A: ItemLista, B: ItemLista) {
+    let Ap = A.promocion,
+      Bp = B.promocion;
+    if (Ap.idPromocion != Bp.idPromocion) return false;
+    if (Ap.grupos.length != Bp.grupos.length) return false;
+    for (let i = 0; i < Ap.grupos.length; i++) {
+      if (Ap.grupos[i].length != Bp.grupos[i].length) return false;
+      for (let j = 0; j < Ap.grupos[i].length; j++) {
+        if (Ap.grupos[i][j].idArticulo != Bp.grupos[i][j].idArticulo)
+          return false;
+        if (Ap.grupos[i][j].unidades != Bp.grupos[i][j].unidades) return false;
+      }
+    }
+    return true;
+  }
   public async crearItemListaPromo(
     promo: PromocionesInterface,
     grupos: GrupoPromoEnCesta[]
@@ -1203,9 +1265,9 @@ export class NuevaPromocion {
       artGrupo.precioPromoPorUnidad = promo_individual
         ? precioPorUnidadPromoIndividual
         : redondearPrecio(
-          artGrupo.precioPorUnidad *
-          (item.promocion.precioFinalPorPromo / totalSinPromocion)
-        );
+            artGrupo.precioPorUnidad *
+              (item.promocion.precioFinalPorPromo / totalSinPromocion)
+          );
       resto -= artGrupo.precioPromoPorUnidad * artGrupo.unidades;
     }
     let ultimoArtGrupo = gruposFlat[gruposFlat.length - 1];
@@ -1382,10 +1444,10 @@ export class NuevaPromocion {
             subtotal: item?.regalo
               ? 0
               : redondearPrecio(
-                artGrupo.precioPromoPorUnidad *
-                item.unidades *
-                artGrupo.unidades
-              ),
+                  artGrupo.precioPromoPorUnidad *
+                    item.unidades *
+                    artGrupo.unidades
+                ),
             nombre: "ArtículoDentroDePromo " + artGrupo.nombre,
           });
         }
