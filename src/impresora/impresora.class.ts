@@ -4181,8 +4181,7 @@ export class Impresora {
 
       const time = momentTZ(new Date()).tz("Europe/Madrid");
 
-      for (let i = 0; i < impresorasUnicas.length; i++) {
-        const impresora = impresorasUnicas[i];
+      impresorasUnicas.forEach((impresora, idx) => {
         const productosFiltrados = productosParaImprimir.filter(
           (product) => product.impresora === impresora
         );
@@ -4218,16 +4217,13 @@ export class Impresora {
           { tipo: "text", payload: " " },
           ...productosFiltrados.flatMap((item) => {
             const bloques = [];
-            // Las unidades ya están ajustadas a las que estaban impresas
             if (item.unidades === 0) return bloques;
-
             bloques.push({ tipo: "size", payload: [1, 0] });
             bloques.push({ tipo: "style", payload: "b" });
             bloques.push({
               tipo: "text",
               payload: `x${item.unidades} ${item.nombre}`,
             });
-
             if (item.arraySuplementos) {
               for (const suplemento of item.arraySuplementos) {
                 bloques.push({ tipo: "style", payload: "a" });
@@ -4238,7 +4234,6 @@ export class Impresora {
                 bloques.push({ tipo: "style", payload: "b" });
               }
             }
-
             if (item.suplementosPorArticulo) {
               for (const bloque of item.suplementosPorArticulo) {
                 for (const suplemento of bloque.suplementos) {
@@ -4251,7 +4246,6 @@ export class Impresora {
                 }
               }
             }
-
             if (item.articulosMenu) {
               for (const menuItem of item.articulosMenu) {
                 bloques.push({ tipo: "style", payload: "a" });
@@ -4270,11 +4264,9 @@ export class Impresora {
                 bloques.push({ tipo: "style", payload: "b" });
               }
             }
-
             bloques.push({ tipo: "text", payload: " " });
             return bloques;
           }),
-
           { tipo: "text", payload: " " },
           { tipo: "size", payload: [0, 0] },
           { tipo: "text", payload: "_".repeat(42) + "\n" },
@@ -4289,13 +4281,12 @@ export class Impresora {
           { tipo: "text", payload: "*** NO PREPARAR ***" },
           { tipo: "size", payload: [0, 0] },
           { tipo: "text", payload: " " },
-
           { tipo: "cut" },
         ];
-
-        this.enviarMQTT(impresion, {}, topic);
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      }
+        setTimeout(() => {
+          this.enviarMQTT(impresion, {}, topic);
+        }, idx * 900); // 900 ms entre impresoras, no bloqueante
+      });
 
       return true;
     } catch (err) {

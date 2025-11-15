@@ -607,7 +607,7 @@ export class CestaClase {
             Math.round(
               (articulo.subtotal +
                 (articulo.subtotal * cliente.descuento) / 100) *
-              100
+                100
             ) / 100;
         }
       }
@@ -643,7 +643,7 @@ export class CestaClase {
             Math.round(
               (articulo.subtotal +
                 (articulo.subtotal * cliente.descuento) / 100) *
-              100
+                100
             ) / 100;
         }
       }
@@ -724,9 +724,13 @@ export class CestaClase {
       this.registroLogSantaAna(cesta, productos);
 
       // NUEVO: Si el item tiene printed > 0, imprimir ticket de cancelación
-      const tienePrintedNormal = itemAEliminar.impresora && itemAEliminar.printed > 0;
-      const tienePrintedEnPromo = itemAEliminar.promocion &&
-        itemAEliminar.promocion.grupos.flat().some(art => art.printed > 0 && art.impresora);
+      const tienePrintedNormal =
+        itemAEliminar.impresora && itemAEliminar.printed > 0;
+      const tienePrintedEnPromo =
+        itemAEliminar.promocion &&
+        itemAEliminar.promocion.grupos
+          .flat()
+          .some((art) => art.printed > 0 && art.impresora);
 
       if (tienePrintedNormal || tienePrintedEnPromo) {
         try {
@@ -735,7 +739,8 @@ export class CestaClase {
           if (cesta.indexMesa != null) {
             const mesas = await mesasInstance.getMesas();
             if (mesas && mesas[cesta.indexMesa]) {
-              nombreMesa = mesas[cesta.indexMesa].nombre || `Mesa ${cesta.indexMesa + 1}`;
+              nombreMesa =
+                mesas[cesta.indexMesa].nombre || `Mesa ${cesta.indexMesa + 1}`;
             } else {
               nombreMesa = `Mesa ${cesta.indexMesa + 1}`;
             }
@@ -747,9 +752,9 @@ export class CestaClase {
           const idTrabajador = cesta.trabajadores[0]
             ? Number(cesta.trabajadores[0].toString())
             : cesta.trabajador;
-          const trabajador = await trabajadoresInstance.getTrabajadorById(idTrabajador);
+          const trabajador =
+            await trabajadoresInstance.getTrabajadorById(idTrabajador);
           const nombreTrabajador = trabajador?.nombre || "Trabajador";
-
           await impresoraInstance.imprimirTicketCancelacion(
             [itemAEliminar],
             nombreMesa,
@@ -1027,13 +1032,18 @@ export class CestaClase {
               } else if (unidades < 0) {
                 // Eliminar instancias (prioridad: primero las no impresas)
                 const unidadesAEliminar = Math.abs(unidades);
-                const instanciasNoImpresas = item.instancias.filter(inst => !inst.printed);
-                const instanciasImpresas = item.instancias.filter(inst => inst.printed);
+                const instanciasNoImpresas = item.instancias.filter(
+                  (inst) => !inst.printed
+                );
+                const instanciasImpresas = item.instancias.filter(
+                  (inst) => inst.printed
+                );
 
                 // Calcular cuántas instancias IMPRESAS se van a eliminar
                 let instanciasImpresasAEliminar = 0;
                 if (unidadesAEliminar > instanciasNoImpresas.length) {
-                  instanciasImpresasAEliminar = unidadesAEliminar - instanciasNoImpresas.length;
+                  instanciasImpresasAEliminar =
+                    unidadesAEliminar - instanciasNoImpresas.length;
                 }
 
                 // Si se van a eliminar instancias impresas, imprimir ticket de cancelación
@@ -1044,7 +1054,9 @@ export class CestaClase {
                     if (cesta.indexMesa != null) {
                       const mesas = await mesasInstance.getMesas();
                       if (mesas && mesas[cesta.indexMesa]) {
-                        nombreMesa = mesas[cesta.indexMesa].nombre || `Mesa ${cesta.indexMesa + 1}`;
+                        nombreMesa =
+                          mesas[cesta.indexMesa].nombre ||
+                          `Mesa ${cesta.indexMesa + 1}`;
                       } else {
                         nombreMesa = `Mesa ${cesta.indexMesa + 1}`;
                       }
@@ -1055,7 +1067,10 @@ export class CestaClase {
                     const idTrabajador = cesta.trabajadores[0]
                       ? Number(cesta.trabajadores[0].toString())
                       : cesta.trabajador;
-                    const trabajador = await trabajadoresInstance.getTrabajadorById(idTrabajador);
+                    const trabajador =
+                      await trabajadoresInstance.getTrabajadorById(
+                        idTrabajador
+                      );
                     const nombreTrabajador = trabajador?.nombre || "Trabajador";
 
                     // Crear item temporal con solo las unidades impresas que se eliminan
@@ -1064,7 +1079,6 @@ export class CestaClase {
                       unidades: instanciasImpresasAEliminar,
                       printed: instanciasImpresasAEliminar,
                     };
-
                     await impresoraInstance.imprimirTicketCancelacion(
                       [itemCancelacion],
                       nombreMesa,
@@ -1072,7 +1086,10 @@ export class CestaClase {
                       cesta.comensales || 1
                     );
                   } catch (error) {
-                    console.error("Error al imprimir ticket de cancelación:", error);
+                    console.error(
+                      "Error al imprimir ticket de cancelación:",
+                      error
+                    );
                   }
                 }
 
@@ -1082,18 +1099,21 @@ export class CestaClase {
                   // Hay suficientes no impresas
                   item.instancias = [
                     ...instanciasNoImpresas.slice(unidadesAEliminar),
-                    ...instanciasImpresas
+                    ...instanciasImpresas,
                   ];
                   eliminadas = unidadesAEliminar;
                 } else {
                   // Eliminar todas las no impresas y algunas impresas
-                  const faltanPorEliminar = unidadesAEliminar - instanciasNoImpresas.length;
+                  const faltanPorEliminar =
+                    unidadesAEliminar - instanciasNoImpresas.length;
                   item.instancias = instanciasImpresas.slice(faltanPorEliminar);
                   eliminadas = unidadesAEliminar;
                 }
 
                 // Recalcular printed
-                item.printed = item.instancias.filter(inst => inst.printed).length;
+                item.printed = item.instancias.filter(
+                  (inst) => inst.printed
+                ).length;
               }
 
               articuloNuevo = false;
@@ -1132,13 +1152,18 @@ export class CestaClase {
             } else if (unidades < 0) {
               // Eliminar instancias (prioridad: primero las no impresas)
               const unidadesAEliminar = Math.abs(unidades);
-              const instanciasNoImpresas = item.instancias.filter(inst => !inst.printed);
-              const instanciasImpresas = item.instancias.filter(inst => inst.printed);
+              const instanciasNoImpresas = item.instancias.filter(
+                (inst) => !inst.printed
+              );
+              const instanciasImpresas = item.instancias.filter(
+                (inst) => inst.printed
+              );
 
               // Calcular cuántas instancias IMPRESAS se van a eliminar
               let instanciasImpresasAEliminar = 0;
               if (unidadesAEliminar > instanciasNoImpresas.length) {
-                instanciasImpresasAEliminar = unidadesAEliminar - instanciasNoImpresas.length;
+                instanciasImpresasAEliminar =
+                  unidadesAEliminar - instanciasNoImpresas.length;
               }
 
               // Si se van a eliminar instancias impresas, imprimir ticket de cancelación
@@ -1149,7 +1174,9 @@ export class CestaClase {
                   if (cesta.indexMesa != null) {
                     const mesas = await mesasInstance.getMesas();
                     if (mesas && mesas[cesta.indexMesa]) {
-                      nombreMesa = mesas[cesta.indexMesa].nombre || `Mesa ${cesta.indexMesa + 1}`;
+                      nombreMesa =
+                        mesas[cesta.indexMesa].nombre ||
+                        `Mesa ${cesta.indexMesa + 1}`;
                     } else {
                       nombreMesa = `Mesa ${cesta.indexMesa + 1}`;
                     }
@@ -1160,7 +1187,8 @@ export class CestaClase {
                   const idTrabajador = cesta.trabajadores[0]
                     ? Number(cesta.trabajadores[0].toString())
                     : cesta.trabajador;
-                  const trabajador = await trabajadoresInstance.getTrabajadorById(idTrabajador);
+                  const trabajador =
+                    await trabajadoresInstance.getTrabajadorById(idTrabajador);
                   const nombreTrabajador = trabajador?.nombre || "Trabajador";
 
                   // Crear item temporal con solo las unidades impresas que se eliminan
@@ -1169,7 +1197,6 @@ export class CestaClase {
                     unidades: instanciasImpresasAEliminar,
                     printed: instanciasImpresasAEliminar,
                   };
-
                   await impresoraInstance.imprimirTicketCancelacion(
                     [itemCancelacion],
                     nombreMesa,
@@ -1177,7 +1204,10 @@ export class CestaClase {
                     cesta.comensales || 1
                   );
                 } catch (error) {
-                  console.error("Error al imprimir ticket de cancelación:", error);
+                  console.error(
+                    "Error al imprimir ticket de cancelación:",
+                    error
+                  );
                 }
               }
 
@@ -1187,18 +1217,21 @@ export class CestaClase {
                 // Hay suficientes no impresas
                 item.instancias = [
                   ...instanciasNoImpresas.slice(unidadesAEliminar),
-                  ...instanciasImpresas
+                  ...instanciasImpresas,
                 ];
                 eliminadas = unidadesAEliminar;
               } else {
                 // Eliminar todas las no impresas y algunas impresas
-                const faltanPorEliminar = unidadesAEliminar - instanciasNoImpresas.length;
+                const faltanPorEliminar =
+                  unidadesAEliminar - instanciasNoImpresas.length;
                 item.instancias = instanciasImpresas.slice(faltanPorEliminar);
                 eliminadas = unidadesAEliminar;
               }
 
               // Recalcular printed
-              item.printed = item.instancias.filter(inst => inst.printed).length;
+              item.printed = item.instancias.filter(
+                (inst) => inst.printed
+              ).length;
             }
 
             articuloNuevo = false;
@@ -1332,7 +1365,7 @@ export class CestaClase {
               if (artGrupo.impresora) {
                 if (artGrupo.instancias && artGrupo.instancias.length > 0) {
                   // Verificar si hay alguna instancia no impresa
-                  if (artGrupo.instancias.some(inst => !inst.printed)) {
+                  if (artGrupo.instancias.some((inst) => !inst.printed)) {
                     hayInstanciasNoImpresas = true;
                     break;
                   }
@@ -1373,7 +1406,9 @@ export class CestaClase {
               }
             } else {
               // Compatibilidad
-              instanciaIdsParaImprimir.push(item.instanceId || item.idArticulo.toString());
+              instanciaIdsParaImprimir.push(
+                item.instanceId || item.idArticulo.toString()
+              );
             }
           }
 
@@ -1724,14 +1759,14 @@ export class CestaClase {
     const cliente = clienteCesta
       ? clienteCesta
       : cesta.idCliente
-        ? await clienteInstance.getClienteById(cesta.idCliente)
-        : null;
+      ? await clienteInstance.getClienteById(cesta.idCliente)
+      : null;
     await this.comprobarRegalos(cesta);
     let descuento: any =
       cesta.modo !== "CONSUMO_PERSONAL" &&
-        cliente &&
-        !cliente?.albaran &&
-        !cliente?.vip
+      cliente &&
+      !cliente?.albaran &&
+      !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
     let vipOalbaran = cliente?.albaran || cliente?.vip;
@@ -1807,10 +1842,10 @@ export class CestaClase {
         if (cesta.indexMesa != null) {
           precioArt =
             (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
-              null
+            null
               ? precioArt
               : (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo))
-                .precioConIva;
+                  .precioConIva;
         }
         if (menu.length > 0) {
           let preu = await tarifasInstance.tarifaMenu(
@@ -1949,8 +1984,8 @@ export class CestaClase {
               cesta.modo == "CONSUMO_PERSONAL"
                 ? Math.round(cesta.lista[i].subtotal * 100) / 100
                 : Math.round(
-                  (cesta.lista[i].precioOrig + preuSumplements) * 100
-                ) / 100;
+                    (cesta.lista[i].precioOrig + preuSumplements) * 100
+                  ) / 100;
           }
           cesta.detalleIva = fusionarObjetosDetalleIva(
             cesta.detalleIva,
@@ -2036,15 +2071,15 @@ export class CestaClase {
     const cliente = clienteCesta
       ? clienteCesta
       : cesta.idCliente
-        ? await clienteInstance.getClienteById(cesta.idCliente)
-        : null;
+      ? await clienteInstance.getClienteById(cesta.idCliente)
+      : null;
     await this.comprobarRegalos(cesta);
 
     let descuentoCliente: any =
       cesta.modo !== "CONSUMO_PERSONAL" &&
-        cliente &&
-        !cliente?.albaran &&
-        !cliente?.vip
+      cliente &&
+      !cliente?.albaran &&
+      !cliente?.vip
         ? Number(cliente.descuento)
         : 0;
     let vipOalbaran = cliente?.albaran || cliente?.vip ? true : false;
@@ -2121,10 +2156,10 @@ export class CestaClase {
         if (cesta.indexMesa != null) {
           precioArt =
             (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo)) ==
-              null
+            null
               ? precioArt
               : (await tarifasInstance.tarifaMesas(cesta.lista[i].idArticulo))
-                .precioConIva;
+                  .precioConIva;
         }
         if (menu.length > 0) {
           let preu = await tarifasInstance.tarifaMenu(
@@ -2268,8 +2303,8 @@ export class CestaClase {
               cesta.modo == "CONSUMO_PERSONAL"
                 ? Math.round(cesta.lista[i].subtotal * 100) / 100
                 : Math.round(
-                  (cesta.lista[i].precioOrig + preuSumplements) * 100
-                ) / 100;
+                    (cesta.lista[i].precioOrig + preuSumplements) * 100
+                  ) / 100;
           }
 
           cesta.detalleIva = fusionarObjetosDetalleIva(
@@ -2579,7 +2614,7 @@ export class CestaClase {
     const cesta = await this.getCestaById(idCesta);
 
     // Si solo hay números (idArticulos), marcar todas las instancias no impresas que coincidan
-    const soloIdArticulos = articulosIDs.every(id => typeof id === 'number');
+    const soloIdArticulos = articulosIDs.every((id) => typeof id === "number");
 
     for (let x = 0; x < cesta.lista.length; x++) {
       const item = cesta.lista[x];
@@ -2587,22 +2622,30 @@ export class CestaClase {
       // Marcar instancias individuales como impresas
       if (item.instancias && item.instancias.length > 0) {
         // Verificar si se pasó el idArticulo (compatibilidad con comandero)
-        const sePassoIdArticulo = articulosIDs.some(id => typeof id === 'number' && id === item.idArticulo);
+        const sePassoIdArticulo = articulosIDs.some(
+          (id) => typeof id === "number" && id === item.idArticulo
+        );
 
         // Primero marcar las instancias
         for (const instancia of item.instancias) {
           // Marcar si coincide el instanceId O si se pasó el idArticulo del item
-          if (articulosIDs.includes(instancia.instanceId) || sePassoIdArticulo) {
+          if (
+            articulosIDs.includes(instancia.instanceId) ||
+            sePassoIdArticulo
+          ) {
             instancia.printed = true;
           }
         }
 
         // Luego recalcular el contador total de impresas
-        item.printed = item.instancias.filter(inst => inst.printed).length;
+        item.printed = item.instancias.filter((inst) => inst.printed).length;
       } else {
         // Compatibilidad con código anterior (sin instancias)
         const itemId = item.instanceId || item.idArticulo.toString();
-        if (articulosIDs.includes(itemId) || articulosIDs.includes(item.idArticulo)) {
+        if (
+          articulosIDs.includes(itemId) ||
+          articulosIDs.includes(item.idArticulo)
+        ) {
           item.printed = item.unidades;
         }
       }
@@ -2615,31 +2658,44 @@ export class CestaClase {
 
             if (artGrupo.instancias && artGrupo.instancias.length > 0) {
               // Verificar si se pasó el idArticulo (compatibilidad con comandero)
-              const sePassoIdArticulo = articulosIDs.some(id => typeof id === 'number' && id === artGrupo.idArticulo);
+              const sePassoIdArticulo = articulosIDs.some(
+                (id) => typeof id === "number" && id === artGrupo.idArticulo
+              );
 
               // Si solo se pasaron idArticulos (comandero), el artGrupo tiene impresora,
               // y tiene instancias no impresas, marcar TODAS como impresas
-              const artGrupoTienePendientes = artGrupo.impresora &&
-                artGrupo.instancias.some(inst => !inst.printed);
-              const marcarTodasNoImpresas = soloIdArticulos && artGrupoTienePendientes;
+              const artGrupoTienePendientes =
+                artGrupo.impresora &&
+                artGrupo.instancias.some((inst) => !inst.printed);
+              const marcarTodasNoImpresas =
+                soloIdArticulos && artGrupoTienePendientes;
 
               // Primero marcar las instancias
               for (const instancia of artGrupo.instancias) {
                 if (marcarTodasNoImpresas && !instancia.printed) {
                   // Marcar todas las no impresas (comandero mode)
                   instancia.printed = true;
-                } else if (articulosIDs.includes(instancia.instanceId) || sePassoIdArticulo) {
+                } else if (
+                  articulosIDs.includes(instancia.instanceId) ||
+                  sePassoIdArticulo
+                ) {
                   // Marcar si coincide el instanceId O si se pasó el idArticulo del artGrupo
                   instancia.printed = true;
                 }
               }
 
               // Luego recalcular el contador total de impresas
-              artGrupo.printed = artGrupo.instancias.filter(inst => inst.printed).length;
+              artGrupo.printed = artGrupo.instancias.filter(
+                (inst) => inst.printed
+              ).length;
             } else {
               // Compatibilidad
-              const artGrupoId = artGrupo.instanceId || artGrupo.idArticulo.toString();
-              if (articulosIDs.includes(artGrupoId) || articulosIDs.includes(artGrupo.idArticulo)) {
+              const artGrupoId =
+                artGrupo.instanceId || artGrupo.idArticulo.toString();
+              if (
+                articulosIDs.includes(artGrupoId) ||
+                articulosIDs.includes(artGrupo.idArticulo)
+              ) {
                 artGrupo.printed = artGrupo.unidades;
               }
             }
@@ -2771,11 +2827,11 @@ export class CestaClase {
     try {
       let cliente: number =
         (await clienteInstance.getClienteById(cesta.idCliente))?.descuento ==
-          undefined
+        undefined
           ? 0
           : Number(
-            (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
-          );
+              (await clienteInstance.getClienteById(cesta.idCliente))?.descuento
+            );
       let parametros = await parametrosInstance.getParametros();
       // si la cesta pertenece a una mesa, cogemos la dependienta en el array
       let dependienta = cesta.trabajador || cesta.trabajadores[0];
