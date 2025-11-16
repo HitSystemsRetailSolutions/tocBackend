@@ -73,6 +73,7 @@ export type ItemLista_old = {
   pagado?: boolean;
   tarifaEsp?: boolean;
   varis?: boolean;
+  instanceId?: string;
 };
 
 export type ItemLista = {
@@ -105,6 +106,12 @@ export type ItemLista = {
   pagado?: boolean;
   tarifaEsp?: boolean;
   varis?: boolean;
+  instanceId?: string;
+  // Array de instancias individuales - cada elemento representa 1 unidad
+  instancias?: {
+    instanceId: string;
+    printed: boolean;
+  }[];
 };
 export type ArticulosMenu = {
   idArticulo: number;
@@ -120,10 +127,18 @@ export type ArticuloPromoEnCesta = {
   unidades: number;
   printed?: number;
   precioPromoPorUnidad: number;
+  precioPorUnidad?: number;
+  puntosPorUnidad?: number;
   impresora: string;
   suplementosPorArticulo?: {
     unidades: number;
     suplementos: ItemLista["arraySuplementos"];
+  }[];
+  instanceId?: string;
+  // Array de instancias individuales
+  instancias?: {
+    instanceId: string;
+    printed: boolean;
   }[];
 };
 
