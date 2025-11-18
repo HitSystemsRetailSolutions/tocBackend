@@ -218,7 +218,12 @@ export async function nuevoTicket(ticket: TicketsInterface): Promise<boolean> {
   const result = await tickets.insertOne(ticket, {
     writeConcern: { j: true },
   });
-  return result.acknowledged;
+  if (!result.acknowledged) return false;
+
+  // Forzar sincronización física al disco
+  await database.command({ fsync: 1 });
+
+  return true;
 }
 
 /* Uri */
