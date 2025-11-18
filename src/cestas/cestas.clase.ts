@@ -662,17 +662,48 @@ export class CestaClase {
   }
 
   async CestaPagoSeparado(articulos) {
-    const nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO SEPARADO");
+    let nuevaCesta = this.generarObjetoCesta(new ObjectId(), "PAGO SEPARADO");
     nuevaCesta.indexMesa = null;
     let id = undefined;
     if (await schCestas.createCesta(nuevaCesta)) id = nuevaCesta._id;
     if (id != undefined) {
       for (let i = 0; i < articulos.length; i++) {
         let e = articulos[i];
+        if (e?.promocion) {
+          // si el articulo es una promocion, la añadimos entera
+          nuevaCesta.lista.push(e);
+          nuevaCesta = await this.recalcularIvasv2(nuevaCesta);
+          schCestas.updateCesta(nuevaCesta);
+        } else {
+          nuevaCesta = await this.clickTeclaArticulo(
+            e.idArticulo,
+            e.gramos,
+            id,
+            e.unidades,
+            e.arraySuplementos,
+            null,
+            "",
+            ""
+          );
+        }
+      }
+      return id;
+    }
+  }
+
+  async DevolverCestaPagoSeparado(cesta, articulos) {
+    let cestaMongo = await this.getCestaById(cesta);
+    for (let i = 0; i < articulos.length; i++) {
+      let e = articulos[i];
+      if (e?.promocion) {
+        cestaMongo.lista.push(e);
+        cestaMongo = await this.recalcularIvasv2(cestaMongo);
+        await schCestas.updateCesta(cestaMongo);
+      } else {
         await this.clickTeclaArticulo(
           e.idArticulo,
           e.gramos,
-          id,
+          cesta,
           e.unidades,
           e.arraySuplementos,
           null,
@@ -680,23 +711,6 @@ export class CestaClase {
           ""
         );
       }
-      return id;
-    }
-  }
-
-  async DevolverCestaPagoSeparado(cesta, articulos) {
-    for (let i = 0; i < articulos.length; i++) {
-      let e = articulos[i];
-      await this.clickTeclaArticulo(
-        e.idArticulo,
-        e.gramos,
-        cesta,
-        e.unidades,
-        e.arraySuplementos,
-        null,
-        "",
-        ""
-      );
     }
     return true;
   }
