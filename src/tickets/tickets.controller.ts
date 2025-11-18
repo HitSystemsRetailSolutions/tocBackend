@@ -109,6 +109,7 @@ export class TicketsController {
         );
       }
       if (await ticketsInstance.insertarTicket(ticket)) {
+        await impresoraInstance.imprimirTicket(ticket._id);
         var deuda = {
           idTicket: ticket._id,
           cesta: cesta,
