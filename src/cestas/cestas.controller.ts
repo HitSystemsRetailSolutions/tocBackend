@@ -152,7 +152,10 @@ export class CestasController {
   async generarCestaPedido(@Body() { idEncargo, cestaEncargo }) {
     try {
       if (cestaEncargo && idEncargo) {
-        return await cestasInstance.CestaModificarPedido(idEncargo, cestaEncargo);
+        return await cestasInstance.CestaModificarPedido(
+          idEncargo,
+          cestaEncargo
+        );
       }
       throw Error("Error, faltan datos en PagarDeuda() controller");
     } catch (err) {
@@ -160,7 +163,6 @@ export class CestasController {
       return null;
     }
   }
-
 
   /* Eze 4.0  (probablemente no se usará porque irá por socket)*/
   @Post("getCestaById")
@@ -364,10 +366,7 @@ export class CestasController {
   async setArticuloImprimido(@Body() { idCesta, articulos }) {
     try {
       if (idCesta && articulos) {
-        return await cestasInstance.setArticuloImprimido(
-          idCesta,
-          articulos,
-        );
+        return await cestasInstance.setArticuloImprimido(idCesta, articulos);
       }
       throw Error("Error, faltan datos en cestas/insertarArtsPagados");
     } catch (err) {
@@ -426,13 +425,18 @@ export class CestasController {
   }
 
   @Post("traspasarProductos")
-  async traspasarProductos(@Body() { idCestaOrigen, idCestaDestino, idTrabajador }) {
+  async traspasarProductos(
+    @Body() { idCestaOrigen, idCestaDestino, idTrabajador }
+  ) {
     try {
       if (!idCestaOrigen || !idCestaDestino) {
         return { ok: false, message: "IDs de cestas requeridos" };
       }
 
-      const resultado = await cestasInstance.pasarCestas(idCestaOrigen, idCestaDestino);
+      const resultado = await cestasInstance.pasarCestas(
+        idCestaOrigen,
+        idCestaDestino
+      );
 
       if (resultado) {
         await cestasInstance.actualizarCestas();
@@ -468,7 +472,11 @@ export class CestasController {
       if (!idCesta || !articulosMenu) {
         throw Error("faltan datos en modificarArticuloMenu");
       }
-      return await cestasInstance.modificarArticuloMenu(idCesta, articulosMenu, indexCesta);
+      return await cestasInstance.modificarArticuloMenu(
+        idCesta,
+        articulosMenu,
+        indexCesta
+      );
     } catch (error) {
       logger.Error(137, error);
     }
@@ -487,14 +495,17 @@ export class CestasController {
     }
   }
 
-
   @Post("imprimirNotaKitchen")
   async imprimirNotaKitchen(@Body() { idCesta, nombre, trabajador }) {
     try {
       if (!idCesta) {
         throw Error("faltan datos en imprimirNotasMesa");
       }
-      return await cestasInstance.imprimirNotaKitchen(idCesta, nombre, trabajador);
+      return await cestasInstance.imprimirNotaKitchen(
+        idCesta,
+        nombre,
+        trabajador
+      );
       return true;
     } catch (error) {
       logger.Error(138, error);
@@ -507,7 +518,12 @@ export class CestasController {
       if (!idEncargo) {
         throw Error("faltan datos en imprimirNotaPedido");
       }
-      await impresoraInstance.imprimirNotaPedido(idEncargo, cesta, idTrabajador, codigo);
+      await impresoraInstance.imprimirNotaPedido(
+        idEncargo,
+        cesta,
+        idTrabajador,
+        codigo
+      );
       return true;
     } catch (error) {
       logger.Error(138, error);
