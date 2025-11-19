@@ -186,11 +186,12 @@ export class TicketsClase {
       );
     }
 
+    // Comprobar si el ID del último ticket en backup no está en MongoDB
     if (
       ultimoTicketBackup &&
       typeof ultimoTicketBackup._id === "number" &&
-      ultimoTicketBackup._id >= newId &&
-      ultimoTicketBackup._id > maxIdTicketValue
+      ultimoTicketBackup._id == newId &&
+      ultimoTicketBackup._id <= maxIdTicketValue
     ) {
       logger.Info(
         `El ID del último ticket en backup no se encuentra en mongo. Insertando...`
