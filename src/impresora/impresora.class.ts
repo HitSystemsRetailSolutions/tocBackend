@@ -1023,6 +1023,7 @@ export class Impresora {
       { tipo: "encode", payload: "CP858" },
       { tipo: "style", payload: "b" },
       { tipo: "font", payload: "A" },
+      { tipo: "logo", payload: "" },
       {
         tipo: "text",
         payload: info?.nota
@@ -1366,6 +1367,7 @@ export class Impresora {
       { tipo: "encode", payload: "CP858" },
       { tipo: "style", payload: "b" },
       { tipo: "font", payload: "A" },
+      { tipo: "logo", payload: "" },
       { tipo: "text", payload: cabecera },
       {
         tipo: "text",
@@ -2255,6 +2257,7 @@ export class Impresora {
         { tipo: "font", payload: "a" },
         { tipo: "style", payload: "b" },
         { tipo: "align", payload: "CT" },
+        { tipo: "logo", payload: "" },
         { tipo: "size", payload: [0, 0] },
         { tipo: "text", payload: parametros.nombreTienda },
         { tipo: "text", payload: fechaStr.format("DD-MM-YYYY HH:mm") },
@@ -3550,6 +3553,7 @@ export class Impresora {
         { tipo: "font", payload: "a" },
         { tipo: "style", payload: "b" },
         { tipo: "align", payload: "CT" },
+        { tipo: "logo", payload: "" },
         { tipo: "size", payload: [1, 1] },
         {
           tipo: "text",
