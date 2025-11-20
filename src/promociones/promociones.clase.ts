@@ -1137,6 +1137,15 @@ export class NuevaPromocion {
     for (let articulo of MapNoCandidatos.values()) {
       lista_out.push(...crearItemListaNormal(articulo));
     }
+
+    // Eliminar las instancias en varis, ya que pueden provocar tamaños excesivos en las peticiones (error 413).
+    //  Además, su propósito es añadir múltiples unidades, no participar en el proceso de impresión de artículos a preparar
+    for (let articulo of lista_out) {
+      if (articulo?.varis) {
+        delete articulo?.instancias;
+      }
+    }
+
     for (let promos of PromosAplicadasTotales.values()) {
       promos.forEach((promo) => {
         lista_out.push(promo);
