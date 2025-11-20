@@ -27,6 +27,7 @@ import { cestasInstance } from "src/cestas/cestas.clase";
 import { logger } from "src/logger";
 import { getDataVersion } from "src/version/version.clase";
 import { max } from "moment";
+import { backupRestoreInstance } from "src/backuprestore/backup.class";
 
 export class TicketsClase {
   /* Eze 4.0 */
@@ -168,6 +169,8 @@ export class TicketsClase {
 
   async getProximoId(): Promise<number> {
     const ultimoIdTicket = await this.getUltimoIdTicket(); // Última ID en la colección
+    const ultimoTicketBackup: TicketsInterface =
+      backupRestoreInstance.recoverSingleTicket(); // Última ID en el backup
     const maxIdTicketValue = maxIdTicket;
 
     if (typeof ultimoIdTicket !== "number") {
@@ -181,6 +184,20 @@ export class TicketsClase {
       throw new Error(
         "El ID generado no puede generarse en mitad de una transacción de Paytef"
       );
+    }
+
+    // Comprobar si el ID del último ticket en backup no está en MongoDB
+    if (
+      ultimoTicketBackup &&
+      typeof ultimoTicketBackup._id === "number" &&
+      ultimoTicketBackup._id == newId &&
+      ultimoTicketBackup._id <= maxIdTicketValue
+    ) {
+      logger.Info(
+        `El ID del último ticket en backup no se encuentra en mongo. Insertando...`
+      );
+      newId = ultimoTicketBackup._id + 1;
+      await schTickets.nuevoTicket(ultimoTicketBackup);
     }
 
     // Resetea el ID

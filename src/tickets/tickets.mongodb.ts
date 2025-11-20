@@ -12,6 +12,7 @@ import { logger } from "../logger";
 import axios from "axios";
 import * as schCaja from "../caja/caja.mongodb";
 import { paytefInstance } from "src/paytef/paytef.class";
+import { backupRestoreInstance } from "src/backuprestore/backup.class";
 
 /* Eze v23 */
 export async function limpiezaTickets(): Promise<boolean> {
@@ -213,12 +214,16 @@ export async function nuevoTicket(ticket: TicketsInterface): Promise<boolean> {
   const database = (await conexion).db("tocgame");
   const tickets = database.collection<TicketsInterface>("tickets");
 
-  // Insertar ticket y esperar que se escriba en el journal
+  // Guardar el id del ticket en un archivo local antes de insertar en MongoDB
+  backupRestoreInstance.backupSingleTicket(ticket);
 
+  // Insertar ticket y esperar que se escriba en el journal
   const result = await tickets.insertOne(ticket, {
     writeConcern: { j: true },
   });
-  return result.acknowledged;
+  if (!result.acknowledged) return false;
+
+  return true;
 }
 
 /* Uri */
