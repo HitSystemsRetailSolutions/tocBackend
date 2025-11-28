@@ -1023,6 +1023,7 @@ export class Impresora {
       { tipo: "encode", payload: "CP858" },
       { tipo: "style", payload: "b" },
       { tipo: "font", payload: "A" },
+      { tipo: "size", payload: [0, 0] },
       {
         tipo: "text",
         payload: info?.nota

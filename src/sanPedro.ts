@@ -212,7 +212,6 @@ socket.on("resSincroTickets", (data) => {
   };
 
   if (data.error && data.deadlock) {
-
     logger.Error(35, "Error del santaAna: " + data.mensaje);
     resetTempTicket();
     CBSocketSincronizarTickets.forceOpen();
@@ -236,6 +235,7 @@ socket.on("resSincroTickets", (data) => {
       logger.Info("Ticket en cola, id: " + data.ticket);
       objTempTicket.state = "EN_COLA";
       objTempTicket.dateModificated = new Date();
+      return;
       break;
 
     case "ENVIADO":
