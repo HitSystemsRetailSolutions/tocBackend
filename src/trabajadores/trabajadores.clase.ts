@@ -14,6 +14,7 @@ import { cajaInstance } from "src/caja/caja.clase";
 import { socket } from "src/sanPedro";
 import { getDataVersion } from "src/version/version.clase";
 import * as bcrypt from "bcrypt";
+import { backupRestoreInstance } from "src/backuprestore/backup.class";
 
 export class TrabajadoresClase {
   /* Eze 4.0 */
@@ -44,19 +45,38 @@ export class TrabajadoresClase {
   }
 
   /* Eze OK. NO 4.0 */
-  async actualizarTrabajadores(): Promise<boolean> {
-    const res: any = await axios.get("trabajadores/getTrabajadores", {});
-    if (!res.data.error && res.data.info.length > 0) {
-      const resKeep = await this.mantenerTrabajadoresFichados(res.data.info);
-      if (resKeep.length > 0) {
-        return await this.insertarTrabajadores(resKeep);
-      } else {
-        return true;
+  async actualizarTrabajadores(): Promise<any> {
+    await backupRestoreInstance.backupCollection("trabajadores");
+    try {
+      const res: any = await axios.get("trabajadores/getTrabajadores", {});
+      if (res.data.error) {
+        throw Error(
+          "Error, la información que llega desde San Pedro no es correcta en actualizarTrabajadores() class"
+        );
       }
+
+      if (res.data.info.length == 0) {
+        throw Error("Error, no hay trabajadores");
+      }
+
+      const resKeep = await this.mantenerTrabajadoresFichados(res.data.info);
+
+      try {
+        return await this.insertarTrabajadores(resKeep);
+      } catch (err) {
+        // recuperar copia de seguridad de trabajadores
+        logger.Error(114, "actualizarTrabajadores", err);
+        const restore =
+          await backupRestoreInstance.restoreCollection("trabajadores");
+
+        return restore
+          ? { error: true, restore: "success", message: err.message }
+          : { error: true, restore: "failed", message: err.message };
+      }
+    } catch (err) {
+      logger.Error(114, "actualizarTrabajadores", err);
+      return { error: true, restore: "not_used", message: err.message };
     }
-    throw Error(
-      "Error, la información que llega desde San Pedro no es correcta en actualizarTrabajadores() class"
-    );
   }
 
   /* Eze 4.0 */
@@ -268,7 +288,7 @@ export class TrabajadoresClase {
       console.log("No existe el trabajador o no tiene password");
       return null;
     }
-  }
+  };
 }
 
 export const trabajadoresInstance = new TrabajadoresClase();
