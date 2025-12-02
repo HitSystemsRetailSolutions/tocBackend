@@ -687,6 +687,67 @@ export class CestaClase {
           );
         }
       }
+      // Vaciar instancias de todos los artículos de la nueva cesta
+      for (let item of nuevaCesta.lista) {
+        if (item.instancias && Array.isArray(item.instancias)) {
+          item.instancias = [];
+        }
+      }
+
+      // Ajustar instancias y printed después de añadir los artículos
+      for (let i = 0; i < articulos.length; i++) {
+        let e = articulos[i];
+        let idx;
+        if (e?.promocion && e.promocion.idPromocion) {
+          idx = nuevaCesta.lista.findIndex(
+            (z) =>
+              z.idArticulo == e.idArticulo &&
+              z.promocion &&
+              z.promocion.idPromocion === e.promocion.idPromocion
+          );
+        } else {
+          idx = nuevaCesta.lista.findIndex(
+            (z) =>
+              z.idArticulo == e.idArticulo &&
+              !z.promocion &&
+              ((!z.arraySuplementos && !e.arraySuplementos) ||
+                (Array.isArray(z.arraySuplementos) &&
+                  Array.isArray(e.arraySuplementos) &&
+                  JSON.stringify(z.arraySuplementos) ===
+                    JSON.stringify(e.arraySuplementos)))
+          );
+        }
+        if (idx === -1) continue;
+        let item = nuevaCesta.lista[idx];
+        // Buscar la instancia original correspondiente en e.instancias
+        if (Array.isArray(e.instancias) && typeof e.unidades === "number") {
+          // Priorizar instancias con printed: true
+          let instanciasTrue = e.instancias.filter(
+            (inst) => inst.printed === true
+          );
+          let instanciasFalse = e.instancias.filter((inst) => !inst.printed);
+          let instanciasSeleccionadas = [];
+          // Añadir primero las instancias con printed: true
+          instanciasSeleccionadas = instanciasSeleccionadas.concat(
+            instanciasTrue.slice(0, e.unidades)
+          );
+          // Si faltan unidades, completar con instancias con printed: false
+          if (instanciasSeleccionadas.length < e.unidades) {
+            instanciasSeleccionadas = instanciasSeleccionadas.concat(
+              instanciasFalse.slice(
+                0,
+                e.unidades - instanciasSeleccionadas.length
+              )
+            );
+          }
+          item.instancias = item.instancias.concat(instanciasSeleccionadas);
+          item.printed = item.instancias.filter(
+            (inst) => inst.printed === true
+          ).length;
+          item.unidades = item.instancias.length;
+        }
+      }
+      await schCestas.updateCesta(nuevaCesta);
       return id;
     }
   }
@@ -700,7 +761,7 @@ export class CestaClase {
         cestaMongo = await this.recalcularIvasv2(cestaMongo);
         await schCestas.updateCesta(cestaMongo);
       } else {
-        await this.clickTeclaArticulo(
+        cestaMongo = await this.clickTeclaArticulo(
           e.idArticulo,
           e.gramos,
           cesta,
@@ -711,6 +772,56 @@ export class CestaClase {
           ""
         );
       }
+    }
+    // Actualizar instancias en la cesta para que printed: true coincida con el array articulos
+    for (let i = 0; i < articulos.length; i++) {
+      let e = articulos[i];
+      let idx;
+      if (e?.promocion && e.promocion.idPromocion) {
+        idx = cestaMongo.lista.findIndex(
+          (z) =>
+            z.idArticulo == e.idArticulo &&
+            z.promocion &&
+            z.promocion.idPromocion === e.promocion.idPromocion
+        );
+      } else {
+        idx = cestaMongo.lista.findIndex(
+          (z) =>
+            z.idArticulo == e.idArticulo &&
+            !z.promocion &&
+            ((!z.arraySuplementos && !e.arraySuplementos) ||
+              (Array.isArray(z.arraySuplementos) &&
+                Array.isArray(e.arraySuplementos) &&
+                JSON.stringify(z.arraySuplementos) ===
+                  JSON.stringify(e.arraySuplementos)))
+        );
+      }
+      if (idx === -1) continue;
+      let item = cestaMongo.lista[idx];
+      if (Array.isArray(item.instancias) && Array.isArray(e.instancias)) {
+        // Por cada instancia true en e.instancias, buscar una en false en item.instancias y ponerla a true
+        let instanciasTrueArticulos = e.instancias.filter(
+          (inst) => inst.printed === true
+        );
+        let idxFalse = 0;
+        for (let k = 0; k < instanciasTrueArticulos.length; k++) {
+          // Buscar la siguiente instancia en false en item.instancias
+          while (idxFalse < item.instancias.length) {
+            if (item.instancias[idxFalse].printed === false) {
+              item.instancias[idxFalse].printed = true;
+              idxFalse++;
+              break;
+            }
+            idxFalse++;
+          }
+        }
+        // Recalcular los contadores
+        item.printed = item.instancias.filter(
+          (inst) => inst.printed === true
+        ).length;
+        item.unidades = item.instancias.length;
+      }
+      await schCestas.updateCesta(cestaMongo);
     }
     return true;
   }
@@ -834,12 +945,70 @@ export class CestaClase {
       let cesta = await this.getCestaById(idCesta);
       for (let x = 0; x < articulos.length; x++) {
         let i = cesta.lista.findIndex(
-          (z) => z.idArticulo == articulos[x].idArticulo
+          (z) =>
+            z.idArticulo == articulos[x].idArticulo &&
+            ((!z.arraySuplementos && !articulos[x].arraySuplementos) ||
+              (Array.isArray(z.arraySuplementos) &&
+                Array.isArray(articulos[x].arraySuplementos) &&
+                JSON.stringify(z.arraySuplementos) ===
+                  JSON.stringify(articulos[x].arraySuplementos)))
         );
-        if (cesta.lista[i].unidades > 1) {
-          cesta.lista[i].unidades -= 1;
+        // Si no se encuentra por idArticulo y suplementos, buscar por promoción
+        if (articulos[x].promocion && articulos[x].promocion.idPromocion) {
+          i = cesta.lista.findIndex((z) => {
+            if (
+              z.promocion &&
+              z.promocion.idPromocion === articulos[x].promocion.idPromocion
+            ) {
+              // Comparar el contenido de grupos (deep compare)
+              try {
+                return (
+                  JSON.stringify(z.promocion.grupos) ===
+                  JSON.stringify(articulos[x].promocion.grupos)
+                );
+              } catch {
+                return false;
+              }
+            }
+            return false;
+          });
+        }
+        if (i === -1) continue;
+        let item = cesta.lista[i];
+        // Si el artículo tiene instancias, priorizar printed: true
+        if (
+          item.instancias &&
+          Array.isArray(item.instancias) &&
+          item.instancias.length > 0
+        ) {
+          // Buscar instancias impresas primero
+          let idxPrinted = item.instancias.findIndex(
+            (inst) => inst.printed === true
+          );
+          if (idxPrinted !== -1) {
+            // Eliminar la instancia impresa
+            item.instancias.splice(idxPrinted, 1);
+          } else {
+            // Si no hay impresas, eliminar la primera instancia
+            item.instancias.splice(0, 1);
+          }
+          // Actualizar unidades
+          item.unidades -= 1;
+          // Actualizar el campo printed (total instancias impresas)
+          item.printed = item.instancias.filter(
+            (inst) => inst.printed === true
+          ).length;
+          // Si ya no quedan unidades, eliminar el item de la lista
+          if (item.unidades <= 0 || item.instancias.length === 0) {
+            cesta.lista.splice(i, 1);
+          }
         } else {
-          cesta.lista.splice(i, 1);
+          // Si no hay instancias, mantener el comportamiento anterior
+          if (item.unidades > 1) {
+            item.unidades -= 1;
+          } else {
+            cesta.lista.splice(i, 1);
+          }
         }
       }
       // Enviar por socket
