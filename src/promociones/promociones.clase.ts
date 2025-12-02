@@ -988,30 +988,50 @@ export class NuevaPromocion {
             0
           );
 
-          salida.push({
-            idArticulo: articulo.idArticulo,
-            nombre: articulo.nombre,
-            arraySuplementos: bloque.suplementos,
-            unidades: bloque.unidades,
-            subtotal: redondearPrecio(
-              (articulo.precioPorUnidad + totalSuplementos) * bloque.unidades
-            ),
-            promocion: null, // No es una promoción
-            puntos: articulo.puntosPorUnidad * bloque.unidades,
-            impresora: articulo.impresora,
-            printed: unidadesSinSuplementos > 0 ? 0 : printedValue,
-            instanceId: articulo.instanceId,
-            instancias: unidadesSinSuplementos > 0 ? null : articulo.instancias,
-            ...(articulo.descuentoTienda !== undefined && {
-              descuentoTienda: articulo.descuentoTienda,
-            }),
-            ...(articulo.tipoIva !== undefined && {
-              tipoIva: articulo.tipoIva,
-            }),
-            regalo: false,
-            pagado: false,
-            varis: false,
-          } as ItemLista);
+          // Buscar si ya existe un item con el mismo idArticulo y mismos suplementos
+          const idxExistente = salida.findIndex(
+            (item) =>
+              item.idArticulo === articulo.idArticulo &&
+              JSON.stringify(item.arraySuplementos) ===
+                JSON.stringify(bloque.suplementos)
+          );
+
+          if (idxExistente !== -1) {
+            // Si existe, sumar unidades y actualizar subtotal y puntos
+            salida[idxExistente].unidades += bloque.unidades;
+            salida[idxExistente].subtotal = redondearPrecio(
+              salida[idxExistente].subtotal +
+                (articulo.precioPorUnidad + totalSuplementos) * bloque.unidades
+            );
+            salida[idxExistente].puntos +=
+              articulo.puntosPorUnidad * bloque.unidades;
+          } else {
+            salida.push({
+              idArticulo: articulo.idArticulo,
+              nombre: articulo.nombre,
+              arraySuplementos: bloque.suplementos,
+              unidades: bloque.unidades,
+              subtotal: redondearPrecio(
+                (articulo.precioPorUnidad + totalSuplementos) * bloque.unidades
+              ),
+              promocion: null, // No es una promoción
+              puntos: articulo.puntosPorUnidad * bloque.unidades,
+              impresora: articulo.impresora,
+              printed: unidadesSinSuplementos > 0 ? 0 : printedValue,
+              instanceId: articulo.instanceId,
+              instancias:
+                unidadesSinSuplementos > 0 ? null : articulo.instancias,
+              ...(articulo.descuentoTienda !== undefined && {
+                descuentoTienda: articulo.descuentoTienda,
+              }),
+              ...(articulo.tipoIva !== undefined && {
+                tipoIva: articulo.tipoIva,
+              }),
+              regalo: false,
+              pagado: false,
+              varis: false,
+            } as ItemLista);
+          }
         }
       }
 
@@ -1022,7 +1042,6 @@ export class NuevaPromocion {
         // Primero las sin suplementos (porque aquí entra lo que se separó)
         if (unidadesSinSuplementos > 0 && unidadesRestantes > 0) {
           const usar = Math.min(unidadesRestantes, unidadesSinSuplementos);
-
           salida.push({
             idArticulo: articulo.idArticulo,
             nombre: articulo.nombre,
@@ -1057,7 +1076,6 @@ export class NuevaPromocion {
               (sum, s) => sum + s.precioConIva,
               0
             );
-
             salida.push({
               idArticulo: articulo.idArticulo,
               nombre: articulo.nombre,
@@ -1100,7 +1118,6 @@ export class NuevaPromocion {
           if (ArticulosEnNingunaPromocion.has(key)) {
             const unidadesUsadas = ArticulosEnNingunaPromocion.get(key) || 0;
             const art = MapPromocionables.get(key);
-
             // Agregar a la lista
             lista_out.push(
               ...crearItemListaNormal(
