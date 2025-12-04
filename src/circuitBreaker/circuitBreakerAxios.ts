@@ -3,18 +3,18 @@ import axios from "axios";
 const CircuitBreakerStates = {
   OPENED: "OPENED", // El circuito está abierto: las peticiones están bloqueadas temporalmente debido a fallos previos.
   CLOSED: "CLOSED", // El circuito está cerrado: todo funciona con normalidad y las peticiones se permiten.
-  HALF: "HALF",     // Estado intermedio: se permite una petición de prueba para verificar si el sistema se ha recuperado.
+  HALF: "HALF", // Estado intermedio: se permite una petición de prueba para verificar si el sistema se ha recuperado.
 };
 
-const timeout = 300000; // in ms
+const timeoutOpenCircuit = 300000; // in ms
 export class CircuitBreakerAxios {
   request: string = null;
   state = CircuitBreakerStates.CLOSED;
   failureCount: number = 0;
   failureThreshold: number = 5; // número de fallos para determinar cuándo abrir el circuito
   resetAfter: number = Date.now();
-  timeout: number = timeout; // declarar tiempo de espera al abrir el circuito
-
+  timeoutOpenCircuit: number = timeoutOpenCircuit; // declarar tiempo de espera al abrir el circuito
+  timeoutAxios: number = 5000; // tiempo de espera para las solicitudes axios
   constructor(request: string, options) {
     this.request = request;
     this.state = CircuitBreakerStates.CLOSED; // permitir solicitudes por defecto
@@ -24,10 +24,11 @@ export class CircuitBreakerAxios {
     this.resetAfter = Date.now();
     if (options) {
       this.failureThreshold = options.failureThreshold;
-      this.timeout = options.timeout;
+      this.timeoutOpenCircuit = options.timeoutOpenCircuit;
+      this.timeoutAxios = options.timeoutAxios;
     } else {
       this.failureThreshold = 5; // en ms
-      this.timeout = 5000; // en ms
+      this.timeoutOpenCircuit = 5000; // en ms
     }
   }
 
@@ -36,12 +37,20 @@ export class CircuitBreakerAxios {
       if (this.resetAfter <= Date.now()) {
         this.state = CircuitBreakerStates.HALF;
       } else {
-        return;
+        return { circuitOpen: true };
       }
     }
     try {
-      const response = await axios.post(this.request, ...args);
-      if (response.status >= 200 && response.status < 300 && !response.data?.error)
+      const response = await axios.post(this.request, ...args, {
+        timeout: this.timeoutAxios,
+      });
+
+      if (
+        response.status >= 200 &&
+        response.status < 300 &&
+        response.data &&
+        !response.data?.error
+      )
         return this.success(response);
       return this.failure(response);
     } catch (err) {
@@ -59,7 +68,7 @@ export class CircuitBreakerAxios {
 
   failure(data) {
     this.failureCount += 1;
-    const deadlock = data?.response?.data?.code=="DEADLOCK_DETECTED" || false;
+    const deadlock = data?.response?.data?.code == "DEADLOCK_DETECTED" || false;
     if (
       this.state === CircuitBreakerStates.HALF ||
       this.failureCount >= this.failureThreshold ||
@@ -74,7 +83,7 @@ export class CircuitBreakerAxios {
         );
       }
       this.state = CircuitBreakerStates.OPENED;
-      this.resetAfter = Date.now() + this.timeout;
+      this.resetAfter = Date.now() + this.timeoutOpenCircuit;
     }
     return data;
   }
@@ -85,7 +94,7 @@ export class CircuitBreakerAxios {
       `Circuito forzado a abierto en ${this.request} por fallo crítico.`
     );
     this.state = CircuitBreakerStates.OPENED;
-    this.resetAfter = Date.now() + this.timeout;
+    this.resetAfter = Date.now() + this.timeoutOpenCircuit;
   }
 
   forceClose() {
