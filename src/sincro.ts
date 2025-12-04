@@ -42,11 +42,13 @@ import { limpiezaDeudas } from "./deudas/deudas.mongodb";
 // inicio de breakers
 const failureThreshold = 3; // número de fallos antes de abrir el circuito
 const timeoutOpenCircuit = 300000; // tiempo en ms antes de abrir el circuito
+const timeoutAxios = 8000; // tiempo en ms de timeout de cada petición axios
 const CBSincronizarTicetsOtrosModificado = new CircuitBreakerAxios(
   "tickets/updOtros",
   {
     failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
-    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutOpenCircuit: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutAxios,
   }
 );
 
@@ -54,40 +56,46 @@ const CBSincronizarMovimientos = new CircuitBreakerAxios(
   "movimientos/enviarMovimiento",
   {
     failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
-    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutOpenCircuit: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutAxios,
   }
 );
 
 const CBSincronizarDeudasCreadas = new CircuitBreakerAxios("deudas/setDeuda", {
   failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
-  timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  timeoutOpenCircuit: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+  timeoutAxios,
 });
 const CBSincronizarEncargosCreados = new CircuitBreakerAxios(
   "encargos/setEncargo",
   {
     failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
-    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutOpenCircuit: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutAxios,
   }
 );
 const CBSincronizarDeudasFinalizadasSet = new CircuitBreakerAxios(
   "deudas/setCertificadoDeuda",
   {
     failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
-    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutOpenCircuit: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutAxios,
   }
 );
 const CBSincronizarDeudasFinalizadasAnular = new CircuitBreakerAxios(
   "deudas/anularDeuda",
   {
     failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
-    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutOpenCircuit: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutAxios,
   }
 );
 const CBSincronizarEncargosFinalizadosUpd = new CircuitBreakerAxios(
   "encargos/updateEncargoGraella",
   {
     failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
-    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutOpenCircuit: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutAxios,
   }
 );
 
@@ -95,7 +103,8 @@ const CBSincronizarEncargosFinalizadosDelete = new CircuitBreakerAxios(
   "encargos/deleteEncargoGraella",
   {
     failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
-    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutOpenCircuit: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutAxios,
   }
 );
 
@@ -103,7 +112,8 @@ const CBSincronizarPedidosCaducados = new CircuitBreakerAxios(
   "encargos/updateEncargoGraella",
   {
     failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
-    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutOpenCircuit: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutAxios,
   }
 );
 
@@ -111,7 +121,8 @@ const CBSincronizarAlbaranesCreados = new CircuitBreakerAxios(
   "albaranes/setAlbaran",
   {
     failureThreshold: failureThreshold, // número de fallos antes de abrir el circuito
-    timeout: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutOpenCircuit: timeoutOpenCircuit, // tiempo en ms antes de abrir el circuito
+    timeoutAxios,
   }
 );
 
@@ -281,45 +292,53 @@ async function socketSincronizarTickets() {
 async function sincronizarTicketsOtrosModificado() {
   if (enprocesoTicketsOtros) return; // salir si ya hay un proceso sincronizando
   try {
-    enprocesoTicketsOtros = true; // try-finally volvera a poner enprocesoTicketsOtros=false al salir
+    enprocesoTicketsOtros = true; // try-finally volvera a poner false al salir
+
     const parametros = await parametrosInstance.getParametros();
-    if (parametros != null) {
-      let enviarMasTicketsOtros = true;
-      while (enviarMasTicketsOtros) {
-        while (idsTicketsOtrosReenviar.length) {
-          let idTicket = idsTicketsOtrosReenviar.shift();
-          await ticketsInstance.setTicketOtrosModificado(idTicket, false);
-        }
-        const ticket: TicketsInterface =
-          await ticketsInstance.getTicketOtrosModificadoMasAntiguo();
-        if (ticket) {
-          await nuevaInstancePromociones.deshacerPromociones(ticket);
-          await cestasInstance.deshacerArticulosMenu(ticket);
-          const superTicket = { ...ticket, tipoPago: null, movimientos: null };
-          superTicket.movimientos =
-            await movimientosInstance.getMovimientosDelTicket(ticket._id);
-          superTicket.tipoPago =
-            await movimientosInstance.calcularFormaPago(superTicket);
-          const res: any = await CBSincronizarTicetsOtrosModificado.fire({
-            ticket: superTicket,
-          });
-          //.catch((e) => {console.log("error",e)});
-          if (res.data) {
-            if (idsTicketsReenviar.indexOf(ticket._id) == -1) {
-              // si el ticket no se va ha reenviar marcarlo como enviado
-              await ticketsInstance.setTicketOtrosModificado(ticket._id, true);
-            }
-          } else enviarMasTicketsOtros = false; // si error en server salir y esperar a la siguiente sincronización
-        } else {
-          // no hay ticket mas antiguo
-          if (idsTicketsReenviar.length == 0)
-            // no hay mas tickets que reenviar
-            enviarMasTicketsOtros = false;
-        }
-        if (enviarMasTicketsOtros) await sleep(100);
-      }
-    } else {
+
+    if (!parametros) {
       logger.Error(4, "No hay parámetros definidos en la BBDD");
+      return;
+    }
+
+    // 1️⃣ Si hay tickets pendientes de reenviar, procesa SOLO uno por ciclo
+    if (idsTicketsOtrosReenviar.length > 0) {
+      const id = idsTicketsOtrosReenviar.shift();
+      await ticketsInstance.setTicketOtrosModificado(id, false);
+    }
+
+    // 2️⃣ Obtener el ticket más antiguo
+    const ticket = await ticketsInstance.getTicketOtrosModificadoMasAntiguo();
+    if (!ticket) return;
+
+    // 3️⃣ Preparar ticket
+    await nuevaInstancePromociones.deshacerPromociones(ticket);
+    await cestasInstance.deshacerArticulosMenu(ticket);
+
+    const superTicket = {
+      ...ticket,
+      tipoPago: null,
+      movimientos: await movimientosInstance.getMovimientosDelTicket(
+        ticket._id
+      ),
+    };
+
+    superTicket.tipoPago =
+      await movimientosInstance.calcularFormaPago(superTicket);
+
+    // 4️⃣ Enviar al servidor
+    const res = await CBSincronizarTicetsOtrosModificado.fire({
+      ticket: superTicket,
+    });
+
+    // 5️⃣ Manejo de respuesta
+    if (res?.data) {
+      await ticketsInstance.setTicketOtrosModificado(ticket._id, true);
+
+      // 🟢 Todo OK → llamar otra vez inmediatamente
+      setTimeout(() => {
+        sincronizarTicketsOtrosModificado();
+      }, 0);
     }
   } catch (err) {
     logger.Error(5, err);
@@ -400,30 +419,35 @@ function diferenciasEnSegundos(fechaAnterior: Date, fechaActual: Date) {
   return Math.floor(diferenciaEnMilisegundos / 1000);
 }
 
-async function sincronizarMovimientos(continuar: boolean = false) {
+async function sincronizarMovimientos() {
+  if (enProcesoMovimientos) return;
+  enProcesoMovimientos = true;
+
   try {
-    if (!enProcesoMovimientos || continuar) {
-      enProcesoMovimientos = true;
-      const parametros = await parametrosInstance.getParametros();
-      if (parametros != null) {
-        const res = await movimientosInstance.getMovimientoMasAntiguo();
-        if (res) {
-          const resMovimiento: any = await CBSincronizarMovimientos.fire({
-            movimiento: res,
-          });
-          if (resMovimiento.data) {
-            if (await movimientosInstance.setMovimientoEnviado(res))
-              sincronizarMovimientos(true);
-          }
-        }
-      } else {
-        logger.Error(9, "No hay parámetros definidos en la BBDD");
+    const movimiento = await movimientosInstance.getMovimientoMasAntiguo();
+    if (!movimiento) return; // no hay nada más que procesar
+    const res: any = await CBSincronizarMovimientos.fire({ movimiento });
+
+    if (res?.data) {
+      const marcado =
+        await movimientosInstance.setMovimientoEnviado(movimiento);
+      if (!marcado) {
+        logger.Error(10, "No se pudo marcar movimiento como enviado");
+        return; // no continuar en caso de fallo interno
       }
+
+      // 🟢 Todo OK → llamar otra vez inmediatamente
+      // para procesar el siguiente movimiento sin esperar al interval
+      setTimeout(() => sincronizarMovimientos(), 0);
+    } else if (!res?.circuitOpen) {
+      logger.Error(10, res || "Error al enviar el movimiento");
+      // 🛑 no llamar de nuevo → dejar que el CB controle los fallos
     }
-    enProcesoMovimientos = false;
   } catch (err) {
-    enProcesoMovimientos = false;
     logger.Error(10, err);
+    // 🛑 no reintentar ahora mismo → el circuit breaker actuará
+  } finally {
+    enProcesoMovimientos = false;
   }
 }
 
@@ -485,382 +509,367 @@ function sincronizarDevoluciones() {
 }
 
 async function sincronizarDeudasCreadas() {
-  try {
-    if (!enProcesoDeudasCreadas) {
-      enProcesoDeudasCreadas = true;
-      const parametros = await parametrosInstance.getParametros();
-      if (parametros != null) {
-        const deuda = await deudasInstance.getDeudaCreadaMasAntiguo();
-        if (deuda) {
-          const parametros = await parametrosInstance.getParametros();
-          const dataDeuda = await deudasInstance.getDate(deuda.timestamp);
-          const deuda_santAna = {
-            id: deuda.idSql,
-            timestamp: deuda.timestamp,
-            dependenta: deuda.idTrabajador,
-            cliente: deuda.idCliente,
-            data: dataDeuda,
-            estat: 0,
-            tipus: 1,
-            import: deuda.total,
-            dejaCuenta: deuda.dejaCuenta ? deuda.dejaCuenta : 0,
-            botiga: parametros.licencia,
-            idTicket: deuda.idTicket,
-            bbdd: parametros.database,
-            dataVersion: deuda.dataVersion || null,
-          };
+  if (enProcesoDeudasCreadas) return;
+  enProcesoDeudasCreadas = true;
 
-          const res: any = await CBSincronizarDeudasCreadas.fire(deuda_santAna);
-          if (res.data && !res.data.error) {
-            if (await deudasInstance.setEnviado(deuda._id)) {
-              setTimeout(function () {
-                enProcesoDeudasCreadas = false;
-                sincronizarDeudasCreadas();
-              }, 100);
-            } else {
-              enProcesoDeudasCreadas = false;
-            }
-          } else {
-            logger.Error(
-              154,
-              "Error: no se ha podido crear la deuda en el SantaAna"
-            );
-            enProcesoDeudasCreadas = false;
-          }
-        } else {
-          enProcesoDeudasCreadas = false;
-        }
-      } else {
-        enProcesoDeudasCreadas = false;
-        logger.Error(4, "No hay parámetros definidos en la BBDD");
+  try {
+    const parametros = await parametrosInstance.getParametros();
+    if (!parametros) {
+      logger.Error(4, "No hay parámetros definidos en la BBDD");
+      return;
+    }
+
+    const deuda = await deudasInstance.getDeudaCreadaMasAntiguo();
+    if (!deuda) return;
+
+    const dataDeuda = await deudasInstance.getDate(deuda.timestamp);
+
+    const datos = {
+      id: deuda.idSql,
+      timestamp: deuda.timestamp,
+      dependenta: deuda.idTrabajador,
+      cliente: deuda.idCliente,
+      data: dataDeuda,
+      estat: 0,
+      tipus: 1,
+      import: deuda.total,
+      dejaCuenta: deuda.dejaCuenta ?? 0,
+      botiga: parametros.licencia,
+      idTicket: deuda.idTicket,
+      bbdd: parametros.database,
+      dataVersion: deuda.dataVersion || null,
+    };
+
+    const res: any = await CBSincronizarDeudasCreadas.fire(datos);
+
+    if (res?.data && !res.data.error) {
+      const ok = await deudasInstance.setEnviado(deuda._id);
+      if (!ok) {
+        logger.Error(154, "No se pudo marcar deuda como enviada");
+        return;
       }
+
+      // 🟢 éxito → llamar otra vez SIN bloquear
+      setTimeout(() => sincronizarDeudasCreadas(), 50);
+    } else if (!res?.circuitOpen) {
+      logger.Error(154, res || "Error al crear la deuda en SantaAna");
     }
   } catch (err) {
-    enProcesoDeudasCreadas = false;
     logger.Error(5, err);
+  } finally {
+    // SIEMPRE se ejecuta, sin importar dónde falló
+    enProcesoDeudasCreadas = false;
   }
 }
 
 async function sincronizarEncargosCreados() {
+  if (enProcesoEncargosCreados) return;
+  enProcesoEncargosCreados = true;
+
   try {
-    if (!enProcesoEncargosCreados) {
-      enProcesoEncargosCreados = true;
-      const parametros = await parametrosInstance.getParametros();
-      if (parametros != null) {
-        const encargo = await encargosInstance.getEncargoCreadoMasAntiguo();
-        if (encargo) {
-          const parametros = await parametrosInstance.getParametros();
-          let fecha = await encargosInstance.getDate(
-            encargo.opcionRecogida,
-            encargo.fecha,
-            encargo.hora,
-            "YYYY-MM-DD HH:mm:ss.S",
-            encargo.amPm,
-            encargo.timestamp
-          );
+    const parametros = await parametrosInstance.getParametros();
+    if (!parametros) {
+      logger.Error(4, "No hay parámetros definidos en la BBDD");
+      return;
+    }
 
-          encargo.productos = await encargosInstance.deshacerArticulosMenu(
-            encargo.productos
-          );
+    const encargo = await encargosInstance.getEncargoCreadoMasAntiguo();
+    if (!encargo) return;
 
-          const productos = nuevaInstancePromociones.deshacerPromocionesEncargo(
-            encargo.productos
-          );
+    // Fecha y productos
+    const fecha = await encargosInstance.getDate(
+      encargo.opcionRecogida,
+      encargo.fecha,
+      encargo.hora,
+      "YYYY-MM-DD HH:mm:ss.S",
+      encargo.amPm,
+      encargo.timestamp
+    );
 
-          const encargo_santAna = {
-            id: await encargosInstance.generateId(
-              await encargosInstance.getDate(
-                encargo.opcionRecogida,
-                encargo.fecha,
-                encargo.hora,
-                "YYYYMMDDHHmmss",
-                encargo.amPm,
-                encargo.timestamp
-              ),
-              encargo.idTrabajador.toString(),
-              parametros
-            ),
-            cliente: encargo.idCliente,
-            data: fecha,
-            estat: Estat.NO_BUSCADO,
-            tipus: 2,
-            anticip: encargo.dejaCuenta,
-            botiga: parametros.licencia,
-            periode:
-              encargo.opcionRecogida === OpcionRecogida.REPETICION
-                ? Periodo.PERIODO
-                : Periodo.NO_PERIODO,
-            dias:
-              encargo.opcionRecogida === OpcionRecogida.REPETICION
-                ? await encargosInstance.formatPeriode(encargo.dias)
-                : 0,
-            bbdd: parametros.database,
-            licencia: parametros.licencia,
-            productos: productos,
-            idTrabajador: encargo.idTrabajador,
-            recogido: false,
-            timestamp: encargo.timestamp,
-            opcionEncargo: encargo.opcionRecogida,
-            codigoBarras: encargo.codigoBarras,
-            dataVersion: encargo.dataVersion || null,
-          };
+    encargo.productos = await encargosInstance.deshacerArticulosMenu(
+      encargo.productos
+    );
 
-          if (encargo.estado == "PEDIDOS" && encargo.productos.length <= 0) {
-            if (await encargosInstance.setEnviado(encargo._id)) {
-              enProcesoEncargosCreados = false;
-              setTimeout(sincronizarEncargosCreados, 100);
-              return;
-            }
-          }
-          const res: any =
-            await CBSincronizarEncargosCreados.fire(encargo_santAna);
+    const productos = nuevaInstancePromociones.deshacerPromocionesEncargo(
+      encargo.productos
+    );
 
-          if (res.data) {
-            if (!res.data.errorv) {
-              if (await encargosInstance.setEnviado(encargo._id)) {
-                setTimeout(function () {
-                  enProcesoEncargosCreados = false;
-                  sincronizarEncargosCreados();
-                }, 100);
-              }
-            } else {
-              logger.Error(
-                153,
-                "Error: no se ha podido crear el encargo en el SantaAna"
-              );
-              enProcesoEncargosCreados = false;
-            }
-          } else {
-            logger.Error(153.1, "Error: no ha habido respuesta en SantaAna");
-            enProcesoEncargosCreados = false;
-          }
-        } else {
-          enProcesoEncargosCreados = false;
-        }
-      } else {
-        enProcesoEncargosCreados = false;
-        logger.Error(4, "No hay parámetros definidos en la BBDD");
-      }
+    // Generación ID
+    const idGenerado = await encargosInstance.generateId(
+      await encargosInstance.getDate(
+        encargo.opcionRecogida,
+        encargo.fecha,
+        encargo.hora,
+        "YYYYMMDDHHmmss",
+        encargo.amPm,
+        encargo.timestamp
+      ),
+      encargo.idTrabajador.toString(),
+      parametros
+    );
+
+    // Datos para API
+    const datos = {
+      id: idGenerado,
+      cliente: encargo.idCliente,
+      data: fecha,
+      estat: Estat.NO_BUSCADO,
+      tipus: 2,
+      anticip: encargo.dejaCuenta,
+      botiga: parametros.licencia,
+      periode:
+        encargo.opcionRecogida === OpcionRecogida.REPETICION
+          ? Periodo.PERIODO
+          : Periodo.NO_PERIODO,
+      dias:
+        encargo.opcionRecogida === OpcionRecogida.REPETICION
+          ? await encargosInstance.formatPeriode(encargo.dias)
+          : 0,
+      bbdd: parametros.database,
+      licencia: parametros.licencia,
+      productos,
+      idTrabajador: encargo.idTrabajador,
+      recogido: false,
+      timestamp: encargo.timestamp,
+      opcionEncargo: encargo.opcionRecogida,
+      codigoBarras: encargo.codigoBarras,
+      dataVersion: encargo.dataVersion || null,
+    };
+
+    // Caso especial (PEDIDOS sin productos)
+    if (encargo.estado === "PEDIDOS" && encargo.productos.length <= 0) {
+      const marcado = await encargosInstance.setEnviado(encargo._id);
+      if (marcado) setTimeout(() => sincronizarEncargosCreados(), 50);
+      return;
+    }
+
+    // Envío al servidor
+    const res: any = await CBSincronizarEncargosCreados.fire(datos);
+
+    // Validación de respuesta
+    if (res?.data && !res.data.errorv) {
+      const ok = await encargosInstance.setEnviado(encargo._id);
+      if (ok) setTimeout(() => sincronizarEncargosCreados(), 50);
+    } else if (!res?.circuitOpen) {
+      logger.Error(
+        153,
+        res || "Error: no se ha podido crear el encargo en el SantaAna"
+      );
     }
   } catch (err) {
-    enProcesoEncargosCreados = false;
     logger.Error(5, err);
+  } finally {
+    // SIEMPRE se ejecuta correctamente
+    enProcesoEncargosCreados = false;
   }
 }
 
 async function sincronizarDeudasFinalizadas() {
-  try {
-    if (!enProcesoDeudasFinalizadas) {
-      enProcesoDeudasFinalizadas = true;
-      const parametros = await parametrosInstance.getParametros();
-      if (parametros != null) {
-        const deuda = await deudasInstance.getDeudaFinalizadaMasAntiguo();
-        if (deuda) {
-          let CBDeuda = CBSincronizarDeudasFinalizadasSet;
-          if (deuda.estado == "ANULADO") {
-            CBDeuda = CBSincronizarDeudasFinalizadasAnular;
-          }
-          const parametros = await parametrosInstance.getParametros();
-          const timestamp = new Date().getTime();
-          const dataDeuda = await deudasInstance.getDate(timestamp);
-          const certificadoDeuda = {
-            id: deuda.idSql,
-            timestamp: timestamp,
-            dependenta: deuda.idTrabajador,
-            cliente: deuda.idCliente,
-            data: dataDeuda,
-            estat: 0,
-            tipus: 1,
-            import: deuda.total,
-            dejaCuenta: deuda.dejaCuenta ? deuda.dejaCuenta : 0,
-            botiga: parametros.licencia,
-            idTicket: deuda.idTicket,
-            bbdd: parametros.database,
-          };
+  if (enProcesoDeudasFinalizadas) return;
+  enProcesoDeudasFinalizadas = true;
 
-          const res: any = await CBDeuda.fire(certificadoDeuda);
-          if (res.data && !res.data.error) {
-            if (await deudasInstance.setFinalizado(deuda._id)) {
-              setTimeout(function () {
-                enProcesoDeudasFinalizadas = false;
-                sincronizarDeudasFinalizadas();
-              }, 100);
-            } else {
-              enProcesoDeudasFinalizadas = false;
-            }
-          } else {
-            logger.Error(
-              155,
-              "Error: no se ha podido crear la deuda en el SantaAna"
-            );
-            enProcesoDeudasFinalizadas = false;
-          }
-        } else {
-          enProcesoDeudasFinalizadas = false;
-        }
-      } else {
-        enProcesoDeudasFinalizadas = false;
-        logger.Error(4, "No hay parámetros definidos en la BBDD");
+  try {
+    const parametros = await parametrosInstance.getParametros();
+    if (!parametros) {
+      logger.Error(4, "No hay parámetros definidos en la BBDD");
+      return;
+    }
+
+    const deuda = await deudasInstance.getDeudaFinalizadaMasAntiguo();
+    if (!deuda) return;
+
+    // Elegir CB según tipo de acción
+    let CBDeuda =
+      deuda.estado === "ANULADO"
+        ? CBSincronizarDeudasFinalizadasAnular
+        : CBSincronizarDeudasFinalizadasSet;
+
+    // Preparar datos de envío
+    const timestamp = Date.now();
+    const dataDeuda = await deudasInstance.getDate(timestamp);
+
+    const certificado = {
+      id: deuda.idSql,
+      timestamp,
+      dependenta: deuda.idTrabajador,
+      cliente: deuda.idCliente,
+      data: dataDeuda,
+      estat: 0,
+      tipus: 1,
+      import: deuda.total,
+      dejaCuenta: deuda.dejaCuenta ?? 0,
+      botiga: parametros.licencia,
+      idTicket: deuda.idTicket,
+      bbdd: parametros.database,
+    };
+
+    const res: any = await CBDeuda.fire(certificado);
+
+    if (res?.data && !res.data.error) {
+      const ok = await deudasInstance.setFinalizado(deuda._id);
+      if (!ok) {
+        logger.Error(155, "No se pudo marcar la deuda como finalizada");
+        return;
       }
+
+      // 🟢 Éxito → lanzar siguiente iteración
+      setTimeout(() => sincronizarDeudasFinalizadas(), 50);
+    } else if (!res?.circuitOpen) {
+      logger.Error(
+        155,
+        res || "Error: no se ha podido crear la deuda en el SantaAna"
+      );
     }
   } catch (err) {
-    enProcesoDeudasFinalizadas = false;
     logger.Error(5, err);
+  } finally {
+    // SIEMPRE se ejecuta, sin importar errores del try
+    enProcesoDeudasFinalizadas = false;
   }
 }
 
 async function sincronizarEncargosFinalizados() {
-  try {
-    if (!enProcesoEncargosFinalizados) {
-      enProcesoEncargosFinalizados = true;
-      const parametros = await parametrosInstance.getParametros();
-      if (parametros != null) {
-        const encargo = await encargosInstance.getEncargoFinalizadoMasAntiguo();
-        if (encargo) {
-          let CBEnc = CBSincronizarEncargosFinalizadosUpd;
-          if (encargo.estado == "ANULADO") {
-            CBEnc = CBSincronizarEncargosFinalizadosDelete;
-          }
-          let encargoGraella = {
-            tmStmp: encargo.timestamp,
-            bbdd: parametros.database,
-            licencia: parametros.licencia,
-            data: encargo.fecha,
-            productos: encargo.productos,
-            id: await encargosInstance.generateId(
-              moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
-              encargo.idTrabajador.toString(),
-              parametros
-            ),
-          };
+  if (enProcesoEncargosFinalizados) return;
+  enProcesoEncargosFinalizados = true;
 
-          const res: any = await CBEnc.fire(encargoGraella);
-          if (res.data && !res.data.error) {
-            if (await encargosInstance.setFinalizado(encargo._id)) {
-              setTimeout(function () {
-                enProcesoEncargosFinalizados = false;
-                sincronizarEncargosFinalizados();
-              }, 100);
-            } else {
-              enProcesoEncargosFinalizados = false;
-            }
-          } else {
-            logger.Error(
-              156,
-              "Error: no se ha podido crear el encargo en el SantaAna"
-            );
-            enProcesoEncargosFinalizados = false;
-          }
-        } else {
-          enProcesoEncargosFinalizados = false;
-        }
-      } else {
-        enProcesoEncargosFinalizados = false;
-        logger.Error(4, "No hay parámetros definidos en la BBDD");
+  try {
+    const parametros = await parametrosInstance.getParametros();
+    if (!parametros) {
+      logger.Error(4, "No hay parámetros definidos en la BBDD");
+      return;
+    }
+
+    const encargo = await encargosInstance.getEncargoFinalizadoMasAntiguo();
+    if (!encargo) return;
+
+    let CBEnc = CBSincronizarEncargosFinalizadosUpd;
+    if (encargo.estado === "ANULADO") {
+      CBEnc = CBSincronizarEncargosFinalizadosDelete;
+    }
+
+    const encargoGraella = {
+      tmStmp: encargo.timestamp,
+      bbdd: parametros.database,
+      licencia: parametros.licencia,
+      data: moment(encargo.timestamp).format("YYYY-MM-DD HH:mm:ss.S"), // formato consistente
+      productos: encargo.productos,
+      id: await encargosInstance.generateId(
+        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+        encargo.idTrabajador.toString(),
+        parametros
+      ),
+    };
+
+    const res: any = await CBEnc.fire(encargoGraella);
+
+    if (res?.data && !res.data.error) {
+      const ok = await encargosInstance.setFinalizado(encargo._id);
+      if (ok) {
+        // auto-invocación segura
+        setTimeout(() => sincronizarEncargosFinalizados(), 50);
       }
+    } else if (!res?.circuitOpen) {
+      logger.Error(
+        156,
+        res || "Error: no se ha podido crear el encargo en el SantaAna"
+      );
     }
   } catch (err) {
-    enProcesoEncargosFinalizados = false;
     logger.Error(5, err);
+  } finally {
+    // siempre liberamos el flag
+    enProcesoEncargosFinalizados = false;
   }
 }
 
 // buscara pedido caducado y enviara una consulta para que lo marque como recogido
 async function sincronizarPedidosCaducados() {
-  try {
-    if (!enProcesoEncargosPedidosCaducados) {
-      enProcesoEncargosPedidosCaducados = true;
-      const parametros = await parametrosInstance.getParametros();
-      if (parametros != null) {
-        const encargo =
-          await encargosInstance.getEncargoPedidoCaducadoMasAntiguo();
-        if (encargo) {
-          let url = "encargos/updateEncargoGraella";
-          let encargoGraella = {
-            tmStmp: encargo.timestamp,
-            bbdd: parametros.database,
-            licencia: parametros.licencia,
-            productos: encargo.productos,
-            data: encargo.fecha,
-            id: await encargosInstance.generateId(
-              moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
-              encargo.idTrabajador.toString(),
-              parametros
-            ),
-          };
+  if (enProcesoEncargosPedidosCaducados) return;
+  enProcesoEncargosPedidosCaducados = true;
 
-          const res: any =
-            await CBSincronizarPedidosCaducados.fire(encargoGraella);
-          if (res.data && !res.data.error) {
-            if (await encargosInstance.setFinalizado(encargo._id)) {
-              setTimeout(function () {
-                enProcesoEncargosPedidosCaducados = false;
-                sincronizarPedidosCaducados();
-              }, 100);
-            } else {
-              enProcesoEncargosPedidosCaducados = false;
-            }
-          } else {
-            logger.Error(
-              156,
-              "Error: no se ha podido crear el encargo en el SantaAna"
-            );
-            enProcesoEncargosPedidosCaducados = false;
-          }
-        } else {
-          enProcesoEncargosPedidosCaducados = false;
-        }
-      } else {
-        enProcesoEncargosPedidosCaducados = false;
-        logger.Error(4, "No hay parámetros definidos en la BBDD");
+  try {
+    const parametros = await parametrosInstance.getParametros();
+    if (!parametros) {
+      logger.Error(4, "No hay parámetros definidos en la BBDD");
+      return;
+    }
+
+    const encargo = await encargosInstance.getEncargoPedidoCaducadoMasAntiguo();
+    if (!encargo) return;
+
+    const encargoGraella = {
+      tmStmp: encargo.timestamp,
+      bbdd: parametros.database,
+      licencia: parametros.licencia,
+      productos: encargo.productos,
+      data: moment(encargo.timestamp).format("YYYY-MM-DD HH:mm:ss.S"), // formato consistente
+      id: await encargosInstance.generateId(
+        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+        encargo.idTrabajador.toString(),
+        parametros
+      ),
+    };
+
+    const res: any = await CBSincronizarPedidosCaducados.fire(encargoGraella);
+
+    if (res?.data && !res.data.error) {
+      const ok = await encargosInstance.setFinalizado(encargo._id);
+      if (ok) {
+        // Autoinvocación controlada sin bloquear el flujo
+        setTimeout(() => sincronizarPedidosCaducados(), 50);
       }
+    } else if (!res?.circuitOpen) {
+      logger.Error(
+        156,
+        res || "Error: no se ha podido crear el encargo en el SantaAna"
+      );
     }
   } catch (err) {
-    enProcesoEncargosPedidosCaducados = false;
     logger.Error(5, err);
+  } finally {
+    // Siempre liberamos el flag
+    enProcesoEncargosPedidosCaducados = false;
   }
 }
 
 async function sincronizarAlbaranesCreados() {
+  if (enProcesoAlbaranesCreados) return;
+  enProcesoAlbaranesCreados = true;
+
   try {
-    if (!enProcesoAlbaranesCreados) {
-      enProcesoAlbaranesCreados = true;
-      const parametros = await parametrosInstance.getParametros();
-      if (parametros != null) {
-        const albaran = await AlbaranesInstance.getAlbaranCreadoMasAntiguo();
-        if (albaran) {
-          albaran.cesta.lista =
-            await nuevaInstancePromociones.deshacerPromociones(albaran);
-          albaran.cesta.lista =
-            await cestasInstance.deshacerArticulosMenu(albaran);
-          const res: any = await CBSincronizarAlbaranesCreados.fire(albaran);
-          if (res.data && !res.data.error) {
-            if (await AlbaranesInstance.setEnviado(albaran._id)) {
-              setTimeout(function () {
-                enProcesoAlbaranesCreados = false;
-                sincronizarAlbaranesCreados();
-              }, 100);
-            } else {
-              enProcesoAlbaranesCreados = false;
-            }
-          } else {
-            logger.Error(
-              153,
-              "Error: no se ha podido crear el albaran en el SantaAna"
-            );
-            enProcesoAlbaranesCreados = false;
-          }
-        } else {
-          enProcesoAlbaranesCreados = false;
-        }
-      } else {
-        enProcesoAlbaranesCreados = false;
-        logger.Error(4, "No hay parámetros definidos en la BBDD");
+    const parametros = await parametrosInstance.getParametros();
+    if (!parametros) {
+      logger.Error(4, "No hay parámetros definidos en la BBDD");
+      return;
+    }
+
+    const albaran = await AlbaranesInstance.getAlbaranCreadoMasAntiguo();
+    if (!albaran) return;
+
+    // Procesar lista correctamente
+    albaran.cesta.lista =
+      await nuevaInstancePromociones.deshacerPromociones(albaran);
+    albaran.cesta.lista = await cestasInstance.deshacerArticulosMenu(albaran);
+
+    const res: any = await CBSincronizarAlbaranesCreados.fire(albaran);
+
+    if (res?.data && !res.data.error) {
+      const ok = await AlbaranesInstance.setEnviado(albaran._id);
+      if (ok) {
+        // Auto-invocación segura
+        setTimeout(() => sincronizarAlbaranesCreados(), 50);
       }
+    } else if (!res?.circuitOpen) {
+      logger.Error(
+        153,
+        res || "Error: no se ha podido crear el albaran en el SantaAna"
+      );
     }
   } catch (err) {
-    enProcesoAlbaranesCreados = false;
     logger.Error(5, err);
+  } finally {
+    // Siempre liberar flag
+    enProcesoAlbaranesCreados = false;
   }
 }
 
