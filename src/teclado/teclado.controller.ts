@@ -34,7 +34,6 @@ export class TecladoController {
     );
     try {
       if (UtilesModule.checkVariable(idArticulo, gramos, idCesta, unidades)) {
-        console.log("clicktecla articulo:", precioManual, precioTecla);
         const resultado = await cestasInstance.clickTeclaArticulo(
           idArticulo,
           gramos,
