@@ -256,6 +256,7 @@ export class CestasController {
         await cestasInstance.setTrabajadorCesta(idCesta, idTrabajador);
         await trabajadoresInstance.actualizarTrabajadoresFrontend();
         await cestasInstance.actualizarCestas();
+        await new Promise((resolve) => setTimeout(resolve, 250));
         return true;
       }
 
