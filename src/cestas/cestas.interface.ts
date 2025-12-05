@@ -106,6 +106,7 @@ export type ItemLista = {
   pagado?: boolean;
   tarifaEsp?: boolean;
   varis?: boolean;
+  isPrecioFrontend?: boolean;
   instanceId?: string;
   // Array de instancias individuales - cada elemento representa 1 unidad
   instancias?: {
