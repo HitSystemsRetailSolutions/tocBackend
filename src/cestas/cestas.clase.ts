@@ -1110,8 +1110,11 @@ export class CestaClase {
     gramos: ItemLista["gramos"],
     nombre = "",
     menu = "",
-    regalar: boolean = false
+    regalar: boolean = false,
+    precioManual: boolean = false,
+    precioTecla: number = 0
   ): Promise<CestasInterface> {
+    console.log("insertarArt", precioManual, precioTecla);
     try {
       // sección critica, si se pulsan dos articulos muy seguidos el segundo tendra que esperar a que acabe
       // el primero ya que se modifican los items de la cesta.
@@ -1137,7 +1140,9 @@ export class CestaClase {
         ? await clienteInstance.getClienteById(cesta.idCliente)
         : null;
       const precioArt =
-        cliente && (cliente.albaran || cliente?.vip)
+        precioManual && articulo.varis
+          ? precioTecla
+          : cliente && (cliente.albaran || cliente?.vip)
           ? articulo.precioBase
           : articulo.precioConIva;
 
@@ -1437,7 +1442,7 @@ export class CestaClase {
             printed: false,
           });
         }
-
+        console.log("precioManual", precioManual, articulo.varis);
         ItemActualizado = {
           idArticulo: articulo._id,
           nombre: articulo.nombre,
@@ -1452,9 +1457,11 @@ export class CestaClase {
           unidades: unidades,
           gramos: gramos,
           pagado,
+          isPrecioFrontend: precioManual && articulo.varis ? true : false,
           instanceId: instancias[0].instanceId, // Para compatibilidad
           instancias: instancias,
         };
+        console.log("ItemActualizado", ItemActualizado);
         cesta.lista.push(ItemActualizado);
       }
       // aplicar las promociones despues de insertar el articulo en la cesta
@@ -1701,7 +1708,9 @@ export class CestaClase {
     articulosMenu: ItemLista["articulosMenu"],
     nombre: string,
     menu: string,
-    regalar: boolean = false
+    regalar: boolean = false,
+    precioManual: boolean = false,
+    precioTecla: number = 0
   ) {
     if (await cajaInstance.cajaAbierta()) {
       let articulo = await articulosInstance.getInfoArticulo(idArticulo);
@@ -1740,7 +1749,9 @@ export class CestaClase {
           gramos,
           nombre,
           menu,
-          regalar
+          regalar,
+          precioManual,
+          precioTecla
         );
       // Modo por unidad
       return await this.insertarArticulo(
@@ -1752,7 +1763,9 @@ export class CestaClase {
         null,
         nombre,
         menu,
-        regalar
+        regalar,
+        precioManual,
+        precioTecla
       );
     }
 
@@ -2289,10 +2302,17 @@ export class CestaClase {
         const clienteFacturacion =
           cliente && (cliente.albaran || cliente?.vip) ? true : false;
 
-        let precioArt =
-          cliente && (cliente.albaran || cliente?.vip)
-            ? articulo.precioBase
-            : articulo.precioConIva;
+        let precioArt = cesta.lista[i].isPrecioFrontend
+          ? articulo.precioConIva
+          : cliente && (cliente.albaran || cliente?.vip)
+          ? articulo.precioBase
+          : articulo.precioConIva;
+        console.log(
+          "precioArt REcIva2",
+          precioArt,
+          "isPrecioFrontend:",
+          cesta.lista[i].isPrecioFrontend
+        );
         const artPrecioIvaSinTarifa = articulo.precioConIva;
         const artPrecioSinTarifa = articulo.precioBase;
         articulo = await articulosInstance.getPrecioConTarifa(
