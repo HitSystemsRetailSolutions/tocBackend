@@ -1,6 +1,6 @@
 import { VersionInterface } from "src/version/version.interface";
 
-export interface MovimientosInterface extends VersionInterface{
+export interface MovimientosInterface extends VersionInterface {
   _id: number;
   tipo: TiposMovientos;
   valor: number;
@@ -50,4 +50,5 @@ export type FormaPago =
   | "HONEI + TARJETA"
   | "HONEI + DATAFONO_3G"
   | "DEV_DATAFONO_3G"
-  | "DEV_DATAFONO_PAYTEF";
+  | "DEV_DATAFONO_PAYTEF"
+  | "";

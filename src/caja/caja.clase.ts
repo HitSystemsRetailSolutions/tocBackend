@@ -29,7 +29,6 @@ import { redondearPrecio } from "src/funciones/funciones";
 import { getDataVersion } from "src/version/version.clase";
 require("dotenv").config();
 export class CajaClase {
-
   postFichajesCaja = async (
     arrayTrabajadores: CajaAbiertaInterface["fichajes"]
   ) => await schCajas.postfichajesCaja(arrayTrabajadores);
@@ -161,7 +160,7 @@ export class CajaClase {
       if (!cajaCerradaActual)
         throw new Error("Error al obtener datos de cierre de caja actual");
       if (
-        (cajaCerradaActual.descuadre < - 5 || cajaCerradaActual.descuadre > 5) &&
+        (cajaCerradaActual.descuadre < -5 || cajaCerradaActual.descuadre > 5) &&
         !forzarCierre
       ) {
         logger.Info("Cerrar caja cancelado, descuadre grande");
@@ -320,7 +319,9 @@ export class CajaClase {
 
       const fechaApertura = new Date(res.inicioTime);
       const fechaActual = new Date();
-      let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0]["_id"];
+      let trabId = (await trabajadoresInstance.getTrabajadoresFichados())[0][
+        "_id"
+      ];
 
       if (trabId == undefined) trabId = 0;
 
@@ -418,6 +419,7 @@ export class CajaClase {
     let totalEfectivo = 0;
     let totalSalidas = 0;
     let totalEntradas = 0;
+    let totalDejaACuenta = 0;
     let recaudado = 0;
     let totalDeuda = 0;
     let totalTkrsConExceso = 0;
@@ -456,11 +458,23 @@ export class CajaClase {
           ) {
             entradasAlbaran += arrayMovimientos[i].valor;
           }
+          if (
+            arrayMovimientos[i].concepto == "dejaACuentaEncargo" ||
+            arrayMovimientos[i].concepto == "dejaACuentaDeuda"
+          ) {
+            totalDejaACuenta += arrayMovimientos[i].valor;
+          }
           totalEntradas += arrayMovimientos[i].valor;
           totalEntradaDinero += arrayMovimientos[i].valor;
           break;
         case "DATAFONO_3G":
           totalTarjeta += arrayMovimientos[i].valor;
+          if (
+            arrayMovimientos[i].concepto == "dejaACuentaEncargo" ||
+            arrayMovimientos[i].concepto == "dejaACuentaDeuda"
+          ) {
+            totalDejaACuenta += arrayMovimientos[i].valor;
+          }
           break;
         case "DEV_DATAFONO_3G":
           totalTarjeta -= arrayMovimientos[i].valor;
@@ -529,9 +543,9 @@ export class CajaClase {
           totalCierre +
           cantidadPaytef +
           totalHonei)) *
-      -1
+        -1
     );
-    recaudado = totalTickets + descuadre;
+    recaudado = totalTickets + totalDejaACuenta + descuadre;
     let mediaTickets = 0;
     if (nTickets !== 0) {
       mediaTickets = totalTickets / nTickets;

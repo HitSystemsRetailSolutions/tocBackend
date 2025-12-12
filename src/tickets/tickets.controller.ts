@@ -65,6 +65,7 @@ export class TicketsController {
       tipo,
       tkrsData,
       dejaCuenta,
+      metodoPago,
     }: {
       total: number;
       idCesta: TicketsInterface["cesta"]["_id"];
@@ -75,6 +76,7 @@ export class TicketsController {
         formaPago: FormaPago;
       };
       dejaCuenta: TicketsInterface["dejaCuenta"];
+      metodoPago?: string;
     }
   ) {
     try {
@@ -121,8 +123,12 @@ export class TicketsController {
           dejaCuenta: dejaCuenta,
         };
         await deudasInstance.setDeuda(deuda);
+        let totalSalida = total;
+        if (metodoPago && metodoPago == "DATAFONO3G") {
+          totalSalida = total - dejaCuenta;
+        }
         await movimientosInstance.nuevoMovimiento(
-          total,
+          totalSalida,
           "DEUDA",
           "SALIDA",
           ticket._id,
@@ -130,10 +136,14 @@ export class TicketsController {
           cesta.nombreCliente
         );
         if (dejaCuenta > 0) {
+          let tipoMovimiento: MovimientosInterface["tipo"] = "ENTRADA_DINERO";
+          if (metodoPago && metodoPago == "DATAFONO3G") {
+            tipoMovimiento = "DATAFONO_3G";
+          }
           await movimientosInstance.nuevoMovimiento(
             dejaCuenta,
             "dejaACuentaDeuda",
-            "ENTRADA_DINERO",
+            tipoMovimiento,
             ticket._id,
             idTrabajador,
             cesta.nombreCliente

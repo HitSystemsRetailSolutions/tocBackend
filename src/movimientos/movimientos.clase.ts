@@ -674,10 +674,11 @@ export class MovimientosClase {
           const debeSerCero =
             superTicket.movimientos[0].valor + superTicket.movimientos[1].valor;
           if (debeSerCero === 0) return "DEVUELTO";
-          return "ERROR_DETECTADO";
+          return "";
         } else if (
           superTicket.movimientos[0].tipo === "SALIDA" &&
-          superTicket.movimientos[1].tipo === "ENTRADA_DINERO"
+          (superTicket.movimientos[1].tipo === "ENTRADA_DINERO" ||
+            superTicket.movimientos[1].tipo === "DATAFONO_3G")
         ) {
           if (superTicket.movimientos[1].concepto === "dejaACuentaDeuda")
             return "DEUDA";
@@ -762,7 +763,7 @@ export class MovimientosClase {
     } catch (error) {
       console.log("Error en calcularFormaPago", error);
       logger.Error(211, error);
-      return "ERROR_DETECTADO";
+      return "";
     }
   }
   private redondeoNoIntegrado(valor: number): number {
