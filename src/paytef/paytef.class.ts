@@ -193,7 +193,7 @@ class PaytefClass {
     });
     for (let intento = 0; intento < 4; intento++) {
       if (intento > 0) {
-        await new Promise((r) => setTimeout(r, 15000)); // Espera 15s entre intentos
+        await new Promise((r) => setTimeout(r, 17000)); // Espera 17s entre intentos
       }
       try {
         const lastFive = await this.getLastFive();
@@ -215,6 +215,13 @@ class PaytefClass {
         logger.Error(
           `ultimaComprobacion: Error en intento ${intento + 1}: ${e}`
         );
+        if (intento === 3) {
+          io.emit("consultaPaytef", {
+            valid: false,
+            ticket: idTicket,
+            lost: true,
+          });
+        }
       }
     }
     return [transaccionAprobada, errorConexion];

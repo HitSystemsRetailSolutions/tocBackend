@@ -21,6 +21,8 @@ export class TecladoController {
       nombre = "",
       menu,
       articulosMenu,
+      precioTecla = 0,
+      precioManual = false,
     }
   ) {
     const sourceProgram = headers["x-source-program"];
@@ -40,7 +42,10 @@ export class TecladoController {
           arraySuplementos,
           articulosMenu,
           nombre,
-          menu
+          menu,
+          false,
+          precioManual,
+          precioTecla
         );
         await cestasInstance.actualizarCestas();
         return resultado;
@@ -54,10 +59,10 @@ export class TecladoController {
   }
   /* Eze 4.0 */
   @Post("actualizarTeclado")
-  async actualizarArticulos( @Body() params) {
+  async actualizarArticulos(@Body() params) {
     try {
-      const force = params?.force||false;
-      const res = await tecladoInstance.actualizarTeclado( force );
+      const force = params?.force || false;
+      const res = await tecladoInstance.actualizarTeclado(force);
       if (res) {
         io.emit("cargarTeclado", res);
         return res;
