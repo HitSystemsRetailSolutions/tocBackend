@@ -588,7 +588,12 @@ export class TicketsClase {
       } else if (tkrsData.cantidadTkrs < ticket.total) {
         if (tipo === "DATAFONO_3G") {
           let total3G =
-            Math.round((ticket.total - tkrsData.cantidadTkrs) * 100) / 100;
+            Math.round(
+              (ticket.total -
+                (ticket.dejaCuenta || 0) -
+                tkrsData.cantidadTkrs) *
+                100
+            ) / 100;
           await movimientosInstance.nuevoMovimiento(
             total3G,
             "",
@@ -614,8 +619,11 @@ export class TicketsClase {
         );
       }
     } else if (tipo === "DATAFONO_3G") {
+      const total3G = ticket.dejaCuenta
+        ? Math.round((ticket.total - (ticket.dejaCuenta || 0)) * 100) / 100
+        : ticket.total;
       await movimientosInstance.nuevoMovimiento(
-        ticket.total,
+        total3G,
         "",
         "DATAFONO_3G",
         ticket._id,
