@@ -10,7 +10,7 @@ services:
       MQTT_USER: "mqtt"
       MQTT_PASSWORD: "DCdazU3RUTphpNx^iJQhVw"
       TZ: Europe/Madrid
-      npm_package_version: "4.25.49"
+      npm_package_version: "4.25.50"
     depends_on:
       - mongodb
     privileged: true
