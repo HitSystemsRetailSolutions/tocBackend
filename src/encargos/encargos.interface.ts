@@ -1,5 +1,10 @@
 import { ObjectId } from "mongodb";
-import { ArticuloPromoEnCesta, ArticulosMenu, CestasInterface, GrupoPromoEnCesta } from "../cestas/cestas.interface";
+import {
+  ArticuloPromoEnCesta,
+  ArticulosMenu,
+  CestasInterface,
+  GrupoPromoEnCesta,
+} from "../cestas/cestas.interface";
 import { VersionInterface } from "src/version/version.interface";
 import { PromocionesInterface } from "src/promociones/promociones.interface";
 

@@ -666,6 +666,14 @@ export class MovimientosClase {
         ) {
           return "EFECTIVO";
         }
+        // caso encargo recogido con pago en datafono3G y dejaACuenta
+        if (
+          superTicket.cesta.modo == "RECOGER ENCARGO" &&
+          (superTicket.movimientos[0].tipo === "DATAFONO_3G" ||
+            superTicket.movimientos[1].tipo === "SALIDA")
+        ) {
+          return "DATAFONO_3G";
+        }
         // CASO TARJETA ANULADA
         if (
           superTicket.movimientos[0].tipo === "TARJETA" &&

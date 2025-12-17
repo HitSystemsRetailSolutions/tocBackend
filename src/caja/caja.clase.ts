@@ -408,6 +408,7 @@ export class CajaClase {
       );
 
     let totalTickets = 0;
+    let totalTicketMasDejaCuenta = 0;
     let nClientes = 0;
     let nTickets = 0;
     let nClientesMesas = 0;
@@ -419,7 +420,7 @@ export class CajaClase {
     let totalEfectivo = 0;
     let totalSalidas = 0;
     let totalEntradas = 0;
-    let totalDejaACuenta = 0;
+
     let recaudado = 0;
     let totalDeuda = 0;
     let totalTkrsConExceso = 0;
@@ -462,19 +463,13 @@ export class CajaClase {
             arrayMovimientos[i].concepto == "dejaACuentaEncargo" ||
             arrayMovimientos[i].concepto == "dejaACuentaDeuda"
           ) {
-            totalDejaACuenta += arrayMovimientos[i].valor;
+            totalTicketMasDejaCuenta += arrayMovimientos[i].valor;
           }
           totalEntradas += arrayMovimientos[i].valor;
           totalEntradaDinero += arrayMovimientos[i].valor;
           break;
         case "DATAFONO_3G":
           totalTarjeta += arrayMovimientos[i].valor;
-          if (
-            arrayMovimientos[i].concepto == "dejaACuentaEncargo" ||
-            arrayMovimientos[i].concepto == "dejaACuentaDeuda"
-          ) {
-            totalDejaACuenta += arrayMovimientos[i].valor;
-          }
           break;
         case "DEV_DATAFONO_3G":
           totalTarjeta -= arrayMovimientos[i].valor;
@@ -513,6 +508,8 @@ export class CajaClase {
         nClientes++;
       }
       totalTickets += arrayTicketsCaja[i].total;
+      totalTicketMasDejaCuenta +=
+        arrayTicketsCaja[i].total - (arrayTicketsCaja[i]?.dejaCuenta || 0);
     }
 
     /*const descuadre =
@@ -545,7 +542,8 @@ export class CajaClase {
           totalHonei)) *
         -1
     );
-    recaudado = totalTickets + totalDejaACuenta + descuadre;
+    recaudado = totalTicketMasDejaCuenta + descuadre;
+
     let mediaTickets = 0;
     if (nTickets !== 0) {
       mediaTickets = totalTickets / nTickets;
