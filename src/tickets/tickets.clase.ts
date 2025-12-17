@@ -382,9 +382,11 @@ export class TicketsClase {
       if (!this.validarNIF(nif)) {
         parametrosInstance.setNif();
       }
+      cesta = await this.deleteInstanciasPrint(cesta);
     } catch (e) {
       console.log(e);
     }
+
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),
@@ -418,6 +420,18 @@ export class TicketsClase {
     });
 
     return total;
+  }
+
+  async deleteInstanciasPrint(
+    cesta: CestasInterface
+  ): Promise<CestasInterface> {
+    // eliminamos las instancias de print que pueda tener la cesta
+    cesta.lista.forEach((item, index) => {
+      if (item.instancias) {
+        delete cesta.lista[index].instancias;
+      }
+    });
+    return cesta;
   }
 
   /* Eze 4.0 */
