@@ -306,9 +306,13 @@ export class ClientesController {
   async consultarPuntos(@Body() { idCliente }) {
     try {
       return (
-        await axios.post("clientes/getPuntosCliente", {
-          idClienteFinal: idCliente,
-        })
+        await axios.post(
+          "clientes/getPuntosCliente",
+          {
+            idClienteFinal: idCliente,
+          },
+          { timeout: 2000 }
+        )
       ).data;
     } catch (err) {
       logger.Error(134, err);
@@ -360,6 +364,7 @@ export class ClientesController {
       const params = { idCliente: query.idCliente };
       const res = await axios.get("clientes/getIdTrabajadorCliente", {
         params,
+        timeout: 2000,
       });
       if (res.data) {
         return true;
