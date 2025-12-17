@@ -108,7 +108,12 @@ export class MovimientosClase {
           // si no existe el ticket en local, posblemente sea una deuda antigua
         }
       }
-      if (tipo === "ENTRADA_DINERO" && concepto != "DEUDA") {
+
+      if (
+        tipo === "ENTRADA_DINERO" &&
+        concepto != "DEUDA" &&
+        ExtraData["imprimir"] !== false
+      ) {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
       } else if (concepto == "DEUDA" && tipo === "ENTRADA_DINERO") {
         impresoraInstance.imprimirDeuda(nuevoMovimiento, nombreCliente);
@@ -123,7 +128,8 @@ export class MovimientosClase {
         concepto !== "Albaran" &&
         concepto !== "Paytef" &&
         tipo !== "DEV_DATAFONO_PAYTEF" &&
-        tipo !== "DEV_DATAFONO_3G"
+        tipo !== "DEV_DATAFONO_3G" &&
+        ExtraData["imprimir"] !== false
       ) {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
@@ -181,6 +187,7 @@ export class MovimientosClase {
   }
   async imprimirMov3G(nuevoMovimiento: MovimientosInterface, idTicket: number) {
     try {
+      if (!idTicket) impresoraInstance.imprimirMov3G(nuevoMovimiento, null);
       const ticket = await ticketsInstance.getTicketById(idTicket);
       const client = await clienteInstance.getClienteById(ticket.idCliente);
       let nombreCliente = client ? client.nombre : null;
