@@ -10,7 +10,18 @@ import { cajaInstance } from "src/caja/caja.clase";
 export class MovimientosController {
   /* Yasai :D */
   @Post("nuevoMovimiento") // Solo para entradas o salidas manuales (idTicket = null)
-  async nuevoMovimiento(@Body() { cantidad, concepto, idTrabajador, tipo, nombreCliente=null,idTicket=null }) {
+  async nuevoMovimiento(
+    @Body()
+    {
+      cantidad,
+      concepto,
+      idTrabajador,
+      tipo,
+      nombreCliente = null,
+      idTicket = null,
+      ExtraData = [],
+    }
+  ) {
     try {
       if (
         cantidad &&
@@ -22,7 +33,8 @@ export class MovimientosController {
           tipo,
           idTicket,
           idTrabajador,
-          nombreCliente
+          nombreCliente,
+          ExtraData
         );
       }
       throw Error("Error, faltan datos en nuevoMovimiento() controller");

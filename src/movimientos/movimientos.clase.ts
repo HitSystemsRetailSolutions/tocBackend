@@ -108,7 +108,12 @@ export class MovimientosClase {
           // si no existe el ticket en local, posblemente sea una deuda antigua
         }
       }
-      if (tipo === "ENTRADA_DINERO" && concepto != "DEUDA") {
+
+      if (
+        tipo === "ENTRADA_DINERO" &&
+        concepto != "DEUDA" &&
+        ExtraData["imprimir"] !== false
+      ) {
         impresoraInstance.imprimirEntrada(nuevoMovimiento);
       } else if (concepto == "DEUDA" && tipo === "ENTRADA_DINERO") {
         impresoraInstance.imprimirDeuda(nuevoMovimiento, nombreCliente);
@@ -123,7 +128,8 @@ export class MovimientosClase {
         concepto !== "Albaran" &&
         concepto !== "Paytef" &&
         tipo !== "DEV_DATAFONO_PAYTEF" &&
-        tipo !== "DEV_DATAFONO_3G"
+        tipo !== "DEV_DATAFONO_3G" &&
+        ExtraData["imprimir"] !== false
       ) {
         impresoraInstance.imprimirSalida(nuevoMovimiento);
       }
@@ -181,6 +187,7 @@ export class MovimientosClase {
   }
   async imprimirMov3G(nuevoMovimiento: MovimientosInterface, idTicket: number) {
     try {
+      if (!idTicket) impresoraInstance.imprimirMov3G(nuevoMovimiento, null);
       const ticket = await ticketsInstance.getTicketById(idTicket);
       const client = await clienteInstance.getClienteById(ticket.idCliente);
       let nombreCliente = client ? client.nombre : null;
@@ -666,6 +673,14 @@ export class MovimientosClase {
         ) {
           return "EFECTIVO";
         }
+        // caso encargo recogido con pago en datafono3G y dejaACuenta
+        if (
+          superTicket.cesta.modo == "RECOGER ENCARGO" &&
+          (superTicket.movimientos[0].tipo === "DATAFONO_3G" ||
+            superTicket.movimientos[1].tipo === "SALIDA")
+        ) {
+          return "DATAFONO_3G";
+        }
         // CASO TARJETA ANULADA
         if (
           superTicket.movimientos[0].tipo === "TARJETA" &&
@@ -674,10 +689,11 @@ export class MovimientosClase {
           const debeSerCero =
             superTicket.movimientos[0].valor + superTicket.movimientos[1].valor;
           if (debeSerCero === 0) return "DEVUELTO";
-          return "ERROR_DETECTADO";
+          return "";
         } else if (
           superTicket.movimientos[0].tipo === "SALIDA" &&
-          superTicket.movimientos[1].tipo === "ENTRADA_DINERO"
+          (superTicket.movimientos[1].tipo === "ENTRADA_DINERO" ||
+            superTicket.movimientos[1].tipo === "DATAFONO_3G")
         ) {
           if (superTicket.movimientos[1].concepto === "dejaACuentaDeuda")
             return "DEUDA";
@@ -762,7 +778,7 @@ export class MovimientosClase {
     } catch (error) {
       console.log("Error en calcularFormaPago", error);
       logger.Error(211, error);
-      return "ERROR_DETECTADO";
+      return "";
     }
   }
   private redondeoNoIntegrado(valor: number): number {

@@ -595,22 +595,25 @@ async function sincronizarEncargosCreados() {
     );
 
     // Generación ID
-    const idGenerado = await encargosInstance.generateId(
-      await encargosInstance.getDate(
+    let idEncSantaAna = "";
+    if (!encargo?.dataVersion || encargo.dataVersion < "4.25.50") {
+      idEncSantaAna = await encargosInstance.generateIdv1(
+        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+        encargo.idTrabajador.toString(),
+        parametros
+      );
+    } else {
+      idEncSantaAna = await encargosInstance.generateIdv2(
+        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+        encargo.idTrabajador.toString(),
+        parametros,
         encargo.opcionRecogida,
-        encargo.fecha,
-        encargo.hora,
-        "YYYYMMDDHHmmss",
-        encargo.amPm,
-        encargo.timestamp
-      ),
-      encargo.idTrabajador.toString(),
-      parametros
-    );
-
+        encargo.dias
+      );
+    }
     // Datos para API
     const datos = {
-      id: idGenerado,
+      id: idEncSantaAna,
       cliente: encargo.idCliente,
       data: fecha,
       estat: Estat.NO_BUSCADO,
@@ -747,17 +750,30 @@ async function sincronizarEncargosFinalizados() {
       CBEnc = CBSincronizarEncargosFinalizadosDelete;
     }
 
+    let idEncSantaAna = "";
+    if (!encargo?.dataVersion || encargo.dataVersion < "4.25.50") {
+      idEncSantaAna = await encargosInstance.generateIdv1(
+        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+        encargo.idTrabajador.toString(),
+        parametros
+      );
+    } else {
+      idEncSantaAna = await encargosInstance.generateIdv2(
+        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+        encargo.idTrabajador.toString(),
+        parametros,
+        encargo.opcionRecogida,
+        encargo.dias
+      );
+    }
+
     const encargoGraella = {
       tmStmp: encargo.timestamp,
       bbdd: parametros.database,
       licencia: parametros.licencia,
       data: moment(encargo.timestamp).format("YYYY-MM-DD HH:mm:ss.S"), // formato consistente
       productos: encargo.productos,
-      id: await encargosInstance.generateId(
-        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
-        encargo.idTrabajador.toString(),
-        parametros
-      ),
+      id: idEncSantaAna,
     };
 
     const res: any = await CBEnc.fire(encargoGraella);
@@ -797,17 +813,30 @@ async function sincronizarPedidosCaducados() {
     const encargo = await encargosInstance.getEncargoPedidoCaducadoMasAntiguo();
     if (!encargo) return;
 
+    let idEncSantaAna = "";
+    if (!encargo?.dataVersion || encargo.dataVersion < "4.25.50") {
+      idEncSantaAna = await encargosInstance.generateIdv1(
+        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+        encargo.idTrabajador.toString(),
+        parametros
+      );
+    } else {
+      idEncSantaAna = await encargosInstance.generateIdv2(
+        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
+        encargo.idTrabajador.toString(),
+        parametros,
+        encargo.opcionRecogida,
+        encargo.dias
+      );
+    }
+
     const encargoGraella = {
       tmStmp: encargo.timestamp,
       bbdd: parametros.database,
       licencia: parametros.licencia,
       productos: encargo.productos,
       data: moment(encargo.timestamp).format("YYYY-MM-DD HH:mm:ss.S"), // formato consistente
-      id: await encargosInstance.generateId(
-        moment(encargo.timestamp).format("YYYYMMDDHHmmss"),
-        encargo.idTrabajador.toString(),
-        parametros
-      ),
+      id: idEncSantaAna,
     };
 
     const res: any = await CBSincronizarPedidosCaducados.fire(encargoGraella);

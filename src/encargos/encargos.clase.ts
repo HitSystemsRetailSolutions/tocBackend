@@ -576,13 +576,26 @@ export class Encargos {
   setFinalizadoFalse = (idDeuda: EncargosInterface["_id"]) =>
     schEncargos.setFinalizadoFalse(idDeuda);
 
-  public async generateId(
+  public async generateIdv1(
     formatDate: string,
     idTrabajador: string,
     parametros: ParametrosInterface
   ): Promise<string> {
     return `Id_Enc_${formatDate}_${parametros.licencia}_${parametros.codigoTienda}_${idTrabajador}`;
   }
+
+  public async generateIdv2(
+    formatDate: string,
+    idTrabajador: string,
+    parametros: ParametrosInterface,
+    opcionRecogida: OpcionRecogida,
+    dias: any[]
+  ): Promise<string> {
+    const recurrente =
+      opcionRecogida === 3 && dias && dias.length > 0 ? "_" + dias[0].nDia : "";
+    return `Id_Enc_${formatDate}_${parametros.licencia}_${parametros.codigoTienda}_${idTrabajador}${recurrente}`;
+  }
+
   public async getDate(
     tipo: OpcionRecogida,
     fecha: string | null,
@@ -844,6 +857,7 @@ export class Encargos {
         idTrabajador: idDependenta,
         nombreDependienta: dependenta.nombre,
         timestamp: timestamp,
+        dataVersion: dataVersion,
         enviado: true,
         estado: "SIN_RECOGER",
         codigoBarras: codigoBarras,
@@ -1441,6 +1455,8 @@ export class Encargos {
         proximaFecha.setDate(proximaFecha.getDate() + 7);
         encargo.fecha = moment(proximaFecha).format("YYYY-MM-DD");
         delete encargo._id;
+        encargo.estado = "SIN_RECOGER";
+        encargo.timestamp = new Date().getTime();
         await schEncargos.setEncargo(encargo);
       }
     }

@@ -382,9 +382,11 @@ export class TicketsClase {
       if (!this.validarNIF(nif)) {
         parametrosInstance.setNif();
       }
+      cesta = await this.deleteInstanciasPrint(cesta);
     } catch (e) {
       console.log(e);
     }
+
     const nuevoTicket: TicketsInterface = {
       _id: await this.getProximoId(),
       timestamp: Date.now(),
@@ -418,6 +420,18 @@ export class TicketsClase {
     });
 
     return total;
+  }
+
+  async deleteInstanciasPrint(
+    cesta: CestasInterface
+  ): Promise<CestasInterface> {
+    // eliminamos las instancias de print que pueda tener la cesta
+    cesta.lista.forEach((item, index) => {
+      if (item.instancias) {
+        delete cesta.lista[index].instancias;
+      }
+    });
+    return cesta;
   }
 
   /* Eze 4.0 */
@@ -574,7 +588,12 @@ export class TicketsClase {
       } else if (tkrsData.cantidadTkrs < ticket.total) {
         if (tipo === "DATAFONO_3G") {
           let total3G =
-            Math.round((ticket.total - tkrsData.cantidadTkrs) * 100) / 100;
+            Math.round(
+              (ticket.total -
+                (ticket.dejaCuenta || 0) -
+                tkrsData.cantidadTkrs) *
+                100
+            ) / 100;
           await movimientosInstance.nuevoMovimiento(
             total3G,
             "",
@@ -600,8 +619,11 @@ export class TicketsClase {
         );
       }
     } else if (tipo === "DATAFONO_3G") {
+      const total3G = ticket.dejaCuenta
+        ? Math.round((ticket.total - (ticket.dejaCuenta || 0)) * 100) / 100
+        : ticket.total;
       await movimientosInstance.nuevoMovimiento(
-        ticket.total,
+        total3G,
         "",
         "DATAFONO_3G",
         ticket._id,
