@@ -473,6 +473,7 @@ export class CajaClase {
           break;
         case "DEV_DATAFONO_3G":
           totalTarjeta -= arrayMovimientos[i].valor;
+          break;
         case "SALIDA":
           if (
             arrayMovimientos[i].concepto === "DEUDA ALBARAN" ||
@@ -543,7 +544,6 @@ export class CajaClase {
         -1
     );
     recaudado = totalTicketMasDejaCuenta + descuadre;
-
     let mediaTickets = 0;
     if (nTickets !== 0) {
       mediaTickets = totalTickets / nTickets;
