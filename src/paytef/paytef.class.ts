@@ -191,6 +191,7 @@ class PaytefClass {
     io.emit("procesoPaytef", {
       proceso: "errorConexion",
     });
+    let encontrado = null;
     for (let intento = 0; intento < 4; intento++) {
       if (intento > 0) {
         await new Promise((r) => setTimeout(r, 17000)); // Espera 17s entre intentos
@@ -198,16 +199,12 @@ class PaytefClass {
       try {
         const lastFive = await this.getLastFive();
         if (Array.isArray(lastFive) && lastFive.length > 0) {
-          const encontrado = lastFive.find(
-            (ticket) => ticket.reference == idTicket
-          );
+          encontrado = lastFive.find((ticket) => ticket.reference == idTicket);
           if (encontrado) {
             transaccionAprobada = !!encontrado.approved;
             errorConexion = !encontrado.approved;
             io.emit("consultaPaytef", { valid: true, ticket: idTicket });
-            io.emit("procesoPaytef", {
-              proceso: "aprobado",
-            });
+            io.emit("procesoPaytef", { proceso: "aprobado" });
             break;
           }
         }
@@ -215,14 +212,14 @@ class PaytefClass {
         logger.Error(
           `ultimaComprobacion: Error en intento ${intento + 1}: ${e}`
         );
-        if (intento === 3) {
-          io.emit("consultaPaytef", {
-            valid: false,
-            ticket: idTicket,
-            lost: true,
-          });
-        }
       }
+    }
+    if (!encontrado) {
+      io.emit("consultaPaytef", {
+        valid: false,
+        ticket: idTicket,
+        lost: true,
+      });
     }
     return [transaccionAprobada, errorConexion];
   }
